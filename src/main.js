@@ -345,11 +345,20 @@ function applyHeaderProgress(progress) {
   const navScale = 1 + (0.88 - 1) * progress
   const detailOpacity =
     metrics.width < 1320 || progress > 0.16 ? 0 : clamp(1 - progress * 2.4, 0, 1)
+  const glassProgress = clamp(progress * 1.35, 0, 1)
+  const glassAlpha = 0.98 + (0.76 - 0.98) * glassProgress
+  const glassBlur = 18 * glassProgress
+  const glassShadowAlpha = 0.08 * glassProgress
+  const ruleAlpha = 1 - 0.18 * glassProgress
 
   document.documentElement.style.setProperty("--header-height", `${height.toFixed(2)}px`)
   document.documentElement.style.setProperty("--logo-size", `${logo.toFixed(2)}px`)
   document.documentElement.style.setProperty("--nav-scale", navScale.toFixed(4))
   document.documentElement.style.setProperty("--detail-opacity", detailOpacity.toFixed(4))
+  document.documentElement.style.setProperty("--header-glass-alpha", glassAlpha.toFixed(4))
+  document.documentElement.style.setProperty("--header-glass-blur", `${glassBlur.toFixed(2)}px`)
+  document.documentElement.style.setProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
+  document.documentElement.style.setProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
 
   const density =
     metrics.width < 560

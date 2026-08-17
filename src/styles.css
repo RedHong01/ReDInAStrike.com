@@ -15,6 +15,10 @@
   --logo-size: 150px;
   --nav-scale: 1;
   --detail-opacity: 1;
+  --header-glass-alpha: 0.98;
+  --header-glass-blur: 0px;
+  --header-glass-shadow-alpha: 0;
+  --header-rule-alpha: 1;
   --header-pad: clamp(18px, 1.75vw, 25px);
   --page-pad: clamp(24px, 6vw, 170px);
   --catalog-max: 1100px;
@@ -57,13 +61,28 @@ img {
   z-index: 20;
   width: 100%;
   height: var(--header-height);
-  background: var(--paper);
+  background: transparent;
   overflow: visible;
   isolation: isolate;
 }
 
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(255, 255, 255, var(--header-glass-alpha));
+  -webkit-backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
+  backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.72),
+    0 14px 34px rgba(0, 0, 0, var(--header-glass-shadow-alpha));
+  pointer-events: none;
+}
+
 .header-inner {
   position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -143,11 +162,12 @@ img {
 
 .header-rule {
   position: absolute;
+  z-index: 2;
   left: 0;
   right: 0;
   bottom: 0;
   height: 1px;
-  background: var(--rule);
+  background: rgba(17, 17, 17, var(--header-rule-alpha));
   pointer-events: none;
 }
 

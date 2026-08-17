@@ -287,6 +287,12 @@ const siteState = {
   layoutTransitionTimer: 0,
   navMetricKey: "",
   ruleFadeFrame: 0,
+  galleryFrame: 0,
+  galleryLastFrameTime: 0,
+  galleryLastScrollTime: 0,
+  galleryReveal: 0,
+  galleryShift: 0,
+  galleryPocketHeight: 0,
 }
 
 function asset(path) {
@@ -309,6 +315,11 @@ function routeFromLocation() {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
+}
+
+function easeOutCubic(value) {
+  const progress = clamp(value, 0, 1)
+  return 1 - (1 - progress) ** 3
 }
 
 function escapeHtml(value) {
@@ -374,6 +385,48 @@ function projectCard(project, index) {
     </a>`
 }
 
+function galleryTile(project, index, isClone = false) {
+  const hiddenAttributes = isClone ? ` aria-hidden="true" tabindex="-1"` : ""
+
+  return `
+    <a class="footer-gallery-tile" href="${hrefFor(project.path)}" style="${mediaStyle(project)}"${hiddenAttributes}>
+      <figure class="footer-gallery-media">
+        <img
+          src="${asset(project.image)}"
+          alt="${escapeHtml(project.pageTitle)}"
+          loading="${index < 4 ? "eager" : "lazy"}"
+        />
+      </figure>
+      <div class="footer-gallery-meta">
+        <span>${escapeHtml(project.displayTitle)}</span>
+        <span>${escapeHtml(project.date)}</span>
+      </div>
+    </a>`
+}
+
+function footerGalleryMarkup() {
+  const primaryTiles = projects
+    .map((project, index) => galleryTile(project, index))
+    .join("")
+  const cloneTiles = projects
+    .map((project, index) => galleryTile(project, index, true))
+    .join("")
+
+  return `
+    <section class="footer-gallery" aria-label="Rotating project gallery">
+      <div class="footer-gallery-viewport">
+        <div class="footer-gallery-track">
+          <div class="footer-gallery-set">
+            ${primaryTiles}
+          </div>
+          <div class="footer-gallery-set" aria-hidden="true">
+            ${cloneTiles}
+          </div>
+        </div>
+      </div>
+    </section>`
+}
+
 function aboutMarkup() {
   return `
     <section class="about-section" id="resume" aria-label="About Red Wang">
@@ -424,6 +477,7 @@ function homeMarkup() {
       <section class="catalog" aria-label="Project catalog">
         ${rows.join("")}
       </section>
+      ${footerGalleryMarkup()}
       ${aboutMarkup()}
     </main>`
 }
@@ -663,6 +717,7 @@ function render() {
   setupHeader()
   setupNavHoverSpacing()
   setupNavHoverInteraction()
+  setupFooterGallery()
   if (document.fonts) {
     document.fonts.ready.then(setupNavHoverSpacing).catch(() => {})
   }
@@ -717,6 +772,7 @@ function applyHeaderProgress(progress) {
     setupNavHoverSpacing()
   }
   requestRuleFadeUpdate()
+  updateFooterGalleryReveal()
 }
 
 function updateRuleFadeNearHeader() {
@@ -746,6 +802,141 @@ function requestRuleFadeUpdate() {
     siteState.ruleFadeFrame = 0
     updateRuleFadeNearHeader()
   })
+}
+
+function setFooterGalleryStyles(
+  reveal = siteState.galleryReveal,
+  shift = siteState.galleryShift,
+  pocketHeight = siteState.galleryPocketHeight,
+) {
+  const gallery = document.querySelector(".footer-gallery")
+  if (!gallery) return
+
+  const viewport = gallery.querySelector(".footer-gallery-viewport")
+  const track = gallery.querySelector(".footer-gallery-track")
+  const rect = viewport?.getBoundingClientRect() || gallery.getBoundingClientRect()
+  const visibleReveal = clamp(reveal, 0, 1)
+  const visiblePocket = Math.max(0, pocketHeight || 0)
+  const settledShift = Math.abs(shift) < 0.2 ? 0 : shift
+  const offscreenDistance = Math.max(
+    window.innerWidth * 1.08,
+    rect.width + 120,
+    (track?.scrollWidth || 0) * 0.25,
+  )
+  const enterOffset = (1 - visibleReveal) * offscreenDistance
+  gallery.style.setProperty("--gallery-reveal", visibleReveal.toFixed(4))
+  gallery.style.setProperty("--gallery-pocket-height", `${visiblePocket.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-enter-x", `${enterOffset.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-scroll-shift", `${settledShift.toFixed(2)}px`)
+  gallery.dataset.galleryRevealed = visibleReveal > 0.08 && visiblePocket > 28 ? "true" : "false"
+}
+
+function updateFooterGalleryReveal() {
+  const header = document.querySelector("[data-site-header]")
+  const catalog = document.querySelector(".catalog")
+  const gallery = document.querySelector(".footer-gallery")
+  const viewport = gallery?.querySelector(".footer-gallery-viewport")
+  const about = document.querySelector(".about-section")
+  if (!header || !catalog || !gallery || !viewport || !about) return 0
+
+  const headerRect = header.getBoundingClientRect()
+  const catalogRect = catalog.getBoundingClientRect()
+  const galleryRect = gallery.getBoundingClientRect()
+  const aboutRect = about.getBoundingClientRect()
+  const finalRowRect = catalog.querySelector(".project-row:last-child")?.getBoundingClientRect()
+  const headerBottom = headerRect.bottom
+  const finalContentBottom = finalRowRect
+    ? Math.max(catalogRect.bottom, finalRowRect.bottom)
+    : catalogRect.bottom
+  const galleryTop = galleryRect.top
+  const aboutTop = aboutRect.top
+  const rawPocketHeight = Math.max(0, aboutTop - headerBottom)
+  const maxPocketHeight = clamp(window.innerHeight * 0.26, 170, 320)
+  const pocketHeight = Math.min(maxPocketHeight, rawPocketHeight)
+  const clearDistance = clamp(window.innerHeight * 0.1, 72, 145)
+  const clearMargin = clamp(window.innerHeight * 0.18, 132, 240)
+  const spacerDistance = clamp(window.innerHeight * 0.08, 56, 120)
+  const pocketDistance = clamp(window.innerHeight * 0.1, 72, 150)
+  const minPocketGap = clamp(maxPocketHeight * 0.92, 160, 300)
+
+  const contentCleared = clamp((headerBottom - finalContentBottom - clearMargin) / clearDistance, 0, 1)
+  const spacerPinned = clamp((headerBottom - galleryTop) / spacerDistance, 0, 1)
+  const pocketFormed = clamp((rawPocketHeight - minPocketGap) / pocketDistance, 0, 1)
+  const reveal = easeOutCubic(Math.min(contentCleared, spacerPinned, pocketFormed))
+
+  siteState.galleryReveal = reveal
+  siteState.galleryPocketHeight = pocketHeight
+  if (reveal <= 0.001) {
+    siteState.galleryShift = Math.max(siteState.galleryShift, 0)
+  }
+  setFooterGalleryStyles(reveal, siteState.galleryShift, pocketHeight)
+  return reveal
+}
+
+function animateFooterGallery(time) {
+  const elapsed = siteState.galleryLastFrameTime
+    ? Math.min(0.05, (time - siteState.galleryLastFrameTime) / 1000)
+    : 1 / 60
+  siteState.galleryLastFrameTime = time
+
+  const returnSpeed = 18
+  siteState.galleryShift *= Math.exp(-returnSpeed * elapsed)
+
+  if (Math.abs(siteState.galleryShift) < 0.2) {
+    siteState.galleryShift = 0
+    siteState.galleryFrame = 0
+    siteState.galleryLastFrameTime = 0
+    setFooterGalleryStyles(siteState.galleryReveal, 0, siteState.galleryPocketHeight)
+    return
+  }
+
+  setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
+  siteState.galleryFrame = requestAnimationFrame(animateFooterGallery)
+}
+
+function nudgeFooterGallery(delta) {
+  const gallery = document.querySelector(".footer-gallery")
+  if (!gallery) return
+
+  const reveal = updateFooterGalleryReveal()
+  if (Math.abs(delta) < 0.25) return
+
+  const now = performance.now()
+  const elapsed = siteState.galleryLastScrollTime
+    ? clamp((now - siteState.galleryLastScrollTime) / 1000, 0.016, 0.12)
+    : 0.016
+  siteState.galleryLastScrollTime = now
+
+  const maxShift = Math.min(window.innerWidth * 0.46, 760)
+  const scrollVelocity = delta / elapsed
+  const impulse = clamp(-scrollVelocity * 0.022, -maxShift * 0.6, maxShift * 0.6)
+  const retreatImpulse =
+    delta < 0 ? Math.min(maxShift * 0.96, Math.abs(scrollVelocity) * 0.024 + Math.abs(delta) * 1.8) : 0
+
+  if (reveal <= 0.001 && delta >= 0) {
+    siteState.galleryShift = 0
+    setFooterGalleryStyles(reveal, 0, siteState.galleryPocketHeight)
+    return
+  }
+
+  siteState.galleryShift = clamp(siteState.galleryShift + impulse + retreatImpulse, -maxShift, maxShift)
+  setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
+
+  if (!siteState.galleryFrame) {
+    siteState.galleryLastFrameTime = 0
+    siteState.galleryFrame = requestAnimationFrame(animateFooterGallery)
+  }
+}
+
+function setupFooterGallery() {
+  if (siteState.galleryFrame) cancelAnimationFrame(siteState.galleryFrame)
+  siteState.galleryFrame = 0
+  siteState.galleryLastFrameTime = 0
+  siteState.galleryLastScrollTime = 0
+  siteState.galleryReveal = 0
+  siteState.galleryShift = 0
+  siteState.galleryPocketHeight = 0
+  updateFooterGalleryReveal()
 }
 
 function setupNavHoverSpacing() {
@@ -884,6 +1075,7 @@ function setupHeader() {
       const delta = current - siteState.lastScrollY
       siteState.lastScrollY = current
       updateHeaderFromScroll(delta)
+      nudgeFooterGallery(delta)
       requestRuleFadeUpdate()
     },
     { passive: true }
@@ -894,6 +1086,7 @@ function setupHeader() {
     applyHeaderProgress(siteState.visualProgress)
     setupNavHoverSpacing()
     requestRuleFadeUpdate()
+    updateFooterGalleryReveal()
   })
 }
 

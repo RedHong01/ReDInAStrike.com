@@ -285,7 +285,9 @@ img {
   gap: clamp(24px, 3vw, 46px);
   width: min(var(--catalog-max), calc(100vw - var(--page-pad) * 2));
   margin: 0 auto;
-  padding: clamp(64px, 8vw, 96px) 0 clamp(72px, 10vw, 128px);
+  min-height: clamp(360px, 34vw, 470px);
+  padding: clamp(34px, 4vw, 58px) 0 0;
+  align-items: end;
 }
 
 .about-section h2,
@@ -320,17 +322,24 @@ img {
 .profile-portrait {
   width: 100%;
   margin: 0;
-  overflow: hidden;
+  align-self: end;
+  overflow: visible;
 }
 
 .profile-portrait img {
   width: 100%;
-  height: 380px;
-  object-fit: cover;
-  object-position: center top;
+  height: clamp(320px, 33vw, 430px);
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
 }
 
 .profile-card {
+  align-self: center;
+}
+
+.about-copy,
+.contact-copy {
   align-self: center;
 }
 
@@ -512,10 +521,16 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-list {
 
   .about-section {
     grid-template-columns: minmax(0, 1fr) 150px;
+    min-height: auto;
+    padding-top: clamp(34px, 7vw, 56px);
   }
 
   .profile-card {
     grid-column: 1 / -1;
+  }
+
+  .profile-portrait img {
+    height: clamp(270px, 46vw, 360px);
   }
 }
 
@@ -572,11 +587,18 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-list {
 
   .about-section {
     grid-template-columns: 1fr;
+    gap: 24px;
+    padding-top: 32px;
   }
 
   .profile-portrait {
     max-width: 180px;
     justify-self: start;
+  }
+
+  .profile-portrait img {
+    height: auto;
+    max-height: 280px;
   }
 
   .detail-heading {

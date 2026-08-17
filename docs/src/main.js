@@ -290,9 +290,21 @@ const siteState = {
   galleryFrame: 0,
   galleryLastFrameTime: 0,
   galleryLastScrollTime: 0,
+  galleryLoopFrame: 0,
+  galleryLoopLastTime: 0,
+  galleryLoopDistance: 0,
+  galleryLoopOffset: 0,
+  galleryLoopBaseSpeed: 0,
+  galleryLoopBoost: 0,
   galleryReveal: 0,
+  galleryTargetReveal: 0,
   galleryShift: 0,
+  galleryPocketBottom: 0,
+  galleryTargetPocketBottom: 0,
   galleryPocketHeight: 0,
+  galleryTargetPocketHeight: 0,
+  aboutPull: 0,
+  aboutTargetPull: 0,
 }
 
 function asset(path) {
@@ -415,12 +427,14 @@ function footerGalleryMarkup() {
   return `
     <section class="footer-gallery" aria-label="Rotating project gallery">
       <div class="footer-gallery-viewport">
-        <div class="footer-gallery-track">
-          <div class="footer-gallery-set">
-            ${primaryTiles}
-          </div>
-          <div class="footer-gallery-set" aria-hidden="true">
-            ${cloneTiles}
+        <div class="footer-gallery-runner">
+          <div class="footer-gallery-track">
+            <div class="footer-gallery-set">
+              ${primaryTiles}
+            </div>
+            <div class="footer-gallery-set" aria-hidden="true">
+              ${cloneTiles}
+            </div>
           </div>
         </div>
       </div>
@@ -814,24 +828,209 @@ function setFooterGalleryStyles(
 
   const viewport = gallery.querySelector(".footer-gallery-viewport")
   const track = gallery.querySelector(".footer-gallery-track")
+  const about = document.querySelector(".about-section")
+  const galleryRect = gallery.getBoundingClientRect()
   const rect = viewport?.getBoundingClientRect() || gallery.getBoundingClientRect()
   const visibleReveal = clamp(reveal, 0, 1)
   const visiblePocket = Math.max(0, pocketHeight || 0)
   const settledShift = Math.abs(shift) < 0.2 ? 0 : shift
-  const offscreenDistance = Math.max(
-    window.innerWidth * 1.08,
-    rect.width + 120,
-    (track?.scrollWidth || 0) * 0.25,
+  const measuredAboutTop = about?.getBoundingClientRect().top
+  const pocketBottom = Math.max(
+    0,
+    Number.isFinite(measuredAboutTop) ? measuredAboutTop : siteState.galleryPocketBottom || 0,
   )
-  const enterOffset = (1 - visibleReveal) * offscreenDistance
+  const pocketTop = Math.max(0, pocketBottom - visiblePocket)
+  const viewportWidth = Math.max(
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0,
+    rect.width || 0,
+  )
+  const trackStyle = track ? window.getComputedStyle(track) : null
+  const gap = parseFloat(trackStyle?.columnGap || trackStyle?.gap || "") || 24
+  const metaHeight = clamp(viewportWidth * 0.024, 34, 54)
+  const mediaHeight = Math.max(0, visiblePocket - metaHeight)
+  const widthFromPocket = mediaHeight * (viewportWidth <= 700 ? 1.24 : 1.55)
+  const minTileCount =
+    viewportWidth <= 700
+      ? 1.35
+      : viewportWidth <= 980
+        ? 1.95
+        : 2.2
+  const maxTileCount =
+    viewportWidth <= 700
+      ? 2.45
+      : viewportWidth <= 980
+        ? 3.45
+        : 4.55
+  const targetTileCount = clamp(
+    viewportWidth / Math.max(widthFromPocket + gap, 1),
+    minTileCount,
+    maxTileCount,
+  )
+  const rawTileWidth =
+    (viewportWidth - gap * Math.max(0, targetTileCount - 1)) / targetTileCount
+  const minTileWidth = clamp(
+    viewportWidth * (viewportWidth <= 700 ? 0.56 : 0.2),
+    viewportWidth <= 700 ? 170 : 240,
+    viewportWidth <= 700 ? 300 : 420,
+  )
+  const maxTileWidth = clamp(
+    viewportWidth * (viewportWidth <= 700 ? 0.92 : 0.46),
+    viewportWidth <= 700 ? 320 : 360,
+    viewportWidth <= 700 ? 620 : 1120,
+  )
+  const tileWidth = clamp(rawTileWidth, minTileWidth, maxTileWidth)
+  const anchoredShift = visibleReveal > 0.72 ? Math.min(settledShift, 0) : settledShift
   gallery.style.setProperty("--gallery-reveal", visibleReveal.toFixed(4))
   gallery.style.setProperty("--gallery-pocket-height", `${visiblePocket.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-enter-x", `${enterOffset.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-scroll-shift", `${settledShift.toFixed(2)}px`)
-  gallery.dataset.galleryRevealed = visibleReveal > 0.08 && visiblePocket > 28 ? "true" : "false"
+  gallery.style.setProperty("--gallery-pocket-top", `${pocketTop.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-viewport-left", `${(-galleryRect.left).toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-tile-width", `${tileWidth.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-meta-space", `${metaHeight.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-opacity", visibleReveal > 0.001 ? "1" : "0")
+  gallery.style.setProperty("--gallery-enter-x", "0px")
+  gallery.style.setProperty("--gallery-scroll-shift", `${anchoredShift.toFixed(2)}px`)
+  gallery.dataset.galleryRevealed = visibleReveal > 0.01 && visiblePocket > 72 ? "true" : "false"
+  setFooterGalleryLoopMetrics(gallery)
 }
 
-function updateFooterGalleryReveal() {
+function wrapGalleryLoopOffset(offset, distance) {
+  if (!Number.isFinite(distance) || distance <= 0) return 0
+  return ((offset % distance) + distance) % distance
+}
+
+function requestFooterGalleryLoop() {
+  if (siteState.galleryLoopFrame) return
+  siteState.galleryLoopLastTime = 0
+  siteState.galleryLoopFrame = requestAnimationFrame(animateFooterGalleryLoop)
+}
+
+function setFooterGalleryLoopMetrics(gallery) {
+  const track = gallery.querySelector(".footer-gallery-track")
+  const firstSet = gallery.querySelector(".footer-gallery-set")
+  if (!track || !firstSet) return
+
+  const trackStyle = window.getComputedStyle(track)
+  const trackGap = parseFloat(trackStyle.columnGap || trackStyle.gap || "") || 0
+  const setWidth = firstSet.getBoundingClientRect().width
+  if (!Number.isFinite(setWidth) || setWidth <= 0) return
+
+  const distance = setWidth + trackGap
+  const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
+  const pxPerSecond = viewportWidth <= 700 ? 38 : viewportWidth <= 1440 ? 48 : 56
+  const duration = clamp(distance / pxPerSecond, 42, 120)
+  const previousDistance = siteState.galleryLoopDistance
+
+  if (previousDistance > 0 && Math.abs(previousDistance - distance) > 0.5) {
+    siteState.galleryLoopOffset = wrapGalleryLoopOffset(
+      (siteState.galleryLoopOffset / previousDistance) * distance,
+      distance,
+    )
+  }
+
+  siteState.galleryLoopDistance = distance
+  siteState.galleryLoopBaseSpeed = distance / duration
+  siteState.galleryLoopOffset = wrapGalleryLoopOffset(siteState.galleryLoopOffset, distance)
+
+  gallery.style.setProperty("--gallery-loop-distance", `${distance.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-loop-x", `${(-distance).toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-loop-duration", `${duration.toFixed(2)}s`)
+  gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+
+  if (
+    gallery.dataset.galleryRevealed === "true" ||
+    siteState.galleryReveal > 0.001 ||
+    siteState.galleryTargetReveal > 0.001 ||
+    siteState.galleryLoopBoost > 0.2
+  ) {
+    requestFooterGalleryLoop()
+  }
+}
+
+function animateFooterGalleryLoop(time) {
+  const gallery = document.querySelector(".footer-gallery")
+  if (!gallery) {
+    siteState.galleryLoopFrame = 0
+    siteState.galleryLoopLastTime = 0
+    return
+  }
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  if (reducedMotion) {
+    siteState.galleryLoopBoost = 0
+    siteState.galleryLoopOffset = 0
+    gallery.style.setProperty("--gallery-loop-offset", "0px")
+    siteState.galleryLoopFrame = 0
+    siteState.galleryLoopLastTime = 0
+    return
+  }
+
+  const distance = siteState.galleryLoopDistance
+  const active =
+    gallery.dataset.galleryRevealed === "true" ||
+    siteState.galleryReveal > 0.001 ||
+    siteState.galleryTargetReveal > 0.001
+
+  if (!Number.isFinite(distance) || distance <= 0 || (!active && siteState.galleryLoopBoost < 0.2)) {
+    siteState.galleryLoopFrame = 0
+    siteState.galleryLoopLastTime = 0
+    return
+  }
+
+  const elapsed = siteState.galleryLoopLastTime
+    ? Math.min(0.05, (time - siteState.galleryLoopLastTime) / 1000)
+    : 1 / 60
+  siteState.galleryLoopLastTime = time
+
+  const damping = 1.28
+  siteState.galleryLoopBoost *= Math.exp(-damping * elapsed)
+
+  const paused = gallery.matches(":hover") || gallery.matches(":focus-within")
+  if (!paused && active) {
+    const speed = Math.max(0, siteState.galleryLoopBaseSpeed + siteState.galleryLoopBoost)
+    siteState.galleryLoopOffset = wrapGalleryLoopOffset(
+      siteState.galleryLoopOffset + speed * elapsed,
+      distance,
+    )
+    gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+  }
+
+  siteState.galleryLoopFrame = requestAnimationFrame(animateFooterGalleryLoop)
+}
+
+function applyFooterComposition() {
+  const about = document.querySelector(".about-section")
+  if (about) {
+    const pull = Math.max(0, siteState.aboutPull || 0)
+    about.style.setProperty("--about-pull-y", `${pull.toFixed(2)}px`)
+  }
+  setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
+}
+
+function setFooterCompositionTargets(reveal, pocketBottom, pocketHeight, aboutPull, immediate = false) {
+  siteState.galleryTargetReveal = clamp(reveal, 0, 1)
+  siteState.galleryTargetPocketBottom = Math.max(0, pocketBottom)
+  siteState.galleryTargetPocketHeight = Math.max(0, pocketHeight)
+  siteState.aboutTargetPull = Math.max(0, aboutPull)
+
+  if (immediate) {
+    if (siteState.galleryFrame) cancelAnimationFrame(siteState.galleryFrame)
+    siteState.galleryFrame = 0
+    siteState.galleryLastFrameTime = 0
+    siteState.galleryReveal = siteState.galleryTargetReveal
+    siteState.galleryPocketBottom = siteState.galleryTargetPocketBottom
+    siteState.galleryPocketHeight = siteState.galleryTargetPocketHeight
+    siteState.aboutPull = siteState.aboutTargetPull
+    applyFooterComposition()
+    return
+  }
+
+  if (!siteState.galleryFrame) {
+    siteState.galleryFrame = requestAnimationFrame(animateFooterGallery)
+  }
+}
+
+function updateFooterGalleryReveal(options = {}) {
   const header = document.querySelector("[data-site-header]")
   const catalog = document.querySelector(".catalog")
   const gallery = document.querySelector(".footer-gallery")
@@ -845,31 +1044,77 @@ function updateFooterGalleryReveal() {
   const aboutRect = about.getBoundingClientRect()
   const finalRowRect = catalog.querySelector(".project-row:last-child")?.getBoundingClientRect()
   const headerBottom = headerRect.bottom
+  const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+  const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
   const finalContentBottom = finalRowRect
     ? Math.max(catalogRect.bottom, finalRowRect.bottom)
     : catalogRect.bottom
   const galleryTop = galleryRect.top
-  const aboutTop = aboutRect.top
+  const naturalAboutTop = aboutRect.top + (siteState.aboutPull || 0)
+  const targetPocketHeight = clamp(
+    viewportHeight * (viewportWidth <= 700 ? 0.5 : 0.52),
+    viewportWidth <= 700 ? 300 : 380,
+    viewportWidth <= 700 ? 580 : 980,
+  )
+  const pullStartTop = viewportHeight + clamp(viewportHeight * 0.1, 96, 240)
+  const pullEndTop = Math.min(
+    headerBottom + targetPocketHeight,
+    viewportHeight - clamp(viewportHeight * 0.1, 80, 180),
+  )
+  const pullRange = Math.max(1, pullStartTop - pullEndTop)
+  const naturalPullProgress = clamp((pullStartTop - naturalAboutTop) / pullRange, 0, 1)
+  const spacerPullProgress = clamp(
+    (headerBottom + clamp(viewportHeight * 0.42, 240, 720) - galleryTop) /
+      Math.max(galleryRect.height * 0.92, viewportHeight * 0.48, 1),
+    0,
+    1,
+  )
+  const pullProgress = easeOutCubic(Math.max(naturalPullProgress, spacerPullProgress))
+  const desiredAboutTop = pullStartTop + (pullEndTop - pullStartTop) * pullProgress
+  const maxAboutPull = Math.max(0, naturalAboutTop - headerBottom - 1)
+  const aboutPull =
+    pullProgress > 0.001 ? clamp(naturalAboutTop - desiredAboutTop, 0, maxAboutPull) : 0
+  const aboutTop = naturalAboutTop - aboutPull
   const rawPocketHeight = Math.max(0, aboutTop - headerBottom)
-  const maxPocketHeight = clamp(window.innerHeight * 0.26, 170, 320)
-  const pocketHeight = Math.min(maxPocketHeight, rawPocketHeight)
-  const clearDistance = clamp(window.innerHeight * 0.1, 72, 145)
-  const clearMargin = clamp(window.innerHeight * 0.18, 132, 240)
+  const aboutRuleVisible = aboutTop <= window.innerHeight + 1 && aboutTop > headerBottom
+  const viewportPocketHeight = aboutRuleVisible
+    ? Math.min(rawPocketHeight, Math.max(0, window.innerHeight - headerBottom))
+    : 0
+  const minPocketGap = clamp(window.innerHeight * 0.24, 220, 460)
+  const clearLead = clamp(window.innerHeight * 0.22, 120, 320)
+  const clearDistance = clamp(window.innerHeight * 0.05, 42, 110)
+  const spacerLead = clamp(window.innerHeight * 0.16, 110, 280)
   const spacerDistance = clamp(window.innerHeight * 0.08, 56, 120)
-  const pocketDistance = clamp(window.innerHeight * 0.1, 72, 150)
-  const minPocketGap = clamp(maxPocketHeight * 0.92, 160, 300)
+  const pocketDistance = clamp(window.innerHeight * 0.12, 120, 260)
+  const aboutDistance = clamp(window.innerHeight * 0.16, 140, 320)
 
-  const contentCleared = clamp((headerBottom - finalContentBottom - clearMargin) / clearDistance, 0, 1)
-  const spacerPinned = clamp((headerBottom - galleryTop) / spacerDistance, 0, 1)
-  const pocketFormed = clamp((rawPocketHeight - minPocketGap) / pocketDistance, 0, 1)
-  const reveal = easeOutCubic(Math.min(contentCleared, spacerPinned, pocketFormed))
+  const contentCleared = clamp((headerBottom + clearLead - finalContentBottom) / clearDistance, 0, 1)
+  const spacerPinned = clamp((headerBottom + spacerLead - galleryTop) / spacerDistance, 0, 1)
+  const aboutDocked = aboutRuleVisible
+    ? clamp((window.innerHeight - aboutTop) / aboutDistance, 0, 1)
+    : 0
+  const pocketFormed = aboutRuleVisible
+    ? clamp((viewportPocketHeight - minPocketGap) / pocketDistance, 0, 1)
+    : 0
+  const reveal = easeOutCubic(Math.min(contentCleared, spacerPinned, aboutDocked, pocketFormed))
 
-  siteState.galleryReveal = reveal
-  siteState.galleryPocketHeight = pocketHeight
   if (reveal <= 0.001) {
     siteState.galleryShift = Math.max(siteState.galleryShift, 0)
   }
-  setFooterGalleryStyles(reveal, siteState.galleryShift, pocketHeight)
+  const heightFill =
+    viewportWidth <= 700
+      ? easeOutCubic(clamp(reveal / 0.58, 0, 1))
+      : viewportWidth <= 980
+        ? easeOutCubic(clamp(reveal / 0.74, 0, 1))
+        : reveal
+  const galleryTargetHeight = reveal > 0.001 ? viewportPocketHeight * heightFill : 0
+  setFooterCompositionTargets(
+    reveal,
+    aboutTop,
+    galleryTargetHeight,
+    aboutPull,
+    options.immediate === true,
+  )
   return reveal
 }
 
@@ -879,18 +1124,38 @@ function animateFooterGallery(time) {
     : 1 / 60
   siteState.galleryLastFrameTime = time
 
-  const returnSpeed = 18
+  const followSpeed = 10
+  const amount = 1 - Math.exp(-followSpeed * elapsed)
+  siteState.galleryReveal += (siteState.galleryTargetReveal - siteState.galleryReveal) * amount
+  siteState.galleryPocketBottom +=
+    (siteState.galleryTargetPocketBottom - siteState.galleryPocketBottom) * amount
+  siteState.galleryPocketHeight +=
+    (siteState.galleryTargetPocketHeight - siteState.galleryPocketHeight) * amount
+  siteState.aboutPull += (siteState.aboutTargetPull - siteState.aboutPull) * amount
+
+  const returnSpeed = 16
   siteState.galleryShift *= Math.exp(-returnSpeed * elapsed)
 
-  if (Math.abs(siteState.galleryShift) < 0.2) {
+  const isSettled =
+    Math.abs(siteState.galleryTargetReveal - siteState.galleryReveal) < 0.001 &&
+    Math.abs(siteState.galleryTargetPocketBottom - siteState.galleryPocketBottom) < 0.2 &&
+    Math.abs(siteState.galleryTargetPocketHeight - siteState.galleryPocketHeight) < 0.2 &&
+    Math.abs(siteState.aboutTargetPull - siteState.aboutPull) < 0.2 &&
+    Math.abs(siteState.galleryShift) < 0.2
+
+  if (isSettled) {
+    siteState.galleryReveal = siteState.galleryTargetReveal
+    siteState.galleryPocketBottom = siteState.galleryTargetPocketBottom
+    siteState.galleryPocketHeight = siteState.galleryTargetPocketHeight
+    siteState.aboutPull = siteState.aboutTargetPull
     siteState.galleryShift = 0
     siteState.galleryFrame = 0
     siteState.galleryLastFrameTime = 0
-    setFooterGalleryStyles(siteState.galleryReveal, 0, siteState.galleryPocketHeight)
+    applyFooterComposition()
     return
   }
 
-  setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
+  applyFooterComposition()
   siteState.galleryFrame = requestAnimationFrame(animateFooterGallery)
 }
 
@@ -903,40 +1168,68 @@ function nudgeFooterGallery(delta) {
 
   const now = performance.now()
   const elapsed = siteState.galleryLastScrollTime
-    ? clamp((now - siteState.galleryLastScrollTime) / 1000, 0.016, 0.12)
-    : 0.016
+    ? clamp((now - siteState.galleryLastScrollTime) / 1000, 0.016, 0.2)
+    : 0.05
   siteState.galleryLastScrollTime = now
 
-  const maxShift = Math.min(window.innerWidth * 0.46, 760)
-  const scrollVelocity = delta / elapsed
-  const impulse = clamp(-scrollVelocity * 0.022, -maxShift * 0.6, maxShift * 0.6)
-  const retreatImpulse =
-    delta < 0 ? Math.min(maxShift * 0.96, Math.abs(scrollVelocity) * 0.024 + Math.abs(delta) * 1.8) : 0
+  if (delta > 0.25) {
+    const baseSpeed =
+      siteState.galleryLoopBaseSpeed ||
+      (window.innerWidth <= 700 ? 38 : window.innerWidth <= 1440 ? 48 : 56)
+    const scrollVelocity = Math.max(0, delta / elapsed)
+    const galleryTop = gallery.getBoundingClientRect().top
+    const approach = clamp(
+      (window.innerHeight * 1.8 - galleryTop) / Math.max(window.innerHeight * 1.8, 1),
+      0,
+      1,
+    )
+    const revealWeight = clamp(
+      Math.max(reveal, siteState.galleryReveal, siteState.galleryTargetReveal) * 1.35,
+      0,
+      1,
+    )
+    const influence = Math.max(approach, revealWeight)
+    const maxBoost = Math.max(baseSpeed * 4.4, 180)
+    const boost = clamp(scrollVelocity * 0.075 * influence, 0, maxBoost)
 
-  if (reveal <= 0.001 && delta >= 0) {
+    if (boost > 0.2) {
+      siteState.galleryLoopBoost = Math.max(siteState.galleryLoopBoost, boost)
+      requestFooterGalleryLoop()
+    }
+  }
+
+  if (reveal <= 0.001) {
     siteState.galleryShift = 0
-    setFooterGalleryStyles(reveal, 0, siteState.galleryPocketHeight)
+    applyFooterComposition()
     return
   }
 
-  siteState.galleryShift = clamp(siteState.galleryShift + impulse + retreatImpulse, -maxShift, maxShift)
-  setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
-
-  if (!siteState.galleryFrame) {
-    siteState.galleryLastFrameTime = 0
-    siteState.galleryFrame = requestAnimationFrame(animateFooterGallery)
-  }
+  siteState.galleryShift = 0
+  applyFooterComposition()
 }
 
 function setupFooterGallery() {
   if (siteState.galleryFrame) cancelAnimationFrame(siteState.galleryFrame)
+  if (siteState.galleryLoopFrame) cancelAnimationFrame(siteState.galleryLoopFrame)
   siteState.galleryFrame = 0
   siteState.galleryLastFrameTime = 0
   siteState.galleryLastScrollTime = 0
+  siteState.galleryLoopFrame = 0
+  siteState.galleryLoopLastTime = 0
+  siteState.galleryLoopDistance = 0
+  siteState.galleryLoopOffset = 0
+  siteState.galleryLoopBaseSpeed = 0
+  siteState.galleryLoopBoost = 0
   siteState.galleryReveal = 0
+  siteState.galleryTargetReveal = 0
   siteState.galleryShift = 0
   siteState.galleryPocketHeight = 0
-  updateFooterGalleryReveal()
+  siteState.galleryTargetPocketHeight = 0
+  siteState.galleryPocketBottom = 0
+  siteState.galleryTargetPocketBottom = 0
+  siteState.aboutPull = 0
+  siteState.aboutTargetPull = 0
+  updateFooterGalleryReveal({ immediate: true })
 }
 
 function setupNavHoverSpacing() {
@@ -1003,7 +1296,7 @@ function animateHeader(time) {
     : 1 / 60
   siteState.lastFrameTime = time
 
-  const followSpeed = 15
+  const followSpeed = 9
   const amount = 1 - Math.exp(-followSpeed * elapsed)
   siteState.visualProgress += (siteState.targetProgress - siteState.visualProgress) * amount
 

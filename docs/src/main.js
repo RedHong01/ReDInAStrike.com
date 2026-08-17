@@ -751,6 +751,8 @@ function setupNavHoverSpacing() {
     const detailWidth = detail.scrollWidth || detail.getBoundingClientRect().width
     const hoverSpace = clamp(Math.ceil((detailWidth - titleWidth) / 2 + 10), 0, 120)
     item.style.setProperty("--nav-hover-space", `${hoverSpace}px`)
+    item.style.setProperty("--nav-title-width", `${Math.ceil(titleWidth)}px`)
+    item.style.setProperty("--nav-detail-layout-width", `${Math.ceil(Math.max(titleWidth, detailWidth))}px`)
   })
 }
 

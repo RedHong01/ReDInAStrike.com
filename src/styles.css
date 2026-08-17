@@ -155,9 +155,10 @@ img {
   outline-offset: 6px;
   transform: translateY(13px);
   transition:
+    min-width 440ms var(--nav-ease),
     margin-inline 440ms var(--nav-ease),
     transform 440ms var(--nav-ease);
-  will-change: margin-inline;
+  will-change: min-width, margin-inline;
 }
 
 .nav-item.is-nav-active,
@@ -433,11 +434,6 @@ body[data-layout-transition="true"] .about-section {
 .project-media img {
   object-fit: var(--image-fit, cover);
   object-position: var(--image-position, center center);
-  transition: transform 220ms ease;
-}
-
-.project-card:hover .project-media img {
-  transform: scale(1.012);
 }
 
 .hover-video {
@@ -992,11 +988,21 @@ body[data-nav-density="titles"] .nav-title {
 body[data-header-compact="true"][data-nav-density="titles"] .nav-list {
   align-items: center;
   max-width: min(640px, calc(100vw - var(--logo-width) - var(--header-pad) * 2 - 72px));
+  justify-content: flex-end;
+  gap: clamp(22px, 2.25vw, 34px);
   min-height: 0;
 }
 
 body[data-header-compact="true"][data-nav-density="titles"] .nav-item {
+  align-items: flex-end;
+  min-width: var(--nav-title-width, 0px);
   transform: none;
+}
+
+body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-active,
+body[data-header-compact="true"][data-nav-density="titles"] .nav-item:focus-visible {
+  min-width: var(--nav-detail-layout-width, var(--nav-title-width, 0px));
+  margin-inline: 0;
 }
 
 body[data-header-compact="true"][data-nav-density="titles"] .nav-title {

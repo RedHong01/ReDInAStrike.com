@@ -285,6 +285,7 @@ const siteState = {
   lastFrameTime: 0,
   lastScrollY: 0,
   layoutTransitionTimer: 0,
+  navMetricKey: "",
   ruleFadeFrame: 0,
 }
 
@@ -658,6 +659,7 @@ function render() {
   const route = routeFromLocation()
   const project = routeMap.get(route)
   app.innerHTML = project ? detailMarkup(project) : homeMarkup()
+  siteState.navMetricKey = ""
   setupHeader()
   setupNavHoverSpacing()
   setupNavHoverInteraction()
@@ -709,6 +711,11 @@ function applyHeaderProgress(progress) {
           : "full"
   document.body.dataset.navDensity = density
   document.body.dataset.headerCompact = isCompact ? "true" : "false"
+  const navMetricKey = `${density}:${document.body.dataset.headerCompact}`
+  if (siteState.navMetricKey !== navMetricKey) {
+    siteState.navMetricKey = navMetricKey
+    setupNavHoverSpacing()
+  }
   requestRuleFadeUpdate()
 }
 
@@ -747,7 +754,7 @@ function setupNavHoverSpacing() {
     const detail = item.querySelector(".nav-detail")
     if (!title || !detail) return
 
-    const titleWidth = title.getBoundingClientRect().width
+    const titleWidth = title.scrollWidth || title.offsetWidth || title.getBoundingClientRect().width
     const detailWidth = detail.scrollWidth || detail.getBoundingClientRect().width
     const hoverSpace = clamp(Math.ceil((detailWidth - titleWidth) / 2 + 10), 0, 120)
     item.style.setProperty("--nav-hover-space", `${hoverSpace}px`)

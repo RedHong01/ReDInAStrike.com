@@ -147,6 +147,134 @@ const projects = [
 ]
 
 const routeMap = new Map(projects.map((project) => [project.path, project]))
+const framerProjectDetails = {
+  "/bns_gdd": {
+    year: "2024 Spring",
+    title: "Build n Shoot",
+    category: "Board Game Prototype",
+    routeImage: "assets/framer-routes/03-bns_gdd.jpg",
+    leadImage: "assets/framer-live/analog-game.png",
+    leadAlt: "Build n Shoot board game concept landscape",
+    summary:
+      "A turn-based strategy shooting board-game prototype built around movement, building, territory control, and tactical combat on a 15 by 15 grid.",
+    points: [
+      "Player Format: PvP, maximum 4 players.",
+      "Estimated Play Time: 30 minutes.",
+      "Primary Goal: eliminate the other player and be the last one standing.",
+      "Core hook: use movement to create building and shooting opportunities, reshaping the map into tactical advantage.",
+    ],
+    blocks: [
+      {
+        title: "System",
+        body: "The design defines cards, avatars, dice, blocks, territory marks, power-ups, procedures, purchasing, combat range, and inventory rules as a complete board-game document.",
+      },
+      {
+        title: "Design Focus",
+        body: "The prototype connects traversal, building, shooting, and resource management into one turn structure, so each action can change both board state and future strategy.",
+      },
+    ],
+  },
+  "/myfridge": {
+    year: "2024 Spring",
+    title: "MyFridge",
+    category: "UI&UX Prototype",
+    routeImage: "assets/framer-routes/04-myfridge.jpg",
+    leadImage: "assets/framer-live/my-fridge.png",
+    leadAlt: "MyFridge mobile app interface overview",
+    summary:
+      "A refrigerator management and food-waste monitoring app prototype for tracking purchases, freshness status, storage planning, and shopping decisions.",
+    points: [
+      "Team project by Red, Mika, and Kaiyi.",
+      "Research includes problem statement, interviews, insights, persona, competitor analysis, user flow, and wireframes.",
+      "Final output includes high-fidelity mobile screens for onboarding, inventory, receipt scanning, waste tracking, and item details.",
+    ],
+    blocks: [
+      {
+        title: "Problem",
+        body: "Fresh food often exceeds its shelf life because users do not plan purchase quantity, storage, and cooking timing clearly enough. The prototype focuses on reducing waste of both money and food.",
+      },
+      {
+        title: "How Might We",
+        body: "How might an app help users organize refrigerator storage, raw materials, leftovers, freshness reminders, meal plans, and shopping plans in one coherent flow?",
+      },
+    ],
+  },
+  "/assethub": {
+    year: "2024 Spring",
+    title: "AssetHub",
+    category: "Interaction Prototype",
+    routeImage: "assets/framer-routes/05-assethub.jpg",
+    leadImage: "assets/framer-live/youtube-pjbu-hq.jpg",
+    leadAlt: "AssetHub interface prototype",
+    summary:
+      "An interaction prototype for managing large collections of digital assets across online and offline resource locations.",
+    points: [
+      "Targets images, videos, 3D models, and text resources across multiple devices and platforms.",
+      "Explores a concise system for locating and organizing files without losing context.",
+      "Prototype documentation is presented through a layered interface and embedded design preview.",
+    ],
+    blocks: [
+      {
+        title: "Overview",
+        body: "Managing vast collections of digital assets can become overwhelming and time-consuming. AssetHub proposes a central place that helps users target resources efficiently.",
+      },
+      {
+        title: "Interaction",
+        body: "The page frames the tool as a practical interface system rather than a marketing concept, emphasizing access, file context, and cross-platform organization.",
+      },
+    ],
+  },
+  "/pitchfork": {
+    year: "2024 Fall",
+    title: "Pitchfork Magazine",
+    category: "Graphic Design",
+    routeImage: "assets/framer-routes/06-pitchfork.jpg",
+    leadImage: "assets/framer-live/pitchfork.jpg",
+    leadAlt: "Pitchfork magazine cover design",
+    summary:
+      "A print-focused graphic design exercise reimagining a Pitchfork magazine cover with a high-contrast editorial hierarchy.",
+    points: [
+      "Cover subject: Beyonce, Cowboy Carter.",
+      "Format explores masthead scale, editorial image cropping, barcode placement, and magazine-cover typography.",
+      "The design uses a restrained black-and-white system to keep the image and title hierarchy dominant.",
+    ],
+    blocks: [
+      {
+        title: "Graphic System",
+        body: "The page centers a single magazine cover as the finished artifact, with visual emphasis on typographic proportion, portrait placement, and print layout balance.",
+      },
+      {
+        title: "Output",
+        body: "The final cover is presented as a clean editorial object rather than a process-heavy case study.",
+      },
+    ],
+  },
+  "/monologue": {
+    year: "2024 Fall",
+    title: "\"Monologue\"",
+    category: "Project Pitch",
+    routeImage: "assets/framer-routes/08-monologue.jpg",
+    leadImage: "assets/framer-live/narrative-doc-2025-a.png",
+    leadAlt: "Monologue project pitch visual reference",
+    summary:
+      "A narrative game pitch about slow-paced, non-aggressive storytelling, visual interactive narrative language, and post-modern social problems.",
+    points: [
+      "Tone: slow-paced and non-aggressive.",
+      "Narrative mode: visual interactive storytelling with music, narration, and sensory audiovisual language.",
+      "Theme: personal struggle expanding into broader social challenges including identity, culture, depression, economics, and political shifts.",
+    ],
+    blocks: [
+      {
+        title: "Story Direction",
+        body: "The story is told from a teenager's perspective in a semi-autobiographical mode, following a young individual across social classes and cultural fragmentation.",
+      },
+      {
+        title: "Experience",
+        body: "The pitch emphasizes an intuitive, sensory narrative style where visuals, music, and narration work together to carry emotion and story.",
+      },
+    ],
+  },
+}
 const app = document.querySelector("#app")
 const base = document.body.dataset.base || "/"
 const siteState = {
@@ -157,6 +285,7 @@ const siteState = {
   lastFrameTime: 0,
   lastScrollY: 0,
   layoutTransitionTimer: 0,
+  ruleFadeFrame: 0,
 }
 
 function asset(path) {
@@ -300,6 +429,9 @@ function homeMarkup() {
 
 function detailMarkup(project) {
   if (project.path === "/serialdeminer") return serialDeminerDetailMarkup(project)
+  if (framerProjectDetails[project.path]) {
+    return framerProjectDetailMarkup(project, framerProjectDetails[project.path])
+  }
 
   return `
     ${headerMarkup()}
@@ -314,6 +446,70 @@ function detailMarkup(project) {
         <figure class="detail-screenshot">
           <img src="${asset(project.image)}" alt="${escapeHtml(project.pageTitle)} full-page reference" />
         </figure>
+      </article>
+    </main>`
+}
+
+function framerProjectDetailMarkup(project, detail) {
+  const points = detail.points
+    .map((point) => `<li>${escapeHtml(point)}</li>`)
+    .join("")
+  const blocks = detail.blocks
+    .map(
+      (block) => `
+        <section>
+          <h2>${escapeHtml(block.title)}</h2>
+          <p>${escapeHtml(block.body)}</p>
+        </section>`
+    )
+    .join("")
+
+  return `
+    ${headerMarkup()}
+    <main class="site-main detail-page framer-derived-page" data-route="${escapeHtml(project.path)}">
+      <article class="framer-derived-shell" aria-label="${escapeHtml(detail.title)} project page">
+        <a class="back-link" href="${hrefFor("/")}">Back</a>
+
+        <section class="framer-derived-hero">
+          <div>
+            <p>${escapeHtml(detail.year)}</p>
+            <h1>${escapeHtml(detail.title)}</h1>
+            <span>${escapeHtml(detail.category)}</span>
+          </div>
+          <img src="${asset("assets/logo-vector.svg")}" alt="ReDInAStrikE logo" />
+        </section>
+
+        <section class="framer-derived-intro">
+          <figure>
+            <img src="${asset(detail.leadImage)}" alt="${escapeHtml(detail.leadAlt)}" loading="eager" />
+          </figure>
+          <div>
+            <p>${escapeHtml(detail.summary)}</p>
+            <ul>${points}</ul>
+          </div>
+        </section>
+
+        <section class="framer-derived-blocks">
+          ${blocks}
+        </section>
+
+        <section class="framer-derived-reference" aria-label="${escapeHtml(detail.title)} full page">
+          <figure>
+            <img src="${asset(detail.routeImage)}" alt="${escapeHtml(detail.title)} Framer page capture" loading="lazy" />
+          </figure>
+        </section>
+
+        <section class="framer-derived-footer">
+          <div>
+            <h2>Overview</h2>
+            <p>${escapeHtml(project.displayTitle)}</p>
+            <p>${escapeHtml(project.date)}</p>
+          </div>
+          <div>
+            <h2>Access</h2>
+            <p><a href="mailto:zwang29@inside.artcenter.edu">zwang29@inside.artcenter.edu</a></p>
+          </div>
+        </section>
       </article>
     </main>`
 }
@@ -473,7 +669,7 @@ function render() {
 
 function readHeaderMetrics() {
   const width = window.innerWidth
-  const fullHeight = width < 560 ? 220 : width < 760 ? 230 : width < 1120 ? 210 : 200
+  const fullHeight = width < 760 ? 186 : width < 1120 ? 210 : 200
   const compactHeight = width < 560 ? 84 : width < 760 ? 88 : 78
   const fullLogo = 150
   const compactLogo = width < 760 ? 52 : 48
@@ -502,16 +698,47 @@ function applyHeaderProgress(progress) {
   document.documentElement.style.setProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
   document.documentElement.style.setProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
 
+  const isCompact = progress > 0.7
   const density =
     metrics.width < 560
       ? "tiny"
       : metrics.width < 760
         ? "mobile"
-        : metrics.width < 1320 || progress > 0.16
+        : isCompact
           ? "titles"
           : "full"
   document.body.dataset.navDensity = density
-  document.body.dataset.headerCompact = progress > 0.7 ? "true" : "false"
+  document.body.dataset.headerCompact = isCompact ? "true" : "false"
+  requestRuleFadeUpdate()
+}
+
+function updateRuleFadeNearHeader() {
+  const header = document.querySelector("[data-site-header]")
+  if (!header) return
+
+  const headerBottom = header.getBoundingClientRect().bottom
+  const fadeStart = 58
+  const fadeEnd = 4
+  const ruleWeightFromDistance = (distance) =>
+    clamp((distance - fadeEnd) / (fadeStart - fadeEnd), 0, 1).toFixed(3)
+
+  document.querySelectorAll(".project-row").forEach((row) => {
+    const distance = row.getBoundingClientRect().bottom - headerBottom
+    row.style.setProperty("--project-rule-weight", ruleWeightFromDistance(distance))
+  })
+
+  document.querySelectorAll(".project-card + .project-card").forEach((card) => {
+    const distance = card.getBoundingClientRect().top - headerBottom
+    card.style.setProperty("--card-rule-weight", ruleWeightFromDistance(distance))
+  })
+}
+
+function requestRuleFadeUpdate() {
+  if (siteState.ruleFadeFrame) return
+  siteState.ruleFadeFrame = requestAnimationFrame(() => {
+    siteState.ruleFadeFrame = 0
+    updateRuleFadeNearHeader()
+  })
 }
 
 function setupNavHoverSpacing() {
@@ -648,6 +875,7 @@ function setupHeader() {
       const delta = current - siteState.lastScrollY
       siteState.lastScrollY = current
       updateHeaderFromScroll(delta)
+      requestRuleFadeUpdate()
     },
     { passive: true }
   )
@@ -656,6 +884,7 @@ function setupHeader() {
     startResponsiveLayoutTransition()
     applyHeaderProgress(siteState.visualProgress)
     setupNavHoverSpacing()
+    requestRuleFadeUpdate()
   })
 }
 

@@ -156,6 +156,7 @@ const siteState = {
   followFrame: 0,
   lastFrameTime: 0,
   lastScrollY: 0,
+  layoutTransitionTimer: 0,
 }
 
 function asset(path) {
@@ -298,6 +299,8 @@ function homeMarkup() {
 }
 
 function detailMarkup(project) {
+  if (project.path === "/serialdeminer") return serialDeminerDetailMarkup(project)
+
   return `
     ${headerMarkup()}
     <main class="site-main detail-page" data-route="${escapeHtml(project.path)}">
@@ -315,18 +318,163 @@ function detailMarkup(project) {
     </main>`
 }
 
+function caseImage(path, alt, className = "") {
+  return `
+    <figure class="framer-case-image ${className}">
+      <img src="${asset(path)}" alt="${escapeHtml(alt)}" loading="lazy" />
+    </figure>`
+}
+
+function youtubeEmbed(id, className = "") {
+  return `
+    <div class="framer-youtube ${className}">
+      <iframe
+        src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}"
+        title="Serial Deminer video"
+        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+        loading="lazy"
+      ></iframe>
+    </div>`
+}
+
+function serialDeminerDetailMarkup(project) {
+  return `
+    ${headerMarkup()}
+    <main class="site-main detail-page framer-case-page" data-route="${escapeHtml(project.path)}">
+      <article class="framer-case-shell" aria-label="Serial Deminer case study">
+        <section class="framer-case-hero">
+          <div class="framer-case-kicker">2024 Fall</div>
+          <h1>Serial Deminer</h1>
+          <p>Game Design &amp; Level Design</p>
+          <img class="framer-case-hero-logo" src="${asset("assets/logo-vector.svg")}" alt="ReDInAStrikE logo" />
+        </section>
+
+        <section class="framer-case-section framer-media-section">
+          ${youtubeEmbed("yZgmrNLV1Pg", "framer-youtube-wide")}
+          <div class="framer-media-grid framer-media-grid-three">
+            ${caseImage("assets/serial-deminer/01-iPBd_9mAN.png", "Serial Deminer gameplay view")}
+            ${caseImage("assets/serial-deminer/02-we8S3oXEt.png", "Serial Deminer title menu")}
+            ${caseImage("assets/serial-deminer/03-O5UGVmFqY.png", "Serial Deminer level select menu")}
+          </div>
+        </section>
+
+        <section class="framer-case-section framer-copy-grid framer-copy-sans">
+          <div>
+            <h2>Brief</h2>
+            <p>In <em>Serial Miner</em>, you take on the role of a skilled de-miner on a high-stakes mission to clear hazardous landmines and create a safe path for an incoming convoy. Using a suite of specialized gadgets — including a marking flag, a metal detector, and explosives — your objective is to locate, mark, and detonate mines in a strategic, precise manner to ensure no explosives are left undetected.</p>
+          </div>
+          <div>
+            <h2>Key Features</h2>
+            <p><strong>Marking Flag</strong>: Place flags to identify mines you've found, helping you avoid rechecking areas and making your path safer.</p>
+            <p><strong>Metal Detector</strong>: Sweeps for hidden mines; listen for beeps that indicate the proximity of a mine.</p>
+            <p><strong>Explosives</strong>: Carefully place explosives on mines to clear them. Only use this gadget when in detonation range.</p>
+          </div>
+        </section>
+
+        <section class="framer-case-section framer-media-section">
+          ${caseImage("assets/serial-deminer/04-h_Ht3aFZJ.png", "GMTK Game Jam 2024", "framer-image-wide")}
+          <div class="framer-media-grid framer-media-grid-three">
+            ${caseImage("assets/serial-deminer/05-ouNqxE_cR.png", "Windowframe game reference")}
+            ${caseImage("assets/serial-deminer/06-Oz6q4Ddvz.png", "Blueprint Hell game reference")}
+            ${caseImage("assets/serial-deminer/07-L4wEXwwl6.png", "Puzzle game reference")}
+          </div>
+        </section>
+
+        <section class="framer-case-section framer-text-section">
+          <h2>Target Audience:</h2>
+          <p>After reflecting on the theme for this game jam, I first considered our target audience. Following discussions with my teammates and reviewing our research, we reached the following conclusions:</p>
+          <p>We analyzed the winning entries from the GMTK 2024 Game Jam on itch.io. After playing and discussing these games, one keyword stood out: “<strong>Puzzle</strong>.” Beyond impressive visuals and arts, we noticed that clever and engaging puzzle designs consistently captivated us and left a lasting impression. Based on this, we concluded that our target audience should be players who enjoy a <strong>Casual gaming experience</strong> and are <strong>Enthusiastic about solving puzzles</strong>.</p>
+          <p>Secondly, as a 48-hour game jam project, an important target audience of our project includes <strong>Game design professionals and students</strong> like us. These individuals value design details, the game’s relevance to the theme, and its overall completeness as a finished product.</p>
+          <p>Of course, another key audience includes <strong>Game enthusiasts and critics</strong> interested in exploring jam entries—those who enjoy browsing diverse games and experiencing the creative ideas these lightweight projects deliver.</p>
+        </section>
+
+        <section class="framer-case-section framer-text-section">
+          <h2>Player Experience:</h2>
+          <p>Based on our target audience and the competition's theme, we began brainstorming the game experience we wanted to create. Expanding on the theme of “chain reaction,” we envisioned an experience where a single trigger sets off a series of automatic events like dominoes falling. This experience should feel exciting—seamless, satisfying, unpredictable, and chaotically dangerous.</p>
+          <p>From a puzzle perspective, solving puzzles is a slow yet deliberate process. Therefore, our game experience should encourage a steady pace, allowing players to explore and understand the puzzles at their own rhythm.</p>
+          <p>Thus, our game’s experience prompt is: <strong>“Explore and solve puzzles in a relaxed and enjoyable atmosphere, while experiencing how a single key action can influence the entire puzzle-solving process.”</strong></p>
+          <p>The gameplay is designed to last 3-5 minutes, allowing players to make numerous attempts within a short time without losing progress upon failure. Players are immersed in a relaxed and enjoyable environment, focused on exploring puzzles and mastering the game mechanics.</p>
+        </section>
+
+        <section class="framer-case-section framer-media-section">
+          <div class="framer-media-grid framer-media-grid-two">
+            ${caseImage("assets/serial-deminer/08-kqrm2l48I.png", "Death Coming reference")}
+            ${caseImage("assets/serial-deminer/09-impQt8jik.png", "Bejeweled reference")}
+            ${youtubeEmbed("0yMnnqxGgME", "framer-youtube-half")}
+            ${youtubeEmbed("Unz-V2NGGCg", "framer-youtube-half")}
+          </div>
+        </section>
+
+        <section class="framer-case-section framer-text-section">
+          <h2>Research &amp; Exploration:</h2>
+          <p>When brainstorming the game’s format and mechanics, we explored various directions and references. I initially proposed “Bejeweled” as the inspiration for our project. I believe its gameplay, where players rearrange a 2D grid of gems through simple drag-and-drop actions, aligns well with the theme of “chain reaction.” A single, light action can trigger potential chain explosions, allowing players to enjoy the automatic interactions between gems of different colors and properties while earning score rewards.</p>
+          <p>Another game reference comes from the Chinese 2D puzzle game <em>“死神来了” (Death Coming)</em>. Unlike <em>Bejeweled</em>, this game focuses more on the connection between narrative and gameplay. Players take on the role of a trainee grim reaper, interacting with objects in each level’s scene. Using fewer steps to trigger more object interactions and cause more character deaths results in higher scores. The key takeaway from this game is its engaging premise and setting, which are tightly integrated with the gameplay, creating a cohesive and immersive experience.</p>
+        </section>
+
+        <section class="framer-case-section framer-media-section">
+          <div class="framer-media-grid framer-media-grid-three framer-media-grid-checkers">
+            ${caseImage("assets/serial-deminer/10-Rg6ZVaB8p.png", "Puzzle layout research diagram")}
+            ${caseImage("assets/serial-deminer/11-UU2kbPdbH.png", "Puzzle layout chain diagram")}
+            ${caseImage("assets/serial-deminer/12-VG2jA9Il6.png", "Puzzle layout map diagram")}
+          </div>
+          ${caseImage("assets/serial-deminer/13-zIT2xV17Q.png", "Level sketch", "framer-image-centered")}
+        </section>
+
+        <section class="framer-case-section framer-text-section">
+          <h2>Design &amp; Iteration:</h2>
+          <p>Based on our research, we initially considered a gameplay design focused on a maze that players could navigate by creating paths through explosions. Players would need to find a way to clear obstacles and continue exploring. This would involve making a key decision after careful thought to progress. The maze’s puzzles should strike a balance between being neither too easy nor too difficult—players should quickly understand what needs to be done (how to approach the puzzle) but spend time figuring out how to execute it (how to solve the puzzle).</p>
+          <p>We refined this idea further, considering what setting and actions would best fit our gameplay. We drew inspiration from the real-life concept of miners using explosives to carve out mine shafts, shaping our game’s premise. Players take on the role of a path designer working for miners, responsible for determining the placement of explosives.</p>
+          <p>To align with the chain reaction theme, the entire explosion sequence can only be initiated once. Players cannot manually detonate each explosive but must strategically arrange them in specific positions and quantities to ensure the first explosive connects with the last, completing the chain and clearing the path to progress.</p>
+        </section>
+
+        <section class="framer-case-section framer-media-section">
+          <div class="framer-media-grid framer-media-grid-two framer-level-top">
+            ${caseImage("assets/serial-deminer/14-ouluH8FSt.png", "Level design blockout")}
+            ${caseImage("assets/serial-deminer/15-bK7P1H_1k.png", "Level design editor view")}
+          </div>
+          ${caseImage("assets/serial-deminer/16-kp3Djjey5.png", "Serial Deminer level design overview", "framer-image-centered framer-level-wide")}
+        </section>
+
+        <section class="framer-case-section framer-text-section">
+          <h2>Design &amp; Iteration (Level Design):</h2>
+          <p>Bedi and I were responsible for the in-game level design. We translated the initial 2D sketches into 3D levels based on narrative and gameplay requirements, followed by internal playtesting and adjustments. While designing the levels, I considered player flow, ensuring the progression matched the narrative. The early levels were designed to be the simplest, gradually increasing in complexity and difficulty. During playtesting, we ensured each level’s puzzle-solving time stayed within 3-5 minutes to align with the game’s <strong>“Casual puzzle-solving”</strong> experience.</p>
+        </section>
+
+        <section class="framer-case-footer">
+          <img class="framer-case-footer-logo" src="${asset("assets/logo-vector.svg")}" alt="ReDInAStrikE logo" />
+          <div>
+            <h2>Overview</h2>
+            <p>2024 ArtCenter Game Jam Project</p>
+            <p>Game designer &amp; Level Designer</p>
+          </div>
+          <div>
+            <h2>Access</h2>
+            <p>Itch.io:</p>
+            <p><a href="https://drcharless-scp.itch.io/serial-deminer" target="_blank" rel="noreferrer">https://drcharless-scp.itch.io/serial-deminer</a></p>
+          </div>
+        </section>
+      </article>
+    </main>`
+}
+
 function render() {
   const route = routeFromLocation()
   const project = routeMap.get(route)
   app.innerHTML = project ? detailMarkup(project) : homeMarkup()
   setupHeader()
+  setupNavHoverSpacing()
+  setupNavHoverInteraction()
+  if (document.fonts) {
+    document.fonts.ready.then(setupNavHoverSpacing).catch(() => {})
+  }
   setupHoverEmbeds()
 }
 
 function readHeaderMetrics() {
   const width = window.innerWidth
-  const fullHeight = width < 760 ? 345 : width < 1120 ? 210 : 200
-  const compactHeight = width < 760 ? 250 : 78
+  const fullHeight = width < 560 ? 220 : width < 760 ? 230 : width < 1120 ? 210 : 200
+  const compactHeight = width < 560 ? 84 : width < 760 ? 88 : 78
   const fullLogo = 150
   const compactLogo = width < 760 ? 52 : 48
   const distance = width < 680 ? 150 : 205
@@ -366,13 +514,69 @@ function applyHeaderProgress(progress) {
   document.body.dataset.headerCompact = progress > 0.7 ? "true" : "false"
 }
 
+function setupNavHoverSpacing() {
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    const title = item.querySelector(".nav-title")
+    const detail = item.querySelector(".nav-detail")
+    if (!title || !detail) return
+
+    const titleWidth = title.getBoundingClientRect().width
+    const detailWidth = detail.scrollWidth || detail.getBoundingClientRect().width
+    const hoverSpace = clamp(Math.ceil((detailWidth - titleWidth) / 2 + 10), 0, 120)
+    item.style.setProperty("--nav-hover-space", `${hoverSpace}px`)
+  })
+}
+
+function setupNavHoverInteraction() {
+  const nav = document.querySelector(".nav-list")
+  if (!nav) return
+
+  const items = [...nav.querySelectorAll(".nav-item")]
+  let clearTimer = 0
+
+  const clearActive = () => {
+    window.clearTimeout(clearTimer)
+    clearTimer = 0
+    items.forEach((item) => item.classList.remove("is-nav-active"))
+  }
+
+  const setActive = (activeItem) => {
+    window.clearTimeout(clearTimer)
+    clearTimer = 0
+    items.forEach((item) => item.classList.toggle("is-nav-active", item === activeItem))
+  }
+
+  nav.addEventListener("pointerenter", () => {
+    window.clearTimeout(clearTimer)
+    clearTimer = 0
+  })
+
+  nav.addEventListener("pointerleave", (event) => {
+    if (event.pointerType === "touch") return
+    clearTimer = window.setTimeout(clearActive, 130)
+  })
+
+  nav.addEventListener("focusout", (event) => {
+    if (!event.relatedTarget || !nav.contains(event.relatedTarget)) clearActive()
+  })
+
+  items.forEach((item) => {
+    item.addEventListener("pointerenter", (event) => {
+      if (event.pointerType === "touch") return
+      setActive(item)
+    })
+
+    item.addEventListener("focusin", () => setActive(item))
+  })
+}
+
 function animateHeader(time) {
   const elapsed = siteState.lastFrameTime
     ? Math.min(0.05, (time - siteState.lastFrameTime) / 1000)
     : 1 / 60
   siteState.lastFrameTime = time
 
-  const followSpeed = 42
+  const followSpeed = 15
   const amount = 1 - Math.exp(-followSpeed * elapsed)
   siteState.visualProgress += (siteState.targetProgress - siteState.visualProgress) * amount
 
@@ -415,6 +619,15 @@ function updateHeaderFromScroll(delta) {
   setHeaderTarget(siteState.targetProgress + delta / metrics.distance)
 }
 
+function startResponsiveLayoutTransition() {
+  document.body.dataset.layoutTransition = "true"
+  window.clearTimeout(siteState.layoutTransitionTimer)
+  siteState.layoutTransitionTimer = window.setTimeout(() => {
+    delete document.body.dataset.layoutTransition
+    siteState.layoutTransitionTimer = 0
+  }, 620)
+}
+
 function setupHeader() {
   siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
   setHeaderTarget(clamp(siteState.lastScrollY / readHeaderMetrics().distance, 0, 1), true)
@@ -439,7 +652,11 @@ function setupHeader() {
     { passive: true }
   )
 
-  window.addEventListener("resize", () => applyHeaderProgress(siteState.visualProgress))
+  window.addEventListener("resize", () => {
+    startResponsiveLayoutTransition()
+    applyHeaderProgress(siteState.visualProgress)
+    setupNavHoverSpacing()
+  })
 }
 
 function setupHoverEmbeds() {

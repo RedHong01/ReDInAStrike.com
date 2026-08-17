@@ -235,11 +235,6 @@ function projectCard(project, index) {
           alt="${escapeHtml(project.pageTitle)}"
           loading="${index < 2 ? "eager" : "lazy"}"
         />
-        ${
-          project.youtube
-            ? `<span class="hover-play-label">Hover to play</span>`
-            : ""
-        }
       </figure>
       <div class="project-meta">
         <span class="project-title">${escapeHtml(project.displayTitle)}</span>
@@ -330,10 +325,10 @@ function render() {
 
 function readHeaderMetrics() {
   const width = window.innerWidth
-  const fullHeight = width < 560 ? 250 : width < 760 ? 230 : width < 1120 ? 210 : 200
-  const compactHeight = width < 560 ? 86 : 78
+  const fullHeight = width < 760 ? 345 : width < 1120 ? 210 : 200
+  const compactHeight = width < 760 ? 250 : 78
   const fullLogo = 150
-  const compactLogo = width < 560 ? 42 : 48
+  const compactLogo = width < 760 ? 52 : 48
   const distance = width < 680 ? 150 : 205
   return { width, fullHeight, compactHeight, fullLogo, compactLogo, distance }
 }
@@ -343,12 +338,11 @@ function applyHeaderProgress(progress) {
   const height = metrics.fullHeight + (metrics.compactHeight - metrics.fullHeight) * progress
   const logo = metrics.fullLogo + (metrics.compactLogo - metrics.fullLogo) * progress
   const navScale = 1 + (0.88 - 1) * progress
-  const detailOpacity =
-    metrics.width < 1320 || progress > 0.16 ? 0 : clamp(1 - progress * 2.4, 0, 1)
+  const detailOpacity = 1
   const glassProgress = clamp(progress * 1.35, 0, 1)
   const glassAlpha = 0.98 + (0.76 - 0.98) * glassProgress
   const glassBlur = 18 * glassProgress
-  const glassShadowAlpha = 0.08 * glassProgress
+  const glassShadowAlpha = 0
   const ruleAlpha = 1 - 0.18 * glassProgress
 
   document.documentElement.style.setProperty("--header-height", `${height.toFixed(2)}px`)

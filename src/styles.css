@@ -1006,7 +1006,16 @@ body[data-header-compact="true"][data-nav-density="titles"] .nav-title {
 }
 
 body[data-header-compact="true"][data-nav-density="titles"] .nav-detail {
-  display: none;
+  top: calc(100% + 4px);
+  max-width: min(260px, calc(100vw - 32px));
+  font-size: clamp(10px, 0.78vw, 12px);
+  line-height: 1.12;
+  text-align: right;
+}
+
+body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-active .nav-detail,
+body[data-header-compact="true"][data-nav-density="titles"] .nav-item:focus-visible .nav-detail {
+  max-height: 18px;
 }
 
 body[data-nav-density="mobile"] .header-inner,

@@ -334,6 +334,32 @@ function easeOutCubic(value) {
   return 1 - (1 - progress) ** 3
 }
 
+function galleryHeaderExpansion(headerBottom) {
+  const metrics = readHeaderMetrics()
+  return clamp(
+    (headerBottom - metrics.compactHeight) / Math.max(metrics.fullHeight - metrics.compactHeight, 1),
+    0,
+    1,
+  )
+}
+
+function galleryFitThreshold(width, headerExpansion = 0) {
+  const base = width <= 700 ? 0.58 : width <= 980 ? 0.74 : 0.68
+  const expanded = width <= 700 ? 0.24 : width <= 980 ? 0.28 : 0.28
+  const progress = clamp(headerExpansion, 0, 1)
+  return base + (expanded - base) * progress
+}
+
+function galleryFitFill(reveal, width, headerExpansion = 0) {
+  const visibleReveal = clamp(reveal, 0, 1)
+  const scrollFill = easeOutCubic(
+    clamp(visibleReveal / galleryFitThreshold(width, headerExpansion), 0, 1),
+  )
+  const expandedHeaderFill =
+    visibleReveal > 0.01 ? easeOutCubic(clamp((headerExpansion - 0.78) / 0.2, 0, 1)) : 0
+  return Math.max(scrollFill, expandedHeaderFill)
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -406,7 +432,7 @@ function galleryTile(project, index, isClone = false) {
         <img
           src="${asset(project.image)}"
           alt="${escapeHtml(project.pageTitle)}"
-          loading="${index < 4 ? "eager" : "lazy"}"
+          loading="${!isClone && index < 4 ? "eager" : "lazy"}"
         />
       </figure>
       <div class="footer-gallery-meta">
@@ -417,24 +443,25 @@ function galleryTile(project, index, isClone = false) {
 }
 
 function footerGalleryMarkup() {
-  const primaryTiles = projects
-    .map((project, index) => galleryTile(project, index))
-    .join("")
-  const cloneTiles = projects
-    .map((project, index) => galleryTile(project, index, true))
-    .join("")
+  const tileSets = Array.from({ length: 4 }, (_, setIndex) => {
+    const isClone = setIndex > 0
+    const hiddenAttributes = isClone ? ` aria-hidden="true"` : ""
+    const tiles = projects
+      .map((project, index) => galleryTile(project, index, isClone))
+      .join("")
+
+    return `
+            <div class="footer-gallery-set"${hiddenAttributes}>
+              ${tiles}
+            </div>`
+  }).join("")
 
   return `
     <section class="footer-gallery" aria-label="Rotating project gallery">
       <div class="footer-gallery-viewport">
         <div class="footer-gallery-runner">
           <div class="footer-gallery-track">
-            <div class="footer-gallery-set">
-              ${primaryTiles}
-            </div>
-            <div class="footer-gallery-set" aria-hidden="true">
-              ${cloneTiles}
-            </div>
+            ${tileSets}
           </div>
         </div>
       </div>
@@ -828,25 +855,35 @@ function setFooterGalleryStyles(
 
   const viewport = gallery.querySelector(".footer-gallery-viewport")
   const track = gallery.querySelector(".footer-gallery-track")
+  const header = document.querySelector("[data-site-header]")
   const about = document.querySelector(".about-section")
   const galleryRect = gallery.getBoundingClientRect()
   const rect = viewport?.getBoundingClientRect() || gallery.getBoundingClientRect()
   const visibleReveal = clamp(reveal, 0, 1)
-  const visiblePocket = Math.max(0, pocketHeight || 0)
+  const targetPocket = Math.max(0, pocketHeight || 0)
   const settledShift = Math.abs(shift) < 0.2 ? 0 : shift
+  const headerBottom = Math.max(0, header?.getBoundingClientRect().bottom || 0)
   const measuredAboutTop = about?.getBoundingClientRect().top
   const pocketBottom = Math.max(
     0,
     Number.isFinite(measuredAboutTop) ? measuredAboutTop : siteState.galleryPocketBottom || 0,
   )
-  const pocketTop = Math.max(0, pocketBottom - visiblePocket)
   const viewportWidth = Math.max(
     document.documentElement.clientWidth || 0,
     window.innerWidth || 0,
     rect.width || 0,
   )
-  const trackStyle = track ? window.getComputedStyle(track) : null
-  const gap = parseFloat(trackStyle?.columnGap || trackStyle?.gap || "") || 24
+  const availablePocket = Math.max(0, pocketBottom - headerBottom)
+  const headerExpansion = galleryHeaderExpansion(headerBottom)
+  const fitFill = galleryFitFill(visibleReveal, viewportWidth, headerExpansion)
+  const visiblePocket =
+    visibleReveal > 0.001
+      ? Math.min(availablePocket, Math.max(targetPocket, availablePocket * fitFill))
+      : 0
+  const pocketTop = Math.max(headerBottom, pocketBottom - visiblePocket)
+  const firstSet = gallery.querySelector(".footer-gallery-set")
+  const setStyle = firstSet ? window.getComputedStyle(firstSet) : null
+  const gap = parseFloat(setStyle?.columnGap || setStyle?.gap || "") || 24
   const metaHeight = clamp(viewportWidth * 0.024, 34, 54)
   const mediaHeight = Math.max(0, visiblePocket - metaHeight)
   const widthFromPocket = mediaHeight * (viewportWidth <= 700 ? 1.24 : 1.55)
@@ -907,7 +944,9 @@ function requestFooterGalleryLoop() {
 
 function setFooterGalleryLoopMetrics(gallery) {
   const track = gallery.querySelector(".footer-gallery-track")
-  const firstSet = gallery.querySelector(".footer-gallery-set")
+  const sets = [...gallery.querySelectorAll(".footer-gallery-set")]
+  const firstSet = sets[0]
+  const secondSet = sets[1]
   if (!track || !firstSet) return
 
   const trackStyle = window.getComputedStyle(track)
@@ -915,7 +954,11 @@ function setFooterGalleryLoopMetrics(gallery) {
   const setWidth = firstSet.getBoundingClientRect().width
   if (!Number.isFinite(setWidth) || setWidth <= 0) return
 
-  const distance = setWidth + trackGap
+  const measuredDistance = secondSet ? secondSet.offsetLeft - firstSet.offsetLeft : 0
+  const distance =
+    Number.isFinite(measuredDistance) && measuredDistance > setWidth
+      ? measuredDistance
+      : setWidth + trackGap
   const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
   const pxPerSecond = viewportWidth <= 700 ? 38 : viewportWidth <= 1440 ? 48 : 56
   const duration = clamp(distance / pxPerSecond, 42, 120)
@@ -1101,12 +1144,11 @@ function updateFooterGalleryReveal(options = {}) {
   if (reveal <= 0.001) {
     siteState.galleryShift = Math.max(siteState.galleryShift, 0)
   }
+  const headerExpansion = galleryHeaderExpansion(headerBottom)
   const heightFill =
-    viewportWidth <= 700
-      ? easeOutCubic(clamp(reveal / 0.58, 0, 1))
-      : viewportWidth <= 980
-        ? easeOutCubic(clamp(reveal / 0.74, 0, 1))
-        : reveal
+    viewportPocketHeight > 0 && viewportPocketHeight <= targetPocketHeight
+      ? 1
+      : galleryFitFill(reveal, viewportWidth, headerExpansion)
   const galleryTargetHeight = reveal > 0.001 ? viewportPocketHeight * heightFill : 0
   setFooterCompositionTargets(
     reveal,

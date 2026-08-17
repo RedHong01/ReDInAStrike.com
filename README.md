@@ -26,7 +26,13 @@ The site packages Minion Pro Regular in `public/fonts/` and loads it through
 
 ## GitHub Pages
 
-Push this folder to a GitHub repository, then enable **Settings -> Pages** with:
+This repo uses the free GitHub Pages project URL:
+
+```text
+https://redhong01.github.io/ReDInAStrike.com/
+```
+
+Enable **Settings -> Pages** with:
 
 ```text
 Source: Deploy from a branch
@@ -34,28 +40,4 @@ Branch: main
 Folder: /docs
 ```
 
-The intended production domain is `redinastrike.com` (`ReDInAStrike.com` is the
-same domain at the DNS level). GitHub's **Custom domain** setting is the source
-of truth; the repo also includes `public/CNAME` and `docs/CNAME` so the intended
-domain stays documented in the source and copied into static artifacts.
-
-In GitHub, set **Settings -> Pages -> Custom domain** to:
-
-```text
-redinastrike.com
-```
-
-At the domain registrar, point the apex domain to GitHub Pages:
-
-```text
-@  A  185.199.108.153
-@  A  185.199.109.153
-@  A  185.199.110.153
-@  A  185.199.111.153
-```
-
-Optional `www` redirect:
-
-```text
-www  CNAME  <your-github-username>.github.io
-```
+Leave **Custom domain** empty unless you later buy and configure a domain.

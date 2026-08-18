@@ -297,6 +297,8 @@ const siteState = {
   galleryLoopBaseSpeed: 0,
   galleryLoopBoost: 0,
   galleryHorizontalFrozen: false,
+  galleryPointerDirection: 0,
+  galleryScrollPauseUntil: 0,
   galleryReveal: 0,
   galleryTargetReveal: 0,
   galleryShift: 0,
@@ -939,6 +941,21 @@ function requestFooterGalleryLoop() {
   siteState.galleryLoopFrame = requestAnimationFrame(animateFooterGalleryLoop)
 }
 
+function isFooterGalleryMotionReady(gallery) {
+  return gallery.dataset.galleryRevealed === "true" && siteState.galleryReveal > 0.98
+}
+
+function updateFooterGalleryPointer(clientX) {
+  const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
+  if (!viewportWidth) return
+
+  const direction = clientX < viewportWidth / 2 ? 1 : -1
+  if (direction === siteState.galleryPointerDirection) return
+
+  siteState.galleryPointerDirection = direction
+  requestFooterGalleryLoop()
+}
+
 function setFooterGalleryLoopMetrics(gallery) {
   const track = gallery.querySelector(".footer-gallery-track")
   const sets = [...gallery.querySelectorAll(".footer-gallery-set")]
@@ -986,11 +1003,7 @@ function setFooterGalleryLoopMetrics(gallery) {
   gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
 
   const canRunHorizontally =
-    !siteState.galleryHorizontalFrozen &&
-    (gallery.dataset.galleryRevealed === "true" ||
-      siteState.galleryReveal > 0.001 ||
-      siteState.galleryTargetReveal > 0.001 ||
-      siteState.galleryLoopBoost > 0.2)
+    isFooterGalleryMotionReady(gallery) && siteState.galleryPointerDirection !== 0
 
   if (canRunHorizontally) {
     requestFooterGalleryLoop()
@@ -1016,12 +1029,10 @@ function animateFooterGalleryLoop(time) {
   }
 
   const distance = siteState.galleryLoopDistance
-  const active =
-    gallery.dataset.galleryRevealed === "true" ||
-    siteState.galleryReveal > 0.001 ||
-    siteState.galleryTargetReveal > 0.001
+  const active = isFooterGalleryMotionReady(gallery)
+  const direction = siteState.galleryPointerDirection
 
-  if (!Number.isFinite(distance) || distance <= 0 || (!active && siteState.galleryLoopBoost < 0.2)) {
+  if (!Number.isFinite(distance) || distance <= 0 || !active || direction === 0) {
     siteState.galleryLoopFrame = 0
     siteState.galleryLoopLastTime = 0
     return
@@ -1032,22 +1043,10 @@ function animateFooterGalleryLoop(time) {
     : 1 / 60
   siteState.galleryLoopLastTime = time
 
-  if (siteState.galleryHorizontalFrozen) {
-    siteState.galleryLoopBoost = 0
-    gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
-    siteState.galleryLoopFrame = 0
-    siteState.galleryLoopLastTime = 0
-    return
-  }
-
-  const damping = 1.28
-  siteState.galleryLoopBoost *= Math.exp(-damping * elapsed)
-
-  const paused = gallery.matches(":hover") || gallery.matches(":focus-within")
-  if (!paused && active) {
-    const speed = Math.max(0, siteState.galleryLoopBaseSpeed + siteState.galleryLoopBoost)
+  if (time >= siteState.galleryScrollPauseUntil) {
+    const speed = Math.max(0, siteState.galleryLoopBaseSpeed)
     siteState.galleryLoopOffset = wrapGalleryLoopOffset(
-      siteState.galleryLoopOffset + speed * elapsed,
+      siteState.galleryLoopOffset + direction * speed * elapsed,
       distance,
     )
     gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
@@ -1211,14 +1210,14 @@ function nudgeFooterGallery() {
   const gallery = document.querySelector(".footer-gallery")
   if (!gallery) return
 
+  siteState.galleryScrollPauseUntil = performance.now() + 240
   const reveal = updateFooterGalleryReveal()
   siteState.galleryHorizontalFrozen = false
   siteState.galleryLoopBoost = 0
 
   if (
-    gallery.dataset.galleryRevealed === "true" ||
-    siteState.galleryReveal > 0.001 ||
-    siteState.galleryTargetReveal > 0.001
+    isFooterGalleryMotionReady(gallery) &&
+    siteState.galleryPointerDirection !== 0
   ) {
     requestFooterGalleryLoop()
   }
@@ -1246,6 +1245,8 @@ function setupFooterGallery() {
   siteState.galleryLoopBaseSpeed = 0
   siteState.galleryLoopBoost = 0
   siteState.galleryHorizontalFrozen = false
+  siteState.galleryPointerDirection = 0
+  siteState.galleryScrollPauseUntil = 0
   siteState.galleryReveal = 0
   siteState.galleryTargetReveal = 0
   siteState.galleryShift = 0
@@ -1398,6 +1399,15 @@ function setupHeader() {
       requestRuleFadeUpdate()
     },
     { passive: true }
+  )
+
+  window.addEventListener(
+    "pointermove",
+    (event) => {
+      if (event.pointerType === "touch") return
+      updateFooterGalleryPointer(event.clientX)
+    },
+    { passive: true },
   )
 
   window.addEventListener("resize", () => {

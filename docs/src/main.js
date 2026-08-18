@@ -758,9 +758,8 @@ function applyHeaderProgress(progress) {
   const navScale = 1 + (0.88 - 1) * progress
   const detailOpacity = 1
   const glassProgress = clamp(progress * 1.35, 0, 1)
-  const glassAlpha = 0.72 + (0.58 - 0.72) * glassProgress
-  const glassBlur = 10 + 8 * glassProgress
-  const glassSaturate = 1.32 + (1.5 - 1.32) * glassProgress
+  const glassAlpha = 0.98 + (0.76 - 0.98) * glassProgress
+  const glassBlur = 18 * glassProgress
   const glassShadowAlpha = 0
   const ruleAlpha = 1 - 0.18 * glassProgress
 
@@ -770,7 +769,6 @@ function applyHeaderProgress(progress) {
   document.documentElement.style.setProperty("--detail-opacity", detailOpacity.toFixed(4))
   document.documentElement.style.setProperty("--header-glass-alpha", glassAlpha.toFixed(4))
   document.documentElement.style.setProperty("--header-glass-blur", `${glassBlur.toFixed(2)}px`)
-  document.documentElement.style.setProperty("--header-glass-saturate", glassSaturate.toFixed(3))
   document.documentElement.style.setProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
   document.documentElement.style.setProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
 
@@ -860,7 +858,6 @@ function setFooterGalleryStyles(
   const rect = viewport?.getBoundingClientRect() || gallery.getBoundingClientRect()
   const visibleReveal = clamp(reveal, 0, 1)
   const targetPocket = Math.max(0, pocketHeight || 0)
-  const settledShift = Math.abs(shift) < 0.2 ? 0 : shift
   const headerBottom = Math.max(0, header?.getBoundingClientRect().bottom || 0)
   const measuredAboutTop = about?.getBoundingClientRect().top
   const pocketBottom = Math.max(
@@ -877,8 +874,8 @@ function setFooterGalleryStyles(
   const overlapPadding = clamp(viewportHeight * 0.012, 8, 18)
   const overlapSafePocket = Math.max(0, pocketBottom - Math.max(headerBottom, finalContentBottom + overlapPadding))
   const availablePocket = Math.max(0, pocketBottom - headerBottom)
-  const contentHeight = targetPocket
-  const visibleCapacity = Math.min(availablePocket, contentHeight, overlapSafePocket)
+  const visibleCapacity = Math.min(availablePocket, targetPocket, overlapSafePocket)
+  const contentHeight = visibleCapacity
   const visiblePocket = visibleCapacity * visibleReveal
   const pocketTop = Math.max(headerBottom, pocketBottom - visiblePocket)
   const firstSet = gallery.querySelector(".footer-gallery-set")
@@ -917,7 +914,6 @@ function setFooterGalleryStyles(
     viewportWidth <= 700 ? 620 : 1120,
   )
   const tileWidth = clamp(rawTileWidth, minTileWidth, maxTileWidth)
-  const anchoredShift = visibleReveal > 0.72 ? Math.min(settledShift, 0) : settledShift
   gallery.style.setProperty("--gallery-reveal", visibleReveal.toFixed(4))
   gallery.style.setProperty("--gallery-pocket-height", `${visiblePocket.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-content-height", `${contentHeight.toFixed(2)}px`)
@@ -927,7 +923,7 @@ function setFooterGalleryStyles(
   gallery.style.setProperty("--gallery-meta-space", `${metaHeight.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-opacity", visiblePocket > 1 ? "1" : "0")
   gallery.style.setProperty("--gallery-enter-x", "0px")
-  gallery.style.setProperty("--gallery-scroll-shift", `${anchoredShift.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-scroll-shift", "0px")
   gallery.dataset.galleryRevealed = visiblePocket > 1 ? "true" : "false"
   setFooterGalleryLoopMetrics(gallery)
 }
@@ -1158,27 +1154,8 @@ function updateFooterGalleryReveal(options = {}) {
     siteState.galleryShift = Math.max(siteState.galleryShift, 0)
   }
   const galleryTargetHeight = aboutRuleVisible ? targetPocketHeight : 0
-  const wasVisible =
-    siteState.galleryReveal > 0.001 ||
-    siteState.galleryTargetReveal > 0.001 ||
-    siteState.galleryPocketHeight > 1 ||
-    siteState.galleryTargetPocketHeight > 1
-  const isRetracting =
-    wasVisible &&
-    (galleryTargetHeight < siteState.galleryTargetPocketHeight - 1 ||
-      reveal < siteState.galleryTargetReveal - 0.002 ||
-      aboutPull < siteState.aboutTargetPull - 1)
-  const isExpanding =
-    galleryTargetHeight > siteState.galleryTargetPocketHeight + 1 ||
-    reveal > siteState.galleryTargetReveal + 0.002 ||
-    aboutPull > siteState.aboutTargetPull + 1
-
-  if (isRetracting) {
-    siteState.galleryHorizontalFrozen = true
-    siteState.galleryLoopBoost = 0
-  } else if (isExpanding || galleryTargetHeight <= 1) {
-    siteState.galleryHorizontalFrozen = false
-  }
+  siteState.galleryHorizontalFrozen = false
+  siteState.galleryLoopBoost = 0
   setFooterCompositionTargets(
     reveal,
     aboutTop,
@@ -1230,53 +1207,20 @@ function animateFooterGallery(time) {
   siteState.galleryFrame = requestAnimationFrame(animateFooterGallery)
 }
 
-function nudgeFooterGallery(delta) {
+function nudgeFooterGallery() {
   const gallery = document.querySelector(".footer-gallery")
   if (!gallery) return
 
   const reveal = updateFooterGalleryReveal()
-  if (Math.abs(delta) < 0.25) return
+  siteState.galleryHorizontalFrozen = false
+  siteState.galleryLoopBoost = 0
 
-  const now = performance.now()
-  const elapsed = siteState.galleryLastScrollTime
-    ? clamp((now - siteState.galleryLastScrollTime) / 1000, 0.016, 0.2)
-    : 0.05
-  siteState.galleryLastScrollTime = now
-
-  if (delta < -0.25) {
-    siteState.galleryHorizontalFrozen =
-      siteState.galleryReveal > 0.001 ||
-      siteState.galleryTargetReveal > 0.001 ||
-      siteState.galleryPocketHeight > 1 ||
-      siteState.galleryTargetPocketHeight > 1
-    if (siteState.galleryHorizontalFrozen) siteState.galleryLoopBoost = 0
-  }
-
-  if (delta > 0.25) {
-    siteState.galleryHorizontalFrozen = false
-    const baseSpeed =
-      siteState.galleryLoopBaseSpeed ||
-      (window.innerWidth <= 700 ? 38 : window.innerWidth <= 1440 ? 48 : 56)
-    const scrollVelocity = Math.max(0, delta / elapsed)
-    const galleryTop = gallery.getBoundingClientRect().top
-    const approach = clamp(
-      (window.innerHeight * 1.8 - galleryTop) / Math.max(window.innerHeight * 1.8, 1),
-      0,
-      1,
-    )
-    const revealWeight = clamp(
-      Math.max(reveal, siteState.galleryReveal, siteState.galleryTargetReveal) * 1.35,
-      0,
-      1,
-    )
-    const influence = Math.max(approach, revealWeight)
-    const maxBoost = Math.max(baseSpeed * 4.4, 180)
-    const boost = clamp(scrollVelocity * 0.075 * influence, 0, maxBoost)
-
-    if (boost > 0.2) {
-      siteState.galleryLoopBoost = Math.max(siteState.galleryLoopBoost, boost)
-      requestFooterGalleryLoop()
-    }
+  if (
+    gallery.dataset.galleryRevealed === "true" ||
+    siteState.galleryReveal > 0.001 ||
+    siteState.galleryTargetReveal > 0.001
+  ) {
+    requestFooterGalleryLoop()
   }
 
   if (reveal <= 0.001) {

@@ -489,6 +489,7 @@ body[data-layout-transition="true"] .about-section {
   --gallery-meta-space: 38px;
   --gallery-viewport-left: calc(50% - 50vw);
   --gallery-opacity: 0;
+  --gallery-reveal-y: 0px;
   --gallery-loop-x: calc(-50% - var(--gallery-gap) / 2);
   --gallery-loop-duration: 58s;
   --gallery-loop-offset: 0px;
@@ -524,9 +525,9 @@ body[data-layout-transition="true"] .about-section {
   width: max-content;
   height: var(--gallery-content-height);
   opacity: var(--gallery-opacity);
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(0, var(--gallery-reveal-y), 0);
   transition: opacity 120ms ease;
-  will-change: opacity;
+  will-change: transform, opacity;
 }
 
 .footer-gallery-track {

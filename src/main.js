@@ -299,6 +299,7 @@ const siteState = {
   galleryHorizontalFrozen: false,
   galleryPointerDirection: 0,
   galleryScrollPauseUntil: 0,
+  galleryObservedScrollY: 0,
   galleryReveal: 0,
   galleryTargetReveal: 0,
   galleryShift: 0,
@@ -878,8 +879,9 @@ function setFooterGalleryStyles(
   const availablePocket = Math.max(0, pocketBottom - headerBottom)
   const visibleCapacity = Math.min(availablePocket, targetPocket, overlapSafePocket)
   const contentHeight = visibleCapacity
-  const visiblePocket = visibleCapacity * visibleReveal
+  const visiblePocket = visibleReveal > 0.001 ? contentHeight : 0
   const pocketTop = Math.max(headerBottom, pocketBottom - visiblePocket)
+  const revealShift = contentHeight * (1 - visibleReveal)
   const firstSet = gallery.querySelector(".footer-gallery-set")
   const setStyle = firstSet ? window.getComputedStyle(firstSet) : null
   const gap = parseFloat(setStyle?.columnGap || setStyle?.gap || "") || 24
@@ -924,6 +926,7 @@ function setFooterGalleryStyles(
   gallery.style.setProperty("--gallery-pocket-height", `${visiblePocket.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-content-height", `${contentHeight.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-pocket-top", `${pocketTop.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-reveal-y", `${revealShift.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-viewport-left", `${(-galleryRect.left).toFixed(2)}px`)
   gallery.style.setProperty("--gallery-tile-width", `${tileWidth.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-set-width", `${setWidth.toFixed(2)}px`)
@@ -948,6 +951,29 @@ function requestFooterGalleryLoop() {
 
 function isFooterGalleryMotionReady(gallery) {
   return gallery.dataset.galleryRevealed === "true" && siteState.galleryReveal > 0.98
+}
+
+function readFooterGalleryScrollY() {
+  const layoutY = window.scrollY || window.pageYOffset || 0
+  const visualY = window.visualViewport?.pageTop
+  return Number.isFinite(visualY) ? visualY : layoutY
+}
+
+function holdFooterGalleryDuringScroll(time = performance.now()) {
+  siteState.galleryScrollPauseUntil = Math.max(siteState.galleryScrollPauseUntil, time + 320)
+  siteState.galleryHorizontalFrozen = true
+}
+
+function isFooterGalleryScrollSettling(time) {
+  const scrollY = readFooterGalleryScrollY()
+  if (Math.abs(scrollY - siteState.galleryObservedScrollY) > 0.1) {
+    siteState.galleryObservedScrollY = scrollY
+    holdFooterGalleryDuringScroll(time)
+  }
+
+  const settling = time < siteState.galleryScrollPauseUntil
+  siteState.galleryHorizontalFrozen = settling
+  return settling
 }
 
 function updateFooterGalleryPointer(clientX) {
@@ -1049,7 +1075,7 @@ function animateFooterGalleryLoop(time) {
     : 1 / 60
   siteState.galleryLoopLastTime = time
 
-  if (time >= siteState.galleryScrollPauseUntil) {
+  if (!isFooterGalleryScrollSettling(time)) {
     const speed = Math.max(0, siteState.galleryLoopBaseSpeed)
     siteState.galleryLoopOffset = wrapGalleryLoopOffset(
       siteState.galleryLoopOffset + direction * speed * elapsed,
@@ -1135,17 +1161,13 @@ function updateFooterGalleryReveal(options = {}) {
   const clearLead = clamp(window.innerHeight * 0.22, 120, 320)
   const clearDistance = clamp(window.innerHeight * 0.05, 42, 110)
   const pocketDistance = clamp(window.innerHeight * 0.18, 140, 300)
-  const aboutDistance = clamp(window.innerHeight * 0.16, 140, 320)
 
   const contentCleared = clamp((headerBottom + clearLead - finalContentBottom) / clearDistance, 0, 1)
-  const aboutDocked = aboutRuleVisible
-    ? clamp((window.innerHeight - aboutTop) / aboutDistance, 0, 1)
-    : 0
   const pocketFormed = aboutRuleVisible
     ? clamp((viewportPocketHeight - minPocketGap) / pocketDistance, 0, 1)
     : 0
   const clearanceProgress = easeOutCubic(contentCleared)
-  const reveal = easeOutCubic(Math.min(aboutDocked, pocketFormed))
+  const reveal = easeOutCubic(Math.min(clearanceProgress, pocketFormed))
   const overlapPadding = clamp(viewportHeight * 0.012, 8, 18)
   const blockedTop = Math.max(headerBottom, Math.min(aboutTop, finalContentBottom + overlapPadding))
   const galleryTopTarget = clamp(
@@ -1159,7 +1181,6 @@ function updateFooterGalleryReveal(options = {}) {
     siteState.galleryShift = Math.max(siteState.galleryShift, 0)
   }
   const galleryTargetHeight = aboutRuleVisible ? targetPocketHeight : 0
-  siteState.galleryHorizontalFrozen = false
   siteState.galleryLoopBoost = 0
   setFooterCompositionTargets(
     reveal,
@@ -1216,9 +1237,9 @@ function nudgeFooterGallery() {
   const gallery = document.querySelector(".footer-gallery")
   if (!gallery) return
 
-  siteState.galleryScrollPauseUntil = performance.now() + 240
+  siteState.galleryObservedScrollY = readFooterGalleryScrollY()
+  holdFooterGalleryDuringScroll()
   const reveal = updateFooterGalleryReveal()
-  siteState.galleryHorizontalFrozen = false
   siteState.galleryLoopBoost = 0
 
   if (
@@ -1253,6 +1274,7 @@ function setupFooterGallery() {
   siteState.galleryHorizontalFrozen = false
   siteState.galleryPointerDirection = 0
   siteState.galleryScrollPauseUntil = 0
+  siteState.galleryObservedScrollY = readFooterGalleryScrollY()
   siteState.galleryReveal = 0
   siteState.galleryTargetReveal = 0
   siteState.galleryShift = 0
@@ -1383,6 +1405,7 @@ function startResponsiveLayoutTransition() {
 
 function setupHeader() {
   siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
+  siteState.galleryObservedScrollY = readFooterGalleryScrollY()
   setHeaderTarget(clamp(siteState.lastScrollY / readHeaderMetrics().distance, 0, 1), true)
 
   if (siteState.headerInitialized) return
@@ -1390,8 +1413,17 @@ function setupHeader() {
 
   window.addEventListener(
     "wheel",
-    (event) => updateHeaderFromScroll(event.deltaY),
+    (event) => {
+      holdFooterGalleryDuringScroll()
+      updateHeaderFromScroll(event.deltaY)
+    },
     { passive: true }
+  )
+
+  window.addEventListener(
+    "touchmove",
+    () => holdFooterGalleryDuringScroll(),
+    { passive: true },
   )
 
   window.addEventListener(

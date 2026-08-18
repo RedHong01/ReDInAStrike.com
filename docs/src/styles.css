@@ -15,11 +15,16 @@
   --logo-size: 150px;
   --nav-scale: 1;
   --detail-opacity: 1;
-  --header-glass-alpha: 0.98;
-  --header-glass-blur: 0px;
+  --header-glass-alpha: 0.72;
+  --header-glass-blur: 10px;
+  --header-glass-saturate: 1.32;
   --header-glass-shadow-alpha: 0;
   --header-rule-alpha: 1;
   --header-pad: clamp(18px, 1.75vw, 25px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --edge-glass-height: calc(9px + var(--safe-top));
   --logo-width: calc(var(--logo-size) * 0.7776);
   --content-edge-pad: calc(var(--header-pad) * 2 + var(--logo-width));
   --vertical-nav-gap: clamp(3px, calc(var(--logo-size) / 38), 4px);
@@ -41,7 +46,7 @@
 }
 
 html {
-  background: #eeeeee;
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--serif);
   font-size: 16px;
@@ -52,8 +57,33 @@ html {
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100svh;
   background: var(--paper);
   overflow-x: hidden;
+}
+
+#app {
+  min-height: 100svh;
+  background: var(--paper);
+}
+
+.safari-edge-glass {
+  position: fixed;
+  z-index: 30;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--edge-glass-height);
+  background: rgba(255, 255, 255, 0.012);
+  pointer-events: none;
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .safari-edge-glass {
+    background: rgba(255, 255, 255, 0.018);
+    -webkit-backdrop-filter: blur(18px) saturate(1.42);
+    backdrop-filter: blur(18px) saturate(1.42);
+  }
 }
 
 a {
@@ -71,7 +101,7 @@ img {
   top: 0;
   z-index: 20;
   width: 100%;
-  height: var(--header-height);
+  height: calc(var(--header-height) + var(--safe-top));
   background: transparent;
   overflow: visible;
   isolation: isolate;
@@ -82,11 +112,17 @@ img {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: rgba(255, 255, 255, var(--header-glass-alpha));
-  -webkit-backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
-  backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
+  background: rgba(255, 255, 255, 0.84);
   box-shadow: none;
   pointer-events: none;
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .site-header::before {
+    background: rgba(255, 255, 255, var(--header-glass-alpha));
+    -webkit-backdrop-filter: blur(var(--header-glass-blur)) saturate(var(--header-glass-saturate));
+    backdrop-filter: blur(var(--header-glass-blur)) saturate(var(--header-glass-saturate));
+  }
 }
 
 .header-inner {
@@ -98,7 +134,8 @@ img {
   gap: clamp(18px, 3vw, 56px);
   width: 100%;
   height: 100%;
-  padding: 0 var(--header-pad);
+  padding: var(--safe-top) calc(var(--header-pad) + var(--safe-right)) 0
+    calc(var(--header-pad) + var(--safe-left));
 }
 
 .brand {
@@ -291,7 +328,9 @@ body[data-nav-density="full"] .nav-item:focus-visible .nav-detail {
 }
 
 .site-main {
-  background: var(--paper);
+  position: relative;
+  z-index: 1;
+  background: transparent;
 }
 
 body[data-layout-transition="true"] .site-header {
@@ -485,6 +524,7 @@ body[data-layout-transition="true"] .about-section {
   --gallery-seam-gap: clamp(46px, 4vw, 92px);
   --gallery-pocket-top: var(--header-height);
   --gallery-pocket-height: 0px;
+  --gallery-content-height: 0px;
   --gallery-tile-width: clamp(240px, 27vw, 430px);
   --gallery-meta-space: 38px;
   --gallery-viewport-left: calc(50% - 50vw);
@@ -522,7 +562,7 @@ body[data-layout-transition="true"] .about-section {
 .footer-gallery-runner {
   display: flex;
   width: max-content;
-  height: 100%;
+  height: var(--gallery-content-height);
   opacity: var(--gallery-opacity);
   transform: translate3d(calc(var(--gallery-enter-x, 0px) + var(--gallery-scroll-shift, 0px)), 0, 0);
   transition: opacity 120ms ease;
@@ -1563,5 +1603,19 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .footer-gallery-track {
     animation: none !important;
     transform: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .safari-edge-glass {
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .site-header::before {
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }

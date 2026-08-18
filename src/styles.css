@@ -485,6 +485,7 @@ body[data-layout-transition="true"] .about-section {
   --gallery-pocket-height: 0px;
   --gallery-content-height: 0px;
   --gallery-tile-width: clamp(240px, 27vw, 430px);
+  --gallery-set-width: auto;
   --gallery-meta-space: 38px;
   --gallery-viewport-left: calc(50% - 50vw);
   --gallery-opacity: 0;
@@ -543,8 +544,9 @@ body[data-layout-transition="true"] .about-section {
 
 .footer-gallery-set {
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 0 var(--gallery-set-width);
   gap: var(--gallery-gap);
+  width: var(--gallery-set-width);
   height: 100%;
 }
 

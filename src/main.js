@@ -916,12 +916,17 @@ function setFooterGalleryStyles(
     viewportWidth <= 700 ? 620 : 1120,
   )
   const tileWidth = clamp(rawTileWidth, minTileWidth, maxTileWidth)
+  const tileCount = firstSet?.querySelectorAll(".footer-gallery-tile").length || projects.length
+  const setWidth = tileCount > 0
+    ? tileWidth * tileCount + gap * Math.max(0, tileCount - 1)
+    : 0
   gallery.style.setProperty("--gallery-reveal", visibleReveal.toFixed(4))
   gallery.style.setProperty("--gallery-pocket-height", `${visiblePocket.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-content-height", `${contentHeight.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-pocket-top", `${pocketTop.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-viewport-left", `${(-galleryRect.left).toFixed(2)}px`)
   gallery.style.setProperty("--gallery-tile-width", `${tileWidth.toFixed(2)}px`)
+  gallery.style.setProperty("--gallery-set-width", `${setWidth.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-meta-space", `${metaHeight.toFixed(2)}px`)
   gallery.style.setProperty("--gallery-opacity", visiblePocket > 1 ? "1" : "0")
   gallery.style.setProperty("--gallery-enter-x", "0px")
@@ -960,19 +965,20 @@ function setFooterGalleryLoopMetrics(gallery) {
   const track = gallery.querySelector(".footer-gallery-track")
   const sets = [...gallery.querySelectorAll(".footer-gallery-set")]
   const firstSet = sets[0]
-  const secondSet = sets[1]
   if (!track || !firstSet) return
 
+  const galleryStyle = window.getComputedStyle(gallery)
   const trackStyle = window.getComputedStyle(track)
   const trackGap = parseFloat(trackStyle.columnGap || trackStyle.gap || "") || 0
-  const setWidth = firstSet.getBoundingClientRect().width
+  const cssSetWidth = parseFloat(galleryStyle.getPropertyValue("--gallery-set-width"))
+  const measuredSetWidth = firstSet.getBoundingClientRect().width
+  const setWidth =
+    Number.isFinite(cssSetWidth) && cssSetWidth > 0
+      ? cssSetWidth
+      : measuredSetWidth
   if (!Number.isFinite(setWidth) || setWidth <= 0) return
 
-  const measuredDistance = secondSet ? secondSet.offsetLeft - firstSet.offsetLeft : 0
-  const distance =
-    Number.isFinite(measuredDistance) && measuredDistance > setWidth
-      ? measuredDistance
-      : setWidth + trackGap
+  const distance = setWidth + trackGap
   const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
   const pxPerSecond = viewportWidth <= 700 ? 38 : viewportWidth <= 1440 ? 48 : 56
   const duration = clamp(distance / pxPerSecond, 42, 120)

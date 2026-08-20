@@ -797,8 +797,7 @@ body[data-layout-transition="true"] .about-section {
 .resume-experience p,
 .resume-course-list,
 .resume-skills-grid,
-.resume-tools,
-.resume-contact-details {
+.resume-tools {
   margin: 0;
   color: var(--ink);
   letter-spacing: 0;
@@ -857,8 +856,7 @@ body[data-layout-transition="true"] .about-section {
 .resume-experience p,
 .resume-course-list,
 .resume-skills-grid,
-.resume-tools,
-.resume-contact-details {
+.resume-tools {
   font-size: clamp(13px, 0.868vw, 15px);
   font-weight: 400;
   line-height: 1.18;
@@ -887,34 +885,6 @@ body[data-layout-transition="true"] .about-section {
 
 .resume-tools {
   margin-top: clamp(3px, 0.35vw, 6px);
-}
-
-.resume-contact-details {
-  display: grid;
-  gap: 4px;
-  margin-top: clamp(3px, 0.4vw, 7px);
-}
-
-.resume-contact-details div {
-  display: grid;
-  grid-template-columns: minmax(70px, max-content) minmax(0, 1fr);
-  column-gap: 8px;
-  align-items: start;
-}
-
-.resume-contact-details dt,
-.resume-contact-details dd {
-  margin: 0;
-}
-
-.resume-contact-details dd {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.resume-contact-details a {
-  overflow-wrap: anywhere;
 }
 
 .about-section h2,
@@ -2030,7 +2000,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .about-card {
     display: block;
-    height: 520px;
+    z-index: 2;
+    height: 549px;
     padding: 0;
     overflow: visible;
   }
@@ -2111,12 +2082,27 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .resume-card {
     position: relative;
+    z-index: 10;
+    isolation: isolate;
     height: auto;
     min-height: 154px;
-    margin-top: -8px;
+    margin-top: 0;
     padding-top: 156px;
     padding-bottom: 54px;
     overflow: visible;
+  }
+
+  .resume-card::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    right: -8px;
+    top: 18px;
+    z-index: 10;
+    height: 88px;
+    background: rgba(255, 255, 255, 0.86);
+    filter: blur(14px);
+    pointer-events: none;
   }
 
   .about-resume-band {
@@ -2124,6 +2110,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     left: 0;
     right: 0;
     top: 0;
+    z-index: 11;
     height: 1px;
     border-top: 1px solid var(--rule);
     background: transparent;
@@ -2135,6 +2122,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     position: absolute;
     left: 0;
     top: -47px;
+    z-index: 13;
     font-size: clamp(82px, 27vw, 116px);
     line-height: 0.86;
     margin: 0;
@@ -2181,8 +2169,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .resume-experience p,
   .resume-course-list,
   .resume-skills-grid,
-  .resume-tools,
-  .resume-contact-details {
+  .resume-tools {
     font-size: 14px;
     line-height: 18px;
   }
@@ -2195,10 +2182,6 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .resume-education-group h4,
   .resume-experience h4 {
     font-size: 21px;
-  }
-
-  .resume-contact-details div {
-    grid-template-columns: 78px minmax(0, 1fr);
   }
 
   .detail-heading {

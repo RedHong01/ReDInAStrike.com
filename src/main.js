@@ -521,10 +521,6 @@ const resumeEducation = [
         name: "BS - Entertainment Design - Game Design",
         date: "Sep 2023 - May 2027 (Anticipated)",
       },
-      {
-        name: "BFA - Graphic Design",
-        date: "Dec 2026 - May 2028 (Anticipated)",
-      },
     ],
   },
   {
@@ -543,9 +539,9 @@ const resumeEducation = [
 const resumeExperience = {
   role: "Teaching Assistant",
   place: "ArtCenter College of Design",
-  courses: ["Type 1: Foundation", "Type 2: Structure"],
+  courses: ["Type 1: Foundation"],
   body:
-    "Assisted Professor Chesley Nesaeny in his Type 1 and Type 2 courses. Led individual and group critiques. Helped students conceptualize typographic ideas, create clear structures, and understand print practices.",
+    "Assisted Professor Chesley Nesaeny in his Type 1 course. Led individual and group critiques. Helped students conceptualize typographic ideas, create clear structures, and understand print practices.",
 }
 
 const resumeSkills = [
@@ -561,35 +557,6 @@ const resumeSkills = [
 
 const resumeTools =
   "Unity (Unity 6 & 2022.3+), Unreal Engine, Blender, Figma, Adobe Suite (Photoshop, After Effects, InDesign, Illustrator), Apple Creative Suite (Final Cut Pro, Logic Pro), TouchDesigner, C#, Swift, p5.js, Cinema 4D, Arduino IDE."
-
-const resumeContactDetails = [
-  { label: "Location", value: "Pasadena, CA / Beijing, China" },
-  {
-    label: "Email",
-    values: [
-      { text: "redinastrike@gmail.com", href: "mailto:redinastrike@gmail.com" },
-      { text: "zwang29@inside.artcenter.edu", href: "mailto:zwang29@inside.artcenter.edu" },
-    ],
-  },
-  { label: "Phone", value: "+1 (323) 376-8339" },
-  {
-    label: "Portfolio",
-    values: [
-      {
-        text: "https://redhong01.github.io/ReDInAStrike.com/",
-        href: "https://redhong01.github.io/ReDInAStrike.com/",
-      },
-    ],
-  },
-  {
-    label: "Github",
-    values: [{ text: "https://github.com/RedHong01", href: "https://github.com/RedHong01" }],
-  },
-  {
-    label: "Instagram",
-    values: [{ text: "red_cnfh", href: "https://www.instagram.com/red_cnfh/" }],
-  },
-]
 
 function resumeProjectMarkup(project) {
   const body = project.body.map((line) => escapeHtml(line)).join("<br />")
@@ -625,28 +592,11 @@ function resumeEducationMarkup(group) {
         </div>`
 }
 
-function resumeContactDetailMarkup(item) {
-  const values = item.values || [{ text: item.value }]
-  const valueMarkup = values
-    .map((value) => {
-      if (!value.href) return `<span>${escapeHtml(value.text)}</span>`
-      return `<a href="${escapeHtml(value.href)}">${escapeHtml(value.text)}</a>`
-    })
-    .join("")
-
-  return `
-        <div>
-          <dt>${escapeHtml(item.label)}:</dt>
-          <dd>${valueMarkup}</dd>
-        </div>`
-}
-
 function resumeDetailMarkup() {
   const projectItems = resumeProjects.map(resumeProjectMarkup).join("")
   const educationItems = resumeEducation.map(resumeEducationMarkup).join("")
   const skillItems = resumeSkills.map((skill) => `<span>${escapeHtml(skill)}</span>`).join("")
   const courseItems = resumeExperience.courses.map((course) => `<span>${escapeHtml(course)}</span>`).join("")
-  const contactItems = resumeContactDetails.map(resumeContactDetailMarkup).join("")
 
   return `
       <section class="resume-detail" aria-label="Resume history">
@@ -673,7 +623,6 @@ function resumeDetailMarkup() {
             <h3>Skills</h3>
             <div class="resume-skills-grid">${skillItems}</div>
             <p class="resume-tools">${escapeHtml(resumeTools)}</p>
-            <dl class="resume-contact-details">${contactItems}</dl>
           </section>
         </div>
       </section>`

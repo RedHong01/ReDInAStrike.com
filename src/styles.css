@@ -23,26 +23,6 @@
 }
 
 @font-face {
-  font-family: "Red Nicholas";
-  src:
-    local("Nicholas Italic"),
-    local("Nicholas-Italic");
-  font-style: italic;
-  font-weight: 200;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Red Nicholas";
-  src:
-    local("Nicholas Italic"),
-    local("Nicholas-Italic");
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
   font-family: "Red Courier Prime";
   src: url("../fonts/CourierPrime-Regular.ttf") format("truetype");
   font-style: normal;
@@ -68,10 +48,11 @@
   --logo-size: 150px;
   --nav-scale: 1;
   --detail-opacity: 1;
-  --header-glass-alpha: 0.98;
-  --header-glass-blur: 0px;
+  --glass-alpha: 0.76;
+  --glass-blur: 18px;
+  --glass-saturate: 1.12;
   --header-glass-shadow-alpha: 0;
-  --header-rule-alpha: 1;
+  --header-rule-alpha: 0.82;
   --header-pad: clamp(18px, 1.75vw, 25px);
   --logo-width: calc(var(--logo-size) * 0.7776);
   --content-edge-pad: calc(var(--header-pad) * 2 + var(--logo-width));
@@ -88,7 +69,7 @@
   --serif: "Red EB Garamond", "Red Minion Pro", "Minion Pro", "Garamond Premier Pro", YuMincho, "Times New Roman", serif;
   --mono: "Red Courier Prime", "Courier Prime", "Courier New", monospace;
   --name-serif: YuMincho, "Yu Mincho", "Red Noto Serif TC", "Songti TC", serif;
-  --display-italic: "Red Nicholas", "Nicholas", "Garamond Premier Pro Display", "Garamond Premier Pro", "Red EB Garamond", "Times New Roman", serif;
+  --display-italic: "Red EB Garamond", "EB Garamond", "Garamond Premier Pro Display", "Garamond Premier Pro", "Times New Roman", serif;
 }
 
 * {
@@ -137,9 +118,9 @@ img {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: rgba(255, 255, 255, var(--header-glass-alpha));
-  -webkit-backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
-  backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
+  background: rgba(255, 255, 255, var(--glass-alpha));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   box-shadow: none;
   pointer-events: none;
 }
@@ -688,9 +669,9 @@ body[data-layout-transition="true"] .about-section {
   top: 0;
   height: var(--about-stage-height);
   border-top: 1px solid var(--rule);
-  background: rgba(255, 255, 255, var(--header-glass-alpha));
-  -webkit-backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
-  backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
+  background: rgba(255, 255, 255, var(--glass-alpha));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   pointer-events: none;
 }
 
@@ -702,9 +683,9 @@ body[data-layout-transition="true"] .about-section {
   z-index: 5;
   height: calc(51px + var(--about-tail-height));
   border-top: 1px solid var(--rule);
-  background: rgba(255, 255, 255, var(--header-glass-alpha));
-  -webkit-backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
-  backdrop-filter: blur(var(--header-glass-blur)) saturate(1.12);
+  background: rgba(255, 255, 255, var(--glass-alpha));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   pointer-events: none;
 }
 
@@ -719,6 +700,7 @@ body[data-layout-transition="true"] .about-section {
   font-style: italic;
   font-weight: 200;
   line-height: 1;
+  letter-spacing: 0;
   color: var(--ink);
   -webkit-text-stroke: clamp(4px, 0.35vw, 6px) rgba(255, 255, 255, 0.92);
   paint-order: stroke fill;

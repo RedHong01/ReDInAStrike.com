@@ -763,18 +763,17 @@ function applyHeaderProgress(progress) {
   const logo = metrics.fullLogo + (metrics.compactLogo - metrics.fullLogo) * progress
   const navScale = 1 + (0.88 - 1) * progress
   const detailOpacity = 1
-  const glassProgress = clamp(progress * 1.35, 0, 1)
-  const glassAlpha = 0.98 + (0.76 - 0.98) * glassProgress
-  const glassBlur = 18 * glassProgress
+  const glassAlpha = 0.76
+  const glassBlur = 18
   const glassShadowAlpha = 0
-  const ruleAlpha = 1 - 0.18 * glassProgress
+  const ruleAlpha = 0.82
 
   document.documentElement.style.setProperty("--header-height", `${height.toFixed(2)}px`)
   document.documentElement.style.setProperty("--logo-size", `${logo.toFixed(2)}px`)
   document.documentElement.style.setProperty("--nav-scale", navScale.toFixed(4))
   document.documentElement.style.setProperty("--detail-opacity", detailOpacity.toFixed(4))
-  document.documentElement.style.setProperty("--header-glass-alpha", glassAlpha.toFixed(4))
-  document.documentElement.style.setProperty("--header-glass-blur", `${glassBlur.toFixed(2)}px`)
+  document.documentElement.style.setProperty("--glass-alpha", glassAlpha.toFixed(4))
+  document.documentElement.style.setProperty("--glass-blur", `${glassBlur.toFixed(2)}px`)
   document.documentElement.style.setProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
   document.documentElement.style.setProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
 

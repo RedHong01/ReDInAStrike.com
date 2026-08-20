@@ -450,28 +450,31 @@ function footerGalleryMarkup() {
 function aboutMarkup() {
   return `
     <section class="about-section" id="resume" aria-label="About Red Wang">
+      <div class="about-resume-band" aria-hidden="true"></div>
+      <p class="resume-word" aria-hidden="true">Resume</p>
       <div class="about-copy">
-        <h2>About</h2>
+        <h2>About:</h2>
         <p>
-          Red Wang "王紫鵬“is a Game Design student and is now based in the LA area.
-          An independent thinker who enjoys teamwork. Passionate for Game Design &amp;
-          Development, Cinematic &amp; Media Arts, Interaction Design, Graphic Design
-          and other Interdisciplinary practices.
+          Red Wang <span>“王紫鵬”</span> is a Game Design student and is now based in
+          the LA area. An independent thinker who enjoys teamwork. Passionate for
+          Game Design &amp; Development, Cinematic &amp; Media Arts, Interaction Design,
+          Graphic Design and other Interdisciplinary practices.
         </p>
       </div>
       <div class="contact-copy" id="contact">
-        <h2>Contact</h2>
-        <a href="#" aria-label="Twitter">Twitter</a>
-        <a href="https://www.instagram.com/red_cnfh/">Instagram</a>
-        <a href="mailto:zwang29@inside.artcenter.edu">Email</a>
+        <h2>Contact:</h2>
+        <div class="contact-links">
+          <a href="#" aria-label="Twitter">Twitter</a>
+          <a href="https://www.instagram.com/red_cnfh/">Instagram</a>
+          <a href="mailto:zwang29@inside.artcenter.edu">Email</a>
+        </div>
       </div>
       <figure class="profile-portrait">
-        <img src="${asset("assets/framer-live/profile.jpeg")}" alt="Red Wang portrait" />
+        <img src="${asset("assets/figma-home/about-profile.png")}" alt="Red Wang portrait" />
       </figure>
       <div class="profile-card">
         <h2>王紫鵬</h2>
-        <p>Red Wang</p>
-        <span>Game Design Student at ArtCenter College of Design</span>
+        <p>Game Design Student at ArtCenter<br />College of Design</p>
         <div class="profile-actions">
           <a href="mailto:zwang29@inside.artcenter.edu">Contact Me</a>
           <a href="#game">Latest Project</a>
@@ -1158,17 +1161,17 @@ function updateFooterGalleryReveal(options = {}) {
     ? Math.min(rawPocketHeight, Math.max(0, window.innerHeight - headerBottom))
     : 0
   const minPocketGap = clamp(window.innerHeight * 0.06, 36, 88)
-  const clearLead = clamp(window.innerHeight * 0.22, 120, 320)
-  const clearDistance = clamp(window.innerHeight * 0.05, 42, 110)
+  const clearBuffer = clamp(viewportHeight * 0.012, 8, 18)
+  const clearDistance = clamp(window.innerHeight * 0.08, 58, 140)
   const pocketDistance = clamp(window.innerHeight * 0.18, 140, 300)
 
-  const contentCleared = clamp((headerBottom + clearLead - finalContentBottom) / clearDistance, 0, 1)
+  const contentCleared = clamp((headerBottom - clearBuffer - finalContentBottom) / clearDistance, 0, 1)
   const pocketFormed = aboutRuleVisible
     ? clamp((viewportPocketHeight - minPocketGap) / pocketDistance, 0, 1)
     : 0
   const clearanceProgress = easeOutCubic(contentCleared)
   const reveal = easeOutCubic(Math.min(clearanceProgress, pocketFormed))
-  const overlapPadding = clamp(viewportHeight * 0.012, 8, 18)
+  const overlapPadding = clearBuffer
   const blockedTop = Math.max(headerBottom, Math.min(aboutTop, finalContentBottom + overlapPadding))
   const galleryTopTarget = clamp(
     blockedTop + (headerBottom - blockedTop) * clearanceProgress,

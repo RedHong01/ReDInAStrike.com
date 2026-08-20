@@ -309,6 +309,10 @@ const siteState = {
   galleryTargetPocketHeight: 0,
   aboutPull: 0,
   aboutTargetPull: 0,
+  aboutCardOffset: 0,
+  aboutCardTargetOffset: 0,
+  resumeCardOffset: 0,
+  resumeCardTargetOffset: 0,
 }
 
 function asset(path) {
@@ -447,38 +451,271 @@ function footerGalleryMarkup() {
     </section>`
 }
 
+const resumeProjects = [
+  {
+    title: "SerialDeminer",
+    role: "Game Jam Prototype Design & Development",
+    date: "March 2024",
+    body: [
+      "Created a decision-making gameplay structure centered around information reading, judgment, and player actions.",
+      "Completed a fully playable prototype within 48 hours.",
+      "Awarded 1st Place at the 2024 ArtCenter Game Jam.",
+    ],
+  },
+  {
+    title: "MyFridge",
+    role: "Interactive Prototype Design & Development",
+    date: "Sept-Oct 2024",
+    body: [
+      "Designed interaction structures and UI animation systems for ingredient management workflows.",
+    ],
+  },
+  {
+    title: "Build and Shoot",
+    role: "Card Game Prototype Design",
+    date: "Oct-Nov 2024",
+    body: [
+      "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
+      "Developed iterative gameplay systems including Movement, Combat, Inventory, and AI finite-state logic.",
+    ],
+  },
+  {
+    title: "Dad Game",
+    role: "Digital Game Prototype Design & Development",
+    date: "Jan-Sept 2025",
+    body: [
+      "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
+    ],
+  },
+  {
+    title: "Drill and Thrill",
+    role: "Lead Alt-Control Game Design & Development / Graphics Design",
+    date: "Jan-Sept 2025",
+    body: [
+      "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
+    ],
+  },
+  {
+    title: "Shroom Show Down",
+    role: "Lead Alt-Control Game Design & Development / Graphics Design",
+    date: "Jan-Sept 2026",
+    body: [
+      "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
+    ],
+  },
+  {
+    title: "Curtain",
+    role: "Game Prototype Design & Development / Graphics Design",
+    date: "Mar-Nov 2025",
+    body: [
+      "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
+    ],
+  },
+]
+
+const resumeEducation = [
+  {
+    school: "ArtCenter College of Design:",
+    programs: [
+      {
+        name: "BS - Entertainment Design - Game Design",
+        date: "Sep 2023 - May 2027 (Anticipated)",
+      },
+      {
+        name: "BFA - Graphic Design",
+        date: "Dec 2026 - May 2028 (Anticipated)",
+      },
+    ],
+  },
+  {
+    school: "California Institute of Technology",
+    programs: [{ name: "Computer Science (Exchange Program)" }],
+  },
+  {
+    school: "Occidental College",
+    programs: [
+      { name: "Computer Science (Exchange Program)" },
+      { name: "Mathematics (Exchange Program)" },
+    ],
+  },
+]
+
+const resumeExperience = {
+  role: "Teaching Assistant",
+  place: "ArtCenter College of Design",
+  courses: ["Type 1: Foundation", "Type 2: Structure"],
+  body:
+    "Assisted Professor Chesley Nesaeny in his Type 1 and Type 2 courses. Led individual and group critiques. Helped students conceptualize typographic ideas, create clear structures, and understand print practices.",
+}
+
+const resumeSkills = [
+  "Chinese",
+  "English",
+  "Rapid Prototype",
+  "Game Design & Development",
+  "Interaction Design & Development",
+  "Typography",
+  "Visual Design",
+  "Motion Design",
+]
+
+const resumeTools =
+  "Unity (Unity 6 & 2022.3+), Unreal Engine, Blender, Figma, Adobe Suite (Photoshop, After Effects, InDesign, Illustrator), Apple Creative Suite (Final Cut Pro, Logic Pro), TouchDesigner, C#, Swift, p5.js, Cinema 4D, Arduino IDE."
+
+const resumeContactDetails = [
+  { label: "Location", value: "Pasadena, CA / Beijing, China" },
+  {
+    label: "Email",
+    values: [
+      { text: "redinastrike@gmail.com", href: "mailto:redinastrike@gmail.com" },
+      { text: "zwang29@inside.artcenter.edu", href: "mailto:zwang29@inside.artcenter.edu" },
+    ],
+  },
+  { label: "Phone", value: "+1 (323) 376-8339" },
+  {
+    label: "Portfolio",
+    values: [
+      {
+        text: "https://redhong01.github.io/ReDInAStrike.com/",
+        href: "https://redhong01.github.io/ReDInAStrike.com/",
+      },
+    ],
+  },
+  {
+    label: "Github",
+    values: [{ text: "https://github.com/RedHong01", href: "https://github.com/RedHong01" }],
+  },
+  {
+    label: "Instagram",
+    values: [{ text: "red_cnfh", href: "https://www.instagram.com/red_cnfh/" }],
+  },
+]
+
+function resumeProjectMarkup(project) {
+  const body = project.body.map((line) => escapeHtml(line)).join("<br />")
+
+  return `
+        <article class="resume-project">
+          <div class="resume-project-head">
+            <div>
+              <h3>${escapeHtml(project.title)}</h3>
+              <p>${escapeHtml(project.role)}</p>
+            </div>
+            <time>${escapeHtml(project.date)}</time>
+          </div>
+          <p class="resume-project-body">${body}</p>
+        </article>`
+}
+
+function resumeEducationMarkup(group) {
+  const programs = group.programs
+    .map(
+      (program) => `
+            <p>
+              <span>${escapeHtml(program.name)}</span>
+              ${program.date ? `<span>${escapeHtml(program.date)}</span>` : ""}
+            </p>`
+    )
+    .join("")
+
+  return `
+        <div class="resume-education-group">
+          <h4>${escapeHtml(group.school)}</h4>
+          ${programs}
+        </div>`
+}
+
+function resumeContactDetailMarkup(item) {
+  const values = item.values || [{ text: item.value }]
+  const valueMarkup = values
+    .map((value) => {
+      if (!value.href) return `<span>${escapeHtml(value.text)}</span>`
+      return `<a href="${escapeHtml(value.href)}">${escapeHtml(value.text)}</a>`
+    })
+    .join("")
+
+  return `
+        <div>
+          <dt>${escapeHtml(item.label)}:</dt>
+          <dd>${valueMarkup}</dd>
+        </div>`
+}
+
+function resumeDetailMarkup() {
+  const projectItems = resumeProjects.map(resumeProjectMarkup).join("")
+  const educationItems = resumeEducation.map(resumeEducationMarkup).join("")
+  const skillItems = resumeSkills.map((skill) => `<span>${escapeHtml(skill)}</span>`).join("")
+  const courseItems = resumeExperience.courses.map((course) => `<span>${escapeHtml(course)}</span>`).join("")
+  const contactItems = resumeContactDetails.map(resumeContactDetailMarkup).join("")
+
+  return `
+      <section class="resume-detail" aria-label="Resume history">
+        <div class="resume-projects" aria-label="Project history">
+          ${projectItems}
+        </div>
+        <div class="resume-side">
+          <section class="resume-info-block" aria-label="Education">
+            <h3>Education</h3>
+            <div class="resume-education-list">
+              ${educationItems}
+            </div>
+          </section>
+          <section class="resume-info-block" aria-label="Experience">
+            <h3>Experience</h3>
+            <div class="resume-experience">
+              <h4>${escapeHtml(resumeExperience.role)}</h4>
+              <p>${escapeHtml(resumeExperience.place)}</p>
+              <div class="resume-course-list">${courseItems}</div>
+              <p>${escapeHtml(resumeExperience.body)}</p>
+            </div>
+          </section>
+          <section class="resume-info-block resume-skills" aria-label="Skills">
+            <h3>Skills</h3>
+            <div class="resume-skills-grid">${skillItems}</div>
+            <p class="resume-tools">${escapeHtml(resumeTools)}</p>
+            <dl class="resume-contact-details">${contactItems}</dl>
+          </section>
+        </div>
+      </section>`
+}
+
 function aboutMarkup() {
   return `
     <section class="about-section" id="resume" aria-label="About Red Wang">
-      <div class="about-resume-band" aria-hidden="true"></div>
-      <p class="resume-word" aria-hidden="true">Resume</p>
-      <div class="about-copy">
-        <h2>About:</h2>
-        <p>
-          Red Wang <span>“王紫鵬”</span> is a Game Design student and is now based in
-          the LA area. An independent thinker who enjoys teamwork. Passionate for
-          Game Design &amp; Development, Cinematic &amp; Media Arts, Interaction Design,
-          Graphic Design and other Interdisciplinary practices.
-        </p>
-      </div>
-      <div class="contact-copy" id="contact">
-        <h2>Contact:</h2>
-        <div class="contact-links">
-          <a href="#" aria-label="Twitter">Twitter</a>
-          <a href="https://www.instagram.com/red_cnfh/">Instagram</a>
-          <a href="mailto:zwang29@inside.artcenter.edu">Email</a>
+      <div class="about-card">
+        <div class="about-copy">
+          <h2>About:</h2>
+          <p>
+            Red Wang <span>“王紫鵬”</span> is a Game Design student and is now based in
+            the LA area. An independent thinker who enjoys teamwork. Passionate for
+            Game Design &amp; Development, Cinematic &amp; Media Arts, Interaction Design,
+            Graphic Design and other Interdisciplinary practices.
+          </p>
+        </div>
+        <div class="contact-copy" id="contact">
+          <h2>Contact:</h2>
+          <div class="contact-links">
+            <a href="#" aria-label="Twitter">Twitter</a>
+            <a href="https://www.instagram.com/red_cnfh/">Instagram</a>
+            <a href="mailto:zwang29@inside.artcenter.edu">Email</a>
+          </div>
+        </div>
+        <figure class="profile-portrait">
+          <img src="${asset("assets/figma-home/about-profile.png")}" alt="Red Wang portrait" />
+        </figure>
+        <div class="profile-card">
+          <h2>王紫鵬</h2>
+          <p>Game Design Student at ArtCenter<br />College of Design</p>
+          <div class="profile-actions">
+            <a href="mailto:zwang29@inside.artcenter.edu">Contact Me</a>
+            <a href="#game">Latest Project</a>
+          </div>
         </div>
       </div>
-      <figure class="profile-portrait">
-        <img src="${asset("assets/figma-home/about-profile.png")}" alt="Red Wang portrait" />
-      </figure>
-      <div class="profile-card">
-        <h2>王紫鵬</h2>
-        <p>Game Design Student at ArtCenter<br />College of Design</p>
-        <div class="profile-actions">
-          <a href="mailto:zwang29@inside.artcenter.edu">Contact Me</a>
-          <a href="#game">Latest Project</a>
-        </div>
+      <div class="resume-card">
+        <div class="about-resume-band" aria-hidden="true"></div>
+        <p class="resume-word" aria-hidden="true">Resume</p>
+        ${resumeDetailMarkup()}
       </div>
     </section>`
 }
@@ -1094,15 +1331,27 @@ function applyFooterComposition() {
   if (about) {
     const pull = Math.max(0, siteState.aboutPull || 0)
     about.style.setProperty("--about-pull-y", `${pull.toFixed(2)}px`)
+    about.style.setProperty("--about-card-offset-y", `${Math.max(0, siteState.aboutCardOffset || 0).toFixed(2)}px`)
+    about.style.setProperty("--resume-card-offset-y", `${Math.max(0, siteState.resumeCardOffset || 0).toFixed(2)}px`)
   }
   setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
 }
 
-function setFooterCompositionTargets(reveal, pocketBottom, pocketHeight, aboutPull, immediate = false) {
+function setFooterCompositionTargets(
+  reveal,
+  pocketBottom,
+  pocketHeight,
+  aboutPull,
+  aboutCardOffset,
+  resumeCardOffset,
+  immediate = false,
+) {
   siteState.galleryTargetReveal = clamp(reveal, 0, 1)
   siteState.galleryTargetPocketBottom = Math.max(0, pocketBottom)
   siteState.galleryTargetPocketHeight = Math.max(0, pocketHeight)
   siteState.aboutTargetPull = Math.max(0, aboutPull)
+  siteState.aboutCardTargetOffset = Math.max(0, aboutCardOffset)
+  siteState.resumeCardTargetOffset = Math.max(0, resumeCardOffset)
 
   if (immediate) {
     if (siteState.galleryFrame) cancelAnimationFrame(siteState.galleryFrame)
@@ -1112,6 +1361,8 @@ function setFooterCompositionTargets(reveal, pocketBottom, pocketHeight, aboutPu
     siteState.galleryPocketBottom = siteState.galleryTargetPocketBottom
     siteState.galleryPocketHeight = siteState.galleryTargetPocketHeight
     siteState.aboutPull = siteState.aboutTargetPull
+    siteState.aboutCardOffset = siteState.aboutCardTargetOffset
+    siteState.resumeCardOffset = siteState.resumeCardTargetOffset
     applyFooterComposition()
     return
   }
@@ -1154,8 +1405,16 @@ function updateFooterGalleryReveal(options = {}) {
   const aboutPull =
     pullProgress > 0.001 ? clamp(naturalAboutTop - desiredAboutTop, 0, maxAboutPull) : 0
   const aboutTop = naturalAboutTop - aboutPull
-  const rawPocketHeight = Math.max(0, aboutTop - headerBottom)
-  const aboutRuleVisible = aboutTop <= window.innerHeight + 1 && aboutTop > headerBottom
+  const remainingLayerTravel = 1 - pullProgress
+  const aboutCardOffset = pullProgress > 0.001
+    ? clamp(viewportHeight * 0.14, 84, 150) * Math.pow(remainingLayerTravel, 0.72)
+    : 0
+  const resumeCardOffset = pullProgress > 0.001
+    ? clamp(viewportHeight * 0.27, 150, 280) * Math.pow(remainingLayerTravel, 2.25)
+    : 0
+  const visualAboutTop = aboutTop + aboutCardOffset
+  const rawPocketHeight = Math.max(0, visualAboutTop - headerBottom)
+  const aboutRuleVisible = visualAboutTop <= window.innerHeight + 1 && visualAboutTop > headerBottom
   const viewportPocketHeight = aboutRuleVisible
     ? Math.min(rawPocketHeight, Math.max(0, window.innerHeight - headerBottom))
     : 0
@@ -1171,13 +1430,13 @@ function updateFooterGalleryReveal(options = {}) {
   const clearanceProgress = easeOutCubic(contentCleared)
   const reveal = easeOutCubic(Math.min(clearanceProgress, pocketFormed))
   const overlapPadding = clearBuffer
-  const blockedTop = Math.max(headerBottom, Math.min(aboutTop, finalContentBottom + overlapPadding))
+  const blockedTop = Math.max(headerBottom, Math.min(visualAboutTop, finalContentBottom + overlapPadding))
   const galleryTopTarget = clamp(
     blockedTop + (headerBottom - blockedTop) * clearanceProgress,
     headerBottom,
-    aboutTop,
+    visualAboutTop,
   )
-  const availableGalleryHeight = Math.max(0, aboutTop - galleryTopTarget)
+  const availableGalleryHeight = Math.max(0, visualAboutTop - galleryTopTarget)
 
   if (reveal <= 0.001 || availableGalleryHeight <= 1) {
     siteState.galleryShift = Math.max(siteState.galleryShift, 0)
@@ -1186,9 +1445,11 @@ function updateFooterGalleryReveal(options = {}) {
   siteState.galleryLoopBoost = 0
   setFooterCompositionTargets(
     reveal,
-    aboutTop,
+    visualAboutTop,
     galleryTargetHeight,
     aboutPull,
+    aboutCardOffset,
+    resumeCardOffset,
     options.immediate === true,
   )
   return reveal
@@ -1208,6 +1469,10 @@ function animateFooterGallery(time) {
   siteState.galleryPocketHeight +=
     (siteState.galleryTargetPocketHeight - siteState.galleryPocketHeight) * amount
   siteState.aboutPull += (siteState.aboutTargetPull - siteState.aboutPull) * amount
+  siteState.aboutCardOffset +=
+    (siteState.aboutCardTargetOffset - siteState.aboutCardOffset) * amount
+  siteState.resumeCardOffset +=
+    (siteState.resumeCardTargetOffset - siteState.resumeCardOffset) * amount
 
   const returnSpeed = 16
   siteState.galleryShift *= Math.exp(-returnSpeed * elapsed)
@@ -1217,6 +1482,8 @@ function animateFooterGallery(time) {
     Math.abs(siteState.galleryTargetPocketBottom - siteState.galleryPocketBottom) < 0.2 &&
     Math.abs(siteState.galleryTargetPocketHeight - siteState.galleryPocketHeight) < 0.2 &&
     Math.abs(siteState.aboutTargetPull - siteState.aboutPull) < 0.2 &&
+    Math.abs(siteState.aboutCardTargetOffset - siteState.aboutCardOffset) < 0.2 &&
+    Math.abs(siteState.resumeCardTargetOffset - siteState.resumeCardOffset) < 0.2 &&
     Math.abs(siteState.galleryShift) < 0.2
 
   if (isSettled) {
@@ -1224,6 +1491,8 @@ function animateFooterGallery(time) {
     siteState.galleryPocketBottom = siteState.galleryTargetPocketBottom
     siteState.galleryPocketHeight = siteState.galleryTargetPocketHeight
     siteState.aboutPull = siteState.aboutTargetPull
+    siteState.aboutCardOffset = siteState.aboutCardTargetOffset
+    siteState.resumeCardOffset = siteState.resumeCardTargetOffset
     siteState.galleryShift = 0
     siteState.galleryFrame = 0
     siteState.galleryLastFrameTime = 0
@@ -1286,6 +1555,10 @@ function setupFooterGallery() {
   siteState.galleryTargetPocketBottom = 0
   siteState.aboutPull = 0
   siteState.aboutTargetPull = 0
+  siteState.aboutCardOffset = 0
+  siteState.aboutCardTargetOffset = 0
+  siteState.resumeCardOffset = 0
+  siteState.resumeCardTargetOffset = 0
   updateFooterGalleryReveal({ immediate: true })
 }
 

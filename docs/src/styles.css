@@ -2083,7 +2083,6 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .resume-card {
     position: relative;
     z-index: 10;
-    isolation: isolate;
     height: auto;
     min-height: 154px;
     margin-top: 0;
@@ -2092,30 +2091,18 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     overflow: visible;
   }
 
-  .resume-card::before {
-    content: "";
-    position: absolute;
-    left: -8px;
-    right: -8px;
-    top: 18px;
-    z-index: 10;
-    height: 88px;
-    background: rgba(255, 255, 255, 0.86);
-    filter: blur(14px);
-    pointer-events: none;
-  }
-
   .about-resume-band {
     display: block;
-    left: 0;
-    right: 0;
+    left: calc(50% - 50vw);
+    right: calc(50% - 50vw);
     top: 0;
-    z-index: 11;
-    height: 1px;
+    bottom: 0;
+    z-index: 10;
+    height: auto;
     border-top: 1px solid var(--rule);
-    background: transparent;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    background: rgba(255, 255, 255, var(--glass-alpha));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   }
 
   .resume-word {
@@ -2130,6 +2117,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 
   .resume-detail {
+    position: relative;
+    z-index: 11;
     width: calc(100vw - 36px);
     grid-template-columns: 1fr;
     gap: 32px;

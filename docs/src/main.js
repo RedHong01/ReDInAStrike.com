@@ -996,11 +996,12 @@ function updateProjectRuleReveal() {
 
   const visibleTop = clamp(header?.getBoundingClientRect().bottom || 0, 0, viewportHeight - 1)
   const visibleBottom = viewportHeight
-  const visibleCenter = visibleTop + (visibleBottom - visibleTop) / 2
-  const visibleRadius = Math.max(1, (visibleBottom - visibleTop) / 2)
+  const visibleHeight = Math.max(1, visibleBottom - visibleTop)
+  const edgeHoldDistance = clamp(visibleHeight * 0.035, 18, 42)
+  const edgeFadeDistance = clamp(visibleHeight * 0.13, 68, 168)
   const ruleRevealFromY = (y) => {
-    const centerProgress = 1 - Math.abs(y - visibleCenter) / visibleRadius
-    return smoothstep(centerProgress).toFixed(3)
+    const edgeDistance = Math.min(y - visibleTop, visibleBottom - y)
+    return smoothstep((edgeDistance - edgeHoldDistance) / edgeFadeDistance).toFixed(3)
   }
 
   document.querySelectorAll(".project-row").forEach((row) => {

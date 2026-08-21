@@ -446,14 +446,11 @@ body[data-layout-transition="true"] .about-section {
   bottom: 0;
   height: 1px;
   background: var(--rule);
-  opacity: var(--project-rule-weight, 1);
   transform: scaleX(var(--project-rule-weight, 1));
   transform-origin: center;
   pointer-events: none;
-  transition:
-    opacity 190ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    transform 190ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  will-change: opacity, transform;
+  transition: transform 190ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
 }
 
 .project-row:first-child {
@@ -524,6 +521,26 @@ body[data-layout-transition="true"] .about-section {
   max-width: 40.11%;
   text-align: right;
   white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .project-meta,
+  .footer-gallery-meta {
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+      opacity 180ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      transform 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: opacity, transform;
+  }
+
+  .project-card:hover .project-meta,
+  .project-card:focus-visible .project-meta,
+  .footer-gallery-tile:hover .footer-gallery-meta,
+  .footer-gallery-tile:focus-visible .footer-gallery-meta {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .footer-gallery {
@@ -1968,14 +1985,11 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     top: 0;
     height: 1px;
     background: var(--rule);
-    opacity: var(--card-rule-weight, 1);
     transform: scaleX(var(--card-rule-weight, 1));
     transform-origin: center;
     pointer-events: none;
-    transition:
-      opacity 190ms cubic-bezier(0.22, 0.61, 0.36, 1),
-      transform 190ms cubic-bezier(0.22, 0.61, 0.36, 1);
-    will-change: opacity, transform;
+    transition: transform 190ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
   }
 }
 

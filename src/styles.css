@@ -444,10 +444,16 @@ body[data-layout-transition="true"] .about-section {
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(1px * var(--project-rule-weight, 1));
+  height: 1px;
   background: var(--rule);
+  opacity: var(--project-rule-weight, 1);
+  transform: scaleX(var(--project-rule-weight, 1));
+  transform-origin: center;
   pointer-events: none;
-  transition: height 90ms ease-out;
+  transition:
+    opacity 190ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 190ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: opacity, transform;
 }
 
 .project-row:first-child {
@@ -793,7 +799,7 @@ body[data-layout-transition="true"] .about-section {
 .resume-experience h4,
 .resume-project-head p,
 .resume-project-body,
-.resume-education-group p,
+.resume-education-program,
 .resume-experience p,
 .resume-course-list,
 .resume-skills-grid,
@@ -816,7 +822,8 @@ body[data-layout-transition="true"] .about-section {
   line-height: 1.12;
 }
 
-.resume-project-head time {
+.resume-project-head time,
+.resume-education-program time {
   text-align: right;
   white-space: nowrap;
 }
@@ -852,7 +859,7 @@ body[data-layout-transition="true"] .about-section {
   line-height: 1.05;
 }
 
-.resume-education-group p,
+.resume-education-program,
 .resume-experience p,
 .resume-course-list,
 .resume-skills-grid,
@@ -862,9 +869,20 @@ body[data-layout-transition="true"] .about-section {
   line-height: 1.18;
 }
 
-.resume-education-group p span,
+.resume-education-program span,
 .resume-course-list span {
   display: block;
+}
+
+.resume-education-program {
+  display: block;
+}
+
+.resume-education-program.has-date {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: clamp(16px, 1.8vw, 30px);
+  align-items: start;
 }
 
 .resume-experience {
@@ -1948,10 +1966,16 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     left: 0;
     right: 0;
     top: 0;
-    height: calc(1px * var(--card-rule-weight, 1));
+    height: 1px;
     background: var(--rule);
+    opacity: var(--card-rule-weight, 1);
+    transform: scaleX(var(--card-rule-weight, 1));
+    transform-origin: center;
     pointer-events: none;
-    transition: height 90ms ease-out;
+    transition:
+      opacity 190ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      transform 190ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: opacity, transform;
   }
 }
 
@@ -2154,7 +2178,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .resume-project-head p,
   .resume-project-head time,
   .resume-project-body,
-  .resume-education-group p,
+  .resume-education-program,
   .resume-experience p,
   .resume-course-list,
   .resume-skills-grid,

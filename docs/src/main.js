@@ -298,6 +298,7 @@ const siteState = {
   galleryLoopBoost: 0,
   galleryHorizontalFrozen: false,
   galleryPointerDirection: 0,
+  galleryPointerSpeedRatio: 0,
   galleryScrollPauseUntil: 0,
   galleryObservedScrollY: 0,
   galleryReveal: 0,
@@ -340,6 +341,11 @@ function clamp(value, min, max) {
 function easeOutCubic(value) {
   const progress = clamp(value, 0, 1)
   return 1 - (1 - progress) ** 3
+}
+
+function smoothstep(value) {
+  const progress = clamp(value, 0, 1)
+  return progress * progress * (3 - 2 * progress)
 }
 
 function escapeHtml(value) {
@@ -578,10 +584,10 @@ function resumeEducationMarkup(group) {
   const programs = group.programs
     .map(
       (program) => `
-            <p>
+            <div class="resume-education-program${program.date ? " has-date" : ""}">
               <span>${escapeHtml(program.name)}</span>
-              ${program.date ? `<span>${escapeHtml(program.date)}</span>` : ""}
-            </p>`
+              ${program.date ? `<time>${escapeHtml(program.date)}</time>` : ""}
+            </div>`
     )
     .join("")
 
@@ -983,24 +989,28 @@ function applyHeaderProgress(progress) {
   updateFooterGalleryReveal()
 }
 
-function updateRuleFadeNearHeader() {
+function updateProjectRuleReveal() {
   const header = document.querySelector("[data-site-header]")
-  if (!header) return
+  const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+  if (!viewportHeight) return
 
-  const headerBottom = header.getBoundingClientRect().bottom
-  const fadeStart = 58
-  const fadeEnd = 4
-  const ruleWeightFromDistance = (distance) =>
-    clamp((distance - fadeEnd) / (fadeStart - fadeEnd), 0, 1).toFixed(3)
+  const visibleTop = clamp(header?.getBoundingClientRect().bottom || 0, 0, viewportHeight - 1)
+  const visibleBottom = viewportHeight
+  const visibleCenter = visibleTop + (visibleBottom - visibleTop) / 2
+  const visibleRadius = Math.max(1, (visibleBottom - visibleTop) / 2)
+  const ruleRevealFromY = (y) => {
+    const centerProgress = 1 - Math.abs(y - visibleCenter) / visibleRadius
+    return smoothstep(centerProgress).toFixed(3)
+  }
 
   document.querySelectorAll(".project-row").forEach((row) => {
-    const distance = row.getBoundingClientRect().bottom - headerBottom
-    row.style.setProperty("--project-rule-weight", ruleWeightFromDistance(distance))
+    const rect = row.getBoundingClientRect()
+    row.style.setProperty("--project-rule-weight", ruleRevealFromY(rect.bottom))
   })
 
   document.querySelectorAll(".project-card + .project-card").forEach((card) => {
-    const distance = card.getBoundingClientRect().top - headerBottom
-    card.style.setProperty("--card-rule-weight", ruleWeightFromDistance(distance))
+    const rect = card.getBoundingClientRect()
+    card.style.setProperty("--card-rule-weight", ruleRevealFromY(rect.top))
   })
 }
 
@@ -1008,7 +1018,7 @@ function requestRuleFadeUpdate() {
   if (siteState.ruleFadeFrame) return
   siteState.ruleFadeFrame = requestAnimationFrame(() => {
     siteState.ruleFadeFrame = 0
-    updateRuleFadeNearHeader()
+    updateProjectRuleReveal()
   })
 }
 
@@ -1164,14 +1174,40 @@ function isFooterGalleryScrollSettling(time) {
   return settling
 }
 
-function updateFooterGalleryPointer(clientX) {
-  const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
-  if (!viewportWidth) return
+function resetFooterGalleryPointer() {
+  siteState.galleryPointerDirection = 0
+  siteState.galleryPointerSpeedRatio = 0
+}
 
-  const direction = clientX < viewportWidth / 2 ? 1 : -1
-  if (direction === siteState.galleryPointerDirection) return
+function updateFooterGalleryPointer(event) {
+  if (event.pointerType === "touch") return
 
-  siteState.galleryPointerDirection = direction
+  const gallery = document.querySelector(".footer-gallery")
+  const viewport = gallery?.querySelector(".footer-gallery-viewport")
+  if (!gallery || !viewport || !isFooterGalleryMotionReady(gallery)) {
+    resetFooterGalleryPointer()
+    return
+  }
+
+  const rect = viewport.getBoundingClientRect()
+  if (
+    rect.width <= 1 ||
+    rect.height <= 1 ||
+    event.clientX < rect.left ||
+    event.clientX > rect.right ||
+    event.clientY < rect.top ||
+    event.clientY > rect.bottom
+  ) {
+    resetFooterGalleryPointer()
+    return
+  }
+
+  const centerX = rect.left + rect.width / 2
+  const distanceFromCenter = Math.abs(event.clientX - centerX) / (rect.width / 2)
+  const edgeProgress = clamp((distanceFromCenter - 0.1) / 0.9, 0, 1)
+  siteState.galleryPointerDirection = event.clientX < centerX ? 1 : -1
+  siteState.galleryPointerSpeedRatio =
+    edgeProgress <= 0 ? 0.12 : 0.18 + Math.pow(edgeProgress, 1.45) * 2.45
   requestFooterGalleryLoop()
 }
 
@@ -1223,7 +1259,9 @@ function setFooterGalleryLoopMetrics(gallery) {
   gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
 
   const canRunHorizontally =
-    isFooterGalleryMotionReady(gallery) && siteState.galleryPointerDirection !== 0
+    isFooterGalleryMotionReady(gallery) &&
+    siteState.galleryPointerDirection !== 0 &&
+    siteState.galleryPointerSpeedRatio > 0
 
   if (canRunHorizontally) {
     requestFooterGalleryLoop()
@@ -1251,8 +1289,9 @@ function animateFooterGalleryLoop(time) {
   const distance = siteState.galleryLoopDistance
   const active = isFooterGalleryMotionReady(gallery)
   const direction = siteState.galleryPointerDirection
+  const speedRatio = clamp(siteState.galleryPointerSpeedRatio || 0, 0, 2.8)
 
-  if (!Number.isFinite(distance) || distance <= 0 || !active || direction === 0) {
+  if (!Number.isFinite(distance) || distance <= 0 || !active || direction === 0 || speedRatio <= 0) {
     siteState.galleryLoopFrame = 0
     siteState.galleryLoopLastTime = 0
     return
@@ -1264,7 +1303,7 @@ function animateFooterGalleryLoop(time) {
   siteState.galleryLoopLastTime = time
 
   if (!isFooterGalleryScrollSettling(time)) {
-    const speed = Math.max(0, siteState.galleryLoopBaseSpeed)
+    const speed = Math.max(0, siteState.galleryLoopBaseSpeed) * speedRatio
     siteState.galleryLoopOffset = wrapGalleryLoopOffset(
       siteState.galleryLoopOffset + direction * speed * elapsed,
       distance,
@@ -1464,7 +1503,8 @@ function nudgeFooterGallery() {
 
   if (
     isFooterGalleryMotionReady(gallery) &&
-    siteState.galleryPointerDirection !== 0
+    siteState.galleryPointerDirection !== 0 &&
+    siteState.galleryPointerSpeedRatio > 0
   ) {
     requestFooterGalleryLoop()
   }
@@ -1493,6 +1533,7 @@ function setupFooterGallery() {
   siteState.galleryLoopBoost = 0
   siteState.galleryHorizontalFrozen = false
   siteState.galleryPointerDirection = 0
+  siteState.galleryPointerSpeedRatio = 0
   siteState.galleryScrollPauseUntil = 0
   siteState.galleryObservedScrollY = readFooterGalleryScrollY()
   siteState.galleryReveal = 0
@@ -1509,6 +1550,14 @@ function setupFooterGallery() {
   siteState.resumeCardOffset = 0
   siteState.resumeCardTargetOffset = 0
   updateFooterGalleryReveal({ immediate: true })
+
+  const gallery = document.querySelector(".footer-gallery")
+  const viewport = gallery?.querySelector(".footer-gallery-viewport")
+  if (viewport) {
+    viewport.addEventListener("pointermove", updateFooterGalleryPointer, { passive: true })
+    viewport.addEventListener("pointerleave", resetFooterGalleryPointer, { passive: true })
+    viewport.addEventListener("pointercancel", resetFooterGalleryPointer, { passive: true })
+  }
 }
 
 function setupNavHoverSpacing() {
@@ -1661,15 +1710,6 @@ function setupHeader() {
       requestRuleFadeUpdate()
     },
     { passive: true }
-  )
-
-  window.addEventListener(
-    "pointermove",
-    (event) => {
-      if (event.pointerType === "touch") return
-      updateFooterGalleryPointer(event.clientX)
-    },
-    { passive: true },
   )
 
   window.addEventListener("resize", () => {

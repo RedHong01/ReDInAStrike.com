@@ -41,6 +41,7 @@ const projects = [
     path: "/myfridge",
     navHash: "interaction",
     image: "assets/framer-live/my-fridge.png",
+    mediaAspect: "1.4 / 1",
   },
   {
     pageTitle: "Assets Hub",
@@ -382,7 +383,7 @@ function headerMarkup() {
 
 function mediaStyle(project) {
   return [
-    "--media-aspect: 16 / 9",
+    `--media-aspect: ${project.mediaAspect || "16 / 9"}`,
     `--image-fit: ${project.imageFit || "cover"}`,
     `--image-position: ${project.imagePosition || "center center"}`,
     `--media-bg: ${project.mediaBackground || "#f2f2f2"}`,

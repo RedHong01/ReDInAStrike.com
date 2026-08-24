@@ -4,7 +4,7 @@ import { join, resolve } from "node:path"
 const root = resolve(".")
 const dist = join(root, "dist")
 const docs = join(root, "docs")
-const faviconVersion = "20260823"
+const faviconVersion = "20260824"
 const routes = [
   "",
   "serialdeminer",
@@ -33,7 +33,10 @@ function faviconLinks(base) {
   return [
     `<link rel="icon" type="image/png" sizes="64x64" href="${base}favicon.png?v=${faviconVersion}" />`,
     `<link rel="icon" type="image/svg+xml" href="${base}favicon.svg?v=${faviconVersion}" />`,
-    `<link rel="apple-touch-icon" href="${base}favicon.png?v=${faviconVersion}" />`,
+    `<link rel="shortcut icon" href="${base}favicon.png?v=${faviconVersion}" />`,
+    `<link rel="apple-touch-icon" sizes="180x180" href="${base}apple-touch-icon.png?v=${faviconVersion}" />`,
+    `<link rel="apple-touch-icon-precomposed" sizes="180x180" href="${base}apple-touch-icon-precomposed.png?v=${faviconVersion}" />`,
+    `<link rel="mask-icon" href="${base}favicon.svg?v=${faviconVersion}" color="#454545" />`,
   ].join("\n    ")
 }
 

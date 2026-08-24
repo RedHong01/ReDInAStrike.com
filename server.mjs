@@ -6,6 +6,7 @@ import { extname, join, normalize, resolve } from "node:path"
 const root = resolve(process.argv[2] || ".")
 const port = Number(process.argv[3] || process.env.PORT || 5173)
 const htmlPath = join(root, "index.html")
+const faviconVersion = "20260823"
 
 const mime = {
   ".html": "text/html; charset=utf-8",
@@ -26,13 +27,26 @@ function cleanPath(urlPath) {
   return safe === "/" ? "/index.html" : safe
 }
 
+function faviconLinks(base) {
+  return [
+    `<link rel="icon" type="image/png" sizes="64x64" href="${base}favicon.png?v=${faviconVersion}" />`,
+    `<link rel="icon" type="image/svg+xml" href="${base}favicon.svg?v=${faviconVersion}" />`,
+    `<link rel="apple-touch-icon" href="${base}favicon.png?v=${faviconVersion}" />`,
+  ].join("\n    ")
+}
+
+function renderHtml(html, base) {
+  return html
+    .replace(/    <!-- LOCAL_FAVICON_START -->[\s\S]*?<!-- LOCAL_FAVICON_END -->\n/, "")
+    .replace("<!-- BUILD_FAVICONS -->", faviconLinks(base))
+    .replaceAll("%BASE%", base)
+}
+
 async function send(res, filePath, status = 200) {
   const ext = extname(filePath)
   let content = await readFile(filePath)
   if (ext === ".html") {
-    content = Buffer.from(
-      content.toString("utf8").replaceAll("%BASE%", root.endsWith("dist") ? "./" : "/")
-    )
+    content = Buffer.from(renderHtml(content.toString("utf8"), root.endsWith("dist") ? "./" : "/"))
   }
   res.writeHead(status, {
     "content-type": mime[ext] || "application/octet-stream",

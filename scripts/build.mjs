@@ -4,6 +4,7 @@ import { join, resolve } from "node:path"
 const root = resolve(".")
 const dist = join(root, "dist")
 const docs = join(root, "docs")
+const faviconVersion = "20260823"
 const routes = [
   "",
   "serialdeminer",
@@ -28,6 +29,21 @@ function baseFor(route) {
   return route ? "../" : "./"
 }
 
+function faviconLinks(base) {
+  return [
+    `<link rel="icon" type="image/png" sizes="64x64" href="${base}favicon.png?v=${faviconVersion}" />`,
+    `<link rel="icon" type="image/svg+xml" href="${base}favicon.svg?v=${faviconVersion}" />`,
+    `<link rel="apple-touch-icon" href="${base}favicon.png?v=${faviconVersion}" />`,
+  ].join("\n    ")
+}
+
+function renderTemplate(base) {
+  return template
+    .replace(/    <!-- LOCAL_FAVICON_START -->[\s\S]*?<!-- LOCAL_FAVICON_END -->\n/, "")
+    .replace("<!-- BUILD_FAVICONS -->", faviconLinks(base))
+    .replaceAll("%BASE%", base)
+}
+
 const template = await readFile(join(root, "index.html"), "utf8")
 
 async function writeSite(outRoot, { clean = false } = {}) {
@@ -37,16 +53,13 @@ async function writeSite(outRoot, { clean = false } = {}) {
   await cp(join(root, "src"), join(outRoot, "src"), { recursive: true })
 
   for (const route of routes) {
-    const html = template.replaceAll("%BASE%", baseFor(route))
+    const html = renderTemplate(baseFor(route))
     const outDir = route ? join(outRoot, route) : outRoot
     await mkdir(outDir, { recursive: true })
     await writeFile(join(outDir, "index.html"), html)
   }
 
-  await writeFile(
-    join(outRoot, "404.html"),
-    template.replaceAll("%BASE%", "./")
-  )
+  await writeFile(join(outRoot, "404.html"), renderTemplate("./"))
 }
 
 await writeSite(dist, { clean: true })

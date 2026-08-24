@@ -66,8 +66,8 @@
   --project-caption-leading: 1.25;
   --project-caption-step: calc(var(--project-caption-size) * var(--project-caption-leading));
   --project-media-caption-gap: var(--project-caption-step);
-  --project-caption-rule-gap: calc(var(--project-caption-step) * 2);
-  --project-rule-card-gap: calc(var(--project-caption-step) * 2);
+  --project-caption-rule-gap: calc(var(--project-caption-step) * 1.5);
+  --project-rule-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-first-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -1771,8 +1771,10 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .resume-card {
     position: relative;
+    z-index: 10;
     height: auto;
     padding-bottom: clamp(70px, 10vw, 96px);
+    overflow: visible;
     transform: none;
   }
 
@@ -1780,12 +1782,14 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     display: block;
     left: calc(50% - 50vw);
     right: calc(50% - 50vw);
-    top: 0;
-    height: 1px;
+    top: clamp(68px, 10.5vw, 94px);
+    bottom: 0;
+    z-index: 5;
+    height: auto;
     border-top: 1px solid var(--rule);
-    background: transparent;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    background: rgba(255, 255, 255, var(--glass-alpha));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   }
 
   .resume-word {
@@ -1913,16 +1917,13 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     height: clamp(270px, 46vw, 360px);
   }
 
-  .about-resume-band {
-    display: none;
-  }
-
   .resume-word {
     position: relative;
     grid-column: 1 / -1;
     order: 5;
     left: auto;
     top: auto;
+    z-index: 13;
     font-size: clamp(108px, 17vw, 158px);
     line-height: 0.86;
     margin: 8px 0 -24px calc((100vw - 100%) / -2 - 6px);
@@ -1976,6 +1977,11 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 }
 
 @media (max-width: 980px), (orientation: portrait) {
+  .project-media,
+  .footer-gallery-media {
+    background: transparent;
+  }
+
   .project-card + .project-card {
     position: relative;
     border-top: 0;

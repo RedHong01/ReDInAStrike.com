@@ -3,6 +3,7 @@ import { join, resolve } from "node:path"
 
 const root = resolve(".")
 const dist = join(root, "dist")
+const docs = join(root, "docs")
 const routes = [
   "",
   "serialdeminer",
@@ -27,23 +28,28 @@ function baseFor(route) {
   return route ? "../" : "./"
 }
 
-await rm(dist, { recursive: true, force: true })
-await mkdir(dist, { recursive: true })
-await cp(join(root, "public"), dist, { recursive: true })
-await cp(join(root, "src"), join(dist, "src"), { recursive: true })
-
 const template = await readFile(join(root, "index.html"), "utf8")
 
-for (const route of routes) {
-  const html = template.replaceAll("%BASE%", baseFor(route))
-  const outDir = route ? join(dist, route) : dist
-  await mkdir(outDir, { recursive: true })
-  await writeFile(join(outDir, "index.html"), html)
+async function writeSite(outRoot, { clean = false } = {}) {
+  if (clean) await rm(outRoot, { recursive: true, force: true })
+  await mkdir(outRoot, { recursive: true })
+  await cp(join(root, "public"), outRoot, { recursive: true })
+  await cp(join(root, "src"), join(outRoot, "src"), { recursive: true })
+
+  for (const route of routes) {
+    const html = template.replaceAll("%BASE%", baseFor(route))
+    const outDir = route ? join(outRoot, route) : outRoot
+    await mkdir(outDir, { recursive: true })
+    await writeFile(join(outDir, "index.html"), html)
+  }
+
+  await writeFile(
+    join(outRoot, "404.html"),
+    template.replaceAll("%BASE%", "./")
+  )
 }
 
-await writeFile(
-  join(dist, "404.html"),
-  template.replaceAll("%BASE%", "./")
-)
+await writeSite(dist, { clean: true })
+await writeSite(docs)
 
-console.log(`Built ${routes.length} routes to ${dist}`)
+console.log(`Built ${routes.length} routes to ${dist} and ${docs}`)

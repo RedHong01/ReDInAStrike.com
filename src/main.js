@@ -169,16 +169,25 @@ function normalizeCatalogFilter(hash) {
 
 function getCatalogProjectEntries(category = null) {
   const normalizedCategory = normalizeCatalogFilter(category)
-  const entries = normalizedCategory
-    ? catalogProjectEntries.filter(({ project }) => project.navHash === normalizedCategory)
-    : catalogProjectEntries
-
-  if (!normalizedCategory) return entries
-
-  return [...entries].sort((a, b) => {
+  const byNewestFirst = (a, b) => {
     const dateDelta = projectDateRank(b.project) - projectDateRank(a.project)
     return dateDelta || a.originalIndex - b.originalIndex
-  })
+  }
+
+  if (!normalizedCategory) {
+    return catalogProjectEntries.map((entry) => ({ ...entry, muted: false }))
+  }
+
+  const matching = catalogProjectEntries
+    .filter(({ project }) => project.navHash === normalizedCategory)
+    .sort(byNewestFirst)
+    .map((entry) => ({ ...entry, muted: false }))
+  const muted = catalogProjectEntries
+    .filter(({ project }) => project.navHash !== normalizedCategory)
+    .sort(byNewestFirst)
+    .map((entry) => ({ ...entry, muted: true }))
+
+  return [...matching, ...muted]
 }
 
 function catalogRowsMarkup(category = null) {
@@ -200,8 +209,8 @@ function catalogRowsMarkup(category = null) {
 
     rows.push(`
       <section class="project-row" id="${rowHash}">
-        ${projectCard(first.project, first.originalIndex, index)}
-        ${second ? projectCard(second.project, second.originalIndex, index + 1) : ""}
+        ${projectCard(first.project, first.originalIndex, index, { muted: first.muted })}
+        ${second ? projectCard(second.project, second.originalIndex, index + 1, { muted: second.muted }) : ""}
       </section>`)
   }
 
@@ -354,6 +363,8 @@ const siteState = {
   catalogFilterPhase: "idle",
   catalogFilterTimer: 0,
   catalogFilterEnterTimer: 0,
+  catalogHalftoneFrame: 0,
+  catalogHalftoneProgress: 1,
   catalogFilterCycle: 0,
   galleryFrame: 0,
   galleryLastFrameTime: 0,
@@ -950,13 +961,15 @@ function mediaStyle(project) {
   ].join("; ")
 }
 
-function projectCard(project, index, loadingIndex = index) {
+function projectCard(project, index, loadingIndex = index, options = {}) {
   const videoAttributes = project.youtube
     ? ` data-hover-youtube="${escapeHtml(project.youtube)}"`
     : ""
+  const mutedClass = options.muted ? " is-filter-muted" : ""
+  const mutedAttributes = options.muted ? ` data-filter-muted="true"` : ""
 
   return `
-    <a class="project-card" href="${hrefFor(project.path)}" data-project-card data-section="${escapeHtml(project.navHash)}" data-index="${index}">
+    <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-section="${escapeHtml(project.navHash)}" data-index="${index}"${mutedAttributes}>
       <figure class="project-media" style="${mediaStyle(project)}"${videoAttributes}>
         <img
           src="${asset(project.image)}"
@@ -2434,8 +2447,11 @@ function setupFooterGallery() {
 function resetCatalogFilterState() {
   window.clearTimeout(siteState.catalogFilterTimer)
   window.clearTimeout(siteState.catalogFilterEnterTimer)
+  if (siteState.catalogHalftoneFrame) cancelAnimationFrame(siteState.catalogHalftoneFrame)
   siteState.catalogFilterTimer = 0
   siteState.catalogFilterEnterTimer = 0
+  siteState.catalogHalftoneFrame = 0
+  siteState.catalogHalftoneProgress = 1
   siteState.catalogFilterTarget = null
   siteState.catalogFilterCurrent = null
   siteState.catalogFilterLocked = null
@@ -2481,6 +2497,59 @@ function refreshCatalogAfterFilter(catalog) {
   }
 }
 
+function clearCatalogHalftoneInline(catalog) {
+  catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
+    card.style.removeProperty("--project-halftone-dot")
+  })
+}
+
+function primeCatalogHalftoneDots(catalog) {
+  catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
+    card.style.setProperty("--project-halftone-dot", "0px")
+  })
+}
+
+function animateCatalogHalftoneDots(catalog, cycle) {
+  if (siteState.catalogHalftoneFrame) cancelAnimationFrame(siteState.catalogHalftoneFrame)
+
+  const cards = [...catalog.querySelectorAll(".project-card.is-filter-muted")]
+  if (!cards.length) return
+
+  const target =
+    parseFloat(window.getComputedStyle(catalog).getPropertyValue("--project-filter-halftone-dot")) || 1.35
+  const duration = catalogFilterDuration(720)
+  const step = catalogFilterDuration(24)
+  const maxDelay = catalogFilterDuration(220)
+  const start = performance.now()
+
+  const animate = (time) => {
+    if (cycle !== siteState.catalogFilterCycle) {
+      siteState.catalogHalftoneFrame = 0
+      return
+    }
+
+    let allDone = true
+    cards.forEach((card, index) => {
+      if (!card.isConnected) return
+      const delay = Math.min(index * step, maxDelay)
+      const progress = clamp((time - start - delay) / duration, 0, 1)
+      const value = target * easeOutCubic(progress)
+      card.style.setProperty("--project-halftone-dot", `${value.toFixed(3)}px`)
+      if (progress < 1) allDone = false
+    })
+
+    if (allDone) {
+      clearCatalogHalftoneInline(catalog)
+      siteState.catalogHalftoneFrame = 0
+      return
+    }
+
+    siteState.catalogHalftoneFrame = requestAnimationFrame(animate)
+  }
+
+  siteState.catalogHalftoneFrame = requestAnimationFrame(animate)
+}
+
 function replaceCatalogFilterImmediately(category) {
   const catalog = document.querySelector(".catalog")
   if (!catalog) return
@@ -2498,6 +2567,7 @@ function replaceCatalogFilterImmediately(category) {
   delete catalog.dataset.filterPhase
   catalog.style.removeProperty("--catalog-filter-min-height")
   clearCatalogCardTimingVars(catalog)
+  clearCatalogHalftoneInline(catalog)
   updateCatalogFilterDataset(catalog, normalizedCategory)
   refreshCatalogAfterFilter(catalog)
 }
@@ -2517,6 +2587,7 @@ function commitCatalogFilterTransition(cycle) {
   siteState.catalogFilterPhase = "entering"
   catalog.dataset.filterPhase = "entering"
   updateCatalogFilterDataset(catalog, category)
+  primeCatalogHalftoneDots(catalog)
   const enterDelay = setCatalogCardTimingVars(
     catalog,
     "--project-filter-enter-delay",
@@ -2529,6 +2600,7 @@ function commitCatalogFilterTransition(cycle) {
   requestAnimationFrame(() => {
     if (cycle !== siteState.catalogFilterCycle) return
     catalog.dataset.filterPhase = "settling"
+    animateCatalogHalftoneDots(catalog, cycle)
     requestRuleFadeUpdate()
   })
 
@@ -2543,6 +2615,7 @@ function commitCatalogFilterTransition(cycle) {
     delete catalog.dataset.filterPhase
     catalog.style.removeProperty("--catalog-filter-min-height")
     clearCatalogCardTimingVars(catalog)
+    clearCatalogHalftoneInline(catalog)
     siteState.catalogFilterPhase = "idle"
     siteState.catalogFilterTimer = 0
     siteState.catalogFilterEnterTimer = 0

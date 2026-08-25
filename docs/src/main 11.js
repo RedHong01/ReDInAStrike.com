@@ -363,7 +363,6 @@ const siteState = {
   catalogFilterPhase: "idle",
   catalogFilterTimer: 0,
   catalogFilterEnterTimer: 0,
-  catalogHalftoneFrame: 0,
   catalogFilterCycle: 0,
   galleryFrame: 0,
   galleryLastFrameTime: 0,
@@ -2446,10 +2445,8 @@ function setupFooterGallery() {
 function resetCatalogFilterState() {
   window.clearTimeout(siteState.catalogFilterTimer)
   window.clearTimeout(siteState.catalogFilterEnterTimer)
-  if (siteState.catalogHalftoneFrame) cancelAnimationFrame(siteState.catalogHalftoneFrame)
   siteState.catalogFilterTimer = 0
   siteState.catalogFilterEnterTimer = 0
-  siteState.catalogHalftoneFrame = 0
   siteState.catalogFilterTarget = null
   siteState.catalogFilterCurrent = null
   siteState.catalogFilterLocked = null
@@ -2495,59 +2492,6 @@ function refreshCatalogAfterFilter(catalog) {
   }
 }
 
-function clearCatalogHalftoneInline(catalog) {
-  catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
-    card.style.removeProperty("--project-halftone-dot")
-  })
-}
-
-function primeCatalogHalftoneDots(catalog) {
-  catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
-    card.style.setProperty("--project-halftone-dot", "0px")
-  })
-}
-
-function animateCatalogHalftoneDots(catalog, cycle) {
-  if (siteState.catalogHalftoneFrame) cancelAnimationFrame(siteState.catalogHalftoneFrame)
-
-  const cards = [...catalog.querySelectorAll(".project-card.is-filter-muted")]
-  if (!cards.length) return
-
-  const target =
-    parseFloat(window.getComputedStyle(catalog).getPropertyValue("--project-filter-halftone-dot")) || 1.35
-  const duration = catalogFilterDuration(720)
-  const step = catalogFilterDuration(24)
-  const maxDelay = catalogFilterDuration(220)
-  const start = performance.now()
-
-  const animate = (time) => {
-    if (cycle !== siteState.catalogFilterCycle) {
-      siteState.catalogHalftoneFrame = 0
-      return
-    }
-
-    let allDone = true
-    cards.forEach((card, index) => {
-      if (!card.isConnected) return
-      const delay = Math.min(index * step, maxDelay)
-      const progress = clamp((time - start - delay) / duration, 0, 1)
-      const value = target * easeOutCubic(progress)
-      card.style.setProperty("--project-halftone-dot", `${value.toFixed(3)}px`)
-      if (progress < 1) allDone = false
-    })
-
-    if (allDone) {
-      clearCatalogHalftoneInline(catalog)
-      siteState.catalogHalftoneFrame = 0
-      return
-    }
-
-    siteState.catalogHalftoneFrame = requestAnimationFrame(animate)
-  }
-
-  siteState.catalogHalftoneFrame = requestAnimationFrame(animate)
-}
-
 function replaceCatalogFilterImmediately(category) {
   const catalog = document.querySelector(".catalog")
   if (!catalog) return
@@ -2565,7 +2509,6 @@ function replaceCatalogFilterImmediately(category) {
   delete catalog.dataset.filterPhase
   catalog.style.removeProperty("--catalog-filter-min-height")
   clearCatalogCardTimingVars(catalog)
-  clearCatalogHalftoneInline(catalog)
   updateCatalogFilterDataset(catalog, normalizedCategory)
   refreshCatalogAfterFilter(catalog)
 }
@@ -2585,7 +2528,6 @@ function commitCatalogFilterTransition(cycle) {
   siteState.catalogFilterPhase = "entering"
   catalog.dataset.filterPhase = "entering"
   updateCatalogFilterDataset(catalog, category)
-  primeCatalogHalftoneDots(catalog)
   const enterDelay = setCatalogCardTimingVars(
     catalog,
     "--project-filter-enter-delay",
@@ -2598,7 +2540,6 @@ function commitCatalogFilterTransition(cycle) {
   requestAnimationFrame(() => {
     if (cycle !== siteState.catalogFilterCycle) return
     catalog.dataset.filterPhase = "settling"
-    animateCatalogHalftoneDots(catalog, cycle)
     requestRuleFadeUpdate()
   })
 
@@ -2613,7 +2554,6 @@ function commitCatalogFilterTransition(cycle) {
     delete catalog.dataset.filterPhase
     catalog.style.removeProperty("--catalog-filter-min-height")
     clearCatalogCardTimingVars(catalog)
-    clearCatalogHalftoneInline(catalog)
     siteState.catalogFilterPhase = "idle"
     siteState.catalogFilterTimer = 0
     siteState.catalogFilterEnterTimer = 0

@@ -355,6 +355,341 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
 }
 
+const latinTextPattern = /[A-Za-z0-9][A-Za-z0-9’'&./:+-]*(?:\s+[A-Za-z0-9][A-Za-z0-9’'&./:+-]*)*/g
+const simplifiedChinesePhrases = [
+  ["計畫", "计划"],
+  ["佈局", "布局"],
+]
+const simplifiedChineseCharacters = new Map(
+  Object.entries({
+    並: "并",
+    乾: "干",
+    亂: "乱",
+    佈: "布",
+    來: "来",
+    個: "个",
+    們: "们",
+    傳: "传",
+    優: "优",
+    儲: "储",
+    內: "内",
+    兩: "两",
+    則: "则",
+    創: "创",
+    劃: "划",
+    勁: "劲",
+    動: "动",
+    務: "务",
+    勢: "势",
+    勵: "励",
+    區: "区",
+    協: "协",
+    參: "参",
+    員: "员",
+    問: "问",
+    啟: "启",
+    單: "单",
+    嗶: "哔",
+    嘗: "尝",
+    圍: "围",
+    圖: "图",
+    團: "团",
+    執: "执",
+    場: "场",
+    塊: "块",
+    奮: "奋",
+    學: "学",
+    宮: "宫",
+    實: "实",
+    寶: "宝",
+    將: "将",
+    專: "专",
+    對: "对",
+    導: "导",
+    層: "层",
+    屬: "属",
+    帶: "带",
+    幟: "帜",
+    庫: "库",
+    廣: "广",
+    強: "强",
+    彈: "弹",
+    後: "后",
+    徑: "径",
+    從: "从",
+    愛: "爱",
+    態: "态",
+    慮: "虑",
+    憂: "忧",
+    應: "应",
+    戰: "战",
+    戲: "戏",
+    戶: "户",
+    掃: "扫",
+    掙: "挣",
+    換: "换",
+    擊: "击",
+    據: "据",
+    攝: "摄",
+    敗: "败",
+    敘: "叙",
+    數: "数",
+    斷: "断",
+    於: "于",
+    時: "时",
+    暢: "畅",
+    會: "会",
+    東: "东",
+    條: "条",
+    業: "业",
+    構: "构",
+    樂: "乐",
+    標: "标",
+    樣: "样",
+    機: "机",
+    檔: "档",
+    檢: "检",
+    權: "权",
+    歡: "欢",
+    歲: "岁",
+    歷: "历",
+    殘: "残",
+    氣: "气",
+    決: "决",
+    沒: "没",
+    淨: "净",
+    測: "测",
+    準: "准",
+    滿: "满",
+    漸: "渐",
+    潔: "洁",
+    潛: "潜",
+    濟: "济",
+    瀏: "浏",
+    為: "为",
+    無: "无",
+    熱: "热",
+    爾: "尔",
+    牽: "牵",
+    狀: "状",
+    獎: "奖",
+    獨: "独",
+    獲: "获",
+    獻: "献",
+    現: "现",
+    瑣: "琐",
+    環: "环",
+    畫: "画",
+    當: "当",
+    發: "发",
+    盡: "尽",
+    監: "监",
+    盤: "盘",
+    眾: "众",
+    確: "确",
+    碼: "码",
+    磯: "矶",
+    礙: "碍",
+    礦: "矿",
+    禮: "礼",
+    種: "种",
+    稱: "称",
+    穩: "稳",
+    競: "竞",
+    節: "节",
+    範: "范",
+    簡: "简",
+    紀: "纪",
+    納: "纳",
+    級: "级",
+    細: "细",
+    終: "终",
+    組: "组",
+    結: "结",
+    絡: "络",
+    給: "给",
+    統: "统",
+    經: "经",
+    綜: "综",
+    綠: "绿",
+    維: "维",
+    緊: "紧",
+    線: "线",
+    編: "编",
+    緩: "缓",
+    練: "练",
+    縮: "缩",
+    總: "总",
+    繼: "继",
+    續: "续",
+    罰: "罚",
+    義: "义",
+    習: "习",
+    聯: "联",
+    聰: "聪",
+    聲: "声",
+    聽: "听",
+    脈: "脉",
+    腳: "脚",
+    與: "与",
+    興: "兴",
+    蓋: "盖",
+    藝: "艺",
+    處: "处",
+    螢: "萤",
+    術: "术",
+    裝: "装",
+    複: "复",
+    規: "规",
+    視: "视",
+    覺: "觉",
+    覽: "览",
+    觸: "触",
+    計: "计",
+    訊: "讯",
+    討: "讨",
+    記: "记",
+    訪: "访",
+    設: "设",
+    評: "评",
+    詞: "词",
+    試: "试",
+    該: "该",
+    誌: "志",
+    認: "认",
+    誘: "诱",
+    語: "语",
+    課: "课",
+    調: "调",
+    談: "谈",
+    論: "论",
+    謎: "谜",
+    講: "讲",
+    識: "识",
+    讀: "读",
+    變: "变",
+    讓: "让",
+    負: "负",
+    貨: "货",
+    貫: "贯",
+    責: "责",
+    買: "买",
+    費: "费",
+    資: "资",
+    質: "质",
+    購: "购",
+    賽: "赛",
+    趨: "趋",
+    跡: "迹",
+    踐: "践",
+    蹤: "踪",
+    車: "车",
+    較: "较",
+    載: "载",
+    輕: "轻",
+    輯: "辑",
+    輸: "输",
+    轉: "转",
+    辦: "办",
+    這: "这",
+    連: "连",
+    進: "进",
+    遊: "游",
+    過: "过",
+    達: "达",
+    違: "违",
+    適: "适",
+    遷: "迁",
+    遺: "遗",
+    還: "还",
+    邊: "边",
+    邏: "逻",
+    郵: "邮",
+    醫: "医",
+    銷: "销",
+    錄: "录",
+    錢: "钱",
+    鍵: "键",
+    鎖: "锁",
+    鏈: "链",
+    鐘: "钟",
+    鑿: "凿",
+    長: "长",
+    門: "门",
+    閃: "闪",
+    開: "开",
+    閒: "闲",
+    間: "间",
+    閱: "阅",
+    關: "关",
+    隊: "队",
+    階: "阶",
+    隨: "随",
+    險: "险",
+    隱: "隐",
+    雙: "双",
+    雜: "杂",
+    離: "离",
+    難: "难",
+    電: "电",
+    靈: "灵",
+    響: "响",
+    頁: "页",
+    項: "项",
+    順: "顺",
+    須: "须",
+    預: "预",
+    領: "领",
+    頭: "头",
+    題: "题",
+    額: "额",
+    顏: "颜",
+    類: "类",
+    風: "风",
+    飯: "饭",
+    驗: "验",
+    驟: "骤",
+    體: "体",
+    鬆: "松",
+    鬥: "斗",
+    鬱: "郁",
+    魚: "鱼",
+    鮮: "鲜",
+    鵬: "鹏",
+    麼: "么",
+    點: "点",
+    龐: "庞",
+  })
+)
+
+function toSimplifiedChinese(value) {
+  let result = String(value)
+  simplifiedChinesePhrases.forEach(([traditional, simplified]) => {
+    result = result.replaceAll(traditional, simplified)
+  })
+  return Array.from(result)
+    .map((character) => simplifiedChineseCharacters.get(character) || character)
+    .join("")
+}
+
+function wrapLatinRuns(html) {
+  return String(html)
+    .split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g)
+    .map((part) => {
+      if (!part || part.startsWith("<") || part.startsWith("&")) return part
+      return part.replace(latinTextPattern, '<span class="body-copy-latin">$&</span>')
+    })
+    .join("")
+}
+
+function formatChineseText(value) {
+  return wrapLatinRuns(escapeHtml(toSimplifiedChinese(value)))
+}
+
+function formatChineseHtml(value) {
+  return wrapLatinRuns(toSimplifiedChinese(value))
+}
+
 const copyTranslations = new Map([
   [
     "A turn-based strategy shooting board-game prototype built around movement, building, territory control, and tactical combat on a 15 by 15 grid.",
@@ -494,11 +829,11 @@ function bilingualText(value) {
   const translation = copyTranslations.get(String(value))
   if (!translation) return `<span class="body-copy-en">${english}</span>`
 
-  return `<span class="body-copy-en">${english}</span><span class="body-copy-zh" lang="zh-Hant">${escapeHtml(translation)}</span>`
+  return `<span class="body-copy-en">${english}</span><span class="body-copy-zh" lang="zh-Hans">${formatChineseText(translation)}</span>`
 }
 
 function bilingualRich(englishHtml, traditionalHtml) {
-  return `<span class="body-copy-en">${englishHtml}</span><span class="body-copy-zh" lang="zh-Hant">${traditionalHtml}</span>`
+  return `<span class="body-copy-en">${englishHtml}</span><span class="body-copy-zh" lang="zh-Hans">${formatChineseHtml(traditionalHtml)}</span>`
 }
 
 function bilingualLine(value) {
@@ -791,8 +1126,8 @@ function aboutMarkup() {
           <h2>About:</h2>
           <p>
             ${bilingualRich(
-              `Red Wang <span class="name-inline">“王紫鵬”</span> is a Game Design student and is now based in the LA area. An independent thinker who enjoys teamwork. Passionate for Game Design &amp; Development, Cinematic &amp; Media Arts, Interaction Design, Graphic Design and other Interdisciplinary practices.`,
-              `Red Wang <span class="name-inline">「王紫鵬」</span> 是一名遊戲設計學生，目前居於洛杉磯地區。他是一位享受團隊合作的獨立思考者，熱衷於遊戲設計與開發、影像與媒體藝術、互動設計、平面設計，以及其他跨領域實踐。`,
+              `Red Wang <span class="name-inline" lang="zh-Hans">“王紫鹏”</span> is a Game Design student and is now based in the LA area. An independent thinker who enjoys teamwork. Passionate for Game Design &amp; Development, Cinematic &amp; Media Arts, Interaction Design, Graphic Design and other Interdisciplinary practices.`,
+              `Red Wang <span class="name-inline" lang="zh-Hans">「王紫鹏」</span> 是一名遊戲設計學生，目前居於洛杉磯地區。他是一位享受團隊合作的獨立思考者，熱衷於遊戲設計與開發、影像與媒體藝術、互動設計、平面設計，以及其他跨領域實踐。`,
             )}
           </p>
         </div>
@@ -808,7 +1143,7 @@ function aboutMarkup() {
           <img src="${asset("assets/figma-home/about-profile.png")}" alt="Red Wang portrait" />
         </figure>
         <div class="profile-card">
-          <h2>王紫鵬</h2>
+          <h2 lang="zh-Hans">王紫鹏</h2>
           <p>Game Design Student at ArtCenter<br />College of Design</p>
           <div class="profile-actions">
             <a href="mailto:zwang29@inside.artcenter.edu">Contact Me</a>
@@ -1064,7 +1399,7 @@ function serialDeminerDetailMarkup(project) {
             `在發想遊戲形式與機制時，我們探索了不同方向與參考。我最初提出以 “Bejeweled” 作為專案靈感來源。我認為它讓玩家透過簡單拖放動作重新排列 2D 格子中的寶石，這種玩法與「連鎖反應」主題相當契合。一個輕量的單一步驟就能觸發潛在的連鎖爆發，讓玩家在獲得分數獎勵的同時，享受不同顏色與屬性寶石之間的自動互動。`,
           )}</p>
           <p>${bilingualRich(
-            `Another game reference comes from the Chinese 2D puzzle game <em>“死神來了” (Death Coming)</em>. Unlike <em>Bejeweled</em>, this game focuses more on the connection between narrative and gameplay. Players take on the role of a trainee grim reaper, interacting with objects in each level’s scene. Using fewer steps to trigger more object interactions and cause more character deaths results in higher scores. The key takeaway from this game is its engaging premise and setting, which are tightly integrated with the gameplay, creating a cohesive and immersive experience.`,
+            `Another game reference comes from the Chinese 2D puzzle game <em>“死神来了” (Death Coming)</em>. Unlike <em>Bejeweled</em>, this game focuses more on the connection between narrative and gameplay. Players take on the role of a trainee grim reaper, interacting with objects in each level’s scene. Using fewer steps to trigger more object interactions and cause more character deaths results in higher scores. The key takeaway from this game is its engaging premise and setting, which are tightly integrated with the gameplay, creating a cohesive and immersive experience.`,
             `另一個遊戲參考來自中文 2D 解謎遊戲 <em>《死神來了》（Death Coming）</em>。不同於 <em>Bejeweled</em>，這款遊戲更強調敘事與玩法之間的連結。玩家扮演實習死神，與每個關卡場景中的物件互動。使用越少步驟觸發越多物件互動，並造成更多角色死亡，就能得到更高分數。這款遊戲給我們的重要啟發，是它有吸引人的前提與設定，並與玩法緊密整合，形成連貫且沉浸的體驗。`,
           )}</p>
         </section>

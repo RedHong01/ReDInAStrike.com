@@ -146,6 +146,68 @@ const projects = [
 ]
 
 const routeMap = new Map(projects.map((project) => [project.path, project]))
+const catalogProjectEntries = projects.map((project, originalIndex) => ({ project, originalIndex }))
+const filterableProjectHashes = new Set(projects.map((project) => project.navHash))
+const CATALOG_FILTER_EXIT_MS = 430
+const CATALOG_FILTER_ENTER_MS = 560
+const CATALOG_FILTER_STAGGER_MS = 28
+
+function projectDateRank(project) {
+  const rawDate = String(project.date || "").trim()
+  if (/present/i.test(rawDate)) return Number.POSITIVE_INFINITY
+
+  const match = rawDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/)
+  if (!match) return 0
+
+  const [, month, day, year] = match
+  return Date.UTC(Number(year), Number(month) - 1, Number(day))
+}
+
+function normalizeCatalogFilter(hash) {
+  return hash && filterableProjectHashes.has(hash) ? hash : null
+}
+
+function getCatalogProjectEntries(category = null) {
+  const normalizedCategory = normalizeCatalogFilter(category)
+  const entries = normalizedCategory
+    ? catalogProjectEntries.filter(({ project }) => project.navHash === normalizedCategory)
+    : catalogProjectEntries
+
+  if (!normalizedCategory) return entries
+
+  return [...entries].sort((a, b) => {
+    const dateDelta = projectDateRank(b.project) - projectDateRank(a.project)
+    return dateDelta || a.originalIndex - b.originalIndex
+  })
+}
+
+function catalogRowsMarkup(category = null) {
+  const entries = getCatalogProjectEntries(category)
+  const rows = []
+
+  for (let index = 0; index < entries.length; index += 2) {
+    const first = entries[index]
+    const second = entries[index + 1]
+    const rowHash = category
+      ? index === 0
+        ? normalizeCatalogFilter(category)
+        : ""
+      : first.originalIndex === 0
+        ? "game"
+        : first.originalIndex === 14
+          ? "ongoing"
+          : ""
+
+    rows.push(`
+      <section class="project-row" id="${rowHash}">
+        ${projectCard(first.project, first.originalIndex, index)}
+        ${second ? projectCard(second.project, second.originalIndex, index + 1) : ""}
+      </section>`)
+  }
+
+  return rows.join("")
+}
+
 const framerProjectDetails = {
   "/bns_gdd": {
     year: "2024 Spring",
@@ -286,6 +348,13 @@ const siteState = {
   layoutTransitionTimer: 0,
   navMetricKey: "",
   ruleFadeFrame: 0,
+  catalogFilterTarget: null,
+  catalogFilterCurrent: null,
+  catalogFilterLocked: null,
+  catalogFilterPhase: "idle",
+  catalogFilterTimer: 0,
+  catalogFilterEnterTimer: 0,
+  catalogFilterCycle: 0,
   galleryFrame: 0,
   galleryLastFrameTime: 0,
   galleryLastScrollTime: 0,
@@ -851,7 +920,7 @@ function headerMarkup() {
   const nav = navItems
     .map(
       (item) => `
-        <a class="nav-item" href="${hrefFor("/")}#${item.hash}">
+        <a class="nav-item" href="${hrefFor("/")}#${item.hash}" data-nav-category="${escapeHtml(item.hash)}">
           <span class="nav-title">${escapeHtml(item.label)}</span>
           <span class="nav-detail">${escapeHtml(item.detail)}</span>
         </a>`
@@ -881,7 +950,7 @@ function mediaStyle(project) {
   ].join("; ")
 }
 
-function projectCard(project, index) {
+function projectCard(project, index, loadingIndex = index) {
   const videoAttributes = project.youtube
     ? ` data-hover-youtube="${escapeHtml(project.youtube)}"`
     : ""
@@ -892,7 +961,7 @@ function projectCard(project, index) {
         <img
           src="${asset(project.image)}"
           alt="${escapeHtml(project.pageTitle)}"
-          loading="${index < 2 ? "eager" : "lazy"}"
+          loading="${loadingIndex < 2 ? "eager" : "lazy"}"
         />
       </figure>
       <div class="project-meta">
@@ -1167,21 +1236,11 @@ function aboutMarkup() {
 }
 
 function homeMarkup() {
-  const rows = []
-  for (let index = 0; index < projects.length; index += 2) {
-    const rowHash = index === 0 ? "game" : index === 14 ? "ongoing" : ""
-    rows.push(`
-      <section class="project-row" id="${rowHash}">
-        ${projectCard(projects[index], index)}
-        ${projects[index + 1] ? projectCard(projects[index + 1], index + 1) : ""}
-      </section>`)
-  }
-
   return `
     ${headerMarkup()}
     <main class="site-main" data-route="home">
       <section class="catalog" aria-label="Project catalog">
-        ${rows.join("")}
+        ${catalogRowsMarkup()}
       </section>
       ${footerGalleryMarkup()}
       ${aboutMarkup()}
@@ -1474,6 +1533,7 @@ function render() {
   const project = routeMap.get(route)
   app.innerHTML = project ? detailMarkup(project) : homeMarkup()
   siteState.navMetricKey = ""
+  resetCatalogFilterState()
   setupHeader()
   setupNavHoverSpacing()
   setupNavHoverInteraction()
@@ -2371,6 +2431,179 @@ function setupFooterGallery() {
   }
 }
 
+function resetCatalogFilterState() {
+  window.clearTimeout(siteState.catalogFilterTimer)
+  window.clearTimeout(siteState.catalogFilterEnterTimer)
+  siteState.catalogFilterTimer = 0
+  siteState.catalogFilterEnterTimer = 0
+  siteState.catalogFilterTarget = null
+  siteState.catalogFilterCurrent = null
+  siteState.catalogFilterLocked = null
+  siteState.catalogFilterPhase = "idle"
+  siteState.catalogFilterCycle += 1
+}
+
+function catalogFilterDuration(duration) {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : duration
+}
+
+function setCatalogCardTimingVars(catalog, property, step = CATALOG_FILTER_STAGGER_MS, maxDelay = 196) {
+  const cards = [...catalog.querySelectorAll(".project-card")]
+  cards.forEach((card, index) => {
+    card.style.setProperty(property, `${Math.min(index * step, maxDelay)}ms`)
+  })
+
+  return cards.length ? Math.min((cards.length - 1) * step, maxDelay) : 0
+}
+
+function clearCatalogCardTimingVars(catalog) {
+  catalog.querySelectorAll(".project-card").forEach((card) => {
+    card.style.removeProperty("--project-filter-exit-delay")
+    card.style.removeProperty("--project-filter-enter-delay")
+  })
+}
+
+function updateCatalogFilterDataset(catalog, category) {
+  if (category) {
+    catalog.dataset.activeFilter = category
+  } else {
+    delete catalog.dataset.activeFilter
+  }
+}
+
+function refreshCatalogAfterFilter(catalog) {
+  setupHoverEmbeds()
+  requestRuleFadeUpdate()
+  updateFooterGalleryReveal()
+  if (catalog) {
+    const firstRow = catalog.querySelector(".project-row")
+    firstRow?.style.setProperty("--project-rule-weight", "1")
+  }
+}
+
+function replaceCatalogFilterImmediately(category) {
+  const catalog = document.querySelector(".catalog")
+  if (!catalog) return
+
+  const normalizedCategory = normalizeCatalogFilter(category)
+  window.clearTimeout(siteState.catalogFilterTimer)
+  window.clearTimeout(siteState.catalogFilterEnterTimer)
+  siteState.catalogFilterTimer = 0
+  siteState.catalogFilterEnterTimer = 0
+  siteState.catalogFilterTarget = normalizedCategory
+  siteState.catalogFilterCurrent = normalizedCategory
+  siteState.catalogFilterPhase = "idle"
+  siteState.catalogFilterCycle += 1
+  catalog.innerHTML = catalogRowsMarkup(normalizedCategory)
+  delete catalog.dataset.filterPhase
+  catalog.style.removeProperty("--catalog-filter-min-height")
+  clearCatalogCardTimingVars(catalog)
+  updateCatalogFilterDataset(catalog, normalizedCategory)
+  refreshCatalogAfterFilter(catalog)
+}
+
+function commitCatalogFilterTransition(cycle) {
+  if (cycle !== siteState.catalogFilterCycle) return
+
+  const catalog = document.querySelector(".catalog")
+  if (!catalog) {
+    resetCatalogFilterState()
+    return
+  }
+
+  const category = siteState.catalogFilterTarget
+  catalog.innerHTML = catalogRowsMarkup(category)
+  siteState.catalogFilterCurrent = category
+  siteState.catalogFilterPhase = "entering"
+  catalog.dataset.filterPhase = "entering"
+  updateCatalogFilterDataset(catalog, category)
+  const enterDelay = setCatalogCardTimingVars(
+    catalog,
+    "--project-filter-enter-delay",
+    CATALOG_FILTER_STAGGER_MS,
+    224,
+  )
+  refreshCatalogAfterFilter(catalog)
+
+  catalog.getBoundingClientRect()
+  requestAnimationFrame(() => {
+    if (cycle !== siteState.catalogFilterCycle) return
+    catalog.dataset.filterPhase = "settling"
+    requestRuleFadeUpdate()
+  })
+
+  siteState.catalogFilterEnterTimer = window.setTimeout(() => {
+    if (cycle !== siteState.catalogFilterCycle) return
+
+    if (siteState.catalogFilterTarget !== siteState.catalogFilterCurrent) {
+      startCatalogFilterTransition()
+      return
+    }
+
+    delete catalog.dataset.filterPhase
+    catalog.style.removeProperty("--catalog-filter-min-height")
+    clearCatalogCardTimingVars(catalog)
+    siteState.catalogFilterPhase = "idle"
+    siteState.catalogFilterTimer = 0
+    siteState.catalogFilterEnterTimer = 0
+    requestRuleFadeUpdate()
+    updateFooterGalleryReveal()
+  }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS) + enterDelay + 80)
+}
+
+function startCatalogFilterTransition() {
+  const catalog = document.querySelector(".catalog")
+  if (!catalog) {
+    siteState.catalogFilterCurrent = siteState.catalogFilterTarget
+    siteState.catalogFilterPhase = "idle"
+    return
+  }
+
+  window.clearTimeout(siteState.catalogFilterTimer)
+  window.clearTimeout(siteState.catalogFilterEnterTimer)
+  const cycle = siteState.catalogFilterCycle + 1
+  siteState.catalogFilterCycle = cycle
+  siteState.catalogFilterPhase = "exiting"
+  const height = Math.ceil(catalog.getBoundingClientRect().height)
+  catalog.style.setProperty("--catalog-filter-min-height", `${Math.max(0, height)}px`)
+  updateCatalogFilterDataset(catalog, siteState.catalogFilterTarget)
+  const exitDelay = setCatalogCardTimingVars(
+    catalog,
+    "--project-filter-exit-delay",
+    Math.max(18, CATALOG_FILTER_STAGGER_MS - 6),
+    176,
+  )
+  catalog.dataset.filterPhase = "exiting"
+
+  siteState.catalogFilterTimer = window.setTimeout(() => {
+    commitCatalogFilterTransition(cycle)
+  }, catalogFilterDuration(CATALOG_FILTER_EXIT_MS) + exitDelay + 40)
+}
+
+function setCatalogFilter(category) {
+  const nextCategory = normalizeCatalogFilter(category)
+  const catalog = document.querySelector(".catalog")
+  if (!catalog) {
+    siteState.catalogFilterTarget = nextCategory
+    siteState.catalogFilterCurrent = nextCategory
+    return
+  }
+
+  const noChange =
+    siteState.catalogFilterTarget === nextCategory &&
+    siteState.catalogFilterCurrent === nextCategory &&
+    siteState.catalogFilterPhase !== "exiting"
+  if (noChange) return
+
+  siteState.catalogFilterTarget = nextCategory
+  if (siteState.catalogFilterPhase === "exiting") {
+    updateCatalogFilterDataset(catalog, nextCategory)
+    return
+  }
+
+  startCatalogFilterTransition()
+}
+
 function setupNavHoverSpacing() {
   document.querySelectorAll(".nav-item").forEach((item) => {
     const title = item.querySelector(".nav-title")
@@ -2397,12 +2630,25 @@ function setupNavHoverInteraction() {
     window.clearTimeout(clearTimer)
     clearTimer = 0
     items.forEach((item) => item.classList.remove("is-nav-active"))
+    setCatalogFilter(siteState.catalogFilterLocked)
   }
 
   const setActive = (activeItem) => {
     window.clearTimeout(clearTimer)
     clearTimer = 0
     items.forEach((item) => item.classList.toggle("is-nav-active", item === activeItem))
+    setCatalogFilter(activeItem?.dataset.navCategory || null)
+  }
+
+  const updateFilterHash = (category) => {
+    const nextUrl = `${window.location.pathname}${window.location.search}${category ? `#${category}` : ""}`
+    window.history.replaceState(null, "", nextUrl)
+  }
+
+  const initialCategory = normalizeCatalogFilter(decodeURIComponent(window.location.hash.replace(/^#/, "")))
+  if (initialCategory && document.querySelector(".catalog")) {
+    siteState.catalogFilterLocked = initialCategory
+    replaceCatalogFilterImmediately(initialCategory)
   }
 
   nav.addEventListener("pointerenter", () => {
@@ -2426,6 +2672,20 @@ function setupNavHoverInteraction() {
     })
 
     item.addEventListener("focusin", () => setActive(item))
+
+    item.addEventListener("click", (event) => {
+      const category = normalizeCatalogFilter(item.dataset.navCategory)
+      if (!category) {
+        siteState.catalogFilterLocked = null
+        setCatalogFilter(null)
+        return
+      }
+
+      event.preventDefault()
+      siteState.catalogFilterLocked = category
+      updateFilterHash(category)
+      setActive(item)
+    })
   })
 }
 

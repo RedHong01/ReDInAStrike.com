@@ -90,7 +90,7 @@
   --type-resume-subheading-size: clamp(19px, 1.39vw, 24px);
   --type-resume-meta-size: clamp(12px, 0.81vw, 14px);
   --type-resume-meta-leading: 1.12;
-  --type-resume-subtitle-size: calc(var(--type-resume-meta-size) + 1px);
+  --type-resume-subtitle-size: var(--type-resume-meta-size);
   --type-resume-subtitle-leading: var(--type-resume-meta-leading);
   --type-resume-project-body-size: clamp(13px, 0.81vw, 14px);
   --type-resume-project-body-leading: 1.22;
@@ -2360,7 +2360,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     --resume-title-size: clamp(29px, 8.8vw, 34px);
     --resume-heading-size: 36px;
     --resume-subheading-size: 21px;
-    --resume-meta-size: 15px;
+    --resume-meta-size: 14px;
     --resume-meta-leading: 18px;
     --resume-project-body-size: var(--type-resume-project-body-size);
     --resume-project-body-leading: var(--type-resume-project-body-leading);

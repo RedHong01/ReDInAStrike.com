@@ -1625,7 +1625,7 @@ function setFooterGalleryStyles(
   const contentHeight = visibleCapacity
   const visiblePocket = visibleReveal > 0.001 ? contentHeight : 0
   const pocketTop = Math.max(headerBottom, pocketBottom - visiblePocket)
-  const revealShift = contentHeight * (1 - visibleReveal)
+  const revealShift = 0
   const firstSet = gallery.querySelector(".footer-gallery-set")
   const firstMeta = gallery.querySelector(".footer-gallery-meta")
   const setStyle = firstSet ? window.getComputedStyle(firstSet) : null

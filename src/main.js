@@ -967,6 +967,9 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
     : ""
   const mutedClass = options.muted ? " is-filter-muted" : ""
   const mutedAttributes = options.muted ? ` data-filter-muted="true"` : ""
+  const halftoneCanvas = options.muted
+    ? `<canvas class="project-halftone" aria-hidden="true"></canvas>`
+    : ""
 
   return `
     <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-section="${escapeHtml(project.navHash)}" data-index="${index}"${mutedAttributes}>
@@ -976,6 +979,7 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
           alt="${escapeHtml(project.pageTitle)}"
           loading="${loadingIndex < 2 ? "eager" : "lazy"}"
         />
+        ${halftoneCanvas}
       </figure>
       <div class="project-meta">
         <span class="project-title">${escapeHtml(project.displayTitle)}</span>
@@ -2497,29 +2501,262 @@ function refreshCatalogAfterFilter(catalog) {
   }
 }
 
-function clearCatalogHalftoneInline(catalog) {
+function stopCatalogHalftoneAnimation() {
+  if (siteState.catalogHalftoneFrame) cancelAnimationFrame(siteState.catalogHalftoneFrame)
+  siteState.catalogHalftoneFrame = 0
+}
+
+function readCssColor(element, property, fallback) {
+  return window.getComputedStyle(element).getPropertyValue(property).trim() || fallback
+}
+
+function parseObjectPositionRatio(value) {
+  const parts = String(value || "50% 50%").trim().split(/\s+/).filter(Boolean)
+  let x = 0.5
+  let y = 0.5
+
+  const assign = (part, axis) => {
+    const token = part.toLowerCase()
+    if (token === "left") {
+      x = 0
+      return
+    }
+    if (token === "right") {
+      x = 1
+      return
+    }
+    if (token === "top") {
+      y = 0
+      return
+    }
+    if (token === "bottom") {
+      y = 1
+      return
+    }
+    if (token === "center") {
+      if (axis === "y") y = 0.5
+      else x = 0.5
+      return
+    }
+    if (token.endsWith("%")) {
+      const ratio = clamp(parseFloat(token) / 100, 0, 1)
+      if (Number.isFinite(ratio)) {
+        if (axis === "y") y = ratio
+        else x = ratio
+      }
+    }
+  }
+
+  if (parts.length === 1) {
+    assign(parts[0], "x")
+    return { x, y }
+  }
+
+  const firstIsVertical = parts[0] === "top" || parts[0] === "bottom"
+  assign(parts[0], firstIsVertical ? "y" : "x")
+  assign(parts[1], firstIsVertical ? "x" : "y")
+  return { x, y }
+}
+
+function getHalftoneImageRect(img, cssWidth, cssHeight) {
+  if (!img.naturalWidth || !img.naturalHeight) return null
+
+  const computed = window.getComputedStyle(img)
+  const fit = computed.objectFit || "fill"
+  const imageWidth = img.naturalWidth
+  const imageHeight = img.naturalHeight
+  let width = cssWidth
+  let height = cssHeight
+
+  if (fit === "cover" || fit === "contain" || fit === "scale-down") {
+    const coverScale = Math.max(cssWidth / imageWidth, cssHeight / imageHeight)
+    const containScale = Math.min(cssWidth / imageWidth, cssHeight / imageHeight)
+    const scale =
+      fit === "cover"
+        ? coverScale
+        : fit === "scale-down"
+          ? Math.min(1, containScale)
+          : containScale
+    width = imageWidth * scale
+    height = imageHeight * scale
+  } else if (fit === "none") {
+    width = imageWidth
+    height = imageHeight
+  }
+
+  const position = parseObjectPositionRatio(computed.objectPosition)
+  return {
+    x: (cssWidth - width) * position.x,
+    y: (cssHeight - height) * position.y,
+    width,
+    height,
+  }
+}
+
+function ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize, paperColor) {
+  const computed = window.getComputedStyle(img)
+  const sampleKey = [
+    img.currentSrc || img.src || img.getAttribute("src") || "",
+    img.naturalWidth,
+    img.naturalHeight,
+    Math.round(cssWidth),
+    Math.round(cssHeight),
+    cellSize,
+    computed.objectFit,
+    computed.objectPosition,
+    paperColor,
+  ].join("|")
+
+  if (canvas.__projectHalftoneSample?.key === sampleKey) {
+    return canvas.__projectHalftoneSample
+  }
+
+  const imageRect = getHalftoneImageRect(img, cssWidth, cssHeight)
+  if (!imageRect) return null
+
+  const cols = Math.max(1, Math.ceil(cssWidth / cellSize))
+  const rows = Math.max(1, Math.ceil(cssHeight / cellSize))
+  const sampleCanvas = document.createElement("canvas")
+  sampleCanvas.width = cols
+  sampleCanvas.height = rows
+  const sampleContext = sampleCanvas.getContext("2d", { willReadFrequently: true })
+  if (!sampleContext) return null
+
+  sampleContext.fillStyle = paperColor
+  sampleContext.fillRect(0, 0, cols, rows)
+
+  try {
+    sampleContext.drawImage(
+      img,
+      imageRect.x / cellSize,
+      imageRect.y / cellSize,
+      imageRect.width / cellSize,
+      imageRect.height / cellSize,
+    )
+
+    const sample = {
+      key: sampleKey,
+      cols,
+      rows,
+      cellSize,
+      data: sampleContext.getImageData(0, 0, cols, rows).data,
+    }
+    canvas.__projectHalftoneSample = sample
+    return sample
+  } catch (error) {
+    return null
+  }
+}
+
+function bindHalftoneImageLoad(img) {
+  if (img.__projectHalftoneLoadBound) return
+  img.__projectHalftoneLoadBound = true
+  img.addEventListener(
+    "load",
+    () => {
+      img.__projectHalftoneLoadBound = false
+      const catalog = img.closest(".catalog")
+      if (catalog?.dataset.activeFilter) renderCatalogHalftones(catalog, siteState.catalogHalftoneProgress)
+    },
+    { once: true },
+  )
+}
+
+function drawProjectHalftone(card, progress) {
+  const canvas = card.querySelector(".project-halftone")
+  const media = card.querySelector(".project-media")
+  const img = media?.querySelector("img")
+  if (!canvas || !media) return false
+
+  const rect = media.getBoundingClientRect()
+  const cssWidth = Math.max(1, Math.round(rect.width))
+  const cssHeight = Math.max(1, Math.round(rect.height))
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
+  const targetWidth = Math.max(1, Math.round(cssWidth * pixelRatio))
+  const targetHeight = Math.max(1, Math.round(cssHeight * pixelRatio))
+
+  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+    canvas.width = targetWidth
+    canvas.height = targetHeight
+    canvas.__projectHalftoneSample = null
+  }
+
+  const context = canvas.getContext("2d")
+  if (!context) return false
+
+  const root = document.documentElement
+  const paperColor = readCssColor(root, "--paper", "#f8f7f5")
+  const inkColor = readCssColor(root, "--ink", "rgb(69, 69, 69)")
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+  context.clearRect(0, 0, cssWidth, cssHeight)
+  context.fillStyle = paperColor
+  context.fillRect(0, 0, cssWidth, cssHeight)
+
+  if (!img || !img.complete || !img.naturalWidth) {
+    if (img) bindHalftoneImageLoad(img)
+    return false
+  }
+
+  const cellSize = clamp(cssWidth / 132, 4.6, 7.2)
+  const sample = ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize, paperColor)
+  if (!sample) return false
+
+  const dotProgress = clamp(progress, 0, 1)
+  if (dotProgress <= 0.001) return true
+
+  context.fillStyle = inkColor
+  const maxRadius = sample.cellSize * 0.54 * dotProgress
+
+  for (let row = 0; row < sample.rows; row += 1) {
+    for (let col = 0; col < sample.cols; col += 1) {
+      const index = (row * sample.cols + col) * 4
+      const red = sample.data[index]
+      const green = sample.data[index + 1]
+      const blue = sample.data[index + 2]
+      const luminance = (red * 0.2126 + green * 0.7152 + blue * 0.0722) / 255
+      const ink = clamp((1 - luminance) * 1.18 - 0.025, 0, 1)
+      const radius = Math.sqrt(ink) * maxRadius
+      if (radius < 0.08) continue
+
+      context.beginPath()
+      context.arc(
+        col * sample.cellSize + sample.cellSize / 2,
+        row * sample.cellSize + sample.cellSize / 2,
+        radius,
+        0,
+        Math.PI * 2,
+      )
+      context.fill()
+    }
+  }
+
+  return true
+}
+
+function renderCatalogHalftones(catalog, progress = siteState.catalogHalftoneProgress) {
+  if (!catalog) return
+  siteState.catalogHalftoneProgress = clamp(progress, 0, 1)
   catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
-    card.style.removeProperty("--project-halftone-dot")
+    drawProjectHalftone(card, siteState.catalogHalftoneProgress)
   })
+}
+
+function clearCatalogHalftoneInline(catalog) {
+  stopCatalogHalftoneAnimation()
+  renderCatalogHalftones(catalog, 1)
 }
 
 function primeCatalogHalftoneDots(catalog) {
-  catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
-    card.style.setProperty("--project-halftone-dot", "0px")
-  })
+  stopCatalogHalftoneAnimation()
+  renderCatalogHalftones(catalog, 0)
 }
 
 function animateCatalogHalftoneDots(catalog, cycle) {
-  if (siteState.catalogHalftoneFrame) cancelAnimationFrame(siteState.catalogHalftoneFrame)
+  stopCatalogHalftoneAnimation()
 
-  const cards = [...catalog.querySelectorAll(".project-card.is-filter-muted")]
-  if (!cards.length) return
+  if (!catalog.querySelector(".project-card.is-filter-muted")) return
 
-  const target =
-    parseFloat(window.getComputedStyle(catalog).getPropertyValue("--project-filter-halftone-dot")) || 1.35
-  const duration = catalogFilterDuration(720)
-  const step = catalogFilterDuration(24)
-  const maxDelay = catalogFilterDuration(220)
+  const duration = catalogFilterDuration(760)
   const start = performance.now()
 
   const animate = (time) => {
@@ -2528,18 +2765,11 @@ function animateCatalogHalftoneDots(catalog, cycle) {
       return
     }
 
-    let allDone = true
-    cards.forEach((card, index) => {
-      if (!card.isConnected) return
-      const delay = Math.min(index * step, maxDelay)
-      const progress = clamp((time - start - delay) / duration, 0, 1)
-      const value = target * easeOutCubic(progress)
-      card.style.setProperty("--project-halftone-dot", `${value.toFixed(3)}px`)
-      if (progress < 1) allDone = false
-    })
+    const progress = clamp((time - start) / duration, 0, 1)
+    renderCatalogHalftones(catalog, easeOutCubic(progress))
 
-    if (allDone) {
-      clearCatalogHalftoneInline(catalog)
+    if (progress >= 1) {
+      renderCatalogHalftones(catalog, 1)
       siteState.catalogHalftoneFrame = 0
       return
     }
@@ -2548,6 +2778,53 @@ function animateCatalogHalftoneDots(catalog, cycle) {
   }
 
   siteState.catalogHalftoneFrame = requestAnimationFrame(animate)
+}
+
+function scrollToCatalogFilterTop() {
+  if (!document.querySelector(".catalog")) return
+  const currentY = window.scrollY || window.pageYOffset || 0
+  if (currentY <= 2) return
+
+  window.scrollTo({
+    top: 0,
+    behavior: catalogFilterDuration(240) <= 1 ? "auto" : "smooth",
+  })
+}
+
+function scrollToPageSection(hash, options = {}) {
+  const target = document.getElementById(hash)
+  if (!target) return false
+
+  const currentY = window.scrollY || window.pageYOffset || 0
+  const headerOffset = readHeaderMetrics().compactHeight + 1
+  const top = Math.max(0, target.getBoundingClientRect().top + currentY - headerOffset)
+  window.scrollTo({
+    top,
+    behavior: options.immediate || catalogFilterDuration(240) <= 1 ? "auto" : "smooth",
+  })
+  return true
+}
+
+function scheduleScrollToPageSection(hash, options = {}) {
+  const delay = Number.isFinite(options.delay) ? options.delay : 0
+  const attempts = Math.max(1, options.attempts || 2)
+  let count = 0
+
+  const run = () => {
+    const scroll = () => scrollToPageSection(hash, options)
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(scroll)
+    } else {
+      scroll()
+    }
+
+    count += 1
+    if (count < attempts) {
+      window.setTimeout(run, catalogFilterDuration(180))
+    }
+  }
+
+  window.setTimeout(run, delay)
 }
 
 function replaceCatalogFilterImmediately(category) {
@@ -2709,8 +2986,10 @@ function setupNavHoverInteraction() {
   const setActive = (activeItem) => {
     window.clearTimeout(clearTimer)
     clearTimer = 0
+    const category = normalizeCatalogFilter(activeItem?.dataset.navCategory || null)
+    if (category) scrollToCatalogFilterTop()
     items.forEach((item) => item.classList.toggle("is-nav-active", item === activeItem))
-    setCatalogFilter(activeItem?.dataset.navCategory || null)
+    setCatalogFilter(category)
   }
 
   const updateFilterHash = (category) => {
@@ -2718,10 +2997,13 @@ function setupNavHoverInteraction() {
     window.history.replaceState(null, "", nextUrl)
   }
 
-  const initialCategory = normalizeCatalogFilter(decodeURIComponent(window.location.hash.replace(/^#/, "")))
+  const initialHash = decodeURIComponent(window.location.hash.replace(/^#/, ""))
+  const initialCategory = normalizeCatalogFilter(initialHash)
   if (initialCategory && document.querySelector(".catalog")) {
     siteState.catalogFilterLocked = initialCategory
     replaceCatalogFilterImmediately(initialCategory)
+  } else if (initialHash === "resume" && document.querySelector(".catalog")) {
+    scheduleScrollToPageSection("resume", { immediate: true, attempts: 5, delay: 180 })
   }
 
   nav.addEventListener("pointerenter", () => {
@@ -2747,6 +3029,21 @@ function setupNavHoverInteraction() {
     item.addEventListener("focusin", () => setActive(item))
 
     item.addEventListener("click", (event) => {
+      if (item.dataset.navCategory === "resume") {
+        event.preventDefault()
+        siteState.catalogFilterLocked = null
+
+        if (!document.querySelector(".catalog")) {
+          window.location.href = `${hrefFor("/")}#resume`
+          return
+        }
+
+        updateFilterHash("resume")
+        replaceCatalogFilterImmediately(null)
+        scheduleScrollToPageSection("resume", { attempts: 4, delay: 20 })
+        return
+      }
+
       const category = normalizeCatalogFilter(item.dataset.navCategory)
       if (!category) {
         siteState.catalogFilterLocked = null
@@ -2871,6 +3168,7 @@ function setupHeader() {
     setupNavHoverSpacing()
     requestRuleFadeUpdate()
     updateFooterGalleryReveal()
+    renderCatalogHalftones(document.querySelector(".catalog"))
   })
 }
 

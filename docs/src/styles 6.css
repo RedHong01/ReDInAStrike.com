@@ -75,7 +75,6 @@
   --responsive-duration: 520ms;
   --responsive-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --serif: "Red EB Garamond", "Red Minion Pro", "Minion Pro", "Garamond Premier Pro", YuMincho, "Times New Roman", serif;
-  --zh-serif: YuMincho, "Yu Mincho", "Hiragino Mincho ProN", "Songti TC", "Noto Serif TC", "PMingLiU", serif;
   --mono: "Red Courier Prime", "Courier Prime", "Courier New", monospace;
   --name-serif: YuMincho, "Yu Mincho", "Red Noto Serif TC", "Songti TC", serif;
   --display-italic: "Red EB Garamond", "EB Garamond", "Garamond Premier Pro Display", "Garamond Premier Pro", "Times New Roman", serif;
@@ -109,38 +108,6 @@ a {
 img {
   display: block;
   max-width: 100%;
-}
-
-.body-copy-en,
-.body-copy-zh,
-.body-copy-line {
-  display: block;
-}
-
-.body-copy-line + .body-copy-line {
-  margin-top: 0.68em;
-}
-
-.body-copy-zh {
-  margin-top: 0.36em;
-  font-family: var(--zh-serif);
-  font-size: 0.96em;
-  font-weight: 400;
-  line-height: 1.42;
-  letter-spacing: 0;
-}
-
-.resume-project-body .body-copy-zh,
-.resume-experience .body-copy-zh {
-  line-height: 1.34;
-}
-
-.framer-derived-intro li .body-copy-zh {
-  margin-top: 0.24em;
-}
-
-.framer-copy-sans .body-copy-zh {
-  font-family: var(--zh-serif);
 }
 
 .site-header {
@@ -997,7 +964,7 @@ body[data-layout-transition="true"] .about-section {
   line-height: var(--about-copy-line);
 }
 
-.about-copy p .name-inline {
+.about-copy p span {
   font-family: var(--name-serif);
   font-weight: 600;
 }
@@ -2083,7 +2050,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .about-card {
     display: block;
     z-index: 2;
-    height: 632px;
+    height: 549px;
     padding: 0;
     overflow: visible;
   }
@@ -2124,7 +2091,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .contact-copy {
     left: 18px;
-    top: 334px;
+    top: 263px;
     width: 150px;
     text-align: left;
   }
@@ -2141,7 +2108,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .profile-portrait {
     left: auto;
     right: 18px;
-    top: 278px;
+    top: 207px;
     width: 160px;
     max-width: none;
     height: 430px;

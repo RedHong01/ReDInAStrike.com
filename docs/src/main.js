@@ -355,6 +355,156 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
 }
 
+const copyTranslations = new Map([
+  [
+    "A turn-based strategy shooting board-game prototype built around movement, building, territory control, and tactical combat on a 15 by 15 grid.",
+    "一個回合制策略射擊桌遊原型，以移動、建造、領地控制，以及 15 × 15 棋盤上的戰術戰鬥為核心。",
+  ],
+  ["Player Format: PvP, maximum 4 players.", "玩家形式：PvP，最多 4 名玩家。"],
+  ["Estimated Play Time: 30 minutes.", "預估遊玩時間：30 分鐘。"],
+  [
+    "Primary Goal: eliminate the other player and be the last one standing.",
+    "主要目標：淘汰其他玩家，成為最後留在場上的人。",
+  ],
+  [
+    "Core hook: use movement to create building and shooting opportunities, reshaping the map into tactical advantage.",
+    "核心機制：透過移動創造建造與射擊機會，將地圖重新塑造成戰術優勢。",
+  ],
+  [
+    "The design defines cards, avatars, dice, blocks, territory marks, power-ups, procedures, purchasing, combat range, and inventory rules as a complete board-game document.",
+    "此設計將卡牌、角色棋子、骰子、方塊、領地標記、增益道具、流程、購買、戰鬥範圍與庫存規則整理成一份完整的桌遊文件。",
+  ],
+  [
+    "The prototype connects traversal, building, shooting, and resource management into one turn structure, so each action can change both board state and future strategy.",
+    "原型將移動、建造、射擊與資源管理整合進同一個回合結構，使每個行動都能同時改變棋盤狀態與後續策略。",
+  ],
+  [
+    "A refrigerator management and food-waste monitoring app prototype for tracking purchases, freshness status, storage planning, and shopping decisions.",
+    "一個冰箱管理與食物浪費監測 App 原型，用於追蹤購買紀錄、新鮮度狀態、收納規劃與購物決策。",
+  ],
+  ["Team project by Red, Mika, and Kaiyi.", "由 Red、Mika 與 Kaiyi 共同完成的團隊專案。"],
+  [
+    "Research includes problem statement, interviews, insights, persona, competitor analysis, user flow, and wireframes.",
+    "研究內容包含問題定義、訪談、洞察、使用者角色、競品分析、使用者流程與線框稿。",
+  ],
+  [
+    "Final output includes high-fidelity mobile screens for onboarding, inventory, receipt scanning, waste tracking, and item details.",
+    "最終輸出包含高保真手機介面，涵蓋新手引導、庫存、收據掃描、浪費追蹤與品項細節。",
+  ],
+  [
+    "Fresh food often exceeds its shelf life because users do not plan purchase quantity, storage, and cooking timing clearly enough. The prototype focuses on reducing waste of both money and food.",
+    "新鮮食材常因使用者沒有清楚規劃購買數量、儲存方式與烹調時間而超過保存期限。此原型聚焦於降低金錢與食物的雙重浪費。",
+  ],
+  [
+    "How might an app help users organize refrigerator storage, raw materials, leftovers, freshness reminders, meal plans, and shopping plans in one coherent flow?",
+    "一個 App 如何能在同一套連貫流程中，協助使用者整理冰箱收納、原材料、剩菜、新鮮度提醒、餐食計畫與購物計畫？",
+  ],
+  [
+    "An interaction prototype for managing large collections of digital assets across online and offline resource locations.",
+    "一個互動原型，用於管理分散在線上與離線資源位置中的大量數位素材。",
+  ],
+  [
+    "Targets images, videos, 3D models, and text resources across multiple devices and platforms.",
+    "目標涵蓋跨裝置與跨平台的圖片、影片、3D 模型與文字資源。",
+  ],
+  [
+    "Explores a concise system for locating and organizing files without losing context.",
+    "探索一套簡潔的定位與整理檔案系統，同時保留檔案原本的脈絡。",
+  ],
+  [
+    "Prototype documentation is presented through a layered interface and embedded design preview.",
+    "原型文件透過分層介面與嵌入式設計預覽呈現。",
+  ],
+  [
+    "Managing vast collections of digital assets can become overwhelming and time-consuming. AssetHub proposes a central place that helps users target resources efficiently.",
+    "管理龐大的數位素材集合容易變得繁瑣且耗時。AssetHub 提出一個集中位置，協助使用者更有效率地鎖定所需資源。",
+  ],
+  [
+    "The page frames the tool as a practical interface system rather than a marketing concept, emphasizing access, file context, and cross-platform organization.",
+    "此頁面將工具定位為實用的介面系統，而非行銷概念，並強調存取、檔案脈絡與跨平台整理。",
+  ],
+  [
+    "A print-focused graphic design exercise reimagining a Pitchfork magazine cover with a high-contrast editorial hierarchy.",
+    "一個以印刷為核心的平面設計練習，重新想像 Pitchfork 雜誌封面，並建立高對比的編輯層級。",
+  ],
+  ["Cover subject: Beyonce, Cowboy Carter.", "封面主題：Beyonce，Cowboy Carter。"],
+  [
+    "Format explores masthead scale, editorial image cropping, barcode placement, and magazine-cover typography.",
+    "版式探索刊頭尺度、編輯影像裁切、條碼位置與雜誌封面字體排印。",
+  ],
+  [
+    "The design uses a restrained black-and-white system to keep the image and title hierarchy dominant.",
+    "設計使用克制的黑白系統，使影像與標題層級保持主導。",
+  ],
+  [
+    "The page centers a single magazine cover as the finished artifact, with visual emphasis on typographic proportion, portrait placement, and print layout balance.",
+    "頁面以單一雜誌封面作為完成品核心，視覺重點放在字體比例、人像位置與印刷版面平衡。",
+  ],
+  [
+    "The final cover is presented as a clean editorial object rather than a process-heavy case study.",
+    "最終封面被呈現為乾淨的編輯物件，而不是以流程為主的案例研究。",
+  ],
+  [
+    "A narrative game pitch about slow-paced, non-aggressive storytelling, visual interactive narrative language, and post-modern social problems.",
+    "一個敘事遊戲提案，關於慢節奏、非攻擊性的故事講述、視覺互動敘事語言，以及後現代社會問題。",
+  ],
+  ["Tone: slow-paced and non-aggressive.", "語氣：慢節奏且非攻擊性。"],
+  [
+    "Narrative mode: visual interactive storytelling with music, narration, and sensory audiovisual language.",
+    "敘事模式：結合音樂、旁白與感官視聽語言的視覺互動敘事。",
+  ],
+  [
+    "Theme: personal struggle expanding into broader social challenges including identity, culture, depression, economics, and political shifts.",
+    "主題：個人掙扎延展至更廣泛的社會挑戰，包含身分、文化、憂鬱、經濟與政治變動。",
+  ],
+  [
+    "The story is told from a teenager's perspective in a semi-autobiographical mode, following a young individual across social classes and cultural fragmentation.",
+    "故事以青少年的視角和半自傳式方式講述，跟隨一名年輕個體穿越社會階層與文化碎片化。",
+  ],
+  [
+    "The pitch emphasizes an intuitive, sensory narrative style where visuals, music, and narration work together to carry emotion and story.",
+    "提案強調直覺且感官化的敘事風格，讓視覺、音樂與旁白共同承載情感與故事。",
+  ],
+  [
+    "Created a decision-making gameplay structure centered around information reading, judgment, and player actions.",
+    "建立一套以資訊閱讀、判斷與玩家行動為核心的決策型遊戲結構。",
+  ],
+  ["Completed a fully playable prototype within 48 hours.", "在 48 小時內完成可完整遊玩的原型。"],
+  ["Awarded 1st Place at the 2024 ArtCenter Game Jam.", "獲得 2024 ArtCenter Game Jam 第一名。"],
+  [
+    "Designed interaction structures and UI animation systems for ingredient management workflows.",
+    "為食材管理流程設計互動結構與 UI 動畫系統。",
+  ],
+  [
+    "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
+    "設計核心遊戲循環、資源經濟、戰鬥系統與 AI 機制。",
+  ],
+  [
+    "Developed iterative gameplay systems including Movement, Combat, Inventory, and AI finite-state logic.",
+    "開發可迭代的遊戲系統，包含移動、戰鬥、庫存與 AI 有限狀態邏輯。",
+  ],
+  [
+    "Assisted Professor Chesley Nesaeny in his Type 1 course. Led individual and group critiques. Helped students conceptualize typographic ideas, create clear structures, and understand print practices.",
+    "協助 Chesley Nesaeny 教授的 Type 1 課程。帶領個人與小組評圖，協助學生發展字體排印概念、建立清楚結構，並理解印刷實務。",
+  ],
+])
+
+function bilingualText(value) {
+  const english = escapeHtml(value)
+  const translation = copyTranslations.get(String(value))
+  if (!translation) return `<span class="body-copy-en">${english}</span>`
+
+  return `<span class="body-copy-en">${english}</span><span class="body-copy-zh" lang="zh-Hant">${escapeHtml(translation)}</span>`
+}
+
+function bilingualRich(englishHtml, traditionalHtml) {
+  return `<span class="body-copy-en">${englishHtml}</span><span class="body-copy-zh" lang="zh-Hant">${traditionalHtml}</span>`
+}
+
+function bilingualLine(value) {
+  return `<span class="body-copy-line">${bilingualText(value)}</span>`
+}
+
 function headerMarkup() {
   const nav = navItems
     .map(
@@ -564,7 +714,7 @@ const resumeTools =
   "Unity (Unity 6 & 2022.3+), Unreal Engine, Blender, Figma, Adobe Suite (Photoshop, After Effects, InDesign, Illustrator), Apple Creative Suite (Final Cut Pro, Logic Pro), TouchDesigner, C#, Swift, p5.js, Cinema 4D, Arduino IDE."
 
 function resumeProjectMarkup(project) {
-  const body = project.body.map((line) => escapeHtml(line)).join("<br />")
+  const body = project.body.map(bilingualLine).join("")
 
   return `
         <article class="resume-project">
@@ -621,7 +771,7 @@ function resumeDetailMarkup() {
               <h4>${escapeHtml(resumeExperience.role)}</h4>
               <p>${escapeHtml(resumeExperience.place)}</p>
               <div class="resume-course-list">${courseItems}</div>
-              <p>${escapeHtml(resumeExperience.body)}</p>
+              <p>${bilingualText(resumeExperience.body)}</p>
             </div>
           </section>
           <section class="resume-info-block resume-skills" aria-label="Skills">
@@ -640,10 +790,10 @@ function aboutMarkup() {
         <div class="about-copy">
           <h2>About:</h2>
           <p>
-            Red Wang <span>“王紫鵬”</span> is a Game Design student and is now based in
-            the LA area. An independent thinker who enjoys teamwork. Passionate for
-            Game Design &amp; Development, Cinematic &amp; Media Arts, Interaction Design,
-            Graphic Design and other Interdisciplinary practices.
+            ${bilingualRich(
+              `Red Wang <span class="name-inline">“王紫鵬”</span> is a Game Design student and is now based in the LA area. An independent thinker who enjoys teamwork. Passionate for Game Design &amp; Development, Cinematic &amp; Media Arts, Interaction Design, Graphic Design and other Interdisciplinary practices.`,
+              `Red Wang <span class="name-inline">「王紫鵬」</span> 是一名遊戲設計學生，目前居於洛杉磯地區。他是一位享受團隊合作的獨立思考者，熱衷於遊戲設計與開發、影像與媒體藝術、互動設計、平面設計，以及其他跨領域實踐。`,
+            )}
           </p>
         </div>
         <div class="contact-copy" id="contact">
@@ -721,14 +871,14 @@ function detailMarkup(project) {
 
 function framerProjectDetailMarkup(project, detail) {
   const points = detail.points
-    .map((point) => `<li>${escapeHtml(point)}</li>`)
+    .map((point) => `<li>${bilingualText(point)}</li>`)
     .join("")
   const blocks = detail.blocks
     .map(
       (block) => `
         <section>
           <h2>${escapeHtml(block.title)}</h2>
-          <p>${escapeHtml(block.body)}</p>
+          <p>${bilingualText(block.body)}</p>
         </section>`
     )
     .join("")
@@ -753,7 +903,7 @@ function framerProjectDetailMarkup(project, detail) {
             <img src="${asset(detail.leadImage)}" alt="${escapeHtml(detail.leadAlt)}" loading="eager" />
           </figure>
           <div>
-            <p>${escapeHtml(detail.summary)}</p>
+            <p>${bilingualText(detail.summary)}</p>
             <ul>${points}</ul>
           </div>
         </section>
@@ -827,13 +977,25 @@ function serialDeminerDetailMarkup(project) {
         <section class="framer-case-section framer-copy-grid framer-copy-sans">
           <div>
             <h2>Brief</h2>
-            <p>In <em>Serial Miner</em>, you take on the role of a skilled de-miner on a high-stakes mission to clear hazardous landmines and create a safe path for an incoming convoy. Using a suite of specialized gadgets — including a marking flag, a metal detector, and explosives — your objective is to locate, mark, and detonate mines in a strategic, precise manner to ensure no explosives are left undetected.</p>
+            <p>${bilingualRich(
+              `In <em>Serial Miner</em>, you take on the role of a skilled de-miner on a high-stakes mission to clear hazardous landmines and create a safe path for an incoming convoy. Using a suite of specialized gadgets — including a marking flag, a metal detector, and explosives — your objective is to locate, mark, and detonate mines in a strategic, precise manner to ensure no explosives are left undetected.`,
+              `在 <em>Serial Miner</em> 中，玩家扮演一名熟練的拆彈人員，執行高風險任務，清除危險地雷並為即將抵達的車隊建立安全路徑。玩家會使用一系列專用工具，包含標記旗、金屬探測器與爆裂物；目標是以策略性且精準的方式定位、標記並引爆地雷，確保沒有爆裂物被遺漏。`,
+            )}</p>
           </div>
           <div>
             <h2>Key Features</h2>
-            <p><strong>Marking Flag</strong>: Place flags to identify mines you've found, helping you avoid rechecking areas and making your path safer.</p>
-            <p><strong>Metal Detector</strong>: Sweeps for hidden mines; listen for beeps that indicate the proximity of a mine.</p>
-            <p><strong>Explosives</strong>: Carefully place explosives on mines to clear them. Only use this gadget when in detonation range.</p>
+            <p>${bilingualRich(
+              `<strong>Marking Flag</strong>: Place flags to identify mines you've found, helping you avoid rechecking areas and making your path safer.`,
+              `<strong>標記旗</strong>：放置旗幟來標示已找到的地雷，避免重複檢查同一區域，並讓路徑更安全。`,
+            )}</p>
+            <p>${bilingualRich(
+              `<strong>Metal Detector</strong>: Sweeps for hidden mines; listen for beeps that indicate the proximity of a mine.`,
+              `<strong>金屬探測器</strong>：掃描隱藏地雷；透過嗶聲判斷地雷的接近程度。`,
+            )}</p>
+            <p>${bilingualRich(
+              `<strong>Explosives</strong>: Carefully place explosives on mines to clear them. Only use this gadget when in detonation range.`,
+              `<strong>爆裂物</strong>：小心地將爆裂物放置在地雷上以清除它們。只有在可引爆範圍內才能使用此工具。`,
+            )}</p>
           </div>
         </section>
 
@@ -848,18 +1010,42 @@ function serialDeminerDetailMarkup(project) {
 
         <section class="framer-case-section framer-text-section">
           <h2>Target Audience:</h2>
-          <p>After reflecting on the theme for this game jam, I first considered our target audience. Following discussions with my teammates and reviewing our research, we reached the following conclusions:</p>
-          <p>We analyzed the winning entries from the GMTK 2024 Game Jam on itch.io. After playing and discussing these games, one keyword stood out: “<strong>Puzzle</strong>.” Beyond impressive visuals and arts, we noticed that clever and engaging puzzle designs consistently captivated us and left a lasting impression. Based on this, we concluded that our target audience should be players who enjoy a <strong>Casual gaming experience</strong> and are <strong>Enthusiastic about solving puzzles</strong>.</p>
-          <p>Secondly, as a 48-hour game jam project, an important target audience of our project includes <strong>Game design professionals and students</strong> like us. These individuals value design details, the game’s relevance to the theme, and its overall completeness as a finished product.</p>
-          <p>Of course, another key audience includes <strong>Game enthusiasts and critics</strong> interested in exploring jam entries—those who enjoy browsing diverse games and experiencing the creative ideas these lightweight projects deliver.</p>
+          <p>${bilingualRich(
+            `After reflecting on the theme for this game jam, I first considered our target audience. Following discussions with my teammates and reviewing our research, we reached the following conclusions:`,
+            `在思考這次 game jam 主題後，我首先考慮的是我們的目標受眾。經過與隊友討論並整理研究內容後，我們得到以下結論：`,
+          )}</p>
+          <p>${bilingualRich(
+            `We analyzed the winning entries from the GMTK 2024 Game Jam on itch.io. After playing and discussing these games, one keyword stood out: “<strong>Puzzle</strong>.” Beyond impressive visuals and arts, we noticed that clever and engaging puzzle designs consistently captivated us and left a lasting impression. Based on this, we concluded that our target audience should be players who enjoy a <strong>Casual gaming experience</strong> and are <strong>Enthusiastic about solving puzzles</strong>.`,
+            `我們分析了 itch.io 上 GMTK 2024 Game Jam 的獲獎作品。遊玩並討論這些作品後，一個關鍵詞變得非常明確：「<strong>解謎</strong>」。除了令人印象深刻的視覺與美術，我們也注意到聰明且有趣的謎題設計總是能吸引我們並留下深刻印象。基於此，我們認為目標受眾應該是喜歡 <strong>休閒遊戲體驗</strong> 並且 <strong>熱衷解謎</strong> 的玩家。`,
+          )}</p>
+          <p>${bilingualRich(
+            `Secondly, as a 48-hour game jam project, an important target audience of our project includes <strong>Game design professionals and students</strong> like us. These individuals value design details, the game’s relevance to the theme, and its overall completeness as a finished product.`,
+            `其次，作為一個 48 小時 game jam 專案，我們的重要目標受眾也包含像我們一樣的 <strong>遊戲設計專業人士與學生</strong>。這類人會重視設計細節、作品與主題的關聯性，以及它作為完成品的整體完整度。`,
+          )}</p>
+          <p>${bilingualRich(
+            `Of course, another key audience includes <strong>Game enthusiasts and critics</strong> interested in exploring jam entries—those who enjoy browsing diverse games and experiencing the creative ideas these lightweight projects deliver.`,
+            `當然，另一個重要受眾是對探索 jam 作品有興趣的 <strong>遊戲愛好者與評論者</strong>；他們喜歡瀏覽各式各樣的遊戲，並體驗這些輕量專案所傳達的創意想法。`,
+          )}</p>
         </section>
 
         <section class="framer-case-section framer-text-section">
           <h2>Player Experience:</h2>
-          <p>Based on our target audience and the competition's theme, we began brainstorming the game experience we wanted to create. Expanding on the theme of “chain reaction,” we envisioned an experience where a single trigger sets off a series of automatic events like dominoes falling. This experience should feel exciting—seamless, satisfying, unpredictable, and chaotically dangerous.</p>
-          <p>From a puzzle perspective, solving puzzles is a slow yet deliberate process. Therefore, our game experience should encourage a steady pace, allowing players to explore and understand the puzzles at their own rhythm.</p>
-          <p>Thus, our game’s experience prompt is: <strong>“Explore and solve puzzles in a relaxed and enjoyable atmosphere, while experiencing how a single key action can influence the entire puzzle-solving process.”</strong></p>
-          <p>The gameplay is designed to last 3-5 minutes, allowing players to make numerous attempts within a short time without losing progress upon failure. Players are immersed in a relaxed and enjoyable environment, focused on exploring puzzles and mastering the game mechanics.</p>
+          <p>${bilingualRich(
+            `Based on our target audience and the competition's theme, we began brainstorming the game experience we wanted to create. Expanding on the theme of “chain reaction,” we envisioned an experience where a single trigger sets off a series of automatic events like dominoes falling. This experience should feel exciting—seamless, satisfying, unpredictable, and chaotically dangerous.`,
+            `基於目標受眾與比賽主題，我們開始發想想要創造的遊戲體驗。延伸「連鎖反應」的主題，我們想像一種由單一觸發點啟動一連串自動事件的體驗，就像骨牌倒下一樣。這種體驗應該令人興奮、流暢、滿足、不可預測，並帶有混亂的危險感。`,
+          )}</p>
+          <p>${bilingualRich(
+            `From a puzzle perspective, solving puzzles is a slow yet deliberate process. Therefore, our game experience should encourage a steady pace, allowing players to explore and understand the puzzles at their own rhythm.`,
+            `從解謎角度來看，解謎是一個緩慢但需要深思熟慮的過程。因此，我們的遊戲體驗應鼓勵穩定的節奏，讓玩家能依照自己的步調探索並理解謎題。`,
+          )}</p>
+          <p>${bilingualRich(
+            `Thus, our game’s experience prompt is: <strong>“Explore and solve puzzles in a relaxed and enjoyable atmosphere, while experiencing how a single key action can influence the entire puzzle-solving process.”</strong>`,
+            `因此，我們的遊戲體驗提示是：<strong>「在輕鬆愉快的氛圍中探索並解決謎題，同時體驗一個關鍵行動如何影響整個解謎過程。」</strong>`,
+          )}</p>
+          <p>${bilingualRich(
+            `The gameplay is designed to last 3-5 minutes, allowing players to make numerous attempts within a short time without losing progress upon failure. Players are immersed in a relaxed and enjoyable environment, focused on exploring puzzles and mastering the game mechanics.`,
+            `遊玩時長被設計為 3 到 5 分鐘，讓玩家能在短時間內多次嘗試，並且不會因失敗而失去大量進度。玩家會沉浸在輕鬆愉快的環境中，專注於探索謎題與掌握遊戲機制。`,
+          )}</p>
         </section>
 
         <section class="framer-case-section framer-media-section">
@@ -873,8 +1059,14 @@ function serialDeminerDetailMarkup(project) {
 
         <section class="framer-case-section framer-text-section">
           <h2>Research &amp; Exploration:</h2>
-          <p>When brainstorming the game’s format and mechanics, we explored various directions and references. I initially proposed “Bejeweled” as the inspiration for our project. I believe its gameplay, where players rearrange a 2D grid of gems through simple drag-and-drop actions, aligns well with the theme of “chain reaction.” A single, light action can trigger potential chain explosions, allowing players to enjoy the automatic interactions between gems of different colors and properties while earning score rewards.</p>
-          <p>Another game reference comes from the Chinese 2D puzzle game <em>“死神来了” (Death Coming)</em>. Unlike <em>Bejeweled</em>, this game focuses more on the connection between narrative and gameplay. Players take on the role of a trainee grim reaper, interacting with objects in each level’s scene. Using fewer steps to trigger more object interactions and cause more character deaths results in higher scores. The key takeaway from this game is its engaging premise and setting, which are tightly integrated with the gameplay, creating a cohesive and immersive experience.</p>
+          <p>${bilingualRich(
+            `When brainstorming the game’s format and mechanics, we explored various directions and references. I initially proposed “Bejeweled” as the inspiration for our project. I believe its gameplay, where players rearrange a 2D grid of gems through simple drag-and-drop actions, aligns well with the theme of “chain reaction.” A single, light action can trigger potential chain explosions, allowing players to enjoy the automatic interactions between gems of different colors and properties while earning score rewards.`,
+            `在發想遊戲形式與機制時，我們探索了不同方向與參考。我最初提出以 “Bejeweled” 作為專案靈感來源。我認為它讓玩家透過簡單拖放動作重新排列 2D 格子中的寶石，這種玩法與「連鎖反應」主題相當契合。一個輕量的單一步驟就能觸發潛在的連鎖爆發，讓玩家在獲得分數獎勵的同時，享受不同顏色與屬性寶石之間的自動互動。`,
+          )}</p>
+          <p>${bilingualRich(
+            `Another game reference comes from the Chinese 2D puzzle game <em>“死神來了” (Death Coming)</em>. Unlike <em>Bejeweled</em>, this game focuses more on the connection between narrative and gameplay. Players take on the role of a trainee grim reaper, interacting with objects in each level’s scene. Using fewer steps to trigger more object interactions and cause more character deaths results in higher scores. The key takeaway from this game is its engaging premise and setting, which are tightly integrated with the gameplay, creating a cohesive and immersive experience.`,
+            `另一個遊戲參考來自中文 2D 解謎遊戲 <em>《死神來了》（Death Coming）</em>。不同於 <em>Bejeweled</em>，這款遊戲更強調敘事與玩法之間的連結。玩家扮演實習死神，與每個關卡場景中的物件互動。使用越少步驟觸發越多物件互動，並造成更多角色死亡，就能得到更高分數。這款遊戲給我們的重要啟發，是它有吸引人的前提與設定，並與玩法緊密整合，形成連貫且沉浸的體驗。`,
+          )}</p>
         </section>
 
         <section class="framer-case-section framer-media-section">
@@ -888,9 +1080,18 @@ function serialDeminerDetailMarkup(project) {
 
         <section class="framer-case-section framer-text-section">
           <h2>Design &amp; Iteration:</h2>
-          <p>Based on our research, we initially considered a gameplay design focused on a maze that players could navigate by creating paths through explosions. Players would need to find a way to clear obstacles and continue exploring. This would involve making a key decision after careful thought to progress. The maze’s puzzles should strike a balance between being neither too easy nor too difficult—players should quickly understand what needs to be done (how to approach the puzzle) but spend time figuring out how to execute it (how to solve the puzzle).</p>
-          <p>We refined this idea further, considering what setting and actions would best fit our gameplay. We drew inspiration from the real-life concept of miners using explosives to carve out mine shafts, shaping our game’s premise. Players take on the role of a path designer working for miners, responsible for determining the placement of explosives.</p>
-          <p>To align with the chain reaction theme, the entire explosion sequence can only be initiated once. Players cannot manually detonate each explosive but must strategically arrange them in specific positions and quantities to ensure the first explosive connects with the last, completing the chain and clearing the path to progress.</p>
+          <p>${bilingualRich(
+            `Based on our research, we initially considered a gameplay design focused on a maze that players could navigate by creating paths through explosions. Players would need to find a way to clear obstacles and continue exploring. This would involve making a key decision after careful thought to progress. The maze’s puzzles should strike a balance between being neither too easy nor too difficult—players should quickly understand what needs to be done (how to approach the puzzle) but spend time figuring out how to execute it (how to solve the puzzle).`,
+            `基於研究，我們一開始考慮以迷宮為核心的玩法設計，讓玩家透過爆炸創造路徑並在迷宮中前進。玩家需要找到清除障礙並繼續探索的方法，而這需要在深思熟慮後做出關鍵決策才能推進。迷宮謎題需要在不過於簡單與不過於困難之間取得平衡；玩家應能快速理解需要做什麼，也就是如何接近謎題，但需要花時間思考如何執行，也就是如何解開謎題。`,
+          )}</p>
+          <p>${bilingualRich(
+            `We refined this idea further, considering what setting and actions would best fit our gameplay. We drew inspiration from the real-life concept of miners using explosives to carve out mine shafts, shaping our game’s premise. Players take on the role of a path designer working for miners, responsible for determining the placement of explosives.`,
+            `我們進一步細化這個想法，思考什麼樣的設定與行動最適合這套玩法。我們從現實中礦工使用爆裂物開鑿礦道的概念汲取靈感，並以此形塑遊戲前提。玩家扮演為礦工工作的路徑設計者，負責決定爆裂物的放置位置。`,
+          )}</p>
+          <p>${bilingualRich(
+            `To align with the chain reaction theme, the entire explosion sequence can only be initiated once. Players cannot manually detonate each explosive but must strategically arrange them in specific positions and quantities to ensure the first explosive connects with the last, completing the chain and clearing the path to progress.`,
+            `為了符合連鎖反應主題，整段爆炸序列只能被啟動一次。玩家不能手動引爆每個爆裂物，而必須以特定位置與數量進行策略性排列，確保第一個爆裂物能連接到最後一個，完成連鎖並清出前進路徑。`,
+          )}</p>
         </section>
 
         <section class="framer-case-section framer-media-section">
@@ -903,7 +1104,10 @@ function serialDeminerDetailMarkup(project) {
 
         <section class="framer-case-section framer-text-section">
           <h2>Design &amp; Iteration (Level Design):</h2>
-          <p>Bedi and I were responsible for the in-game level design. We translated the initial 2D sketches into 3D levels based on narrative and gameplay requirements, followed by internal playtesting and adjustments. While designing the levels, I considered player flow, ensuring the progression matched the narrative. The early levels were designed to be the simplest, gradually increasing in complexity and difficulty. During playtesting, we ensured each level’s puzzle-solving time stayed within 3-5 minutes to align with the game’s <strong>“Casual puzzle-solving”</strong> experience.</p>
+          <p>${bilingualRich(
+            `Bedi and I were responsible for the in-game level design. We translated the initial 2D sketches into 3D levels based on narrative and gameplay requirements, followed by internal playtesting and adjustments. While designing the levels, I considered player flow, ensuring the progression matched the narrative. The early levels were designed to be the simplest, gradually increasing in complexity and difficulty. During playtesting, we ensured each level’s puzzle-solving time stayed within 3-5 minutes to align with the game’s <strong>“Casual puzzle-solving”</strong> experience.`,
+            `Bedi 和我負責遊戲內的關卡設計。我們根據敘事與玩法需求，將最初的 2D 草圖轉換為 3D 關卡，接著進行內部測試與調整。在設計關卡時，我會考慮玩家流動，確保進程與敘事相符。早期關卡被設計為最簡單的形式，之後逐步提升複雜度與難度。在測試過程中，我們確保每個關卡的解謎時間維持在 3 到 5 分鐘內，以符合遊戲的 <strong>「休閒解謎」</strong> 體驗。`,
+          )}</p>
         </section>
 
         <section class="framer-case-footer">

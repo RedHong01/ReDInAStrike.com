@@ -296,8 +296,15 @@ const siteState = {
   galleryLoopBaseSpeed: 0,
   galleryLoopBoost: 0,
   galleryHorizontalFrozen: false,
+  galleryPointerInitialized: false,
+  galleryPointerX: null,
+  galleryPointerY: null,
   galleryPointerDirection: 0,
   galleryPointerSpeedRatio: 0,
+  galleryHoveredTile: null,
+  galleryHoverSuppressed: false,
+  galleryCenterPauseUntil: 0,
+  galleryHorizontalInputUntil: 0,
   galleryScrollPauseUntil: 0,
   galleryObservedScrollY: 0,
   galleryReveal: 0,
@@ -1620,9 +1627,19 @@ function setFooterGalleryStyles(
   const pocketTop = Math.max(headerBottom, pocketBottom - visiblePocket)
   const revealShift = contentHeight * (1 - visibleReveal)
   const firstSet = gallery.querySelector(".footer-gallery-set")
+  const firstMeta = gallery.querySelector(".footer-gallery-meta")
   const setStyle = firstSet ? window.getComputedStyle(firstSet) : null
+  const metaStyle = firstMeta ? window.getComputedStyle(firstMeta) : null
   const gap = parseFloat(setStyle?.columnGap || setStyle?.gap || "") || 24
-  const metaHeight = clamp(viewportWidth * 0.024, 34, 54)
+  const metaLineHeight =
+    parseFloat(metaStyle?.lineHeight || "") ||
+    (parseFloat(metaStyle?.fontSize || "") || 14) * 1.25
+  const metaPaddingTop = parseFloat(metaStyle?.paddingTop || "") || 12
+  const metaHeight = clamp(
+    metaPaddingTop + metaLineHeight * 2 + 6,
+    viewportWidth <= 700 ? 48 : 50,
+    viewportWidth <= 700 ? 66 : 72,
+  )
   const mediaHeight = Math.max(0, contentHeight - metaHeight)
   const widthFromPocket = mediaHeight * (viewportWidth <= 700 ? 1.24 : 1.55)
   const minTileCount =
@@ -1713,41 +1730,247 @@ function isFooterGalleryScrollSettling(time) {
   return settling
 }
 
-function resetFooterGalleryPointer() {
+function clearFooterGalleryAutoscroll() {
   siteState.galleryPointerDirection = 0
   siteState.galleryPointerSpeedRatio = 0
+}
+
+function suppressFooterGalleryHoverUntilPointerMove() {
+  siteState.galleryHoveredTile = null
+  siteState.galleryHoverSuppressed = true
+  clearFooterGalleryAutoscroll()
+}
+
+function resetFooterGalleryPointer() {
+  siteState.galleryPointerX = null
+  siteState.galleryPointerY = null
+  siteState.galleryHoveredTile = null
+  siteState.galleryHoverSuppressed = false
+  clearFooterGalleryAutoscroll()
+}
+
+function isPointerInsideElement(element) {
+  if (!element || !element.isConnected) return false
+  const x = siteState.galleryPointerX
+  const y = siteState.galleryPointerY
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return false
+
+  const rect = element.getBoundingClientRect()
+  return (
+    rect.width > 1 &&
+    rect.height > 1 &&
+    x >= rect.left &&
+    x <= rect.right &&
+    y >= rect.top &&
+    y <= rect.bottom
+  )
+}
+
+function findFooterGalleryTileAtPointer() {
+  const x = siteState.galleryPointerX
+  const y = siteState.galleryPointerY
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null
+
+  const gallery = document.querySelector(".footer-gallery")
+  const viewport = gallery?.querySelector(".footer-gallery-viewport")
+  if (!gallery || !viewport || !isFooterGalleryMotionReady(gallery)) return null
+
+  const viewportRect = viewport.getBoundingClientRect()
+  if (
+    viewportRect.width <= 1 ||
+    viewportRect.height <= 1 ||
+    x < viewportRect.left ||
+    x > viewportRect.right ||
+    y < viewportRect.top ||
+    y > viewportRect.bottom
+  ) {
+    return null
+  }
+
+  const elements = document.elementsFromPoint(x, y)
+  for (const element of elements) {
+    const tile = element.closest?.(".footer-gallery-tile")
+    if (tile && gallery.contains(tile)) return tile
+  }
+
+  return null
+}
+
+function getFooterGalleryHoveredTile({ requirePointerInside = false, allowPointerHitTest = false } = {}) {
+  const tile = siteState.galleryHoveredTile
+  if (tile?.isConnected) {
+    if (!requirePointerInside || isPointerInsideElement(tile)) return tile
+    suppressFooterGalleryHoverUntilPointerMove()
+    return null
+  } else if (tile) {
+    siteState.galleryHoveredTile = null
+  }
+
+  if (allowPointerHitTest && !siteState.galleryHoverSuppressed) {
+    const pointedTile = findFooterGalleryTileAtPointer()
+    siteState.galleryHoveredTile = pointedTile
+    return pointedTile
+  }
+
+  siteState.galleryHoveredTile = null
+  return null
+}
+
+function setFooterGalleryHoveredTile(event) {
+  if (event.pointerType === "touch") return
+
+  const previousX = siteState.galleryPointerX
+  const previousY = siteState.galleryPointerY
+  const moved =
+    !Number.isFinite(previousX) ||
+    !Number.isFinite(previousY) ||
+    Math.hypot(event.clientX - previousX, event.clientY - previousY) > 0.5
+  if (siteState.galleryHoverSuppressed && !moved) return
+
+  siteState.galleryPointerX = event.clientX
+  siteState.galleryPointerY = event.clientY
+  siteState.galleryHoveredTile = event.currentTarget
+  siteState.galleryHoverSuppressed = false
+  clearFooterGalleryAutoscroll()
+  requestFooterGalleryLoop()
+}
+
+function clearFooterGalleryHoveredTile(event) {
+  if (event.currentTarget === siteState.galleryHoveredTile) {
+    suppressFooterGalleryHoverUntilPointerMove()
+  }
+  updateFooterGalleryAutoscrollFromPointer()
+}
+
+function updateFooterGalleryAutoscrollFromPointer() {
+  const gallery = document.querySelector(".footer-gallery")
+  const pointerX = siteState.galleryPointerX
+  if (!gallery || !isFooterGalleryMotionReady(gallery) || !Number.isFinite(pointerX)) {
+    clearFooterGalleryAutoscroll()
+    return
+  }
+
+  if (getFooterGalleryHoveredTile({ requirePointerInside: true })) {
+    clearFooterGalleryAutoscroll()
+    requestFooterGalleryLoop()
+    return
+  }
+
+  const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
+  if (viewportWidth <= 1) {
+    clearFooterGalleryAutoscroll()
+    return
+  }
+
+  const x = clamp(pointerX, 0, viewportWidth)
+  const centerX = viewportWidth / 2
+  const distanceFromCenter = Math.abs(x - centerX) / (viewportWidth / 2)
+  const edgeProgress = clamp((distanceFromCenter - 0.08) / 0.92, 0, 1)
+
+  if (edgeProgress <= 0) {
+    clearFooterGalleryAutoscroll()
+    return
+  }
+
+  siteState.galleryPointerDirection = x < centerX ? 1 : -1
+  siteState.galleryPointerSpeedRatio = 0.16 + Math.pow(edgeProgress, 1.35) * 2.55
+  requestFooterGalleryLoop()
 }
 
 function updateFooterGalleryPointer(event) {
   if (event.pointerType === "touch") return
 
+  const previousX = siteState.galleryPointerX
+  const previousY = siteState.galleryPointerY
+  const moved =
+    !Number.isFinite(previousX) ||
+    !Number.isFinite(previousY) ||
+    Math.hypot(event.clientX - previousX, event.clientY - previousY) > 0.5
+  siteState.galleryPointerX = event.clientX
+  siteState.galleryPointerY = event.clientY
+
+  if (moved) {
+    siteState.galleryHoverSuppressed = false
+    const pointedTile = findFooterGalleryTileAtPointer()
+    if (pointedTile) {
+      siteState.galleryHoveredTile = pointedTile
+      clearFooterGalleryAutoscroll()
+      requestFooterGalleryLoop()
+      return
+    }
+    siteState.galleryHoveredTile = null
+  }
+
+  updateFooterGalleryAutoscrollFromPointer()
+}
+
+function centerFooterGalleryTile(gallery, tile, elapsed, distance) {
+  const viewport = gallery.querySelector(".footer-gallery-viewport")
+  if (!viewport || !tile) return false
+
+  const viewportRect = viewport.getBoundingClientRect()
+  const tileRect = tile.getBoundingClientRect()
+  if (viewportRect.width <= 1 || tileRect.width <= 1) return false
+
+  const viewportCenter = viewportRect.left + viewportRect.width / 2
+  const tileCenter = tileRect.left + tileRect.width / 2
+  const delta = tileCenter - viewportCenter
+  if (Math.abs(delta) < 0.35) return false
+
+  const followSpeed = 8.5
+  const amount = 1 - Math.exp(-followSpeed * elapsed)
+  siteState.galleryLoopOffset = wrapGalleryLoopOffset(
+    siteState.galleryLoopOffset + delta * amount,
+    distance,
+  )
+  gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+  return true
+}
+
+function handleFooterGalleryHorizontalWheel(event, time = performance.now()) {
   const gallery = document.querySelector(".footer-gallery")
-  const viewport = gallery?.querySelector(".footer-gallery-viewport")
-  if (!gallery || !viewport || !isFooterGalleryMotionReady(gallery)) {
-    resetFooterGalleryPointer()
-    return
-  }
-
-  const rect = viewport.getBoundingClientRect()
+  const hoveredTile = getFooterGalleryHoveredTile({
+    requirePointerInside: true,
+    allowPointerHitTest: false,
+  })
+  const distance = siteState.galleryLoopDistance
   if (
-    rect.width <= 1 ||
-    rect.height <= 1 ||
-    event.clientX < rect.left ||
-    event.clientX > rect.right ||
-    event.clientY < rect.top ||
-    event.clientY > rect.bottom
+    !gallery ||
+    !hoveredTile ||
+    !isFooterGalleryMotionReady(gallery) ||
+    !Number.isFinite(distance) ||
+    distance <= 0
   ) {
-    resetFooterGalleryPointer()
-    return
+    return false
   }
 
-  const centerX = rect.left + rect.width / 2
-  const distanceFromCenter = Math.abs(event.clientX - centerX) / (rect.width / 2)
-  const edgeProgress = clamp((distanceFromCenter - 0.1) / 0.9, 0, 1)
-  siteState.galleryPointerDirection = event.clientX < centerX ? 1 : -1
-  siteState.galleryPointerSpeedRatio =
-    edgeProgress <= 0 ? 0.12 : 0.18 + Math.pow(edgeProgress, 1.45) * 2.45
+  const deltaX = Number.isFinite(event.deltaX) ? event.deltaX : 0
+  const deltaY = Number.isFinite(event.deltaY) ? event.deltaY : 0
+  const usesShiftWheel = event.shiftKey && Math.abs(deltaY) > Math.abs(deltaX)
+  const horizontalDelta = usesShiftWheel ? deltaY : deltaX
+  const isHorizontal =
+    Math.abs(horizontalDelta) > 0.35 &&
+    Math.abs(horizontalDelta) >= Math.abs(deltaY) * 0.55
+  if (!isHorizontal) return false
+
+  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerWidth : 1
+  const pixelDelta = horizontalDelta * unit
+  const settleDuration = clamp(220 + Math.abs(pixelDelta) * 0.35, 260, 680)
+  siteState.galleryHorizontalInputUntil = Math.max(
+    siteState.galleryHorizontalInputUntil,
+    time + settleDuration,
+  )
+  siteState.galleryCenterPauseUntil = Math.max(
+    siteState.galleryCenterPauseUntil,
+    siteState.galleryHorizontalInputUntil,
+  )
+  siteState.galleryLoopOffset = wrapGalleryLoopOffset(
+    siteState.galleryLoopOffset + pixelDelta,
+    distance,
+  )
+  gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
   requestFooterGalleryLoop()
+  return true
 }
 
 function setFooterGalleryLoopMetrics(gallery) {
@@ -1797,10 +2020,13 @@ function setFooterGalleryLoopMetrics(gallery) {
 
   gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
 
+  updateFooterGalleryAutoscrollFromPointer()
+
   const canRunHorizontally =
     isFooterGalleryMotionReady(gallery) &&
-    siteState.galleryPointerDirection !== 0 &&
-    siteState.galleryPointerSpeedRatio > 0
+    (getFooterGalleryHoveredTile() ||
+      (siteState.galleryPointerDirection !== 0 &&
+        siteState.galleryPointerSpeedRatio > 0))
 
   if (canRunHorizontally) {
     requestFooterGalleryLoop()
@@ -1829,25 +2055,45 @@ function animateFooterGalleryLoop(time) {
   const active = isFooterGalleryMotionReady(gallery)
   const direction = siteState.galleryPointerDirection
   const speedRatio = clamp(siteState.galleryPointerSpeedRatio || 0, 0, 2.8)
+  const elapsed = siteState.galleryLoopLastTime
+    ? Math.min(0.05, (time - siteState.galleryLoopLastTime) / 1000)
+    : 1 / 60
+  siteState.galleryLoopLastTime = time
+  const settling = isFooterGalleryScrollSettling(time)
+  const horizontalSettling = time < siteState.galleryHorizontalInputUntil
+  const hoveredTile = getFooterGalleryHoveredTile({ requirePointerInside: true })
+  if (hoveredTile && siteState.galleryCenterPauseUntil > 0 && time >= siteState.galleryCenterPauseUntil) {
+    siteState.galleryCenterPauseUntil = 0
+  }
+  if (!horizontalSettling && siteState.galleryHorizontalInputUntil > 0) {
+    siteState.galleryHorizontalInputUntil = 0
+  }
+  const centerPaused = !!hoveredTile && (settling || horizontalSettling || time < siteState.galleryCenterPauseUntil)
+  const canCenter = !!hoveredTile && !centerPaused
+  const canAutoscroll = !hoveredTile && !horizontalSettling && direction !== 0 && speedRatio > 0
 
-  if (!Number.isFinite(distance) || distance <= 0 || !active || direction === 0 || speedRatio <= 0) {
+  if (
+    !Number.isFinite(distance) ||
+    distance <= 0 ||
+    !active ||
+    (!canCenter && !canAutoscroll && !centerPaused && !horizontalSettling)
+  ) {
     siteState.galleryLoopFrame = 0
     siteState.galleryLoopLastTime = 0
     return
   }
 
-  const elapsed = siteState.galleryLoopLastTime
-    ? Math.min(0.05, (time - siteState.galleryLoopLastTime) / 1000)
-    : 1 / 60
-  siteState.galleryLoopLastTime = time
-
-  if (!isFooterGalleryScrollSettling(time)) {
-    const speed = Math.max(0, siteState.galleryLoopBaseSpeed) * speedRatio
-    siteState.galleryLoopOffset = wrapGalleryLoopOffset(
-      siteState.galleryLoopOffset + direction * speed * elapsed,
-      distance,
-    )
-    gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+  if (!settling && !horizontalSettling) {
+    if (canCenter) {
+      centerFooterGalleryTile(gallery, hoveredTile, elapsed, distance)
+    } else if (canAutoscroll) {
+      const speed = Math.max(0, siteState.galleryLoopBaseSpeed) * speedRatio
+      siteState.galleryLoopOffset = wrapGalleryLoopOffset(
+        siteState.galleryLoopOffset + direction * speed * elapsed,
+        distance,
+      )
+      gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+    }
   }
 
   siteState.galleryLoopFrame = requestAnimationFrame(animateFooterGalleryLoop)
@@ -2039,11 +2285,13 @@ function nudgeFooterGallery() {
   holdFooterGalleryDuringScroll()
   const reveal = updateFooterGalleryReveal()
   siteState.galleryLoopBoost = 0
+  updateFooterGalleryAutoscrollFromPointer()
 
   if (
     isFooterGalleryMotionReady(gallery) &&
-    siteState.galleryPointerDirection !== 0 &&
-    siteState.galleryPointerSpeedRatio > 0
+    (getFooterGalleryHoveredTile() ||
+      (siteState.galleryPointerDirection !== 0 &&
+        siteState.galleryPointerSpeedRatio > 0))
   ) {
     requestFooterGalleryLoop()
   }
@@ -2071,8 +2319,14 @@ function setupFooterGallery() {
   siteState.galleryLoopBaseSpeed = 0
   siteState.galleryLoopBoost = 0
   siteState.galleryHorizontalFrozen = false
+  siteState.galleryPointerX = null
+  siteState.galleryPointerY = null
   siteState.galleryPointerDirection = 0
   siteState.galleryPointerSpeedRatio = 0
+  siteState.galleryHoveredTile = null
+  siteState.galleryHoverSuppressed = false
+  siteState.galleryCenterPauseUntil = 0
+  siteState.galleryHorizontalInputUntil = 0
   siteState.galleryScrollPauseUntil = 0
   siteState.galleryObservedScrollY = readFooterGalleryScrollY()
   siteState.galleryReveal = 0
@@ -2091,11 +2345,29 @@ function setupFooterGallery() {
   updateFooterGalleryReveal({ immediate: true })
 
   const gallery = document.querySelector(".footer-gallery")
-  const viewport = gallery?.querySelector(".footer-gallery-viewport")
-  if (viewport) {
-    viewport.addEventListener("pointermove", updateFooterGalleryPointer, { passive: true })
-    viewport.addEventListener("pointerleave", resetFooterGalleryPointer, { passive: true })
-    viewport.addEventListener("pointercancel", resetFooterGalleryPointer, { passive: true })
+  if (!siteState.galleryPointerInitialized) {
+    siteState.galleryPointerInitialized = true
+    window.addEventListener("pointermove", updateFooterGalleryPointer, { passive: true })
+    window.addEventListener("pointerleave", resetFooterGalleryPointer, { passive: true })
+    window.addEventListener("pointercancel", resetFooterGalleryPointer, { passive: true })
+    window.addEventListener("blur", resetFooterGalleryPointer)
+    document.addEventListener(
+      "pointerout",
+      (event) => {
+        if (!event.relatedTarget) resetFooterGalleryPointer()
+      },
+      { passive: true },
+    )
+  }
+
+  gallery?.querySelectorAll(".footer-gallery-tile").forEach((tile) => {
+    tile.addEventListener("pointerenter", setFooterGalleryHoveredTile, { passive: true })
+    tile.addEventListener("pointerleave", clearFooterGalleryHoveredTile, { passive: true })
+    tile.addEventListener("pointercancel", clearFooterGalleryHoveredTile, { passive: true })
+  })
+
+  if (gallery) {
+    updateFooterGalleryAutoscrollFromPointer()
   }
 }
 
@@ -2226,7 +2498,16 @@ function setupHeader() {
   window.addEventListener(
     "wheel",
     (event) => {
-      holdFooterGalleryDuringScroll()
+      const time = performance.now()
+      const handledGalleryWheel = handleFooterGalleryHorizontalWheel(event, time)
+      const verticalDelta = Number.isFinite(event.deltaY) ? event.deltaY : 0
+      const horizontalDelta = Number.isFinite(event.deltaX) ? event.deltaX : 0
+      const hasVerticalScroll =
+        Math.abs(verticalDelta) > 0.35 &&
+        Math.abs(verticalDelta) >= Math.abs(horizontalDelta) * 0.55
+      if (!handledGalleryWheel || hasVerticalScroll) {
+        holdFooterGalleryDuringScroll(time)
+      }
       updateHeaderFromScroll(event.deltaY)
     },
     { passive: true }

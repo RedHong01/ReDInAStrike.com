@@ -151,6 +151,8 @@ const filterableProjectHashes = new Set(projects.map((project) => project.navHas
 const CATALOG_FILTER_EXIT_MS = 430
 const CATALOG_FILTER_ENTER_MS = 560
 const CATALOG_FILTER_STAGGER_MS = 28
+const CATALOG_FILTER_RESTORE_INTENT_MS = 120
+const CATALOG_FILTER_RESTORE_WAKE_MS = 190
 
 function projectDateRank(project) {
   const rawDate = String(project.date || "").trim()
@@ -363,6 +365,7 @@ const siteState = {
   catalogFilterPhase: "idle",
   catalogFilterTimer: 0,
   catalogFilterEnterTimer: 0,
+  catalogMutedRestoreTimer: 0,
   catalogHalftoneFrame: 0,
   catalogHalftoneProgress: 1,
   catalogFilterCycle: 0,
@@ -962,7 +965,7 @@ function mediaStyle(project) {
 }
 
 function projectCard(project, index, loadingIndex = index, options = {}) {
-  const videoAttributes = project.youtube
+  const videoAttributes = project.youtube && !options.muted
     ? ` data-hover-youtube="${escapeHtml(project.youtube)}"`
     : ""
   const mutedClass = options.muted ? " is-filter-muted" : ""
@@ -2451,9 +2454,11 @@ function setupFooterGallery() {
 function resetCatalogFilterState() {
   window.clearTimeout(siteState.catalogFilterTimer)
   window.clearTimeout(siteState.catalogFilterEnterTimer)
+  window.clearTimeout(siteState.catalogMutedRestoreTimer)
   if (siteState.catalogHalftoneFrame) cancelAnimationFrame(siteState.catalogHalftoneFrame)
   siteState.catalogFilterTimer = 0
   siteState.catalogFilterEnterTimer = 0
+  siteState.catalogMutedRestoreTimer = 0
   siteState.catalogHalftoneFrame = 0
   siteState.catalogHalftoneProgress = 1
   siteState.catalogFilterTarget = null
@@ -2493,6 +2498,7 @@ function updateCatalogFilterDataset(catalog, category) {
 
 function refreshCatalogAfterFilter(catalog) {
   setupHoverEmbeds()
+  setupFilteredCatalogRestore(catalog)
   requestRuleFadeUpdate()
   updateFooterGalleryReveal()
   if (catalog) {
@@ -2805,6 +2811,11 @@ function scrollToPageSection(hash, options = {}) {
   return true
 }
 
+function updatePageHash(hash) {
+  const nextUrl = `${window.location.pathname}${window.location.search}${hash ? `#${hash}` : ""}`
+  window.history.replaceState(null, "", nextUrl)
+}
+
 function scheduleScrollToPageSection(hash, options = {}) {
   const delay = Number.isFinite(options.delay) ? options.delay : 0
   const attempts = Math.max(1, options.attempts || 2)
@@ -2842,6 +2853,7 @@ function replaceCatalogFilterImmediately(category) {
   siteState.catalogFilterCycle += 1
   catalog.innerHTML = catalogRowsMarkup(normalizedCategory)
   delete catalog.dataset.filterPhase
+  delete catalog.dataset.filterRelease
   catalog.style.removeProperty("--catalog-filter-min-height")
   clearCatalogCardTimingVars(catalog)
   clearCatalogHalftoneInline(catalog)
@@ -2946,12 +2958,61 @@ function setCatalogFilter(category) {
   if (noChange) return
 
   siteState.catalogFilterTarget = nextCategory
+  delete catalog.dataset.filterRelease
   if (siteState.catalogFilterPhase === "exiting") {
     updateCatalogFilterDataset(catalog, nextCategory)
     return
   }
 
   startCatalogFilterTransition()
+}
+
+function releaseCatalogFilterFromMuted() {
+  const catalog = document.querySelector(".catalog")
+  if (!catalog?.dataset.activeFilter || catalog.dataset.filterPhase) return
+
+  siteState.catalogFilterLocked = null
+  updatePageHash(null)
+  catalog.dataset.filterRelease = "true"
+
+  window.clearTimeout(siteState.catalogMutedRestoreTimer)
+  siteState.catalogMutedRestoreTimer = window.setTimeout(() => {
+    siteState.catalogMutedRestoreTimer = 0
+    delete catalog.dataset.filterRelease
+    setCatalogFilter(null)
+  }, catalogFilterDuration(CATALOG_FILTER_RESTORE_WAKE_MS))
+}
+
+function setupFilteredCatalogRestore(catalog) {
+  if (!catalog) return
+
+  catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
+    let restoreIntentTimer = 0
+
+    const clearIntent = () => {
+      window.clearTimeout(restoreIntentTimer)
+      restoreIntentTimer = 0
+      card.classList.remove("is-muted-restore-intent")
+    }
+
+    const scheduleIntent = (event) => {
+      if (event?.pointerType === "touch") return
+      if (!card.isConnected || !card.classList.contains("is-filter-muted")) return
+
+      window.clearTimeout(restoreIntentTimer)
+      card.classList.add("is-muted-restore-intent")
+      restoreIntentTimer = window.setTimeout(() => {
+        restoreIntentTimer = 0
+        releaseCatalogFilterFromMuted()
+      }, catalogFilterDuration(CATALOG_FILTER_RESTORE_INTENT_MS))
+    }
+
+    card.addEventListener("pointerenter", scheduleIntent, { passive: true })
+    card.addEventListener("pointerleave", clearIntent, { passive: true })
+    card.addEventListener("pointercancel", clearIntent, { passive: true })
+    card.addEventListener("focusin", scheduleIntent)
+    card.addEventListener("focusout", clearIntent)
+  })
 }
 
 function setupNavHoverSpacing() {
@@ -2993,8 +3054,7 @@ function setupNavHoverInteraction() {
   }
 
   const updateFilterHash = (category) => {
-    const nextUrl = `${window.location.pathname}${window.location.search}${category ? `#${category}` : ""}`
-    window.history.replaceState(null, "", nextUrl)
+    updatePageHash(category)
   }
 
   const initialHash = decodeURIComponent(window.location.hash.replace(/^#/, ""))
@@ -3177,20 +3237,26 @@ function setupHoverEmbeds() {
     const id = media.dataset.hoverYoutube
     let iframe = null
 
+    const isFilteredOut = () => media.closest(".project-card")?.classList.contains("is-filter-muted")
+
+    const unmount = () => {
+      if (!iframe) return
+      iframe.remove()
+      iframe = null
+    }
+
     const mount = () => {
       if (iframe || !id) return
+      if (isFilteredOut()) {
+        unmount()
+        return
+      }
       iframe = document.createElement("iframe")
       iframe.className = "hover-video"
       iframe.allow =
         "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&controls=1&loop=1&playlist=${encodeURIComponent(id)}`
       media.appendChild(iframe)
-    }
-
-    const unmount = () => {
-      if (!iframe) return
-      iframe.remove()
-      iframe = null
     }
 
     media.addEventListener("mouseenter", mount)

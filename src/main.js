@@ -1282,10 +1282,11 @@ function detailMarkup(project) {
     ${headerMarkup()}
     <main class="site-main detail-page" data-route="${escapeHtml(project.path)}">
       <article class="detail-shell">
-        <a class="back-link" href="${hrefFor("/")}">Back</a>
         <div class="detail-heading">
-          <p>${escapeHtml(project.displayTitle)}</p>
-          <h1>${escapeHtml(project.pageTitle)}</h1>
+          <div>
+            <h1>${escapeHtml(project.pageTitle)}</h1>
+            <p>${escapeHtml(project.displayTitle)}</p>
+          </div>
           <span>${escapeHtml(project.date)}</span>
         </div>
         <figure class="detail-screenshot">
@@ -1313,15 +1314,12 @@ function framerProjectDetailMarkup(project, detail) {
     ${headerMarkup()}
     <main class="site-main detail-page framer-derived-page" data-route="${escapeHtml(project.path)}">
       <article class="framer-derived-shell" aria-label="${escapeHtml(detail.title)} project page">
-        <a class="back-link" href="${hrefFor("/")}">Back</a>
-
         <section class="framer-derived-hero">
-          <div>
-            <p>${escapeHtml(detail.year)}</p>
+          <div class="framer-derived-hero-head">
             <h1>${escapeHtml(detail.title)}</h1>
-            <span>${escapeHtml(detail.category)}</span>
+            <p class="framer-derived-year">${escapeHtml(detail.year)}</p>
           </div>
-          <img src="${asset("assets/logo-vector.svg")}" alt="ReDInAStrikE logo" />
+          <span class="framer-derived-category">${escapeHtml(detail.category)}</span>
         </section>
 
         <section class="framer-derived-intro">
@@ -1385,10 +1383,11 @@ function serialDeminerDetailMarkup(project) {
     <main class="site-main detail-page framer-case-page" data-route="${escapeHtml(project.path)}">
       <article class="framer-case-shell" aria-label="Serial Deminer case study">
         <section class="framer-case-hero">
-          <div class="framer-case-kicker">2024 Fall</div>
-          <h1>Serial Deminer</h1>
-          <p>Game Design &amp; Level Design</p>
-          <img class="framer-case-hero-logo" src="${asset("assets/logo-vector.svg")}" alt="ReDInAStrikE logo" />
+          <div class="framer-case-hero-head">
+            <h1>Serial Deminer</h1>
+            <p class="framer-case-year">2024 Fall</p>
+          </div>
+          <p class="framer-case-category">Game Design &amp; Level Design</p>
         </section>
 
         <section class="framer-case-section framer-media-section">
@@ -1537,12 +1536,6 @@ function serialDeminerDetailMarkup(project) {
         </section>
 
         <section class="framer-case-footer">
-          <img class="framer-case-footer-logo" src="${asset("assets/logo-vector.svg")}" alt="ReDInAStrikE logo" />
-          <div>
-            <h2>Overview</h2>
-            <p>2024 ArtCenter Game Jam Project</p>
-            <p>Game designer &amp; Level Designer</p>
-          </div>
           <div>
             <h2>Access</h2>
             <p>Itch.io:</p>

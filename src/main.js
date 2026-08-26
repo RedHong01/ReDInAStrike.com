@@ -157,6 +157,9 @@ const CATALOG_MUTED_HOVER_MS = 475
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const HALFTONE_RENDER_MARGIN = 1100
 const HALFTONE_PROGRESS_STEPS = 260
+const HALFTONE_LOGICAL_COLUMNS = 132
+const HALFTONE_RENDER_FRAME_BUDGET_MS = 4.5
+const HALFTONE_SOURCE_CACHE_LIMIT = 64
 
 function projectDateRank(project) {
   const rawDate = String(project.date || "").trim()
@@ -384,6 +387,14 @@ const siteState = {
   catalogHalftoneFrame: 0,
   catalogHalftoneVisibleFrame: 0,
   catalogHalftoneProgress: 1,
+  halftoneObserver: null,
+  halftoneResizeObserver: null,
+  halftoneObserverReady: false,
+  halftoneNearCards: new Set(),
+  halftoneRenderQueue: [],
+  halftoneRenderQueued: new Set(),
+  halftoneRenderFrame: 0,
+  halftoneSourceCache: new Map(),
   catalogFilterCycle: 0,
   galleryFrame: 0,
   galleryLastFrameTime: 0,
@@ -450,6 +461,7 @@ const siteState = {
 }
 
 function refreshDomCache() {
+  disconnectCatalogHalftoneObservers()
   const catalog = document.querySelector(".catalog")
   const gallery = document.querySelector(".footer-gallery")
   const galleryViewport = gallery?.querySelector(".footer-gallery-viewport") || null
@@ -477,6 +489,10 @@ function refreshDomCache() {
     about: document.querySelector(".about-section"),
   }
   siteState.visibleHalftoneCards = []
+  siteState.halftoneRenderQueue = []
+  siteState.halftoneRenderQueued.clear()
+  if (siteState.halftoneRenderFrame) cancelAnimationFrame(siteState.halftoneRenderFrame)
+  siteState.halftoneRenderFrame = 0
   siteState.galleryLayoutDirty = true
   siteState.galleryLayoutMetrics = null
   siteState.galleryViewportLeft = null
@@ -487,6 +503,7 @@ function refreshDomCache() {
   siteState.hasProjectRuleTargets = Boolean(
     siteState.dom.projectRows.length || siteState.dom.cardRuleTargets.length,
   )
+  setupCatalogHalftoneObservers(catalog)
 }
 
 function getReducedMotionQuery() {
@@ -2641,6 +2658,10 @@ function resetCatalogFilterState() {
   siteState.catalogFilterEnterTimer = 0
   siteState.catalogHalftoneFrame = 0
   siteState.catalogHalftoneVisibleFrame = 0
+  siteState.halftoneRenderQueue = []
+  siteState.halftoneRenderQueued.clear()
+  if (siteState.halftoneRenderFrame) cancelAnimationFrame(siteState.halftoneRenderFrame)
+  siteState.halftoneRenderFrame = 0
   siteState.catalogHalftoneProgress = 1
   siteState.catalogFilterTarget = null
   siteState.catalogFilterCurrent = null
@@ -2699,6 +2720,42 @@ function stopCatalogHalftoneVisibleUpdate() {
   siteState.catalogHalftoneVisibleFrame = 0
 }
 
+function scheduleCatalogHalftoneRender(card) {
+  if (!card || siteState.halftoneRenderQueued.has(card)) return
+  siteState.halftoneRenderQueued.add(card)
+  siteState.halftoneRenderQueue.push(card)
+  if (siteState.halftoneRenderFrame) return
+  siteState.halftoneRenderFrame = requestAnimationFrame(processCatalogHalftoneRenderQueue)
+}
+
+function processCatalogHalftoneRenderQueue() {
+  siteState.halftoneRenderFrame = 0
+  const start = performance.now()
+  const colors = readCatalogHalftoneColors()
+  let processed = 0
+
+  while (siteState.halftoneRenderQueue.length) {
+    if (processed > 0 && performance.now() - start >= HALFTONE_RENDER_FRAME_BUDGET_MS) break
+    const card = siteState.halftoneRenderQueue.shift()
+    siteState.halftoneRenderQueued.delete(card)
+    processed += 1
+
+    if (!card?.isConnected || !card.classList.contains("is-filter-muted")) continue
+    if (
+      siteState.halftoneObserver &&
+      siteState.halftoneObserverReady &&
+      !siteState.halftoneNearCards.has(card)
+    ) {
+      continue
+    }
+    drawProjectHalftone(card, siteState.catalogHalftoneProgress, colors)
+  }
+
+  if (siteState.halftoneRenderQueue.length) {
+    siteState.halftoneRenderFrame = requestAnimationFrame(processCatalogHalftoneRenderQueue)
+  }
+}
+
 function readCatalogHalftoneColors() {
   const root = document.documentElement
   const style = window.getComputedStyle(root)
@@ -2712,6 +2769,90 @@ function readCatalogHalftoneColors() {
   siteState.halftoneColorsKey = key
   siteState.halftoneColors = { paperColor, inkColor }
   return siteState.halftoneColors
+}
+
+function disconnectCatalogHalftoneObservers() {
+  siteState.halftoneObserver?.disconnect()
+  siteState.halftoneResizeObserver?.disconnect()
+  siteState.halftoneObserver = null
+  siteState.halftoneResizeObserver = null
+  siteState.halftoneObserverReady = false
+  siteState.halftoneNearCards.clear()
+}
+
+function setupCatalogHalftoneObservers(catalog = siteState.dom.catalog) {
+  if (!catalog) return
+
+  const mutedCards = siteState.dom.catalog === catalog
+    ? siteState.dom.mutedCards
+    : [...catalog.querySelectorAll(".project-card.is-filter-muted")]
+  if (!mutedCards.length) {
+    siteState.halftoneObserverReady = true
+    return
+  }
+
+  if ("IntersectionObserver" in window) {
+    siteState.halftoneObserver = new IntersectionObserver(
+      (entries) => {
+        siteState.halftoneObserverReady = true
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            siteState.halftoneNearCards.add(entry.target)
+          } else {
+            siteState.halftoneNearCards.delete(entry.target)
+          }
+        })
+        requestVisibleCatalogHalftones()
+      },
+      { root: null, rootMargin: `${HALFTONE_RENDER_MARGIN}px 0px`, threshold: 0 },
+    )
+  }
+
+  if ("ResizeObserver" in window) {
+    siteState.halftoneResizeObserver = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        const media = entry.target
+        const card = media.closest(".project-card")
+        if (!card) return
+
+        const cssWidth = Math.max(1, Math.round(entry.contentRect.width))
+        const cssHeight = Math.max(1, Math.round(entry.contentRect.height))
+        const previous = card.__projectHalftoneGeometry
+        if (previous?.cssWidth === cssWidth && previous?.cssHeight === cssHeight) return
+
+        card.__projectHalftoneGeometry = { cssWidth, cssHeight }
+        card.__projectHalftoneRenderKey = null
+        const image = card.querySelector(".project-media img")
+        if (image) image.__projectHalftoneSourceDescriptor = null
+        if (card.closest(".catalog")?.dataset.activeFilter) {
+          requestVisibleCatalogHalftones()
+        }
+      })
+    })
+  }
+
+  mutedCards.forEach((card) => {
+    siteState.halftoneObserver?.observe(card)
+    const media = card.querySelector(".project-media")
+    if (media) siteState.halftoneResizeObserver?.observe(media)
+  })
+
+  if (!siteState.halftoneObserver) {
+    siteState.halftoneObserverReady = true
+  }
+}
+
+function invalidateCatalogHalftoneGeometry(catalog = siteState.dom.catalog) {
+  if (!catalog) return
+  const cards = siteState.dom.catalog === catalog
+    ? siteState.dom.mutedCards
+    : [...catalog.querySelectorAll(".project-card.is-filter-muted")]
+  cards.forEach((card) => {
+    card.__projectHalftoneGeometry = null
+    card.__projectHalftoneRenderKey = null
+    const image = card.querySelector(".project-media img")
+    if (image) image.__projectHalftoneSourceDescriptor = null
+  })
 }
 
 function isNearViewport(element, margin = HALFTONE_RENDER_MARGIN) {
@@ -2737,7 +2878,14 @@ function updateVisibleCatalogHalftoneCards(catalog = siteState.dom.catalog) {
   const cards = siteState.dom.catalog === catalog
     ? siteState.dom.mutedCards
     : [...catalog.querySelectorAll(".project-card.is-filter-muted")]
-  siteState.visibleHalftoneCards = cards.filter((card) => isNearViewport(card))
+
+  if (siteState.dom.catalog === catalog && siteState.halftoneObserver && siteState.halftoneObserverReady) {
+    siteState.visibleHalftoneCards = [...siteState.halftoneNearCards].filter(
+      (card) => card.isConnected && card.closest(".catalog") === catalog && card.classList.contains("is-filter-muted"),
+    )
+  } else {
+    siteState.visibleHalftoneCards = cards.filter((card) => isNearViewport(card))
+  }
   return siteState.visibleHalftoneCards
 }
 
@@ -2789,10 +2937,10 @@ function parseObjectPositionRatio(value) {
   return { x, y }
 }
 
-function getHalftoneImageRect(img, cssWidth, cssHeight) {
+function getHalftoneImageRect(img, cssWidth, cssHeight, styleOverride = null) {
   if (!img.naturalWidth || !img.naturalHeight) return null
 
-  const computed = window.getComputedStyle(img)
+  const computed = styleOverride || window.getComputedStyle(img)
   const fit = computed.objectFit || "fill"
   const imageWidth = img.naturalWidth
   const imageHeight = img.naturalHeight
@@ -2824,29 +2972,45 @@ function getHalftoneImageRect(img, cssWidth, cssHeight) {
   }
 }
 
-function ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize, paperColor) {
-  const computed = window.getComputedStyle(img)
-  const sampleKey = [
+function ensureProjectHalftoneSource(img, cssWidth, cssHeight, paperColor) {
+  const cols = HALFTONE_LOGICAL_COLUMNS
+  const rows = Math.max(1, Math.round(cols * cssHeight / Math.max(1, cssWidth)))
+  const descriptorBase = [
     img.currentSrc || img.src || img.getAttribute("src") || "",
     img.naturalWidth,
     img.naturalHeight,
-    Math.round(cssWidth),
-    Math.round(cssHeight),
-    cellSize,
-    computed.objectFit,
-    computed.objectPosition,
+    cols,
+    rows,
     paperColor,
   ].join("|")
-
-  if (canvas.__projectHalftoneSample?.key === sampleKey) {
-    return canvas.__projectHalftoneSample
+  let descriptor = img.__projectHalftoneSourceDescriptor
+  if (descriptor?.base !== descriptorBase) {
+    const computed = window.getComputedStyle(img)
+    descriptor = {
+      base: descriptorBase,
+      objectFit: computed.objectFit,
+      objectPosition: computed.objectPosition,
+    }
+    descriptor.key = [
+      descriptorBase,
+      descriptor.objectFit,
+      descriptor.objectPosition,
+    ].join("|")
+    img.__projectHalftoneSourceDescriptor = descriptor
   }
 
-  const imageRect = getHalftoneImageRect(img, cssWidth, cssHeight)
+  const sampleKey = descriptor.key
+
+  const cached = siteState.halftoneSourceCache.get(sampleKey)
+  if (cached) {
+    siteState.halftoneSourceCache.delete(sampleKey)
+    siteState.halftoneSourceCache.set(sampleKey, cached)
+    return cached
+  }
+
+  const imageRect = getHalftoneImageRect(img, cols, rows, descriptor)
   if (!imageRect) return null
 
-  const cols = Math.max(1, Math.ceil(cssWidth / cellSize))
-  const rows = Math.max(1, Math.ceil(cssHeight / cellSize))
   const sampleCanvas = document.createElement("canvas")
   sampleCanvas.width = cols
   sampleCanvas.height = rows
@@ -2859,30 +3023,29 @@ function ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize,
   try {
     sampleContext.drawImage(
       img,
-      imageRect.x / cellSize,
-      imageRect.y / cellSize,
-      imageRect.width / cellSize,
-      imageRect.height / cellSize,
+      imageRect.x,
+      imageRect.y,
+      imageRect.width,
+      imageRect.height,
     )
 
     const data = sampleContext.getImageData(0, 0, cols, rows).data
-    const ink = new Float32Array(cols * rows)
-    const dots = new Float32Array(ink.length * 3)
+    const dots = new Float32Array(cols * rows * 3)
     let dotCount = 0
-    for (let index = 0; index < ink.length; index += 1) {
+    for (let index = 0; index < cols * rows; index += 1) {
       const sourceIndex = index * 4
       const red = data[sourceIndex]
       const green = data[sourceIndex + 1]
       const blue = data[sourceIndex + 2]
       const luminance = (red * 0.2126 + green * 0.7152 + blue * 0.0722) / 255
-      ink[index] = clamp((1 - luminance) * 1.18 - 0.025, 0, 1)
-      const radius = Math.sqrt(ink[index]) * cellSize * 0.54
+      const ink = clamp((1 - luminance) * 1.18 - 0.025, 0, 1)
+      const radius = Math.sqrt(ink) * 0.54
       if (radius < 0.08) continue
 
       const col = index % cols
       const row = Math.floor(index / cols)
-      dots[dotCount] = col * cellSize + cellSize / 2
-      dots[dotCount + 1] = row * cellSize + cellSize / 2
+      dots[dotCount] = col + 0.5
+      dots[dotCount + 1] = row + 0.5
       dots[dotCount + 2] = radius
       dotCount += 3
     }
@@ -2891,15 +3054,47 @@ function ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize,
       key: sampleKey,
       cols,
       rows,
-      cellSize,
       dots: dots.subarray(0, dotCount),
     }
-    canvas.__projectHalftoneSample = sample
-    canvas.__projectHalftoneRenderKey = null
+
+    siteState.halftoneSourceCache.set(sampleKey, sample)
+    while (siteState.halftoneSourceCache.size > HALFTONE_SOURCE_CACHE_LIMIT) {
+      const oldestKey = siteState.halftoneSourceCache.keys().next().value
+      siteState.halftoneSourceCache.delete(oldestKey)
+    }
     return sample
   } catch (error) {
     return null
   }
+}
+
+function getProjectHalftoneGeometry(card, media) {
+  const cached = card.__projectHalftoneGeometry
+  let cssWidth = cached?.cssWidth
+  let cssHeight = cached?.cssHeight
+
+  if (!cssWidth || !cssHeight) {
+    const rect = media.getBoundingClientRect()
+    cssWidth = Math.max(1, Math.round(rect.width))
+    cssHeight = Math.max(1, Math.round(rect.height))
+  }
+
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
+  const targetWidth = Math.max(1, Math.round(cssWidth * pixelRatio))
+  const targetHeight = Math.max(1, Math.round(cssHeight * pixelRatio))
+  const sizeKey = `${cssWidth}x${cssHeight}|${pixelRatio}`
+  if (cached?.sizeKey === sizeKey) return cached
+
+  const geometry = {
+    cssWidth,
+    cssHeight,
+    pixelRatio,
+    targetWidth,
+    targetHeight,
+    sizeKey,
+  }
+  card.__projectHalftoneGeometry = geometry
+  return geometry
 }
 
 function bindHalftoneImageLoad(img) {
@@ -2926,22 +3121,18 @@ function drawProjectHalftone(card, progress, colors = readCatalogHalftoneColors(
   const img = media?.querySelector("img")
   if (!canvas || !media) return false
 
-  const rect = media.getBoundingClientRect()
-  const cssWidth = Math.max(1, Math.round(rect.width))
-  const cssHeight = Math.max(1, Math.round(rect.height))
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
-  const targetWidth = Math.max(1, Math.round(cssWidth * pixelRatio))
-  const targetHeight = Math.max(1, Math.round(cssHeight * pixelRatio))
+  const geometry = getProjectHalftoneGeometry(card, media)
+  const { cssWidth, cssHeight, pixelRatio, targetWidth, targetHeight, sizeKey } = geometry
 
   if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
     canvas.width = targetWidth
     canvas.height = targetHeight
-    canvas.__projectHalftoneSample = null
     canvas.__projectHalftoneRenderKey = null
   }
 
-  const context = canvas.getContext("2d")
+  const context = canvas.__projectHalftoneContext || canvas.getContext("2d")
   if (!context) return false
+  canvas.__projectHalftoneContext = context
 
   const { paperColor, inkColor } = colors
   const paintPaper = () => {
@@ -2957,13 +3148,12 @@ function drawProjectHalftone(card, progress, colors = readCatalogHalftoneColors(
     return false
   }
 
-  const cellSize = clamp(cssWidth / 132, 4.6, 7.2)
-  const sample = ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize, paperColor)
+  const sample = ensureProjectHalftoneSource(img, cssWidth, cssHeight, paperColor)
   if (!sample) return false
 
   const dotProgress = clamp(progress, 0, 1)
   const progressKey = Math.round(dotProgress * HALFTONE_PROGRESS_STEPS)
-  const renderKey = `${sample.key}|${inkColor}|${progressKey}`
+  const renderKey = `${sample.key}|${inkColor}|${sizeKey}|${progressKey}`
   if (canvas.__projectHalftoneRenderKey === renderKey) return true
   canvas.__projectHalftoneRenderKey = renderKey
 
@@ -2971,13 +3161,16 @@ function drawProjectHalftone(card, progress, colors = readCatalogHalftoneColors(
   if (dotProgress <= 0.001) return true
 
   context.fillStyle = inkColor
+  const scaleX = cssWidth / sample.cols
+  const scaleY = cssHeight / sample.rows
+  const radiusScale = Math.min(scaleX, scaleY)
   let hasDots = false
   context.beginPath()
 
   for (let index = 0; index < sample.dots.length; index += 3) {
-    const x = sample.dots[index]
-    const y = sample.dots[index + 1]
-    const radius = sample.dots[index + 2] * dotProgress
+    const x = sample.dots[index] * scaleX
+    const y = sample.dots[index + 1] * scaleY
+    const radius = sample.dots[index + 2] * radiusScale * dotProgress
     if (radius < 0.08) continue
 
     context.moveTo(x + radius, y)
@@ -2997,7 +3190,6 @@ function renderCatalogHalftones(catalog, progress = siteState.catalogHalftonePro
     "--catalog-halftone-progress",
     siteState.catalogHalftoneProgress.toFixed(3),
   )
-  const colors = readCatalogHalftoneColors()
   const visibleOnly = options.visibleOnly !== false
   const cards = visibleOnly
     ? (siteState.dom.catalog === catalog
@@ -3006,9 +3198,7 @@ function renderCatalogHalftones(catalog, progress = siteState.catalogHalftonePro
     : (siteState.dom.catalog === catalog
         ? siteState.dom.mutedCards
         : [...catalog.querySelectorAll(".project-card.is-filter-muted")])
-  cards.forEach((card) => {
-    drawProjectHalftone(card, siteState.catalogHalftoneProgress, colors)
-  })
+  cards.forEach(scheduleCatalogHalftoneRender)
 }
 
 function requestVisibleCatalogHalftones() {
@@ -3628,6 +3818,7 @@ function setupHeader() {
       siteState.galleryLayoutDirty = true
       siteState.galleryLayoutMetrics = null
       siteState.galleryViewportLeft = null
+      invalidateCatalogHalftoneGeometry()
       invalidateCatalogContentBottom()
       startResponsiveLayoutTransition()
       applyHeaderProgress(siteState.visualProgress)

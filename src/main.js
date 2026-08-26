@@ -107,6 +107,7 @@ const projects = [
     path: "/game-prototype",
     navHash: "game",
     image: "assets/framer-live/game-prototype-2026.png",
+    itchEmbed: "https://redinastrike.itch.io/innovative-game-mechanic/embed",
   },
   {
     pageTitle: "Alternative Controller Game Prototype",
@@ -147,6 +148,18 @@ const projects = [
 
 const routeMap = new Map(projects.map((project) => [project.path, project]))
 const catalogProjectEntries = projects.map((project, originalIndex) => ({ project, originalIndex }))
+const catalogEntryDateOrder = (a, b) => {
+  const dateDelta = projectDateRank(b.project) - projectDateRank(a.project)
+  return dateDelta || a.originalIndex - b.originalIndex
+}
+const catalogProjectEntriesNewestFirst = [...catalogProjectEntries].sort(catalogEntryDateOrder)
+const catalogProjectEntriesByCategory = new Map()
+catalogProjectEntriesNewestFirst.forEach((entry) => {
+  const category = entry.project.navHash
+  const entries = catalogProjectEntriesByCategory.get(category) || []
+  entries.push(entry)
+  catalogProjectEntriesByCategory.set(category, entries)
+})
 const filterableProjectHashes = new Set(projects.map((project) => project.navHash))
 const CATALOG_FILTER_EXIT_MS = 430
 const CATALOG_FILTER_ENTER_MS = 560
@@ -178,22 +191,15 @@ function normalizeCatalogFilter(hash) {
 
 function getCatalogProjectEntries(category = null) {
   const normalizedCategory = normalizeCatalogFilter(category)
-  const byNewestFirst = (a, b) => {
-    const dateDelta = projectDateRank(b.project) - projectDateRank(a.project)
-    return dateDelta || a.originalIndex - b.originalIndex
-  }
 
   if (!normalizedCategory) {
     return catalogProjectEntries.map((entry) => ({ ...entry, muted: false }))
   }
 
-  const matching = catalogProjectEntries
-    .filter(({ project }) => project.navHash === normalizedCategory)
-    .sort(byNewestFirst)
+  const matching = (catalogProjectEntriesByCategory.get(normalizedCategory) || [])
     .map((entry) => ({ ...entry, muted: false }))
-  const muted = catalogProjectEntries
+  const muted = catalogProjectEntriesNewestFirst
     .filter(({ project }) => project.navHash !== normalizedCategory)
-    .sort(byNewestFirst)
     .map((entry) => ({ ...entry, muted: true }))
 
   return [...matching, ...muted]
@@ -378,6 +384,7 @@ const siteState = {
   hasFooterGallery: false,
   hasProjectRuleTargets: false,
   ruleFadeFrame: 0,
+  ruleFadeUpdates: [],
   catalogFilterTarget: null,
   catalogFilterCurrent: null,
   catalogFilterLocked: null,
@@ -1093,6 +1100,7 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
           src="${asset(project.image)}"
           alt="${escapeHtml(project.pageTitle)}"
           loading="${loadingIndex < 2 ? "eager" : "lazy"}"
+          decoding="async"
         />
         ${halftoneCanvas}
       </figure>
@@ -1386,6 +1394,21 @@ function detailMarkup(project) {
     return framerProjectDetailMarkup(project, framerProjectDetails[project.path])
   }
 
+  const projectMedia = project.itchEmbed
+    ? `<figure class="detail-screenshot detail-playable" aria-label="${escapeHtml(project.pageTitle)} playable game">
+        <iframe
+          src="${escapeHtml(project.itchEmbed)}"
+          title="Play ${escapeHtml(project.pageTitle)} on itch.io"
+          allow="autoplay; fullscreen; gamepad; pointer-lock"
+          allowfullscreen
+          loading="eager"
+          referrerpolicy="strict-origin-when-cross-origin"
+        ></iframe>
+      </figure>`
+    : `<figure class="detail-screenshot">
+        <img src="${asset(project.image)}" alt="${escapeHtml(project.pageTitle)} full-page reference" />
+      </figure>`
+
   return `
     ${headerMarkup()}
     <main class="site-main detail-page" data-route="${escapeHtml(project.path)}">
@@ -1397,9 +1420,7 @@ function detailMarkup(project) {
           </div>
           <span>${escapeHtml(project.date)}</span>
         </div>
-        <figure class="detail-screenshot">
-          <img src="${asset(project.image)}" alt="${escapeHtml(project.pageTitle)} full-page reference" />
-        </figure>
+        ${projectMedia}
       </article>
     </main>`
 }
@@ -1794,15 +1815,21 @@ function updateProjectRuleReveal() {
     return smoothstep((edgeDistance - edgeHoldDistance) / edgeFadeDistance).toFixed(3)
   }
 
+  const ruleUpdates = siteState.ruleFadeUpdates
+  ruleUpdates.length = 0
   projectRows.forEach((row) => {
     const rect = row.getBoundingClientRect()
-    setElementStyleProperty(row, "--project-rule-weight", ruleRevealFromY(rect.bottom))
+    ruleUpdates.push(row, "--project-rule-weight", ruleRevealFromY(rect.bottom))
   })
 
   cardRuleTargets.forEach((card) => {
     const rect = card.getBoundingClientRect()
-    setElementStyleProperty(card, "--card-rule-weight", ruleRevealFromY(rect.top))
+    ruleUpdates.push(card, "--card-rule-weight", ruleRevealFromY(rect.top))
   })
+
+  for (let index = 0; index < ruleUpdates.length; index += 3) {
+    setElementStyleProperty(ruleUpdates[index], ruleUpdates[index + 1], ruleUpdates[index + 2])
+  }
 }
 
 function requestRuleFadeUpdate() {
@@ -2300,16 +2327,19 @@ function setFooterGalleryLoopMetrics(gallery, setWidthOverride = 0, trackGapOver
 
   setElementStyleProperty(gallery, "--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
 
-  updateFooterGalleryAutoscrollFromPointer()
+  const distanceChanged = previousDistance <= 0 || Math.abs(previousDistance - distance) > 0.5
+  if (distanceChanged) updateFooterGalleryAutoscrollFromPointer()
 
-  const canRunHorizontally =
-    isFooterGalleryMotionReady(gallery) &&
-    (getFooterGalleryHoveredTile() ||
-      (siteState.galleryPointerDirection !== 0 &&
-        siteState.galleryPointerSpeedRatio > 0))
+  if (distanceChanged || !siteState.galleryLoopFrame) {
+    const canRunHorizontally =
+      isFooterGalleryMotionReady(gallery) &&
+      (getFooterGalleryHoveredTile() ||
+        (siteState.galleryPointerDirection !== 0 &&
+          siteState.galleryPointerSpeedRatio > 0))
 
-  if (canRunHorizontally) {
-    requestFooterGalleryLoop()
+    if (canRunHorizontally) {
+      requestFooterGalleryLoop()
+    }
   }
 }
 
@@ -3003,8 +3033,6 @@ function ensureProjectHalftoneSource(img, cssWidth, cssHeight, paperColor) {
 
   const cached = siteState.halftoneSourceCache.get(sampleKey)
   if (cached) {
-    siteState.halftoneSourceCache.delete(sampleKey)
-    siteState.halftoneSourceCache.set(sampleKey, cached)
     return cached
   }
 
@@ -3138,8 +3166,6 @@ function drawProjectHalftone(card, progress, colors = readCatalogHalftoneColors(
   const paintPaper = () => {
     context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
     context.clearRect(0, 0, cssWidth, cssHeight)
-    context.fillStyle = paperColor
-    context.fillRect(0, 0, cssWidth, cssHeight)
   }
 
   if (!img || !img.complete || !img.naturalWidth) {
@@ -3185,11 +3211,6 @@ function drawProjectHalftone(card, progress, colors = readCatalogHalftoneColors(
 function renderCatalogHalftones(catalog, progress = siteState.catalogHalftoneProgress, options = {}) {
   if (!catalog) return
   siteState.catalogHalftoneProgress = clamp(progress, 0, 1)
-  setElementStyleProperty(
-    catalog,
-    "--catalog-halftone-progress",
-    siteState.catalogHalftoneProgress.toFixed(3),
-  )
   const visibleOnly = options.visibleOnly !== false
   const cards = visibleOnly
     ? (siteState.dom.catalog === catalog
@@ -3753,7 +3774,9 @@ function requestScrollEffectsUpdate(delta) {
     updateHeaderFromScroll(pendingDelta)
     nudgeFooterGallery()
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
-    requestVisibleCatalogHalftones()
+    if (!siteState.halftoneObserver || !siteState.halftoneObserverReady) {
+      requestVisibleCatalogHalftones()
+    }
   })
 }
 

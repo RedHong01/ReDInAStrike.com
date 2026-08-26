@@ -1411,6 +1411,21 @@ body[data-layout-transition="true"] .about-section {
   height: auto;
 }
 
+.detail-playable {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #000;
+}
+
+.detail-playable iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .framer-derived-page {
   --derived-ink: rgb(0, 17, 34);
   --derived-muted: rgba(0, 17, 34, 0.52);
@@ -1809,6 +1824,11 @@ body[data-header-compact="true"][data-nav-density="titles"] .nav-item:focus-visi
   margin-inline: 0;
 }
 
+/* A locked category keeps its detail visible without making the title jump out of the row. */
+body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed) {
+  min-width: var(--nav-title-width, 0px);
+}
+
 body[data-header-compact="true"][data-nav-density="titles"] .nav-title {
   font-size: clamp(15px, 1.22vw, 18px);
   font-weight: 400;
@@ -1954,6 +1974,11 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-item.is-nav-locke
 body[data-header-compact="true"][data-nav-density="tiny"] .nav-item:focus-visible {
   min-width: var(--nav-detail-layout-width, var(--nav-title-width, 0px));
   margin-inline: 0;
+}
+
+body[data-header-compact="true"][data-nav-density="mobile"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed),
+body[data-header-compact="true"][data-nav-density="tiny"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed) {
+  min-width: var(--nav-title-width, 0px);
 }
 
 body[data-header-compact="true"][data-nav-density="mobile"] .nav-title {

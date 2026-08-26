@@ -153,6 +153,7 @@ const CATALOG_FILTER_ENTER_MS = 560
 const CATALOG_FILTER_STAGGER_MS = 28
 const CATALOG_HALFTONE_DELAY_MS = 120
 const CATALOG_HALFTONE_DRAW_MS = 1400
+const CATALOG_MUTED_HOVER_MS = 475
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const HALFTONE_RENDER_MARGIN = 1100
 const HALFTONE_PROGRESS_STEPS = 260
@@ -359,8 +360,17 @@ const siteState = {
   followFrame: 0,
   lastFrameTime: 0,
   lastScrollY: 0,
+  scrollFrame: 0,
+  pendingScrollDelta: 0,
+  resizeFrame: 0,
   layoutTransitionTimer: 0,
   navMetricKey: "",
+  navHoverSpacingKey: "",
+  headerMetricsWidth: -1,
+  headerMetrics: null,
+  headerStyleCache: Object.create(null),
+  hasFooterGallery: false,
+  hasProjectRuleTargets: false,
   ruleFadeFrame: 0,
   catalogFilterTarget: null,
   catalogFilterCurrent: null,
@@ -1551,25 +1561,53 @@ function render() {
   const project = routeMap.get(route)
   app.innerHTML = project ? detailMarkup(project) : homeMarkup()
   siteState.navMetricKey = ""
+  siteState.navHoverSpacingKey = ""
+  siteState.hasFooterGallery = Boolean(document.querySelector(".footer-gallery"))
+  siteState.hasProjectRuleTargets = Boolean(
+    document.querySelector(".project-row, .project-card + .project-card")
+  )
   resetCatalogFilterState()
   setupHeader()
-  setupNavHoverSpacing()
+  setupNavHoverSpacing({ force: true })
   setupNavHoverInteraction()
   setupFooterGallery()
   if (document.fonts) {
-    document.fonts.ready.then(setupNavHoverSpacing).catch(() => {})
+    document.fonts.ready.then(() => setupNavHoverSpacing({ force: true })).catch(() => {})
   }
   setupHoverEmbeds()
 }
 
 function readHeaderMetrics() {
   const width = window.innerWidth
+  if (siteState.headerMetrics && siteState.headerMetricsWidth === width) {
+    return siteState.headerMetrics
+  }
+
   const fullHeight = width < 760 ? 186 : width < 1120 ? 210 : 200
   const compactHeight = width < 560 ? 84 : width < 760 ? 88 : 78
   const fullLogo = 150
   const compactLogo = width < 760 ? 52 : 48
   const distance = width < 680 ? 150 : 205
-  return { width, fullHeight, compactHeight, fullLogo, compactLogo, distance }
+  const metrics = { width, fullHeight, compactHeight, fullLogo, compactLogo, distance }
+  siteState.headerMetricsWidth = width
+  siteState.headerMetrics = metrics
+  return metrics
+}
+
+function setRootStyleProperty(name, value) {
+  if (siteState.headerStyleCache[name] === value) return
+  siteState.headerStyleCache[name] = value
+  document.documentElement.style.setProperty(name, value)
+}
+
+function setBodyDatasetValue(name, value) {
+  if (document.body.dataset[name] === value) return
+  document.body.dataset[name] = value
+}
+
+function setElementStyleProperty(element, name, value) {
+  if (element.style.getPropertyValue(name) === value) return
+  element.style.setProperty(name, value)
 }
 
 function applyHeaderProgress(progress) {
@@ -1583,14 +1621,14 @@ function applyHeaderProgress(progress) {
   const glassShadowAlpha = 0
   const ruleAlpha = 0.82
 
-  document.documentElement.style.setProperty("--header-height", `${height.toFixed(2)}px`)
-  document.documentElement.style.setProperty("--logo-size", `${logo.toFixed(2)}px`)
-  document.documentElement.style.setProperty("--nav-scale", navScale.toFixed(4))
-  document.documentElement.style.setProperty("--detail-opacity", detailOpacity.toFixed(4))
-  document.documentElement.style.setProperty("--glass-alpha", glassAlpha.toFixed(4))
-  document.documentElement.style.setProperty("--glass-blur", `${glassBlur.toFixed(2)}px`)
-  document.documentElement.style.setProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
-  document.documentElement.style.setProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
+  setRootStyleProperty("--header-height", `${height.toFixed(2)}px`)
+  setRootStyleProperty("--logo-size", `${logo.toFixed(2)}px`)
+  setRootStyleProperty("--nav-scale", navScale.toFixed(4))
+  setRootStyleProperty("--detail-opacity", detailOpacity.toFixed(4))
+  setRootStyleProperty("--glass-alpha", glassAlpha.toFixed(4))
+  setRootStyleProperty("--glass-blur", `${glassBlur.toFixed(2)}px`)
+  setRootStyleProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
+  setRootStyleProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
 
   const isCompact = progress > 0.7
   const density =
@@ -1601,15 +1639,16 @@ function applyHeaderProgress(progress) {
         : isCompact
           ? "titles"
           : "full"
-  document.body.dataset.navDensity = density
-  document.body.dataset.headerCompact = isCompact ? "true" : "false"
-  const navMetricKey = `${density}:${document.body.dataset.headerCompact}`
+  const headerCompact = isCompact ? "true" : "false"
+  setBodyDatasetValue("navDensity", density)
+  setBodyDatasetValue("headerCompact", headerCompact)
+  const navMetricKey = `${density}:${headerCompact}`
   if (siteState.navMetricKey !== navMetricKey) {
     siteState.navMetricKey = navMetricKey
     setupNavHoverSpacing()
   }
-  requestRuleFadeUpdate()
-  updateFooterGalleryReveal()
+  if (siteState.hasProjectRuleTargets) requestRuleFadeUpdate()
+  if (siteState.hasFooterGallery) updateFooterGalleryReveal()
 }
 
 function updateProjectRuleReveal() {
@@ -1639,6 +1678,7 @@ function updateProjectRuleReveal() {
 }
 
 function requestRuleFadeUpdate() {
+  if (!siteState.hasProjectRuleTargets) return
   if (siteState.ruleFadeFrame) return
   siteState.ruleFadeFrame = requestAnimationFrame(() => {
     siteState.ruleFadeFrame = 0
@@ -2224,6 +2264,8 @@ function setFooterCompositionTargets(
 }
 
 function updateFooterGalleryReveal(options = {}) {
+  if (!siteState.hasFooterGallery) return 0
+
   const header = document.querySelector("[data-site-header]")
   const catalog = document.querySelector(".catalog")
   const gallery = document.querySelector(".footer-gallery")
@@ -2356,6 +2398,8 @@ function animateFooterGallery(time) {
 }
 
 function nudgeFooterGallery() {
+  if (!siteState.hasFooterGallery) return
+
   const gallery = document.querySelector(".footer-gallery")
   if (!gallery) return
 
@@ -3046,8 +3090,11 @@ function setCatalogFilter(category) {
 function cancelCatalogMutedRestore(catalog = document.querySelector(".catalog")) {
   if (!catalog) return
 
-  catalog.querySelectorAll(".project-card.is-muted-restore-intent").forEach((card) => {
+  catalog.querySelectorAll(".project-card.is-muted-restore-intent, .project-card.is-muted-restore-return").forEach((card) => {
+    window.clearTimeout(card.__catalogMutedReturnTimer)
+    card.__catalogMutedReturnTimer = 0
     card.classList.remove("is-muted-restore-intent")
+    card.classList.remove("is-muted-restore-return")
   })
 }
 
@@ -3056,13 +3103,24 @@ function setupFilteredCatalogRestore(catalog) {
 
   catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
     const clearIntent = () => {
+      if (!card.classList.contains("is-muted-restore-intent")) return
+
+      window.clearTimeout(card.__catalogMutedReturnTimer)
       card.classList.remove("is-muted-restore-intent")
+      card.classList.add("is-muted-restore-return")
+      card.__catalogMutedReturnTimer = window.setTimeout(() => {
+        card.classList.remove("is-muted-restore-return")
+        card.__catalogMutedReturnTimer = 0
+      }, catalogFilterDuration(CATALOG_MUTED_HOVER_MS) + 30)
     }
 
     const scheduleIntent = (event) => {
       if (event?.pointerType === "touch") return
       if (!card.isConnected || !card.classList.contains("is-filter-muted")) return
 
+      window.clearTimeout(card.__catalogMutedReturnTimer)
+      card.__catalogMutedReturnTimer = 0
+      card.classList.remove("is-muted-restore-return")
       card.classList.add("is-muted-restore-intent")
     }
 
@@ -3074,8 +3132,22 @@ function setupFilteredCatalogRestore(catalog) {
   })
 }
 
-function setupNavHoverSpacing() {
-  document.querySelectorAll(".nav-item").forEach((item) => {
+function setupNavHoverSpacing(options = {}) {
+  const nav = document.querySelector(".nav-list")
+  if (!nav) return
+
+  const items = [...nav.querySelectorAll(".nav-item")]
+  const spacingKey = [
+    document.body.dataset.navDensity || "",
+    document.body.dataset.headerCompact || "",
+    Math.round(window.innerWidth || 0),
+    items.map((item) => item.textContent.trim()).join("|"),
+  ].join(":")
+
+  if (!options.force && siteState.navHoverSpacingKey === spacingKey) return
+  siteState.navHoverSpacingKey = spacingKey
+
+  items.forEach((item) => {
     const title = item.querySelector(".nav-title")
     const detail = item.querySelector(".nav-detail")
     if (!title || !detail) return
@@ -3083,9 +3155,13 @@ function setupNavHoverSpacing() {
     const titleWidth = title.scrollWidth || title.offsetWidth || title.getBoundingClientRect().width
     const detailWidth = detail.scrollWidth || detail.getBoundingClientRect().width
     const hoverSpace = clamp(Math.ceil((detailWidth - titleWidth) / 2 + 10), 0, 120)
-    item.style.setProperty("--nav-hover-space", `${hoverSpace}px`)
-    item.style.setProperty("--nav-title-width", `${Math.ceil(titleWidth)}px`)
-    item.style.setProperty("--nav-detail-layout-width", `${Math.ceil(Math.max(titleWidth, detailWidth))}px`)
+    setElementStyleProperty(item, "--nav-hover-space", `${hoverSpace}px`)
+    setElementStyleProperty(item, "--nav-title-width", `${Math.ceil(titleWidth)}px`)
+    setElementStyleProperty(
+      item,
+      "--nav-detail-layout-width",
+      `${Math.ceil(Math.max(titleWidth, detailWidth))}px`,
+    )
   })
 }
 
@@ -3094,12 +3170,17 @@ function setupNavHoverInteraction() {
   if (!nav) return
 
   const items = [...nav.querySelectorAll(".nav-item")]
+  const itemsByCategory = new Map(
+    items
+      .map((item) => [normalizeCatalogFilter(item.dataset.navCategory), item])
+      .filter(([category]) => category),
+  )
   let clearTimer = 0
   let hoverScrollTimer = 0
   let hoveredItem = null
+  let visualStateKey = ""
 
-  const itemForCategory = (category) =>
-    items.find((item) => normalizeCatalogFilter(item.dataset.navCategory) === category) || null
+  const itemForCategory = (category) => itemsByCategory.get(category) || null
 
   const clearHoverScroll = () => {
     window.clearTimeout(hoverScrollTimer)
@@ -3107,7 +3188,22 @@ function setupNavHoverInteraction() {
   }
 
   const setVisualActive = (activeItem) => {
-    items.forEach((item) => item.classList.toggle("is-nav-active", item === activeItem))
+    const lockedItem = itemForCategory(siteState.catalogFilterLocked)
+    const suppressLockedDetail = Boolean(lockedItem && activeItem && activeItem !== lockedItem)
+    const nextVisualStateKey = [
+      activeItem?.dataset.navCategory || "",
+      siteState.catalogFilterLocked || "",
+      suppressLockedDetail ? "suppressed" : "open",
+    ].join(":")
+
+    if (visualStateKey === nextVisualStateKey) return
+    visualStateKey = nextVisualStateKey
+
+    items.forEach((item) => {
+      item.classList.toggle("is-nav-active", item === activeItem && item !== lockedItem)
+      item.classList.toggle("is-nav-locked", item === lockedItem)
+      item.classList.toggle("is-nav-lock-suppressed", item === lockedItem && suppressLockedDetail)
+    })
   }
 
   const scheduleHoverScroll = (activeItem, category) => {
@@ -3154,6 +3250,7 @@ function setupNavHoverInteraction() {
   if (initialCategory && document.querySelector(".catalog")) {
     siteState.catalogFilterLocked = initialCategory
     replaceCatalogFilterImmediately(initialCategory)
+    setVisualActive(itemForCategory(initialCategory))
   } else if (initialHash === "resume" && document.querySelector(".catalog")) {
     scheduleScrollToPageSection("resume", { immediate: true, attempts: 5, delay: 180 })
   }
@@ -3211,6 +3308,12 @@ function setupNavHoverInteraction() {
       }
 
       event.preventDefault()
+
+      if (!document.querySelector(".catalog")) {
+        window.location.href = `${hrefFor("/")}#${category}`
+        return
+      }
+
       siteState.catalogFilterLocked = category
       cancelCatalogMutedRestore()
       updateFilterHash(category)
@@ -3242,7 +3345,9 @@ function animateHeader(time) {
 }
 
 function setHeaderTarget(nextProgress, immediate = false) {
-  siteState.targetProgress = clamp(nextProgress, 0, 1)
+  const targetProgress = clamp(nextProgress, 0, 1)
+  if (!immediate && Math.abs(targetProgress - siteState.targetProgress) < 0.0005) return
+  siteState.targetProgress = targetProgress
 
   if (immediate) {
     if (siteState.followFrame) cancelAnimationFrame(siteState.followFrame)
@@ -3266,6 +3371,22 @@ function updateHeaderFromScroll(delta) {
   }
   if (Math.abs(delta) < 0.35) return
   setHeaderTarget(siteState.targetProgress + delta / metrics.distance)
+}
+
+function requestScrollEffectsUpdate(delta) {
+  siteState.pendingScrollDelta += delta
+  if (siteState.scrollFrame) return
+
+  siteState.scrollFrame = requestAnimationFrame(() => {
+    const pendingDelta = siteState.pendingScrollDelta
+    siteState.pendingScrollDelta = 0
+    siteState.scrollFrame = 0
+
+    updateHeaderFromScroll(pendingDelta)
+    nudgeFooterGallery()
+    requestRuleFadeUpdate()
+    requestVisibleCatalogHalftones()
+  })
 }
 
 function startResponsiveLayoutTransition() {
@@ -3315,21 +3436,24 @@ function setupHeader() {
       const current = window.scrollY || window.pageYOffset || 0
       const delta = current - siteState.lastScrollY
       siteState.lastScrollY = current
-      updateHeaderFromScroll(delta)
-      nudgeFooterGallery(delta)
-      requestRuleFadeUpdate()
-      requestVisibleCatalogHalftones()
+      requestScrollEffectsUpdate(delta)
     },
     { passive: true }
   )
 
   window.addEventListener("resize", () => {
-    startResponsiveLayoutTransition()
-    applyHeaderProgress(siteState.visualProgress)
-    setupNavHoverSpacing()
-    requestRuleFadeUpdate()
-    updateFooterGalleryReveal()
-    requestVisibleCatalogHalftones()
+    if (siteState.resizeFrame) return
+    siteState.resizeFrame = requestAnimationFrame(() => {
+      siteState.resizeFrame = 0
+      siteState.headerMetricsWidth = -1
+      siteState.headerMetrics = null
+      startResponsiveLayoutTransition()
+      applyHeaderProgress(siteState.visualProgress)
+      setupNavHoverSpacing({ force: true })
+      requestRuleFadeUpdate()
+      updateFooterGalleryReveal()
+      requestVisibleCatalogHalftones()
+    })
   })
 }
 

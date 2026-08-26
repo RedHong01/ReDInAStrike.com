@@ -347,9 +347,7 @@ img {
 }
 
 .nav-item.is-nav-active,
-.nav-item.is-nav-locked:not(.is-nav-lock-suppressed),
 .nav-item:focus-visible {
-  min-width: var(--nav-detail-layout-width, var(--nav-title-width, 0px));
   margin-inline: var(--nav-hover-space, 0px);
 }
 

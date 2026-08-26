@@ -395,6 +395,8 @@ const siteState = {
   galleryPointerInitialized: false,
   galleryPointerX: null,
   galleryPointerY: null,
+  galleryPointerMoved: false,
+  galleryPointerFrame: 0,
   galleryPointerDirection: 0,
   galleryPointerSpeedRatio: 0,
   galleryHoveredTile: null,
@@ -416,6 +418,73 @@ const siteState = {
   aboutCardTargetOffset: 0,
   resumeCardOffset: 0,
   resumeCardTargetOffset: 0,
+  dom: {
+    header: null,
+    catalog: null,
+    projectRows: [],
+    cardRuleTargets: [],
+    catalogContentNodes: [],
+    mutedCards: [],
+    gallery: null,
+    galleryViewport: null,
+    galleryTrack: null,
+    galleryFirstSet: null,
+    galleryFirstMeta: null,
+    galleryTiles: [],
+    about: null,
+  },
+  visibleHalftoneCards: [],
+  galleryLayoutDirty: true,
+  galleryLayoutMetrics: null,
+  halftoneColors: null,
+  halftoneColorsKey: "",
+  reducedMotionQuery: null,
+}
+
+function refreshDomCache() {
+  const catalog = document.querySelector(".catalog")
+  const gallery = document.querySelector(".footer-gallery")
+  const galleryViewport = gallery?.querySelector(".footer-gallery-viewport") || null
+  const galleryTrack = gallery?.querySelector(".footer-gallery-track") || null
+  const gallerySets = gallery ? [...gallery.querySelectorAll(".footer-gallery-set")] : []
+
+  siteState.dom = {
+    header: document.querySelector("[data-site-header]"),
+    catalog,
+    projectRows: [...document.querySelectorAll(".project-row")],
+    cardRuleTargets: [...document.querySelectorAll(".project-card + .project-card")],
+    catalogContentNodes: catalog
+      ? [...catalog.querySelectorAll(".project-media, .project-meta")].filter((node) => {
+          const style = window.getComputedStyle(node)
+          return style.display !== "none" && style.visibility !== "hidden"
+        })
+      : [],
+    mutedCards: catalog ? [...catalog.querySelectorAll(".project-card.is-filter-muted")] : [],
+    gallery,
+    galleryViewport,
+    galleryTrack,
+    galleryFirstSet: gallerySets[0] || null,
+    galleryFirstMeta: gallery?.querySelector(".footer-gallery-meta") || null,
+    galleryTiles: gallery ? [...gallery.querySelectorAll(".footer-gallery-tile")] : [],
+    about: document.querySelector(".about-section"),
+  }
+  siteState.visibleHalftoneCards = []
+  siteState.galleryLayoutDirty = true
+  siteState.galleryLayoutMetrics = null
+  siteState.hasFooterGallery = Boolean(gallery)
+  siteState.hasProjectRuleTargets = Boolean(
+    siteState.dom.projectRows.length || siteState.dom.cardRuleTargets.length,
+  )
+}
+
+function getReducedMotionQuery() {
+  if (siteState.reducedMotionQuery) return siteState.reducedMotionQuery
+  siteState.reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
+  return siteState.reducedMotionQuery
+}
+
+function prefersReducedMotion() {
+  return getReducedMotionQuery().matches
 }
 
 function asset(path) {
@@ -1562,10 +1631,7 @@ function render() {
   app.innerHTML = project ? detailMarkup(project) : homeMarkup()
   siteState.navMetricKey = ""
   siteState.navHoverSpacingKey = ""
-  siteState.hasFooterGallery = Boolean(document.querySelector(".footer-gallery"))
-  siteState.hasProjectRuleTargets = Boolean(
-    document.querySelector(".project-row, .project-card + .project-card")
-  )
+  refreshDomCache()
   resetCatalogFilterState()
   setupHeader()
   setupNavHoverSpacing({ force: true })
@@ -1652,7 +1718,7 @@ function applyHeaderProgress(progress) {
 }
 
 function updateProjectRuleReveal() {
-  const header = document.querySelector("[data-site-header]")
+  const { header, projectRows, cardRuleTargets } = siteState.dom
   const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
   if (!viewportHeight) return
 
@@ -1666,14 +1732,14 @@ function updateProjectRuleReveal() {
     return smoothstep((edgeDistance - edgeHoldDistance) / edgeFadeDistance).toFixed(3)
   }
 
-  document.querySelectorAll(".project-row").forEach((row) => {
+  projectRows.forEach((row) => {
     const rect = row.getBoundingClientRect()
-    row.style.setProperty("--project-rule-weight", ruleRevealFromY(rect.bottom))
+    setElementStyleProperty(row, "--project-rule-weight", ruleRevealFromY(rect.bottom))
   })
 
-  document.querySelectorAll(".project-card + .project-card").forEach((card) => {
+  cardRuleTargets.forEach((card) => {
     const rect = card.getBoundingClientRect()
-    card.style.setProperty("--card-rule-weight", ruleRevealFromY(rect.top))
+    setElementStyleProperty(card, "--card-rule-weight", ruleRevealFromY(rect.top))
   })
 }
 
@@ -1690,15 +1756,12 @@ function getCatalogContentBottom(catalog, fallback = 0) {
   if (!catalog) return fallback
 
   let bottom = -Infinity
-  catalog.querySelectorAll(".project-media, .project-meta").forEach((node) => {
+  const nodes = siteState.dom.catalog === catalog
+    ? siteState.dom.catalogContentNodes
+    : [...catalog.querySelectorAll(".project-media, .project-meta")]
+  nodes.forEach((node) => {
     const rect = node.getBoundingClientRect()
-    const style = window.getComputedStyle(node)
-    if (
-      rect.width > 0.5 &&
-      rect.height > 0.5 &&
-      style.display !== "none" &&
-      style.visibility !== "hidden"
-    ) {
+    if (rect.width > 0.5 && rect.height > 0.5) {
       bottom = Math.max(bottom, rect.bottom)
     }
   })
@@ -1706,19 +1769,50 @@ function getCatalogContentBottom(catalog, fallback = 0) {
   return Number.isFinite(bottom) ? bottom : fallback
 }
 
+function readFooterGalleryLayoutMetrics(gallery) {
+  const { galleryTrack: track, galleryFirstSet: firstSet, galleryFirstMeta: firstMeta } = siteState.dom
+  const setStyle = firstSet ? window.getComputedStyle(firstSet) : null
+  const metaStyle = firstMeta ? window.getComputedStyle(firstMeta) : null
+  const trackStyle = track ? window.getComputedStyle(track) : null
+  const gap = parseFloat(setStyle?.columnGap || setStyle?.gap || "") || 24
+  const trackGap = parseFloat(trackStyle?.columnGap || trackStyle?.gap || "") || 0
+  const metaLineHeight =
+    parseFloat(metaStyle?.lineHeight || "") ||
+    (parseFloat(metaStyle?.fontSize || "") || 14) * 1.25
+  const metaPaddingTop = parseFloat(metaStyle?.paddingTop || "") || 12
+  const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
+  const metaHeight = clamp(
+    metaPaddingTop + metaLineHeight * 2 + 6,
+    viewportWidth <= 700 ? 48 : 50,
+    viewportWidth <= 700 ? 66 : 72,
+  )
+
+  siteState.galleryLayoutMetrics = {
+    gap,
+    trackGap,
+    metaHeight,
+    tileCount: firstSet?.querySelectorAll(".footer-gallery-tile").length || projects.length,
+  }
+  siteState.galleryLayoutDirty = false
+  return siteState.galleryLayoutMetrics
+}
+
+function getFooterGalleryLayoutMetrics(gallery) {
+  if (!siteState.galleryLayoutMetrics || siteState.galleryLayoutDirty) {
+    return readFooterGalleryLayoutMetrics(gallery)
+  }
+  return siteState.galleryLayoutMetrics
+}
+
 function setFooterGalleryStyles(
   reveal = siteState.galleryReveal,
   shift = siteState.galleryShift,
   pocketHeight = siteState.galleryPocketHeight,
 ) {
-  const gallery = document.querySelector(".footer-gallery")
+  const { gallery, galleryViewport: viewport, header, catalog, about } = siteState.dom
   if (!gallery) return
 
-  const viewport = gallery.querySelector(".footer-gallery-viewport")
-  const track = gallery.querySelector(".footer-gallery-track")
-  const header = document.querySelector("[data-site-header]")
-  const catalog = document.querySelector(".catalog")
-  const about = document.querySelector(".about-section")
+  const { gap, trackGap, metaHeight, tileCount } = getFooterGalleryLayoutMetrics(gallery)
   const galleryRect = gallery.getBoundingClientRect()
   const rect = viewport?.getBoundingClientRect() || gallery.getBoundingClientRect()
   const visibleReveal = clamp(reveal, 0, 1)
@@ -1744,20 +1838,6 @@ function setFooterGalleryStyles(
   const visiblePocket = visibleReveal > 0.001 ? contentHeight : 0
   const pocketTop = Math.max(headerBottom, pocketBottom - visiblePocket)
   const revealShift = 0
-  const firstSet = gallery.querySelector(".footer-gallery-set")
-  const firstMeta = gallery.querySelector(".footer-gallery-meta")
-  const setStyle = firstSet ? window.getComputedStyle(firstSet) : null
-  const metaStyle = firstMeta ? window.getComputedStyle(firstMeta) : null
-  const gap = parseFloat(setStyle?.columnGap || setStyle?.gap || "") || 24
-  const metaLineHeight =
-    parseFloat(metaStyle?.lineHeight || "") ||
-    (parseFloat(metaStyle?.fontSize || "") || 14) * 1.25
-  const metaPaddingTop = parseFloat(metaStyle?.paddingTop || "") || 12
-  const metaHeight = clamp(
-    metaPaddingTop + metaLineHeight * 2 + 6,
-    viewportWidth <= 700 ? 48 : 50,
-    viewportWidth <= 700 ? 66 : 72,
-  )
   const mediaHeight = Math.max(0, contentHeight - metaHeight)
   const widthFromPocket = mediaHeight * (viewportWidth <= 700 ? 1.24 : 1.55)
   const minTileCount =
@@ -1790,24 +1870,23 @@ function setFooterGalleryStyles(
     viewportWidth <= 700 ? 620 : 1120,
   )
   const tileWidth = clamp(rawTileWidth, minTileWidth, maxTileWidth)
-  const tileCount = firstSet?.querySelectorAll(".footer-gallery-tile").length || projects.length
   const setWidth = tileCount > 0
     ? tileWidth * tileCount + gap * Math.max(0, tileCount - 1)
     : 0
-  gallery.style.setProperty("--gallery-reveal", visibleReveal.toFixed(4))
-  gallery.style.setProperty("--gallery-pocket-height", `${visiblePocket.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-content-height", `${contentHeight.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-pocket-top", `${pocketTop.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-reveal-y", `${revealShift.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-viewport-left", `${(-galleryRect.left).toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-tile-width", `${tileWidth.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-set-width", `${setWidth.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-meta-space", `${metaHeight.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-opacity", visiblePocket > 1 ? "1" : "0")
-  gallery.style.setProperty("--gallery-enter-x", "0px")
-  gallery.style.setProperty("--gallery-scroll-shift", "0px")
+  setElementStyleProperty(gallery, "--gallery-reveal", visibleReveal.toFixed(4))
+  setElementStyleProperty(gallery, "--gallery-pocket-height", `${visiblePocket.toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-content-height", `${contentHeight.toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-pocket-top", `${pocketTop.toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-reveal-y", `${revealShift.toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-viewport-left", `${(-galleryRect.left).toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-tile-width", `${tileWidth.toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-set-width", `${setWidth.toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-meta-space", `${metaHeight.toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-opacity", visiblePocket > 1 ? "1" : "0")
+  setElementStyleProperty(gallery, "--gallery-enter-x", "0px")
+  setElementStyleProperty(gallery, "--gallery-scroll-shift", "0px")
   gallery.dataset.galleryRevealed = visiblePocket > 1 ? "true" : "false"
-  setFooterGalleryLoopMetrics(gallery)
+  setFooterGalleryLoopMetrics(gallery, setWidth, trackGap)
 }
 
 function wrapGalleryLoopOffset(offset, distance) {
@@ -1860,6 +1939,9 @@ function suppressFooterGalleryHoverUntilPointerMove() {
 }
 
 function resetFooterGalleryPointer() {
+  if (siteState.galleryPointerFrame) cancelAnimationFrame(siteState.galleryPointerFrame)
+  siteState.galleryPointerFrame = 0
+  siteState.galleryPointerMoved = false
   siteState.galleryPointerX = null
   siteState.galleryPointerY = null
   siteState.galleryHoveredTile = null
@@ -1889,8 +1971,7 @@ function findFooterGalleryTileAtPointer() {
   const y = siteState.galleryPointerY
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null
 
-  const gallery = document.querySelector(".footer-gallery")
-  const viewport = gallery?.querySelector(".footer-gallery-viewport")
+  const { gallery, galleryViewport: viewport } = siteState.dom
   if (!gallery || !viewport || !isFooterGalleryMotionReady(gallery)) return null
 
   const viewportRect = viewport.getBoundingClientRect()
@@ -1961,7 +2042,7 @@ function clearFooterGalleryHoveredTile(event) {
 }
 
 function updateFooterGalleryAutoscrollFromPointer() {
-  const gallery = document.querySelector(".footer-gallery")
+  const { gallery } = siteState.dom
   const pointerX = siteState.galleryPointerX
   if (!gallery || !isFooterGalleryMotionReady(gallery) || !Number.isFinite(pointerX)) {
     clearFooterGalleryAutoscroll()
@@ -1995,18 +2076,10 @@ function updateFooterGalleryAutoscrollFromPointer() {
   requestFooterGalleryLoop()
 }
 
-function updateFooterGalleryPointer(event) {
-  if (event.pointerType === "touch") return
-
-  const previousX = siteState.galleryPointerX
-  const previousY = siteState.galleryPointerY
-  const moved =
-    !Number.isFinite(previousX) ||
-    !Number.isFinite(previousY) ||
-    Math.hypot(event.clientX - previousX, event.clientY - previousY) > 0.5
-  siteState.galleryPointerX = event.clientX
-  siteState.galleryPointerY = event.clientY
-
+function processFooterGalleryPointerMove() {
+  siteState.galleryPointerFrame = 0
+  const moved = siteState.galleryPointerMoved
+  siteState.galleryPointerMoved = false
   if (moved) {
     siteState.galleryHoverSuppressed = false
     const pointedTile = findFooterGalleryTileAtPointer()
@@ -2022,8 +2095,23 @@ function updateFooterGalleryPointer(event) {
   updateFooterGalleryAutoscrollFromPointer()
 }
 
+function updateFooterGalleryPointer(event) {
+  if (event.pointerType === "touch") return
+
+  const previousX = siteState.galleryPointerX
+  const previousY = siteState.galleryPointerY
+  siteState.galleryPointerMoved ||= !Number.isFinite(previousX) ||
+    !Number.isFinite(previousY) ||
+    Math.hypot(event.clientX - previousX, event.clientY - previousY) > 0.5
+  siteState.galleryPointerX = event.clientX
+  siteState.galleryPointerY = event.clientY
+
+  if (siteState.galleryPointerFrame) return
+  siteState.galleryPointerFrame = requestAnimationFrame(processFooterGalleryPointerMove)
+}
+
 function centerFooterGalleryTile(gallery, tile, elapsed, distance) {
-  const viewport = gallery.querySelector(".footer-gallery-viewport")
+  const { galleryViewport: viewport } = siteState.dom
   if (!viewport || !tile) return false
 
   const viewportRect = viewport.getBoundingClientRect()
@@ -2041,12 +2129,12 @@ function centerFooterGalleryTile(gallery, tile, elapsed, distance) {
     siteState.galleryLoopOffset + delta * amount,
     distance,
   )
-  gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
   return true
 }
 
 function handleFooterGalleryHorizontalWheel(event, time = performance.now()) {
-  const gallery = document.querySelector(".footer-gallery")
+  const { gallery } = siteState.dom
   const hoveredTile = getFooterGalleryHoveredTile({
     requirePointerInside: true,
     allowPointerHitTest: false,
@@ -2091,17 +2179,17 @@ function handleFooterGalleryHorizontalWheel(event, time = performance.now()) {
   return true
 }
 
-function setFooterGalleryLoopMetrics(gallery) {
-  const track = gallery.querySelector(".footer-gallery-track")
-  const sets = [...gallery.querySelectorAll(".footer-gallery-set")]
-  const firstSet = sets[0]
+function setFooterGalleryLoopMetrics(gallery, setWidthOverride = 0, trackGapOverride = null) {
+  const { galleryTrack: track, galleryFirstSet: firstSet } = siteState.dom
   if (!track || !firstSet) return
 
-  const galleryStyle = window.getComputedStyle(gallery)
-  const trackStyle = window.getComputedStyle(track)
-  const trackGap = parseFloat(trackStyle.columnGap || trackStyle.gap || "") || 0
-  const cssSetWidth = parseFloat(galleryStyle.getPropertyValue("--gallery-set-width"))
-  const measuredSetWidth = firstSet.getBoundingClientRect().width
+  const trackGap = Number.isFinite(trackGapOverride)
+    ? trackGapOverride
+    : getFooterGalleryLayoutMetrics(gallery).trackGap
+  const cssSetWidth = Number.isFinite(setWidthOverride) && setWidthOverride > 0
+    ? setWidthOverride
+    : parseFloat(window.getComputedStyle(gallery).getPropertyValue("--gallery-set-width"))
+  const measuredSetWidth = cssSetWidth > 0 ? cssSetWidth : firstSet.getBoundingClientRect().width
   const setWidth =
     Number.isFinite(cssSetWidth) && cssSetWidth > 0
       ? cssSetWidth
@@ -2114,14 +2202,14 @@ function setFooterGalleryLoopMetrics(gallery) {
   const duration = clamp(distance / pxPerSecond, 42, 120)
   const previousDistance = siteState.galleryLoopDistance
 
-  gallery.style.setProperty("--gallery-loop-distance", `${distance.toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-loop-x", `${(-distance).toFixed(2)}px`)
-  gallery.style.setProperty("--gallery-loop-duration", `${duration.toFixed(2)}s`)
+  setElementStyleProperty(gallery, "--gallery-loop-distance", `${distance.toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-loop-x", `${(-distance).toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-loop-duration", `${duration.toFixed(2)}s`)
 
   if (siteState.galleryHorizontalFrozen) {
     siteState.galleryLoopDistance = distance
     siteState.galleryLoopBaseSpeed = distance / duration
-    gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+    setElementStyleProperty(gallery, "--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
     return
   }
 
@@ -2136,7 +2224,7 @@ function setFooterGalleryLoopMetrics(gallery) {
   siteState.galleryLoopBaseSpeed = distance / duration
   siteState.galleryLoopOffset = wrapGalleryLoopOffset(siteState.galleryLoopOffset, distance)
 
-  gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
 
   updateFooterGalleryAutoscrollFromPointer()
 
@@ -2152,18 +2240,18 @@ function setFooterGalleryLoopMetrics(gallery) {
 }
 
 function animateFooterGalleryLoop(time) {
-  const gallery = document.querySelector(".footer-gallery")
+  const { gallery } = siteState.dom
   if (!gallery) {
     siteState.galleryLoopFrame = 0
     siteState.galleryLoopLastTime = 0
     return
   }
 
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  const reducedMotion = prefersReducedMotion()
   if (reducedMotion) {
     siteState.galleryLoopBoost = 0
     siteState.galleryLoopOffset = 0
-    gallery.style.setProperty("--gallery-loop-offset", "0px")
+    setElementStyleProperty(gallery, "--gallery-loop-offset", "0px")
     siteState.galleryLoopFrame = 0
     siteState.galleryLoopLastTime = 0
     return
@@ -2210,7 +2298,7 @@ function animateFooterGalleryLoop(time) {
         siteState.galleryLoopOffset + direction * speed * elapsed,
         distance,
       )
-      gallery.style.setProperty("--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
+      setElementStyleProperty(gallery, "--gallery-loop-offset", `${(-siteState.galleryLoopOffset).toFixed(2)}px`)
     }
   }
 
@@ -2218,12 +2306,12 @@ function animateFooterGalleryLoop(time) {
 }
 
 function applyFooterComposition() {
-  const about = document.querySelector(".about-section")
+  const { about } = siteState.dom
   if (about) {
     const pull = Math.max(0, siteState.aboutPull || 0)
-    about.style.setProperty("--about-pull-y", `${pull.toFixed(2)}px`)
-    about.style.setProperty("--about-card-offset-y", `${Math.max(0, siteState.aboutCardOffset || 0).toFixed(2)}px`)
-    about.style.setProperty("--resume-card-offset-y", `${Math.max(0, siteState.resumeCardOffset || 0).toFixed(2)}px`)
+    setElementStyleProperty(about, "--about-pull-y", `${pull.toFixed(2)}px`)
+    setElementStyleProperty(about, "--about-card-offset-y", `${Math.max(0, siteState.aboutCardOffset || 0).toFixed(2)}px`)
+    setElementStyleProperty(about, "--resume-card-offset-y", `${Math.max(0, siteState.resumeCardOffset || 0).toFixed(2)}px`)
   }
   setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
 }
@@ -2266,11 +2354,7 @@ function setFooterCompositionTargets(
 function updateFooterGalleryReveal(options = {}) {
   if (!siteState.hasFooterGallery) return 0
 
-  const header = document.querySelector("[data-site-header]")
-  const catalog = document.querySelector(".catalog")
-  const gallery = document.querySelector(".footer-gallery")
-  const viewport = gallery?.querySelector(".footer-gallery-viewport")
-  const about = document.querySelector(".about-section")
+  const { header, catalog, gallery, galleryViewport: viewport, about } = siteState.dom
   if (!header || !catalog || !gallery || !viewport || !about) return 0
 
   const headerRect = header.getBoundingClientRect()
@@ -2400,7 +2484,7 @@ function animateFooterGallery(time) {
 function nudgeFooterGallery() {
   if (!siteState.hasFooterGallery) return
 
-  const gallery = document.querySelector(".footer-gallery")
+  const { gallery } = siteState.dom
   if (!gallery) return
 
   siteState.galleryObservedScrollY = readFooterGalleryScrollY()
@@ -2431,7 +2515,10 @@ function nudgeFooterGallery() {
 function setupFooterGallery() {
   if (siteState.galleryFrame) cancelAnimationFrame(siteState.galleryFrame)
   if (siteState.galleryLoopFrame) cancelAnimationFrame(siteState.galleryLoopFrame)
+  if (siteState.galleryPointerFrame) cancelAnimationFrame(siteState.galleryPointerFrame)
   siteState.galleryFrame = 0
+  siteState.galleryPointerFrame = 0
+  siteState.galleryPointerMoved = false
   siteState.galleryLastFrameTime = 0
   siteState.galleryLastScrollTime = 0
   siteState.galleryLoopFrame = 0
@@ -2466,7 +2553,7 @@ function setupFooterGallery() {
   siteState.resumeCardTargetOffset = 0
   updateFooterGalleryReveal({ immediate: true })
 
-  const gallery = document.querySelector(".footer-gallery")
+  const { gallery, galleryTiles } = siteState.dom
   if (!siteState.galleryPointerInitialized) {
     siteState.galleryPointerInitialized = true
     window.addEventListener("pointermove", updateFooterGalleryPointer, { passive: true })
@@ -2482,7 +2569,7 @@ function setupFooterGallery() {
     )
   }
 
-  gallery?.querySelectorAll(".footer-gallery-tile").forEach((tile) => {
+  galleryTiles.forEach((tile) => {
     tile.addEventListener("pointerenter", setFooterGalleryHoveredTile, { passive: true })
     tile.addEventListener("pointerleave", clearFooterGalleryHoveredTile, { passive: true })
     tile.addEventListener("pointercancel", clearFooterGalleryHoveredTile, { passive: true })
@@ -2511,7 +2598,7 @@ function resetCatalogFilterState() {
 }
 
 function catalogFilterDuration(duration) {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : duration
+  return prefersReducedMotion() ? 1 : duration
 }
 
 function setCatalogCardTimingVars(catalog, property, step = CATALOG_FILTER_STAGGER_MS, maxDelay = 196) {
@@ -2541,6 +2628,7 @@ function updateCatalogFilterDataset(catalog, category) {
 function refreshCatalogAfterFilter(catalog) {
   setupHoverEmbeds()
   setupFilteredCatalogRestore(catalog)
+  updateVisibleCatalogHalftoneCards(catalog)
   requestRuleFadeUpdate()
   updateFooterGalleryReveal()
   if (catalog) {
@@ -2562,10 +2650,16 @@ function stopCatalogHalftoneVisibleUpdate() {
 function readCatalogHalftoneColors() {
   const root = document.documentElement
   const style = window.getComputedStyle(root)
-  return {
-    paperColor: style.getPropertyValue("--paper").trim() || "#f8f7f5",
-    inkColor: style.getPropertyValue("--ink").trim() || "rgb(69, 69, 69)",
+  const paperColor = style.getPropertyValue("--paper").trim() || "#f8f7f5"
+  const inkColor = style.getPropertyValue("--ink").trim() || "rgb(69, 69, 69)"
+  const key = `${paperColor}|${inkColor}`
+  if (siteState.halftoneColors && siteState.halftoneColorsKey === key) {
+    return siteState.halftoneColors
   }
+
+  siteState.halftoneColorsKey = key
+  siteState.halftoneColors = { paperColor, inkColor }
+  return siteState.halftoneColors
 }
 
 function isNearViewport(element, margin = HALFTONE_RENDER_MARGIN) {
@@ -2580,6 +2674,19 @@ function isNearViewport(element, margin = HALFTONE_RENDER_MARGIN) {
     rect.right >= -margin &&
     rect.left <= viewportWidth + margin
   )
+}
+
+function updateVisibleCatalogHalftoneCards(catalog = siteState.dom.catalog) {
+  if (!catalog || !catalog.dataset.activeFilter) {
+    siteState.visibleHalftoneCards = []
+    return siteState.visibleHalftoneCards
+  }
+
+  const cards = siteState.dom.catalog === catalog
+    ? siteState.dom.mutedCards
+    : [...catalog.querySelectorAll(".project-card.is-filter-muted")]
+  siteState.visibleHalftoneCards = cards.filter((card) => isNearViewport(card))
+  return siteState.visibleHalftoneCards
 }
 
 function parseObjectPositionRatio(value) {
@@ -2708,6 +2815,8 @@ function ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize,
 
     const data = sampleContext.getImageData(0, 0, cols, rows).data
     const ink = new Float32Array(cols * rows)
+    const dots = new Float32Array(ink.length * 3)
+    let dotCount = 0
     for (let index = 0; index < ink.length; index += 1) {
       const sourceIndex = index * 4
       const red = data[sourceIndex]
@@ -2715,6 +2824,15 @@ function ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize,
       const blue = data[sourceIndex + 2]
       const luminance = (red * 0.2126 + green * 0.7152 + blue * 0.0722) / 255
       ink[index] = clamp((1 - luminance) * 1.18 - 0.025, 0, 1)
+      const radius = Math.sqrt(ink[index]) * cellSize * 0.54
+      if (radius < 0.08) continue
+
+      const col = index % cols
+      const row = Math.floor(index / cols)
+      dots[dotCount] = col * cellSize + cellSize / 2
+      dots[dotCount + 1] = row * cellSize + cellSize / 2
+      dots[dotCount + 2] = radius
+      dotCount += 3
     }
 
     const sample = {
@@ -2722,7 +2840,7 @@ function ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize,
       cols,
       rows,
       cellSize,
-      ink,
+      dots: dots.subarray(0, dotCount),
     }
     canvas.__projectHalftoneSample = sample
     canvas.__projectHalftoneRenderKey = null
@@ -2797,28 +2915,18 @@ function drawProjectHalftone(card, progress, colors = readCatalogHalftoneColors(
   if (dotProgress <= 0.001) return true
 
   context.fillStyle = inkColor
-  const maxRadius = sample.cellSize * 0.54 * dotProgress
   let hasDots = false
   context.beginPath()
 
-  for (let row = 0; row < sample.rows; row += 1) {
-    for (let col = 0; col < sample.cols; col += 1) {
-      const ink = sample.ink[row * sample.cols + col]
-      const radius = Math.sqrt(ink) * maxRadius
-      if (radius < 0.08) continue
+  for (let index = 0; index < sample.dots.length; index += 3) {
+    const x = sample.dots[index]
+    const y = sample.dots[index + 1]
+    const radius = sample.dots[index + 2] * dotProgress
+    if (radius < 0.08) continue
 
-      const x = col * sample.cellSize + sample.cellSize / 2
-      const y = row * sample.cellSize + sample.cellSize / 2
-      context.moveTo(x + radius, y)
-      context.arc(
-        x,
-        y,
-        radius,
-        0,
-        Math.PI * 2,
-      )
-      hasDots = true
-    }
+    context.moveTo(x + radius, y)
+    context.arc(x, y, radius, 0, Math.PI * 2)
+    hasDots = true
   }
 
   if (hasDots) context.fill()
@@ -2828,22 +2936,33 @@ function drawProjectHalftone(card, progress, colors = readCatalogHalftoneColors(
 function renderCatalogHalftones(catalog, progress = siteState.catalogHalftoneProgress, options = {}) {
   if (!catalog) return
   siteState.catalogHalftoneProgress = clamp(progress, 0, 1)
-  catalog.style.setProperty("--catalog-halftone-progress", siteState.catalogHalftoneProgress.toFixed(3))
+  setElementStyleProperty(
+    catalog,
+    "--catalog-halftone-progress",
+    siteState.catalogHalftoneProgress.toFixed(3),
+  )
   const colors = readCatalogHalftoneColors()
   const visibleOnly = options.visibleOnly !== false
-  catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
-    if (visibleOnly && !isNearViewport(card)) return
+  const cards = visibleOnly
+    ? (siteState.dom.catalog === catalog
+        ? siteState.visibleHalftoneCards
+        : updateVisibleCatalogHalftoneCards(catalog))
+    : (siteState.dom.catalog === catalog
+        ? siteState.dom.mutedCards
+        : [...catalog.querySelectorAll(".project-card.is-filter-muted")])
+  cards.forEach((card) => {
     drawProjectHalftone(card, siteState.catalogHalftoneProgress, colors)
   })
 }
 
 function requestVisibleCatalogHalftones() {
-  const catalog = document.querySelector(".catalog")
-  if (!catalog?.dataset.activeFilter || !catalog.querySelector(".project-card.is-filter-muted")) return
+  const { catalog, mutedCards } = siteState.dom
+  if (!catalog?.dataset.activeFilter || !mutedCards.length) return
   if (siteState.catalogHalftoneVisibleFrame) return
 
   siteState.catalogHalftoneVisibleFrame = requestAnimationFrame(() => {
     siteState.catalogHalftoneVisibleFrame = 0
+    updateVisibleCatalogHalftoneCards(catalog)
     renderCatalogHalftones(catalog, siteState.catalogHalftoneProgress, { visibleOnly: true })
   })
 }
@@ -2957,6 +3076,7 @@ function replaceCatalogFilterImmediately(category) {
   siteState.catalogFilterPhase = "idle"
   siteState.catalogFilterCycle += 1
   catalog.innerHTML = catalogRowsMarkup(normalizedCategory)
+  refreshDomCache()
   delete catalog.dataset.filterPhase
   delete catalog.dataset.halftonePhase
   catalog.style.removeProperty("--catalog-filter-min-height")
@@ -2977,6 +3097,7 @@ function commitCatalogFilterTransition(cycle) {
 
   const category = siteState.catalogFilterTarget
   catalog.innerHTML = catalogRowsMarkup(category)
+  refreshDomCache()
   siteState.catalogFilterCurrent = category
   siteState.catalogFilterPhase = "entering"
   catalog.dataset.filterPhase = "entering"
@@ -3447,6 +3568,8 @@ function setupHeader() {
       siteState.resizeFrame = 0
       siteState.headerMetricsWidth = -1
       siteState.headerMetrics = null
+      siteState.galleryLayoutDirty = true
+      siteState.galleryLayoutMetrics = null
       startResponsiveLayoutTransition()
       applyHeaderProgress(siteState.visualProgress)
       setupNavHoverSpacing({ force: true })

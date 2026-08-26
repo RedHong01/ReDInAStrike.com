@@ -454,7 +454,10 @@ function refreshDomCache() {
     projectRows: [...document.querySelectorAll(".project-row")],
     cardRuleTargets: [...document.querySelectorAll(".project-card + .project-card")],
     catalogContentNodes: catalog
-      ? [...catalog.querySelectorAll(".project-media, .project-meta")]
+      ? [...catalog.querySelectorAll(".project-media, .project-meta")].filter((node) => {
+          const style = window.getComputedStyle(node)
+          return style.display !== "none" && style.visibility !== "hidden"
+        })
       : [],
     mutedCards: catalog ? [...catalog.querySelectorAll(".project-card.is-filter-muted")] : [],
     gallery,
@@ -1731,12 +1734,12 @@ function updateProjectRuleReveal() {
 
   projectRows.forEach((row) => {
     const rect = row.getBoundingClientRect()
-    row.style.setProperty("--project-rule-weight", ruleRevealFromY(rect.bottom))
+    setElementStyleProperty(row, "--project-rule-weight", ruleRevealFromY(rect.bottom))
   })
 
   cardRuleTargets.forEach((card) => {
     const rect = card.getBoundingClientRect()
-    card.style.setProperty("--card-rule-weight", ruleRevealFromY(rect.top))
+    setElementStyleProperty(card, "--card-rule-weight", ruleRevealFromY(rect.top))
   })
 }
 
@@ -1758,13 +1761,7 @@ function getCatalogContentBottom(catalog, fallback = 0) {
     : [...catalog.querySelectorAll(".project-media, .project-meta")]
   nodes.forEach((node) => {
     const rect = node.getBoundingClientRect()
-    const style = window.getComputedStyle(node)
-    if (
-      rect.width > 0.5 &&
-      rect.height > 0.5 &&
-      style.display !== "none" &&
-      style.visibility !== "hidden"
-    ) {
+    if (rect.width > 0.5 && rect.height > 0.5) {
       bottom = Math.max(bottom, rect.bottom)
     }
   })
@@ -2629,7 +2626,6 @@ function updateCatalogFilterDataset(catalog, category) {
 }
 
 function refreshCatalogAfterFilter(catalog) {
-  refreshDomCache()
   setupHoverEmbeds()
   setupFilteredCatalogRestore(catalog)
   updateVisibleCatalogHalftoneCards(catalog)
@@ -2845,7 +2841,7 @@ function ensureProjectHalftoneSample(canvas, img, cssWidth, cssHeight, cellSize,
       rows,
       cellSize,
       dots: dots.subarray(0, dotCount),
-      }
+    }
     canvas.__projectHalftoneSample = sample
     canvas.__projectHalftoneRenderKey = null
     return sample
@@ -3572,6 +3568,8 @@ function setupHeader() {
       siteState.resizeFrame = 0
       siteState.headerMetricsWidth = -1
       siteState.headerMetrics = null
+      siteState.galleryLayoutDirty = true
+      siteState.galleryLayoutMetrics = null
       startResponsiveLayoutTransition()
       applyHeaderProgress(siteState.visualProgress)
       setupNavHoverSpacing({ force: true })

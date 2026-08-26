@@ -80,12 +80,13 @@
   --type-body-size: clamp(13px, 0.868vw, 15px);
   --type-body-leading: calc(var(--type-body-size) + 2px);
   --type-bilingual-gap: 5px;
-  --type-strong-color: #000000;
   --type-latin-strong-weight: 650;
+  --type-latin-strong-stroke: 0.08px;
   --type-zh-body-size: 15px;
   --type-zh-body-leading: 17px;
   --type-zh-text-stroke: 0.15px;
   --type-zh-strong-weight: 600;
+  --type-zh-strong-stroke: 0.2px;
   --type-resume-zh-body-size: 13px;
   --type-resume-zh-body-leading: 15px;
   --type-section-heading-size: clamp(34px, 2.546vw, 44px);
@@ -223,9 +224,9 @@ img {
 .body-copy-zh b .body-copy-latin {
   font-family: var(--body-latin-font);
   font-weight: var(--type-latin-strong-weight);
-  color: var(--type-strong-color);
-  -webkit-text-stroke: 0;
-  -webkit-text-fill-color: var(--type-strong-color);
+  color: currentColor;
+  -webkit-text-stroke: var(--type-latin-strong-stroke) currentColor;
+  -webkit-text-fill-color: currentColor;
   paint-order: stroke fill;
 }
 
@@ -235,9 +236,9 @@ img {
 .body-copy-en b [lang|="zh"] {
   font-family: var(--zh-serif);
   font-weight: var(--type-zh-strong-weight);
-  color: var(--type-strong-color);
-  -webkit-text-stroke: 0;
-  -webkit-text-fill-color: var(--type-strong-color);
+  color: currentColor;
+  -webkit-text-stroke: var(--type-zh-strong-stroke) currentColor;
+  -webkit-text-fill-color: currentColor;
   paint-order: stroke fill;
 }
 
@@ -702,6 +703,11 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent .project-halftone {
+  opacity: 0.48;
+  transition: opacity 190ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.catalog[data-filter-release="true"] .project-card.is-filter-muted .project-halftone {
   opacity: 0;
   transition: opacity 190ms cubic-bezier(0.22, 1, 0.36, 1);
 }

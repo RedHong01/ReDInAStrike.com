@@ -79,7 +79,7 @@
   --type-subtitle-leading: calc(var(--type-subtitle-size) + 2px);
   --type-body-size: clamp(13px, 0.868vw, 15px);
   --type-body-leading: calc(var(--type-body-size) + 2px);
-  --type-bilingual-gap: 5px;
+  --type-bilingual-gap: 0.36em;
   --type-latin-strong-weight: 650;
   --type-latin-strong-stroke: 0.08px;
   --type-zh-body-size: 15px;
@@ -2267,8 +2267,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 }
 
 @media (max-width: 980px), (orientation: portrait) {
-  .project-media:not(.has-media-background),
-  .footer-gallery-media:not(.has-media-background) {
+  .project-media,
+  .footer-gallery-media {
     background: transparent;
   }
 

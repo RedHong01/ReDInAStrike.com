@@ -151,6 +151,8 @@ const filterableProjectHashes = new Set(projects.map((project) => project.navHas
 const CATALOG_FILTER_EXIT_MS = 430
 const CATALOG_FILTER_ENTER_MS = 560
 const CATALOG_FILTER_STAGGER_MS = 28
+const CATALOG_HALFTONE_DELAY_MS = 120
+const CATALOG_HALFTONE_DRAW_MS = 820
 const CATALOG_FILTER_RESTORE_INTENT_MS = 120
 const CATALOG_FILTER_RESTORE_WAKE_MS = 190
 
@@ -970,13 +972,14 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
     : ""
   const mutedClass = options.muted ? " is-filter-muted" : ""
   const mutedAttributes = options.muted ? ` data-filter-muted="true"` : ""
+  const mediaBackgroundClass = project.mediaBackground ? " has-media-background" : ""
   const halftoneCanvas = options.muted
     ? `<canvas class="project-halftone" aria-hidden="true"></canvas>`
     : ""
 
   return `
     <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-section="${escapeHtml(project.navHash)}" data-index="${index}"${mutedAttributes}>
-      <figure class="project-media" style="${mediaStyle(project)}"${videoAttributes}>
+      <figure class="project-media${mediaBackgroundClass}" style="${mediaStyle(project)}"${videoAttributes}>
         <img
           src="${asset(project.image)}"
           alt="${escapeHtml(project.pageTitle)}"
@@ -993,10 +996,11 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
 
 function galleryTile(project, index, isClone = false) {
   const hiddenAttributes = isClone ? ` aria-hidden="true" tabindex="-1"` : ""
+  const mediaBackgroundClass = project.mediaBackground ? " has-media-background" : ""
 
   return `
     <a class="footer-gallery-tile" href="${hrefFor(project.path)}" style="${mediaStyle(project)}"${hiddenAttributes}>
-      <figure class="footer-gallery-media">
+      <figure class="footer-gallery-media${mediaBackgroundClass}">
         <img
           src="${asset(project.image)}"
           alt="${escapeHtml(project.pageTitle)}"
@@ -2742,6 +2746,7 @@ function drawProjectHalftone(card, progress) {
 function renderCatalogHalftones(catalog, progress = siteState.catalogHalftoneProgress) {
   if (!catalog) return
   siteState.catalogHalftoneProgress = clamp(progress, 0, 1)
+  catalog.style.setProperty("--catalog-halftone-progress", siteState.catalogHalftoneProgress.toFixed(3))
   catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
     drawProjectHalftone(card, siteState.catalogHalftoneProgress)
   })
@@ -2752,17 +2757,18 @@ function clearCatalogHalftoneInline(catalog) {
   renderCatalogHalftones(catalog, 1)
 }
 
-function primeCatalogHalftoneDots(catalog) {
+function primeCatalogHalftoneDots(catalog, progress = 0) {
   stopCatalogHalftoneAnimation()
-  renderCatalogHalftones(catalog, 0)
+  renderCatalogHalftones(catalog, progress)
 }
 
-function animateCatalogHalftoneDots(catalog, cycle) {
+function animateCatalogHalftoneDots(catalog, cycle, options = {}) {
   stopCatalogHalftoneAnimation()
 
   if (!catalog.querySelector(".project-card.is-filter-muted")) return
 
-  const duration = catalogFilterDuration(760)
+  const duration = catalogFilterDuration(options.duration || CATALOG_HALFTONE_DRAW_MS)
+  const delay = catalogFilterDuration(options.delay || 0)
   const start = performance.now()
 
   const animate = (time) => {
@@ -2771,7 +2777,8 @@ function animateCatalogHalftoneDots(catalog, cycle) {
       return
     }
 
-    const progress = clamp((time - start) / duration, 0, 1)
+    const elapsed = time - start
+    const progress = elapsed < delay ? 0 : clamp((elapsed - delay) / duration, 0, 1)
     renderCatalogHalftones(catalog, easeOutCubic(progress))
 
     if (progress >= 1) {
@@ -2853,6 +2860,7 @@ function replaceCatalogFilterImmediately(category) {
   siteState.catalogFilterCycle += 1
   catalog.innerHTML = catalogRowsMarkup(normalizedCategory)
   delete catalog.dataset.filterPhase
+  delete catalog.dataset.halftonePhase
   delete catalog.dataset.filterRelease
   catalog.style.removeProperty("--catalog-filter-min-height")
   clearCatalogCardTimingVars(catalog)
@@ -2875,6 +2883,7 @@ function commitCatalogFilterTransition(cycle) {
   siteState.catalogFilterCurrent = category
   siteState.catalogFilterPhase = "entering"
   catalog.dataset.filterPhase = "entering"
+  catalog.dataset.halftonePhase = "primed"
   updateCatalogFilterDataset(catalog, category)
   primeCatalogHalftoneDots(catalog)
   const enterDelay = setCatalogCardTimingVars(
@@ -2889,8 +2898,16 @@ function commitCatalogFilterTransition(cycle) {
   requestAnimationFrame(() => {
     if (cycle !== siteState.catalogFilterCycle) return
     catalog.dataset.filterPhase = "settling"
-    animateCatalogHalftoneDots(catalog, cycle)
+    catalog.dataset.halftonePhase = "waiting"
     requestRuleFadeUpdate()
+    window.setTimeout(() => {
+      if (cycle !== siteState.catalogFilterCycle) return
+      if (!catalog.isConnected || catalog.dataset.filterPhase !== "settling") return
+      catalog.dataset.halftonePhase = "printing"
+      animateCatalogHalftoneDots(catalog, cycle, {
+        duration: CATALOG_HALFTONE_DRAW_MS,
+      })
+    }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + enterDelay + CATALOG_HALFTONE_DELAY_MS))
   })
 
   siteState.catalogFilterEnterTimer = window.setTimeout(() => {
@@ -2902,7 +2919,9 @@ function commitCatalogFilterTransition(cycle) {
     }
 
     delete catalog.dataset.filterPhase
+    delete catalog.dataset.halftonePhase
     catalog.style.removeProperty("--catalog-filter-min-height")
+    catalog.style.removeProperty("--catalog-halftone-progress")
     clearCatalogCardTimingVars(catalog)
     clearCatalogHalftoneInline(catalog)
     siteState.catalogFilterPhase = "idle"
@@ -2910,7 +2929,12 @@ function commitCatalogFilterTransition(cycle) {
     siteState.catalogFilterEnterTimer = 0
     requestRuleFadeUpdate()
     updateFooterGalleryReveal()
-  }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS) + enterDelay + 80)
+  }, Math.max(
+    catalogFilterDuration(CATALOG_FILTER_ENTER_MS) + enterDelay + 80,
+    catalogFilterDuration(CATALOG_FILTER_ENTER_MS + CATALOG_HALFTONE_DELAY_MS + CATALOG_HALFTONE_DRAW_MS) +
+      enterDelay +
+      160,
+  ))
 }
 
 function startCatalogFilterTransition() {

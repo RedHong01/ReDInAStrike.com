@@ -363,6 +363,9 @@ const siteState = {
   scrollFrame: 0,
   pendingScrollDelta: 0,
   resizeFrame: 0,
+  layoutFrame: 0,
+  layoutPendingRules: false,
+  layoutPendingFooter: false,
   layoutTransitionTimer: 0,
   navMetricKey: "",
   navHoverSpacingKey: "",
@@ -436,6 +439,11 @@ const siteState = {
   visibleHalftoneCards: [],
   galleryLayoutDirty: true,
   galleryLayoutMetrics: null,
+  galleryViewportLeft: null,
+  headerVisualBottom: 0,
+  catalogContentBottomDocument: null,
+  catalogContentBottomHeaderHeight: null,
+  catalogContentBottomDirty: true,
   halftoneColors: null,
   halftoneColorsKey: "",
   reducedMotionQuery: null,
@@ -471,6 +479,10 @@ function refreshDomCache() {
   siteState.visibleHalftoneCards = []
   siteState.galleryLayoutDirty = true
   siteState.galleryLayoutMetrics = null
+  siteState.galleryViewportLeft = null
+  siteState.catalogContentBottomDocument = null
+  siteState.catalogContentBottomHeaderHeight = null
+  siteState.catalogContentBottomDirty = true
   siteState.hasFooterGallery = Boolean(gallery)
   siteState.hasProjectRuleTargets = Boolean(
     siteState.dom.projectRows.length || siteState.dom.cardRuleTargets.length,
@@ -1676,6 +1688,30 @@ function setElementStyleProperty(element, name, value) {
   element.style.setProperty(name, value)
 }
 
+function invalidateCatalogContentBottom() {
+  siteState.catalogContentBottomDocument = null
+  siteState.catalogContentBottomHeaderHeight = null
+  siteState.catalogContentBottomDirty = true
+}
+
+function requestLayoutEffectsUpdate(options = {}) {
+  if (options.rules) siteState.layoutPendingRules = true
+  if (options.footer) siteState.layoutPendingFooter = true
+  if (!siteState.layoutPendingRules && !siteState.layoutPendingFooter) return
+  if (siteState.layoutFrame) return
+
+  siteState.layoutFrame = requestAnimationFrame(() => {
+    siteState.layoutFrame = 0
+    const updateRules = siteState.layoutPendingRules
+    const updateFooter = siteState.layoutPendingFooter
+    siteState.layoutPendingRules = false
+    siteState.layoutPendingFooter = false
+
+    if (updateRules) updateProjectRuleReveal()
+    if (updateFooter) updateFooterGalleryReveal()
+  })
+}
+
 function applyHeaderProgress(progress) {
   const metrics = readHeaderMetrics()
   const height = metrics.fullHeight + (metrics.compactHeight - metrics.fullHeight) * progress
@@ -1695,6 +1731,7 @@ function applyHeaderProgress(progress) {
   setRootStyleProperty("--glass-blur", `${glassBlur.toFixed(2)}px`)
   setRootStyleProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
   setRootStyleProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
+  siteState.headerVisualBottom = height
 
   const isCompact = progress > 0.7
   const density =
@@ -1713,8 +1750,10 @@ function applyHeaderProgress(progress) {
     siteState.navMetricKey = navMetricKey
     setupNavHoverSpacing()
   }
-  if (siteState.hasProjectRuleTargets) requestRuleFadeUpdate()
-  if (siteState.hasFooterGallery) updateFooterGalleryReveal()
+  requestLayoutEffectsUpdate({
+    rules: siteState.hasProjectRuleTargets,
+    footer: siteState.hasFooterGallery,
+  })
 }
 
 function updateProjectRuleReveal() {
@@ -1722,7 +1761,13 @@ function updateProjectRuleReveal() {
   const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
   if (!viewportHeight) return
 
-  const visibleTop = clamp(header?.getBoundingClientRect().bottom || 0, 0, viewportHeight - 1)
+  const visibleTop = clamp(
+    siteState.headerVisualBottom > 0
+      ? siteState.headerVisualBottom
+      : header?.getBoundingClientRect().bottom || 0,
+    0,
+    viewportHeight - 1,
+  )
   const visibleBottom = viewportHeight
   const visibleHeight = Math.max(1, visibleBottom - visibleTop)
   const edgeHoldDistance = clamp(visibleHeight * 0.035, 18, 42)
@@ -1745,15 +1790,23 @@ function updateProjectRuleReveal() {
 
 function requestRuleFadeUpdate() {
   if (!siteState.hasProjectRuleTargets) return
-  if (siteState.ruleFadeFrame) return
-  siteState.ruleFadeFrame = requestAnimationFrame(() => {
-    siteState.ruleFadeFrame = 0
-    updateProjectRuleReveal()
-  })
+  requestLayoutEffectsUpdate({ rules: true })
 }
 
 function getCatalogContentBottom(catalog, fallback = 0) {
   if (!catalog) return fallback
+
+  const canUseDocumentCache = siteState.dom.catalog === catalog && !catalog.dataset.filterPhase
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  if (
+    canUseDocumentCache &&
+    !siteState.catalogContentBottomDirty &&
+    Number.isFinite(siteState.catalogContentBottomDocument) &&
+    Number.isFinite(siteState.catalogContentBottomHeaderHeight)
+  ) {
+    const headerDelta = siteState.headerVisualBottom - siteState.catalogContentBottomHeaderHeight
+    return Math.max(0, siteState.catalogContentBottomDocument + headerDelta - scrollY)
+  }
 
   let bottom = -Infinity
   const nodes = siteState.dom.catalog === catalog
@@ -1766,7 +1819,14 @@ function getCatalogContentBottom(catalog, fallback = 0) {
     }
   })
 
-  return Number.isFinite(bottom) ? bottom : fallback
+  if (!Number.isFinite(bottom)) return fallback
+
+  if (canUseDocumentCache) {
+    siteState.catalogContentBottomDocument = bottom + scrollY
+    siteState.catalogContentBottomHeaderHeight = siteState.headerVisualBottom
+    siteState.catalogContentBottomDirty = false
+  }
+  return bottom
 }
 
 function readFooterGalleryLayoutMetrics(gallery) {
@@ -1809,24 +1869,21 @@ function setFooterGalleryStyles(
   shift = siteState.galleryShift,
   pocketHeight = siteState.galleryPocketHeight,
 ) {
-  const { gallery, galleryViewport: viewport, header, catalog, about } = siteState.dom
+  const { gallery, catalog } = siteState.dom
   if (!gallery) return
 
   const { gap, trackGap, metaHeight, tileCount } = getFooterGalleryLayoutMetrics(gallery)
-  const galleryRect = gallery.getBoundingClientRect()
-  const rect = viewport?.getBoundingClientRect() || gallery.getBoundingClientRect()
   const visibleReveal = clamp(reveal, 0, 1)
   const targetPocket = Math.max(0, pocketHeight || 0)
-  const headerBottom = Math.max(0, header?.getBoundingClientRect().bottom || 0)
-  const measuredAboutTop = about?.getBoundingClientRect().top
-  const pocketBottom = Math.max(
-    0,
-    Number.isFinite(measuredAboutTop) ? measuredAboutTop : siteState.galleryPocketBottom || 0,
-  )
+  const headerBottom = Math.max(0, siteState.headerVisualBottom)
+  const pocketBottom = Math.max(0, siteState.galleryPocketBottom || 0)
+  if (!Number.isFinite(siteState.galleryViewportLeft)) {
+    const galleryRect = gallery.getBoundingClientRect()
+    siteState.galleryViewportLeft = galleryRect.left
+  }
   const viewportWidth = Math.max(
     document.documentElement.clientWidth || 0,
     window.innerWidth || 0,
-    rect.width || 0,
   )
   const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
   const finalContentBottom = getCatalogContentBottom(catalog, headerBottom)
@@ -1878,7 +1935,7 @@ function setFooterGalleryStyles(
   setElementStyleProperty(gallery, "--gallery-content-height", `${contentHeight.toFixed(2)}px`)
   setElementStyleProperty(gallery, "--gallery-pocket-top", `${pocketTop.toFixed(2)}px`)
   setElementStyleProperty(gallery, "--gallery-reveal-y", `${revealShift.toFixed(2)}px`)
-  setElementStyleProperty(gallery, "--gallery-viewport-left", `${(-galleryRect.left).toFixed(2)}px`)
+  setElementStyleProperty(gallery, "--gallery-viewport-left", `${(-siteState.galleryViewportLeft).toFixed(2)}px`)
   setElementStyleProperty(gallery, "--gallery-tile-width", `${tileWidth.toFixed(2)}px`)
   setElementStyleProperty(gallery, "--gallery-set-width", `${setWidth.toFixed(2)}px`)
   setElementStyleProperty(gallery, "--gallery-meta-space", `${metaHeight.toFixed(2)}px`)
@@ -2357,9 +2414,11 @@ function updateFooterGalleryReveal(options = {}) {
   const { header, catalog, gallery, galleryViewport: viewport, about } = siteState.dom
   if (!header || !catalog || !gallery || !viewport || !about) return 0
 
-  const headerRect = header.getBoundingClientRect()
   const aboutRect = about.getBoundingClientRect()
-  const headerBottom = headerRect.bottom
+  const headerBottom =
+    siteState.headerVisualBottom > 0
+      ? siteState.headerVisualBottom
+      : header.getBoundingClientRect().bottom
   const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
   const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
   const finalContentBottom = getCatalogContentBottom(catalog, headerBottom)
@@ -2489,9 +2548,9 @@ function nudgeFooterGallery() {
 
   siteState.galleryObservedScrollY = readFooterGalleryScrollY()
   holdFooterGalleryDuringScroll()
-  const reveal = updateFooterGalleryReveal()
   siteState.galleryLoopBoost = 0
   updateFooterGalleryAutoscrollFromPointer()
+  requestLayoutEffectsUpdate({ footer: true })
 
   if (
     isFooterGalleryMotionReady(gallery) &&
@@ -2502,14 +2561,7 @@ function nudgeFooterGallery() {
     requestFooterGalleryLoop()
   }
 
-  if (reveal <= 0.001) {
-    siteState.galleryShift = 0
-    applyFooterComposition()
-    return
-  }
-
   siteState.galleryShift = 0
-  applyFooterComposition()
 }
 
 function setupFooterGallery() {
@@ -2629,8 +2681,8 @@ function refreshCatalogAfterFilter(catalog) {
   setupHoverEmbeds()
   setupFilteredCatalogRestore(catalog)
   updateVisibleCatalogHalftoneCards(catalog)
-  requestRuleFadeUpdate()
-  updateFooterGalleryReveal()
+  invalidateCatalogContentBottom()
+  requestLayoutEffectsUpdate({ rules: true, footer: true })
   if (catalog) {
     const firstRow = catalog.querySelector(".project-row")
     firstRow?.style.setProperty("--project-rule-weight", "1")
@@ -2858,7 +2910,11 @@ function bindHalftoneImageLoad(img) {
     () => {
       img.__projectHalftoneLoadBound = false
       const catalog = img.closest(".catalog")
-      if (catalog?.dataset.activeFilter) requestVisibleCatalogHalftones()
+      if (catalog) invalidateCatalogContentBottom()
+      if (catalog?.dataset.activeFilter) {
+        requestVisibleCatalogHalftones()
+        requestLayoutEffectsUpdate({ footer: true, rules: true })
+      }
     },
     { once: true },
   )
@@ -3117,7 +3173,7 @@ function commitCatalogFilterTransition(cycle) {
     if (cycle !== siteState.catalogFilterCycle) return
     catalog.dataset.filterPhase = "settling"
     catalog.dataset.halftonePhase = "waiting"
-    requestRuleFadeUpdate()
+    requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
     window.setTimeout(() => {
       if (cycle !== siteState.catalogFilterCycle) return
       if (!catalog.isConnected || catalog.dataset.filterPhase !== "settling") return
@@ -3142,11 +3198,11 @@ function commitCatalogFilterTransition(cycle) {
     catalog.style.removeProperty("--catalog-halftone-progress")
     clearCatalogCardTimingVars(catalog)
     clearCatalogHalftoneInline(catalog)
+    invalidateCatalogContentBottom()
     siteState.catalogFilterPhase = "idle"
     siteState.catalogFilterTimer = 0
     siteState.catalogFilterEnterTimer = 0
-    requestRuleFadeUpdate()
-    updateFooterGalleryReveal()
+    requestLayoutEffectsUpdate({ rules: true, footer: true })
   }, Math.max(
     catalogFilterDuration(CATALOG_FILTER_ENTER_MS) + enterDelay + 80,
     catalogFilterDuration(CATALOG_FILTER_ENTER_MS + CATALOG_HALFTONE_DELAY_MS + CATALOG_HALFTONE_DRAW_MS) +
@@ -3168,6 +3224,7 @@ function startCatalogFilterTransition() {
   const cycle = siteState.catalogFilterCycle + 1
   siteState.catalogFilterCycle = cycle
   siteState.catalogFilterPhase = "exiting"
+  invalidateCatalogContentBottom()
   const height = Math.ceil(catalog.getBoundingClientRect().height)
   catalog.style.setProperty("--catalog-filter-min-height", `${Math.max(0, height)}px`)
   updateCatalogFilterDataset(catalog, siteState.catalogFilterTarget)
@@ -3505,7 +3562,7 @@ function requestScrollEffectsUpdate(delta) {
 
     updateHeaderFromScroll(pendingDelta)
     nudgeFooterGallery()
-    requestRuleFadeUpdate()
+    requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
     requestVisibleCatalogHalftones()
   })
 }
@@ -3570,11 +3627,12 @@ function setupHeader() {
       siteState.headerMetrics = null
       siteState.galleryLayoutDirty = true
       siteState.galleryLayoutMetrics = null
+      siteState.galleryViewportLeft = null
+      invalidateCatalogContentBottom()
       startResponsiveLayoutTransition()
       applyHeaderProgress(siteState.visualProgress)
       setupNavHoverSpacing({ force: true })
-      requestRuleFadeUpdate()
-      updateFooterGalleryReveal()
+      requestLayoutEffectsUpdate({ rules: true, footer: true })
       requestVisibleCatalogHalftones()
     })
   })

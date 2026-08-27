@@ -1,298 +1,108 @@
-const DITHER_STORAGE_KEY = "red-dither-mode"
-const DITHER_COLUMNS = 132
-const DITHER_MODES = [
-  ["dot", "Dot"],
-  ["bayer", "Bayer 8x8"],
-  ["blue", "Blue Noise"],
-  ["atkinson", "Atkinson"],
-  ["floyd", "Floyd-Steinberg"],
-  ["screen", "Screen 45deg"],
-  ["line", "Line"],
-]
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+import {
+  CONTROL_GROUPS,
+  DITHER_MODES,
+  PARAM_META,
+  cloneConfig,
+  configsEqual,
+  decodeConfig,
+  encodeConfig,
+  renderCard,
+  resetSampleCache,
+  sanitizeConfig,
+} from "./dither-engine.js"
 
-const BAYER_8 = [
-  [0, 48, 12, 60, 3, 51, 15, 63],
-  [32, 16, 44, 28, 35, 19, 47, 31],
-  [8, 56, 4, 52, 11, 59, 7, 55],
-  [40, 24, 36, 20, 43, 27, 39, 23],
-  [2, 50, 14, 62, 1, 49, 13, 61],
-  [34, 18, 46, 30, 33, 17, 45, 29],
-  [10, 58, 6, 54, 9, 57, 5, 53],
-  [42, 26, 38, 22, 41, 25, 37, 21],
-]
+const WORKING_CONFIG_KEY = "red-dither-working-config-v2"
+const PRESETS_KEY = "red-dither-presets-v2"
+const LEGACY_MODE_KEY = "red-dither-mode"
+const MODE_IDS = new Set(DITHER_MODES.map(([id]) => id))
+
+function loadJson(key, fallback) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "null")
+    return value ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+function saveJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {}
+}
+
+function configFromUrl() {
+  const encoded = new URLSearchParams(location.search).get("ditherConfig")
+  return encoded ? decodeConfig(encoded, PUBLISHED_DITHER_CONFIG) : null
+}
+
+function hubRequestedFromUrl() {
+  const params = new URLSearchParams(location.search)
+  return params.get("ditherHub") === "1" || params.has("ditherConfig")
+}
+
+function loadWorkingConfig() {
+  const shared = configFromUrl()
+  if (shared) return shared
+
+  const stored = loadJson(WORKING_CONFIG_KEY, null)
+  if (stored) return sanitizeConfig(stored, PUBLISHED_DITHER_CONFIG)
+
+  const legacyMode = localStorage.getItem(LEGACY_MODE_KEY)
+  if (legacyMode && MODE_IDS.has(legacyMode)) {
+    return sanitizeConfig({ mode: legacyMode === "dot" ? "native" : legacyMode }, PUBLISHED_DITHER_CONFIG)
+  }
+
+  return cloneConfig(PUBLISHED_DITHER_CONFIG, PUBLISHED_DITHER_CONFIG)
+}
+
+function loadPresets() {
+  const raw = loadJson(PRESETS_KEY, [])
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item) => item && typeof item.name === "string" && item.config)
+    .map((item) => ({
+      id: String(item.id || `${Date.now()}-${Math.random()}`),
+      name: item.name.trim().slice(0, 48) || "Untitled",
+      config: sanitizeConfig(item.config, PUBLISHED_DITHER_CONFIG),
+      createdAt: Number(item.createdAt) || Date.now(),
+    }))
+}
 
 const state = {
-  mode: localStorage.getItem(DITHER_STORAGE_KEY) || "dot",
-  sampleCache: new WeakMap(),
+  hubEnabled: hubRequestedFromUrl(),
+  workingConfig: loadWorkingConfig(),
+  config: null,
+  presets: loadPresets(),
   raf: 0,
   observer: null,
   resizeObserver: null,
+  panel: null,
+  toastTimer: 0,
 }
 
-function clamp(value, min = 0, max = 1) {
-  return Math.min(max, Math.max(min, value))
+state.config = state.hubEnabled
+  ? cloneConfig(state.workingConfig, PUBLISHED_DITHER_CONFIG)
+  : cloneConfig(PUBLISHED_DITHER_CONFIG, PUBLISHED_DITHER_CONFIG)
+
+function persistWorking() {
+  state.workingConfig = cloneConfig(state.config, PUBLISHED_DITHER_CONFIG)
+  saveJson(WORKING_CONFIG_KEY, state.workingConfig)
 }
 
-function parseObjectPositionRatio(value) {
-  const parts = String(value || "50% 50%").trim().split(/\s+/).filter(Boolean)
-  let x = 0.5
-  let y = 0.5
-  const assign = (part, axis) => {
-    const token = part.toLowerCase()
-    if (token === "left") x = 0
-    else if (token === "right") x = 1
-    else if (token === "top") y = 0
-    else if (token === "bottom") y = 1
-    else if (token === "center") axis === "y" ? (y = 0.5) : (x = 0.5)
-    else if (token.endsWith("%")) {
-      const ratio = clamp(parseFloat(token) / 100)
-      if (Number.isFinite(ratio)) axis === "y" ? (y = ratio) : (x = ratio)
-    }
-  }
-  if (parts.length === 1) assign(parts[0], "x")
-  else {
-    const firstIsVertical = parts[0] === "top" || parts[0] === "bottom"
-    assign(parts[0], firstIsVertical ? "y" : "x")
-    assign(parts[1], firstIsVertical ? "x" : "y")
-  }
-  return { x, y }
-}
-
-function getImageRect(img, width, height) {
-  if (!img.naturalWidth || !img.naturalHeight) return null
-  const style = getComputedStyle(img)
-  const fit = style.objectFit || "fill"
-  const iw = img.naturalWidth
-  const ih = img.naturalHeight
-  let w = width
-  let h = height
-  if (fit === "cover" || fit === "contain" || fit === "scale-down") {
-    const coverScale = Math.max(width / iw, height / ih)
-    const containScale = Math.min(width / iw, height / ih)
-    const scale = fit === "cover" ? coverScale : fit === "scale-down" ? Math.min(1, containScale) : containScale
-    w = iw * scale
-    h = ih * scale
-  } else if (fit === "none") {
-    w = iw
-    h = ih
-  }
-  const pos = parseObjectPositionRatio(style.objectPosition)
-  return { x: (width - w) * pos.x, y: (height - h) * pos.y, width: w, height: h }
-}
-
-function readColors() {
-  const style = getComputedStyle(document.documentElement)
-  return {
-    paper: style.getPropertyValue("--paper").trim() || "#f8f7f5",
-    ink: style.getPropertyValue("--ink").trim() || "rgb(69, 69, 69)",
-  }
-}
-
-function sampleImage(img, cssWidth, cssHeight) {
-  const style = getComputedStyle(img)
-  const key = [img.currentSrc || img.src, img.naturalWidth, img.naturalHeight, Math.round(cssWidth), Math.round(cssHeight), style.objectFit, style.objectPosition].join("|")
-  const cached = state.sampleCache.get(img)
-  if (cached?.key === key) return cached
-
-  const cols = DITHER_COLUMNS
-  const rows = Math.max(1, Math.round(cols * cssHeight / Math.max(1, cssWidth)))
-  const canvas = document.createElement("canvas")
-  canvas.width = cols
-  canvas.height = rows
-  const ctx = canvas.getContext("2d", { willReadFrequently: true })
-  if (!ctx) return null
-  const { paper } = readColors()
-  ctx.fillStyle = paper
-  ctx.fillRect(0, 0, cols, rows)
-  const rect = getImageRect(img, cols, rows)
-  if (!rect) return null
-  try {
-    ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height)
-    const data = ctx.getImageData(0, 0, cols, rows).data
-    const luminance = new Float32Array(cols * rows)
-    const ink = new Float32Array(cols * rows)
-    for (let i = 0; i < cols * rows; i += 1) {
-      const j = i * 4
-      const lum = (data[j] * 0.2126 + data[j + 1] * 0.7152 + data[j + 2] * 0.0722) / 255
-      luminance[i] = lum
-      ink[i] = clamp((1 - lum) * 1.18 - 0.025)
-    }
-    const sample = { key, cols, rows, luminance, ink }
-    state.sampleCache.set(img, sample)
-    return sample
-  } catch {
-    return null
-  }
-}
-
-function hashNoise(x, y) {
-  const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123
-  return v - Math.floor(v)
-}
-
-function blueNoiseThreshold(x, y) {
-  const a = hashNoise(x, y)
-  const b = hashNoise(x + 19.19, y + 47.77)
-  const c = hashNoise(x * 0.5 + 73.3, y * 0.5 + 11.9)
-  return clamp(a * 0.55 + Math.abs(a - b) * 0.30 + c * 0.15)
-}
-
-function getDiffusionMap(sample, type) {
-  const cacheKey = `_${type}`
-  if (sample[cacheKey]) return sample[cacheKey]
-  const { cols, rows, ink } = sample
-  const work = Float32Array.from(ink)
-  const output = new Uint8Array(cols * rows)
-  const add = (x, y, amount) => {
-    if (x < 0 || y < 0 || x >= cols || y >= rows) return
-    work[y * cols + x] += amount
-  }
-  for (let y = 0; y < rows; y += 1) {
-    for (let x = 0; x < cols; x += 1) {
-      const i = y * cols + x
-      const oldValue = clamp(work[i])
-      const newValue = oldValue >= 0.5 ? 1 : 0
-      output[i] = newValue
-      const error = oldValue - newValue
-      if (type === "atkinson") {
-        const e = error / 8
-        add(x + 1, y, e); add(x + 2, y, e); add(x - 1, y + 1, e)
-        add(x, y + 1, e); add(x + 1, y + 1, e); add(x, y + 2, e)
-      } else {
-        add(x + 1, y, error * 7 / 16)
-        add(x - 1, y + 1, error * 3 / 16)
-        add(x, y + 1, error * 5 / 16)
-        add(x + 1, y + 1, error * 1 / 16)
-      }
-    }
-  }
-  sample[cacheKey] = output
-  return output
-}
-
-function ensureCanvas(card) {
-  const media = card.querySelector(".project-media")
-  if (!media) return null
-  let canvas = media.querySelector(":scope > .dither-preview-canvas")
-  if (!canvas) {
-    canvas = document.createElement("canvas")
-    canvas.className = "dither-preview-canvas"
-    canvas.setAttribute("aria-hidden", "true")
-    media.appendChild(canvas)
-  }
-  return { media, canvas }
-}
-
-function paintBinaryCells(ctx, sample, width, height, predicate) {
-  const sx = width / sample.cols
-  const sy = height / sample.rows
-  for (let i = 0; i < sample.ink.length; i += 1) {
-    const x = i % sample.cols
-    const y = Math.floor(i / sample.cols)
-    if (!predicate(i, x, y)) continue
-    ctx.fillRect(Math.floor(x * sx), Math.floor(y * sy), Math.ceil(sx), Math.ceil(sy))
-  }
-}
-
-function renderBayer(ctx, sample, width, height) {
-  paintBinaryCells(ctx, sample, width, height, (i, x, y) => sample.ink[i] > (BAYER_8[y % 8][x % 8] + 0.5) / 64)
-}
-
-function renderBlue(ctx, sample, width, height) {
-  paintBinaryCells(ctx, sample, width, height, (i, x, y) => sample.ink[i] > blueNoiseThreshold(x, y))
-}
-
-function renderDiffusion(ctx, sample, width, height, type) {
-  const map = getDiffusionMap(sample, type)
-  paintBinaryCells(ctx, sample, width, height, (i) => map[i] === 1)
-}
-
-function renderScreen(ctx, sample, width, height) {
-  const sx = width / sample.cols
-  const sy = height / sample.rows
-  const cell = Math.min(sx, sy)
-  const angle = Math.PI / 4
-  const cos = Math.cos(angle)
-  const sin = Math.sin(angle)
-  for (let i = 0; i < sample.ink.length; i += 1) {
-    const amount = sample.ink[i]
-    if (amount < 0.03) continue
-    const x = (i % sample.cols + 0.5) * sx
-    const y = (Math.floor(i / sample.cols) + 0.5) * sy
-    const u = (x * cos + y * sin) / Math.max(1, cell * 3.1)
-    const v = (-x * sin + y * cos) / Math.max(1, cell * 3.1)
-    const threshold = ((Math.sin(u * Math.PI * 2) + Math.sin(v * Math.PI * 2)) * 0.25 + 0.5)
-    if (amount > threshold) ctx.fillRect(Math.floor(x - sx * 0.5), Math.floor(y - sy * 0.5), Math.ceil(sx), Math.ceil(sy))
-  }
-}
-
-function renderLine(ctx, sample, width, height) {
-  const sx = width / sample.cols
-  const sy = height / sample.rows
-  const cell = Math.min(sx, sy)
-  ctx.lineCap = "round"
-  const angle = -Math.PI / 4
-  const dx = Math.cos(angle)
-  const dy = Math.sin(angle)
-  for (let i = 0; i < sample.ink.length; i += 1) {
-    const amount = sample.ink[i]
-    if (amount < 0.06) continue
-    const x = (i % sample.cols + 0.5) * sx
-    const y = (Math.floor(i / sample.cols) + 0.5) * sy
-    const half = cell * (0.18 + amount * 0.55)
-    ctx.lineWidth = Math.max(0.7, cell * (0.10 + amount * 0.22))
-    ctx.beginPath()
-    ctx.moveTo(x - dx * half, y - dy * half)
-    ctx.lineTo(x + dx * half, y + dy * half)
-    ctx.stroke()
-  }
-}
-
-function renderCard(card) {
-  const overlay = ensureCanvas(card)
-  if (!overlay) return
-  const { media, canvas } = overlay
-  const img = media.querySelector("img")
-  const active = state.mode !== "dot" && card.classList.contains("is-filter-muted") && !!card.closest(".catalog")?.dataset.activeFilter
-  canvas.dataset.active = active ? "true" : "false"
-  if (!active || !img?.complete || !img.naturalWidth) return
-
-  const rect = media.getBoundingClientRect()
-  const cssWidth = Math.max(1, Math.round(rect.width))
-  const cssHeight = Math.max(1, Math.round(rect.height))
-  const dpr = Math.min(devicePixelRatio || 1, 2)
-  const targetWidth = Math.max(1, Math.round(cssWidth * dpr))
-  const targetHeight = Math.max(1, Math.round(cssHeight * dpr))
-  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-    canvas.width = targetWidth
-    canvas.height = targetHeight
-  }
-  canvas.style.width = `${cssWidth}px`
-  canvas.style.height = `${cssHeight}px`
-
-  const sample = sampleImage(img, cssWidth, cssHeight)
-  if (!sample) return
-  const ctx = canvas.getContext("2d")
-  if (!ctx) return
-  const { paper, ink } = readColors()
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  ctx.clearRect(0, 0, cssWidth, cssHeight)
-  ctx.fillStyle = paper
-  ctx.fillRect(0, 0, cssWidth, cssHeight)
-  ctx.fillStyle = ink
-  ctx.strokeStyle = ink
-
-  if (state.mode === "bayer") renderBayer(ctx, sample, cssWidth, cssHeight)
-  else if (state.mode === "blue") renderBlue(ctx, sample, cssWidth, cssHeight)
-  else if (state.mode === "atkinson") renderDiffusion(ctx, sample, cssWidth, cssHeight, "atkinson")
-  else if (state.mode === "floyd") renderDiffusion(ctx, sample, cssWidth, cssHeight, "floyd")
-  else if (state.mode === "screen") renderScreen(ctx, sample, cssWidth, cssHeight)
-  else if (state.mode === "line") renderLine(ctx, sample, cssWidth, cssHeight)
+function setHubEnabled(enabled) {
+  state.hubEnabled = !!enabled
+  state.config = state.hubEnabled
+    ? cloneConfig(state.workingConfig, PUBLISHED_DITHER_CONFIG)
+    : cloneConfig(PUBLISHED_DITHER_CONFIG, PUBLISHED_DITHER_CONFIG)
+  if (state.panel) state.panel.dataset.open = state.hubEnabled ? "true" : "false"
+  requestRender()
 }
 
 function renderAll() {
   state.raf = 0
-  document.querySelectorAll(".project-card").forEach(renderCard)
+  document.querySelectorAll(".project-card").forEach((card) => renderCard(card, state.config))
   updatePanel()
 }
 
@@ -302,31 +112,272 @@ function requestRender() {
 }
 
 function setMode(mode) {
-  if (!DITHER_MODES.some(([id]) => id === mode)) return
-  state.mode = mode
-  localStorage.setItem(DITHER_STORAGE_KEY, mode)
+  if (!MODE_IDS.has(mode)) return
+  state.config.mode = mode
+  if (state.hubEnabled) persistWorking()
   requestRender()
 }
 
-function updatePanel() {
-  document.querySelectorAll("[data-dither-mode]").forEach((button) => {
-    const active = button.dataset.ditherMode === state.mode
-    button.classList.toggle("is-active", active)
-    button.setAttribute("aria-pressed", active ? "true" : "false")
-  })
+function setParam(key, rawValue) {
+  const meta = PARAM_META.get(key)
+  if (!meta) return
+  const next = sanitizeConfig({ ...state.config, [key]: Number(rawValue) }, PUBLISHED_DITHER_CONFIG)
+  const previousColumns = state.config.columns
+  state.config = next
+  if (key === "columns" && state.config.columns !== previousColumns) resetSampleCache()
+  if (state.hubEnabled) persistWorking()
+  requestRender()
+}
+
+function formatValue(meta, value) {
+  return `${Number(value).toFixed(meta.decimals ?? 2)}${meta.suffix || ""}`
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+}
+
+function renderControl(control) {
+  return `
+    <label class="dither-lab__control">
+      <span class="dither-lab__control-head">
+        <span>${control.label}</span>
+        <output data-dither-output="${control.key}"></output>
+      </span>
+      <input class="dither-lab__range" type="range"
+        min="${control.min}" max="${control.max}" step="${control.step}"
+        data-dither-param="${control.key}" />
+    </label>`
+}
+
+function renderGroup(group) {
+  return `
+    <section class="dither-lab__section">
+      <div class="dither-lab__section-head">${group.title}</div>
+      <p class="dither-lab__section-copy">${group.description}</p>
+      <div class="dither-lab__controls">${group.controls.map(renderControl).join("")}</div>
+    </section>`
+}
+
+function presetOptions() {
+  if (!state.presets.length) return `<option value="">No saved presets</option>`
+  return [
+    `<option value="">Select preset…</option>`,
+    ...state.presets.map((preset) => `<option value="${preset.id}">${escapeHtml(preset.name)}</option>`),
+  ].join("")
 }
 
 function mountPanel() {
-  if (document.querySelector(".dither-lab")) return
+  if (state.panel?.isConnected) return
   const panel = document.createElement("aside")
   panel.className = "dither-lab"
-  panel.innerHTML = `<div class="dither-lab__head"><span class="dither-lab__title">DITHER PREVIEW</span><span class="dither-lab__keys">1-7</span></div><div class="dither-lab__buttons">${DITHER_MODES.map(([id, label], index) => `<button class="dither-lab__button" type="button" data-dither-mode="${id}"><span class="dither-lab__number">${index + 1}</span><span>${label}</span></button>`).join("")}</div>`
-  panel.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-dither-mode]")
-    if (button) setMode(button.dataset.ditherMode)
-  })
+  panel.dataset.open = state.hubEnabled ? "true" : "false"
+  panel.innerHTML = `
+    <div class="dither-lab__sticky-head">
+      <div class="dither-lab__head">
+        <div>
+          <div class="dither-lab__title">DITHER HUB</div>
+          <div class="dither-lab__status" data-dither-status></div>
+        </div>
+        <button class="dither-lab__icon-button" type="button" data-dither-action="close" aria-label="Close Dither Hub">×</button>
+      </div>
+      <div class="dither-lab__pipeline">SOURCE → LUMINANCE → INK → THRESHOLD → GEOMETRY → PAPER / INK</div>
+    </div>
+
+    <section class="dither-lab__section">
+      <div class="dither-lab__section-head">Mode</div>
+      <p class="dither-lab__section-copy">Native Dot is the original site renderer. The other modes share the same two-color source logic and expose remixable geometry.</p>
+      <div class="dither-lab__buttons">
+        ${DITHER_MODES.map(([id, label], index) => `
+          <button class="dither-lab__button" type="button" data-dither-mode="${id}">
+            <span class="dither-lab__number">${index + 1}</span><span>${label}</span>
+          </button>`).join("")}
+      </div>
+    </section>
+
+    ${CONTROL_GROUPS.map(renderGroup).join("")}
+
+    <section class="dither-lab__section">
+      <div class="dither-lab__section-head">Remix / Presets</div>
+      <p class="dither-lab__section-copy">Working changes autosave in this browser. Snapshots let you keep multiple versions without changing the public site.</p>
+      <div class="dither-lab__preset-row">
+        <input class="dither-lab__text" type="text" maxlength="48" placeholder="Preset name" data-dither-preset-name />
+        <button class="dither-lab__action" type="button" data-dither-action="save-preset">Save snapshot</button>
+      </div>
+      <div class="dither-lab__preset-row">
+        <select class="dither-lab__select" data-dither-preset-select>${presetOptions()}</select>
+        <button class="dither-lab__action" type="button" data-dither-action="load-preset">Load</button>
+        <button class="dither-lab__action" type="button" data-dither-action="delete-preset">Delete</button>
+      </div>
+    </section>
+
+    <section class="dither-lab__section">
+      <div class="dither-lab__section-head">Publish Bridge</div>
+      <p class="dither-lab__section-copy">The public default lives in dither-default.js. A remix URL preserves this exact working config; the publish prompt lets ChatGPT commit it as the public default.</p>
+      <div class="dither-lab__actions">
+        <button class="dither-lab__action" type="button" data-dither-action="reset-published">Reset to published</button>
+        <button class="dither-lab__action" type="button" data-dither-action="copy-url">Copy remix URL</button>
+        <button class="dither-lab__action" type="button" data-dither-action="copy-json">Copy config JSON</button>
+        <button class="dither-lab__action dither-lab__action--strong" type="button" data-dither-action="copy-publish">Copy publish prompt</button>
+      </div>
+    </section>
+
+    <div class="dither-lab__toast" data-dither-toast aria-live="polite"></div>`
+
+  panel.addEventListener("click", onPanelClick)
+  panel.addEventListener("input", onPanelInput)
   document.body.appendChild(panel)
+  state.panel = panel
   updatePanel()
+}
+
+function updatePanel() {
+  if (!state.panel) return
+  state.panel.dataset.open = state.hubEnabled ? "true" : "false"
+
+  state.panel.querySelectorAll("[data-dither-mode]").forEach((button) => {
+    const active = button.dataset.ditherMode === state.config.mode
+    button.classList.toggle("is-active", active)
+    button.setAttribute("aria-pressed", active ? "true" : "false")
+  })
+
+  for (const [key, meta] of PARAM_META) {
+    const input = state.panel.querySelector(`[data-dither-param="${key}"]`)
+    const output = state.panel.querySelector(`[data-dither-output="${key}"]`)
+    if (input && document.activeElement !== input) input.value = state.config[key]
+    if (output) output.textContent = formatValue(meta, state.config[key])
+  }
+
+  const select = state.panel.querySelector("[data-dither-preset-select]")
+  if (select) {
+    const selected = select.value
+    select.innerHTML = presetOptions()
+    if ([...select.options].some((option) => option.value === selected)) select.value = selected
+  }
+
+  const status = state.panel.querySelector("[data-dither-status]")
+  if (status) {
+    status.textContent = configsEqual(state.config, PUBLISHED_DITHER_CONFIG, PUBLISHED_DITHER_CONFIG)
+      ? "MATCHES PUBLISHED DEFAULT"
+      : "WORKING REMIX · LOCAL"
+  }
+}
+
+function showToast(message) {
+  const toast = state.panel?.querySelector("[data-dither-toast]")
+  if (!toast) return
+  toast.textContent = message
+  toast.classList.add("is-visible")
+  clearTimeout(state.toastTimer)
+  state.toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 1800)
+}
+
+function onPanelInput(event) {
+  const input = event.target.closest("[data-dither-param]")
+  if (input) setParam(input.dataset.ditherParam, input.value)
+}
+
+function selectedPreset() {
+  const select = state.panel?.querySelector("[data-dither-preset-select]")
+  return state.presets.find((preset) => preset.id === select?.value) || null
+}
+
+function savePreset() {
+  const input = state.panel?.querySelector("[data-dither-preset-name]")
+  const name = input?.value.trim()
+  if (!name) {
+    showToast("Name the preset first")
+    input?.focus()
+    return
+  }
+
+  const existing = state.presets.find((preset) => preset.name.toLowerCase() === name.toLowerCase())
+  if (existing) {
+    existing.config = cloneConfig(state.config, PUBLISHED_DITHER_CONFIG)
+    existing.createdAt = Date.now()
+  } else {
+    state.presets.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: name.slice(0, 48),
+      config: cloneConfig(state.config, PUBLISHED_DITHER_CONFIG),
+      createdAt: Date.now(),
+    })
+  }
+
+  saveJson(PRESETS_KEY, state.presets)
+  if (input) input.value = ""
+  updatePanel()
+  showToast(existing ? "Preset updated" : "Preset saved")
+}
+
+function loadPreset() {
+  const preset = selectedPreset()
+  if (!preset) return showToast("Select a preset")
+  state.config = cloneConfig(preset.config, PUBLISHED_DITHER_CONFIG)
+  persistWorking()
+  resetSampleCache()
+  requestRender()
+  showToast(`Loaded ${preset.name}`)
+}
+
+function deletePreset() {
+  const preset = selectedPreset()
+  if (!preset) return showToast("Select a preset")
+  state.presets = state.presets.filter((item) => item.id !== preset.id)
+  saveJson(PRESETS_KEY, state.presets)
+  updatePanel()
+  showToast(`Deleted ${preset.name}`)
+}
+
+function buildRemixUrl() {
+  const url = new URL(location.href)
+  url.searchParams.set("ditherHub", "1")
+  url.searchParams.set("ditherConfig", encodeConfig(state.config, PUBLISHED_DITHER_CONFIG))
+  return url.toString()
+}
+
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text)
+  const textarea = document.createElement("textarea")
+  textarea.value = text
+  textarea.style.position = "fixed"
+  textarea.style.opacity = "0"
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand("copy")
+  textarea.remove()
+}
+
+function onPanelClick(event) {
+  const modeButton = event.target.closest("[data-dither-mode]")
+  if (modeButton) return setMode(modeButton.dataset.ditherMode)
+
+  const action = event.target.closest("[data-dither-action]")?.dataset.ditherAction
+  if (!action) return
+
+  if (action === "close") setHubEnabled(false)
+  else if (action === "save-preset") savePreset()
+  else if (action === "load-preset") loadPreset()
+  else if (action === "delete-preset") deletePreset()
+  else if (action === "reset-published") {
+    state.config = cloneConfig(PUBLISHED_DITHER_CONFIG, PUBLISHED_DITHER_CONFIG)
+    persistWorking()
+    resetSampleCache()
+    requestRender()
+    showToast("Reset to published default")
+  } else if (action === "copy-url") {
+    copyText(buildRemixUrl()).then(() => showToast("Remix URL copied"))
+  } else if (action === "copy-json") {
+    copyText(JSON.stringify(sanitizeConfig(state.config, PUBLISHED_DITHER_CONFIG), null, 2)).then(() => showToast("Config JSON copied"))
+  } else if (action === "copy-publish") {
+    const prompt = `Publish this dither remix as the public default for RedHong01/ReDInAStrike.com: ${buildRemixUrl()}`
+    copyText(prompt).then(() => showToast("Publish prompt copied"))
+  }
 }
 
 function bindObservers() {
@@ -334,12 +385,19 @@ function bindObservers() {
   state.resizeObserver?.disconnect()
   const catalog = document.querySelector(".catalog")
   if (!catalog) return
+
   state.observer = new MutationObserver(requestRender)
-  state.observer.observe(catalog, { attributes: true, subtree: true, attributeFilter: ["class", "data-active-filter"] })
+  state.observer.observe(catalog, {
+    attributes: true,
+    subtree: true,
+    attributeFilter: ["class", "data-active-filter"],
+  })
+
   if ("ResizeObserver" in window) {
     state.resizeObserver = new ResizeObserver(requestRender)
     catalog.querySelectorAll(".project-media").forEach((media) => state.resizeObserver.observe(media))
   }
+
   catalog.querySelectorAll("img").forEach((img) => img.addEventListener("load", requestRender, { passive: true }))
 }
 
@@ -352,13 +410,24 @@ function boot() {
 window.addEventListener("keydown", (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return
   const tag = document.activeElement?.tagName
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+  const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT"
+
+  if (!typing && event.shiftKey && event.key.toLowerCase() === "d") {
+    event.preventDefault()
+    setHubEnabled(!state.hubEnabled)
+    return
+  }
+
+  if (!state.hubEnabled || typing) return
   const index = Number(event.key) - 1
   if (index >= 0 && index < DITHER_MODES.length) setMode(DITHER_MODES[index][0])
 })
 
 window.addEventListener("resize", requestRender, { passive: true })
-window.addEventListener("hashchange", () => setTimeout(() => { bindObservers(); requestRender() }, 0))
+window.addEventListener("hashchange", () => setTimeout(() => {
+  bindObservers()
+  requestRender()
+}, 0))
 
 const appRoot = document.querySelector("#app")
 if (appRoot) {

@@ -6,6 +6,10 @@ html.red-perf-pass-1 {
 
 html.red-perf-pass-1 .site-header {
   --logo-width: calc(var(--logo-size) * 0.7776);
+  --vertical-nav-gap: clamp(3px, calc(var(--logo-size) / 38), 4px);
+  --vertical-nav-title-size: clamp(12px, calc((var(--logo-size) - var(--vertical-nav-gap) - var(--vertical-nav-gap) - var(--vertical-nav-gap) - var(--vertical-nav-gap)) / 5), 30px);
+  --expanded-nav-title-size: var(--vertical-nav-title-size);
+  --expanded-nav-detail-size: calc(clamp(10px, calc(var(--vertical-nav-title-size) * 0.42), 12px) + 1px);
 }
 
 html.red-perf-pass-1 .footer-gallery {

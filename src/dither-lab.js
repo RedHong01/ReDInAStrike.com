@@ -31,9 +31,7 @@ function ensureCss() {
 
 function loadPublicRuntime() {
   if (!publishedNeedsRuntime || autoOpen) return Promise.resolve(null)
-  if (!publicRuntimePromise) {
-    publicRuntimePromise = import("./dither-public-runtime.js")
-  }
+  if (!publicRuntimePromise) publicRuntimePromise = import("./dither-public-runtime.js")
   return publicRuntimePromise
 }
 
@@ -44,7 +42,7 @@ async function loadCore() {
       runtime?.destroyPublicDitherRuntime?.()
       window.__RED_DITHER_PUBLIC_RUNTIME__?.destroy?.()
       await ensureCss()
-      const module = await import("./dither-hub-core.js")
+      const module = await import("./dither-hub-entry.js")
       coreLoaded = true
       return module
     })()

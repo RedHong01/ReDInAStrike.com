@@ -1,5 +1,3 @@
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { decodeConfig, encodeConfig, sanitizeConfig } from "./dither-engine.js"
 import {
   MOTION_GROUPS,
   MOTION_PARAM_META,
@@ -11,10 +9,12 @@ import {
 } from "./motion-default.js"
 
 const MOTION_WORKING_KEY = "red-motion-working-config-v1"
-let workingConfig = loadWorkingConfig()
-let currentRuntimeConfig = cloneMotionConfig(PUBLISHED_MOTION_CONFIG)
-let bodyObserver = null
+let active = false
+let workingConfig = null
+let panelObserver = null
 let syncFrame = 0
+let retryFrame = 0
+let toastTimer = 0
 
 function loadJson(key, fallback) {
   try {
@@ -46,18 +46,42 @@ function loadWorkingConfig() {
   return stored ? sanitizeMotionConfig(stored) : cloneMotionConfig(PUBLISHED_MOTION_CONFIG)
 }
 
-function panelIsOpen(panel = document.querySelector(".dither-lab")) {
+function ensureHubStyles() {
+  if (document.querySelector("#motion-hub-runtime-styles")) return
+  const style = document.createElement("style")
+  style.id = "motion-hub-runtime-styles"
+  style.textContent = `
+    .dither-lab__motion-group {
+      margin-top: 14px;
+      padding-top: 11px;
+      border-top: 1px dashed rgba(0, 0, 0, 0.15);
+    }
+    .dither-lab__motion-group:first-of-type { margin-top: 8px; }
+    .dither-lab__motion-group-head {
+      font-size: 10px;
+      line-height: 1.1;
+      letter-spacing: 0.035em;
+    }
+    .dither-lab__motion-group-copy {
+      margin: 4px 0 9px;
+      font-size: 8.5px;
+      line-height: 1.35;
+      color: var(--muted, rgba(0, 0, 0, 0.48));
+    }
+  `
+  document.head.append(style)
+}
+
+function panelIsOpen(panel) {
   return panel?.dataset.open === "true"
 }
 
-function runtimeConfigForPanel(panel) {
-  return panelIsOpen(panel) ? workingConfig : PUBLISHED_MOTION_CONFIG
-}
-
-function publishRuntimeConfig(panel = document.querySelector(".dither-lab")) {
-  currentRuntimeConfig = cloneMotionConfig(runtimeConfigForPanel(panel))
-  window.__RED_MOTION_CONFIG__ = currentRuntimeConfig
-  window.dispatchEvent(new CustomEvent("red:motion-config", { detail: currentRuntimeConfig }))
+function publishRuntimeConfig(panel) {
+  const next = panelIsOpen(panel)
+    ? sanitizeMotionConfig(workingConfig || PUBLISHED_MOTION_CONFIG)
+    : cloneMotionConfig(PUBLISHED_MOTION_CONFIG)
+  window.__RED_MOTION_CONFIG__ = next
+  window.dispatchEvent(new CustomEvent("red:motion-config", { detail: next }))
 }
 
 function formatValue(meta, value) {
@@ -110,23 +134,27 @@ function setMotionParam(panel, key, rawValue) {
   publishRuntimeConfig(panel)
 }
 
-function readDitherWorkingConfig() {
-  const encoded = new URLSearchParams(location.search).get("ditherConfig")
-  if (encoded) {
-    const shared = decodeConfig(encoded, PUBLISHED_DITHER_CONFIG)
-    if (shared) return shared
-  }
+async function getCombinedConfig() {
+  const [{ PUBLISHED_DITHER_CONFIG }, engine] = await Promise.all([
+    import("./dither-default.js"),
+    import("./dither-engine.js"),
+  ])
+  const params = new URLSearchParams(location.search)
+  const shared = params.get("ditherConfig")
+    ? engine.decodeConfig(params.get("ditherConfig"), PUBLISHED_DITHER_CONFIG)
+    : null
   const stored = loadJson("red-dither-working-config-v2", null)
-  return stored
-    ? sanitizeConfig(stored, PUBLISHED_DITHER_CONFIG)
-    : sanitizeConfig(PUBLISHED_DITHER_CONFIG, PUBLISHED_DITHER_CONFIG)
+  const dither = shared || (stored
+    ? engine.sanitizeConfig(stored, PUBLISHED_DITHER_CONFIG)
+    : engine.sanitizeConfig(PUBLISHED_DITHER_CONFIG, PUBLISHED_DITHER_CONFIG))
+  return { dither, engine, published: PUBLISHED_DITHER_CONFIG }
 }
 
-function buildCombinedRemixUrl() {
+async function buildCombinedRemixUrl() {
+  const { dither, engine, published } = await getCombinedConfig()
   const url = new URL(location.href)
-  const ditherConfig = readDitherWorkingConfig()
   url.searchParams.set("ditherHub", "1")
-  url.searchParams.set("ditherConfig", encodeConfig(ditherConfig, PUBLISHED_DITHER_CONFIG))
+  url.searchParams.set("ditherConfig", engine.encodeConfig(dither, published))
   url.searchParams.set("motionConfig", encodeMotionConfig(workingConfig))
   return url.toString()
 }
@@ -148,11 +176,11 @@ function showToast(panel, message) {
   if (!toast) return
   toast.textContent = message
   toast.classList.add("is-visible")
-  clearTimeout(showToast.timer)
-  showToast.timer = setTimeout(() => toast.classList.remove("is-visible"), 1800)
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 1800)
 }
 
-function interceptCombinedCopy(event, panel) {
+async function interceptCombinedCopy(event, panel) {
   const action = event.target.closest?.("[data-dither-action]")?.dataset.ditherAction
   if (!action) return
 
@@ -168,29 +196,42 @@ function interceptCombinedCopy(event, panel) {
   event.preventDefault()
   event.stopImmediatePropagation()
 
-  const dither = readDitherWorkingConfig()
-  const combinedUrl = buildCombinedRemixUrl()
-
   if (action === "copy-url") {
-    copyText(combinedUrl).then(() => showToast(panel, "Dither + motion remix URL copied"))
-  } else if (action === "copy-json") {
-    copyText(JSON.stringify({
-      dither: sanitizeConfig(dither, PUBLISHED_DITHER_CONFIG),
-      motion: sanitizeMotionConfig(workingConfig),
-    }, null, 2)).then(() => showToast(panel, "Combined config JSON copied"))
-  } else {
-    const prompt = `Publish these dither + text-motion defaults for RedHong01/ReDInAStrike.com: ${combinedUrl}`
-    copyText(prompt).then(() => showToast(panel, "Combined publish prompt copied"))
-  }
-}
-
-function mountIntoPanel(panel) {
-  if (!panel || panel.dataset.motionHubBound === "true") {
-    if (panel) syncPanelInputs(panel)
+    const url = await buildCombinedRemixUrl()
+    await copyText(url)
+    showToast(panel, "Dither + motion remix URL copied")
     return
   }
 
+  const { dither, engine, published } = await getCombinedConfig()
+  if (action === "copy-json") {
+    await copyText(JSON.stringify({
+      dither: engine.sanitizeConfig(dither, published),
+      motion: sanitizeMotionConfig(workingConfig),
+    }, null, 2))
+    showToast(panel, "Combined config JSON copied")
+    return
+  }
+
+  const url = await buildCombinedRemixUrl()
+  const prompt = `Publish these dither + text-motion defaults for RedHong01/ReDInAStrike.com: ${url}`
+  await copyText(prompt)
+  showToast(panel, "Combined publish prompt copied")
+}
+
+function bindPanel(panel) {
+  if (!panel || panel.dataset.motionHubBound === "true") {
+    if (panel) {
+      syncPanelInputs(panel)
+      publishRuntimeConfig(panel)
+    }
+    return !!panel
+  }
+
   panel.dataset.motionHubBound = "true"
+  const title = panel.querySelector(".dither-lab__title")
+  if (title) title.textContent = "DITHER / MOTION HUB"
+
   const sections = [...panel.querySelectorAll(":scope > .dither-lab__section")]
   const remixSection = sections.find((section) =>
     section.querySelector(".dither-lab__section-head")?.textContent?.trim() === "Remix / Presets",
@@ -206,45 +247,43 @@ function mountIntoPanel(panel) {
     if (!input) return
     setMotionParam(panel, input.dataset.motionParam, input.value)
   })
+  panel.addEventListener("click", (event) => void interceptCombinedCopy(event, panel), true)
 
-  panel.addEventListener("click", (event) => interceptCombinedCopy(event, panel), true)
+  panelObserver?.disconnect()
+  panelObserver = new MutationObserver((mutations) => {
+    if (mutations.some((mutation) => mutation.attributeName === "data-open")) {
+      publishRuntimeConfig(panel)
+    }
+  })
+  panelObserver.observe(panel, { attributes: true, attributeFilter: ["data-open"] })
+
   syncPanelInputs(panel)
   publishRuntimeConfig(panel)
+  return true
 }
 
-function scheduleSync() {
+function scheduleBind() {
   if (syncFrame) return
   syncFrame = requestAnimationFrame(() => {
     syncFrame = 0
     const panel = document.querySelector(".dither-lab")
-    if (panel) mountIntoPanel(panel)
-    publishRuntimeConfig(panel)
+    if (bindPanel(panel)) return
+    if (!retryFrame) {
+      retryFrame = requestAnimationFrame(() => {
+        retryFrame = 0
+        scheduleBind()
+      })
+    }
   })
 }
 
-function boot() {
-  window.__RED_MOTION_CONFIG__ = cloneMotionConfig(PUBLISHED_MOTION_CONFIG)
-  scheduleSync()
-
-  if ("MutationObserver" in window) {
-    bodyObserver = new MutationObserver((mutations) => {
-      const relevant = mutations.some((mutation) =>
-        mutation.type === "childList" ||
-        (mutation.type === "attributes" && mutation.attributeName === "data-open"),
-      )
-      if (relevant) scheduleSync()
-    })
-    bodyObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["data-open"],
-    })
+export function activateMotionHub() {
+  if (active) {
+    scheduleBind()
+    return
   }
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", boot, { once: true })
-} else {
-  boot()
+  active = true
+  workingConfig = loadWorkingConfig()
+  ensureHubStyles()
+  scheduleBind()
 }

@@ -28,6 +28,24 @@
   opacity: 1;
 }
 
+/*
+ * Keep category anchors horizontally stable.
+ * The base nav previously expanded min-width / inline margins for active or locked
+ * items so their detail copy could claim layout space. That made the selected group
+ * visibly push left. Detail copy is absolutely positioned, so it can reveal without
+ * moving the category title or its siblings.
+ */
+.nav-item {
+  transition: transform 440ms var(--nav-ease);
+}
+
+.nav-item.is-nav-active,
+.nav-item.is-nav-locked:not(.is-nav-lock-suppressed),
+.nav-item:focus-visible {
+  min-width: 0;
+  margin-inline: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nav-title {
     transition-duration: 0ms;

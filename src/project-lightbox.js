@@ -1,15 +1,26 @@
 const LIGHTBOX_STYLE_ID = "project-lightbox-style"
 const LIGHTBOX_CLASS = "project-lightbox"
 const LIGHTBOX_OPEN_CLASS = "is-open"
-const LIGHTBOX_CLOSE_MS = 170
+const LIGHTBOX_OPEN_MS = 440
+const LIGHTBOX_CLOSE_MS = 360
+const LIGHTBOX_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
 
 let overlay = null
+let backdrop = null
 let previewImage = null
 let activeSourceImage = null
+let activeTargetRect = null
 let previousFocus = null
 let previousHtmlOverflow = ""
 let previousBodyOverflow = ""
+let previousSourceOpacity = ""
 let closeTimer = 0
+let animationFrame = 0
+let isClosing = false
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true
+}
 
 function ensureStyles() {
   if (document.getElementById(LIGHTBOX_STYLE_ID)) return
@@ -31,14 +42,10 @@ function ensureStyles() {
       position: fixed;
       inset: 0;
       z-index: 1000;
-      display: grid;
-      place-items: center;
-      padding: clamp(18px, 3vw, 48px);
-      background: rgba(var(--paper-rgb, 248, 247, 245), 0.965);
-      opacity: 0;
+      display: block;
+      overflow: hidden;
       pointer-events: none;
       cursor: zoom-out;
-      transition: opacity ${LIGHTBOX_CLOSE_MS}ms ease;
       overscroll-behavior: contain;
       touch-action: none;
     }
@@ -48,13 +55,25 @@ function ensureStyles() {
     }
 
     .${LIGHTBOX_CLASS}.${LIGHTBOX_OPEN_CLASS} {
-      opacity: 1;
       pointer-events: auto;
     }
 
+    .${LIGHTBOX_CLASS}__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--paper-rgb, 248, 247, 245), 0.965);
+      opacity: 0;
+      transition: opacity ${LIGHTBOX_OPEN_MS}ms ease;
+      will-change: opacity;
+    }
+
+    .${LIGHTBOX_CLASS}.${LIGHTBOX_OPEN_CLASS} .${LIGHTBOX_CLASS}__backdrop {
+      opacity: 1;
+    }
+
     .${LIGHTBOX_CLASS}__image {
+      position: absolute;
       display: block;
-      flex: none;
       max-width: none;
       max-height: none;
       margin: 0;
@@ -63,20 +82,16 @@ function ensureStyles() {
       cursor: default;
       user-select: none;
       -webkit-user-drag: none;
+      transform-origin: center center;
+      will-change: transform;
+      backface-visibility: hidden;
       box-shadow: 0 1px 0 rgba(0, 0, 0, 0.035);
-      transform: scale(0.985);
-      transform-origin: center;
-      transition: transform ${LIGHTBOX_CLOSE_MS}ms cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .${LIGHTBOX_CLASS}.${LIGHTBOX_OPEN_CLASS} .${LIGHTBOX_CLASS}__image {
-      transform: scale(1);
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .${LIGHTBOX_CLASS},
+      .${LIGHTBOX_CLASS}__backdrop,
       .${LIGHTBOX_CLASS}__image {
-        transition: none;
+        transition: none !important;
       }
     }
   `
@@ -96,6 +111,11 @@ function ensureOverlay() {
   overlay.setAttribute("aria-modal", "true")
   overlay.setAttribute("aria-label", "Image preview. Click outside the image or press Escape to close.")
 
+  backdrop = document.createElement("div")
+  backdrop.className = `${LIGHTBOX_CLASS}__backdrop`
+  backdrop.setAttribute("aria-hidden", "true")
+  overlay.appendChild(backdrop)
+
   previewImage = document.createElement("img")
   previewImage.className = `${LIGHTBOX_CLASS}__image`
   previewImage.alt = ""
@@ -104,35 +124,53 @@ function ensureOverlay() {
   overlay.appendChild(previewImage)
 
   overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) closeLightbox()
+    if (event.target !== previewImage) closeLightbox()
   })
 
   previewImage.addEventListener("click", (event) => {
     event.stopPropagation()
   })
 
-  previewImage.addEventListener("load", sizePreviewImage)
   document.body.appendChild(overlay)
   return overlay
 }
 
-function sizePreviewImage() {
-  if (!previewImage || !previewImage.naturalWidth || !previewImage.naturalHeight) return
-
-  const horizontalPadding = Math.max(36, Math.min(window.innerWidth * 0.06, 96))
-  const verticalPadding = Math.max(36, Math.min(window.innerHeight * 0.08, 96))
-  const availableWidth = Math.max(1, window.innerWidth - horizontalPadding)
-  const availableHeight = Math.max(1, window.innerHeight - verticalPadding)
+function getPreviewTargetRect(naturalWidth, naturalHeight) {
+  const marginX = Math.max(18, Math.min(window.innerWidth * 0.03, 48))
+  const marginY = Math.max(18, Math.min(window.innerHeight * 0.04, 48))
+  const availableWidth = Math.max(1, window.innerWidth - marginX * 2)
+  const availableHeight = Math.max(1, window.innerHeight - marginY * 2)
   const scale = Math.min(
-    availableWidth / previewImage.naturalWidth,
-    availableHeight / previewImage.naturalHeight,
+    availableWidth / Math.max(1, naturalWidth),
+    availableHeight / Math.max(1, naturalHeight),
   )
 
-  const renderedWidth = Math.max(1, Math.round(previewImage.naturalWidth * scale))
-  const renderedHeight = Math.max(1, Math.round(previewImage.naturalHeight * scale))
+  const width = Math.max(1, naturalWidth * scale)
+  const height = Math.max(1, naturalHeight * scale)
+  return {
+    left: (window.innerWidth - width) / 2,
+    top: (window.innerHeight - height) / 2,
+    width,
+    height,
+  }
+}
 
-  previewImage.style.width = `${renderedWidth}px`
-  previewImage.style.height = `${renderedHeight}px`
+function setPreviewRect(rect) {
+  if (!previewImage) return
+  previewImage.style.left = `${rect.left}px`
+  previewImage.style.top = `${rect.top}px`
+  previewImage.style.width = `${rect.width}px`
+  previewImage.style.height = `${rect.height}px`
+}
+
+function transformBetweenRects(fromRect, toRect) {
+  const fromCenterX = fromRect.left + fromRect.width / 2
+  const fromCenterY = fromRect.top + fromRect.height / 2
+  const toCenterX = toRect.left + toRect.width / 2
+  const toCenterY = toRect.top + toRect.height / 2
+  const scaleX = Math.max(0.0001, fromRect.width / Math.max(1, toRect.width))
+  const scaleY = Math.max(0.0001, fromRect.height / Math.max(1, toRect.height))
+  return `translate3d(${fromCenterX - toCenterX}px, ${fromCenterY - toCenterY}px, 0) scale(${scaleX}, ${scaleY})`
 }
 
 function lockArticleScroll() {
@@ -147,56 +185,119 @@ function restoreArticleScroll() {
   document.body.style.overflow = previousBodyOverflow
 }
 
+function hideSourceImage(sourceImage) {
+  previousSourceOpacity = sourceImage.style.opacity
+  sourceImage.style.opacity = "0"
+}
+
+function restoreSourceImage(sourceImage = activeSourceImage) {
+  if (!(sourceImage instanceof HTMLImageElement)) return
+  sourceImage.style.opacity = previousSourceOpacity
+  previousSourceOpacity = ""
+}
+
 function openLightbox(sourceImage) {
   const root = ensureOverlay()
   const source = sourceImage.currentSrc || sourceImage.src
-  if (!source) return
+  if (!source || !previewImage) return
 
   clearTimeout(closeTimer)
+  cancelAnimationFrame(animationFrame)
+  isClosing = false
+
   activeSourceImage = sourceImage
   previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
 
-  previewImage.alt = sourceImage.alt || "Project image preview"
-  previewImage.style.width = "auto"
-  previewImage.style.height = "auto"
+  const sourceRect = sourceImage.getBoundingClientRect()
+  const naturalWidth = sourceImage.naturalWidth || Math.max(1, sourceRect.width)
+  const naturalHeight = sourceImage.naturalHeight || Math.max(1, sourceRect.height)
+  activeTargetRect = getPreviewTargetRect(naturalWidth, naturalHeight)
 
+  previewImage.alt = sourceImage.alt || "Project image preview"
+  previewImage.src = source
+  previewImage.style.transition = "none"
+  setPreviewRect(activeTargetRect)
+  previewImage.style.transform = prefersReducedMotion()
+    ? "none"
+    : transformBetweenRects(sourceRect, activeTargetRect)
+
+  root.classList.remove(LIGHTBOX_OPEN_CLASS)
   root.hidden = false
   lockArticleScroll()
+  hideSourceImage(sourceImage)
 
-  if (previewImage.src !== source) {
-    previewImage.src = source
-  } else if (previewImage.complete) {
-    sizePreviewImage()
+  if (prefersReducedMotion()) {
+    root.classList.add(LIGHTBOX_OPEN_CLASS)
+    previewImage.style.transform = "none"
+    root.focus({ preventScroll: true })
+    return
   }
 
-  requestAnimationFrame(() => {
-    root.classList.add(LIGHTBOX_OPEN_CLASS)
-    root.focus({ preventScroll: true })
+  animationFrame = requestAnimationFrame(() => {
+    animationFrame = requestAnimationFrame(() => {
+      if (!overlay || overlay.hidden || isClosing) return
+      previewImage.style.transition = `transform ${LIGHTBOX_OPEN_MS}ms ${LIGHTBOX_EASE}`
+      root.classList.add(LIGHTBOX_OPEN_CLASS)
+      previewImage.style.transform = "none"
+      root.focus({ preventScroll: true })
+    })
   })
 }
 
-function closeLightbox() {
-  if (!overlay || overlay.hidden) return
-
+function finishClose(focusTarget, sourceImage) {
+  if (!overlay || !previewImage) return
+  overlay.hidden = true
   overlay.classList.remove(LIGHTBOX_OPEN_CLASS)
+  previewImage.removeAttribute("src")
+  previewImage.style.removeProperty("left")
+  previewImage.style.removeProperty("top")
+  previewImage.style.removeProperty("width")
+  previewImage.style.removeProperty("height")
+  previewImage.style.removeProperty("transform")
+  previewImage.style.removeProperty("transition")
+  restoreSourceImage(sourceImage)
   restoreArticleScroll()
 
-  const focusTarget = activeSourceImage || previousFocus
   activeSourceImage = null
+  activeTargetRect = null
   previousFocus = null
+  isClosing = false
+
+  if (focusTarget instanceof HTMLElement && focusTarget.isConnected) {
+    focusTarget.focus({ preventScroll: true })
+  }
+}
+
+function closeLightbox() {
+  if (!overlay || overlay.hidden || !previewImage || isClosing) return
+  isClosing = true
+  cancelAnimationFrame(animationFrame)
+
+  const sourceImage = activeSourceImage
+  const focusTarget = sourceImage || previousFocus
+  const reducedMotion = prefersReducedMotion()
 
   clearTimeout(closeTimer)
-  const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+
+  if (reducedMotion) {
+    finishClose(focusTarget, sourceImage)
+    return
+  }
+
+  const targetRect = activeTargetRect || previewImage.getBoundingClientRect()
+  const sourceRect = sourceImage instanceof HTMLImageElement && sourceImage.isConnected
+    ? sourceImage.getBoundingClientRect()
+    : null
+
+  previewImage.style.transition = `transform ${LIGHTBOX_CLOSE_MS}ms ${LIGHTBOX_EASE}`
+  overlay.classList.remove(LIGHTBOX_OPEN_CLASS)
+  previewImage.style.transform = sourceRect
+    ? transformBetweenRects(sourceRect, targetRect)
+    : "scale(0.97)"
+
   closeTimer = window.setTimeout(() => {
-    if (!overlay) return
-    overlay.hidden = true
-    previewImage?.removeAttribute("src")
-    previewImage?.style.removeProperty("width")
-    previewImage?.style.removeProperty("height")
-    if (focusTarget instanceof HTMLElement && focusTarget.isConnected) {
-      focusTarget.focus({ preventScroll: true })
-    }
-  }, prefersReducedMotion ? 0 : LIGHTBOX_CLOSE_MS)
+    finishClose(focusTarget, sourceImage)
+  }, LIGHTBOX_CLOSE_MS)
 }
 
 function isEligibleProjectImage(image) {
@@ -227,5 +328,14 @@ document.addEventListener("keydown", (event) => {
 })
 
 window.addEventListener("resize", () => {
-  if (overlay && !overlay.hidden) sizePreviewImage()
+  if (!overlay || overlay.hidden || !previewImage || !activeSourceImage || isClosing) return
+
+  const naturalWidth = activeSourceImage.naturalWidth || previewImage.naturalWidth
+  const naturalHeight = activeSourceImage.naturalHeight || previewImage.naturalHeight
+  if (!naturalWidth || !naturalHeight) return
+
+  activeTargetRect = getPreviewTargetRect(naturalWidth, naturalHeight)
+  previewImage.style.transition = "none"
+  previewImage.style.transform = "none"
+  setPreviewRect(activeTargetRect)
 }, { passive: true })

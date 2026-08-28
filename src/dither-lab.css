@@ -33,9 +33,7 @@
   overflow: auto;
   overscroll-behavior: contain;
   border: 1px solid rgba(0, 0, 0, 0.17);
-  background: rgba(var(--paper-rgb, 248, 247, 245), 0.92);
-  -webkit-backdrop-filter: blur(20px) saturate(1.08);
-  backdrop-filter: blur(20px) saturate(1.08);
+  background: rgba(var(--paper-rgb, 248, 247, 245), 0.96);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.10);
   color: var(--ink);
   font-family: var(--mono, "Courier New", monospace);
@@ -52,9 +50,7 @@
   z-index: 2;
   padding: 12px 12px 10px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  background: rgba(var(--paper-rgb, 248, 247, 245), 0.96);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  background: rgba(var(--paper-rgb, 248, 247, 245), 0.985);
 }
 
 .dither-lab__head {
@@ -127,6 +123,29 @@
 .dither-lab__section-copy {
   margin: 5px 0 10px;
   font-size: 9px;
+  line-height: 1.35;
+  color: var(--muted, rgba(0, 0, 0, 0.48));
+}
+
+.dither-lab__motion-group {
+  margin-top: 14px;
+  padding-top: 11px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.15);
+}
+
+.dither-lab__motion-group:first-of-type {
+  margin-top: 8px;
+}
+
+.dither-lab__motion-group-head {
+  font-size: 10px;
+  line-height: 1.1;
+  letter-spacing: 0.035em;
+}
+
+.dither-lab__motion-group-copy {
+  margin: 4px 0 9px;
+  font-size: 8.5px;
   line-height: 1.35;
   color: var(--muted, rgba(0, 0, 0, 0.48));
 }

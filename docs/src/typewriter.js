@@ -1,50 +1,53 @@
-const NAV_TYPE_INTERVAL = 38
-const NAV_DELETE_INTERVAL = 24
-const BODY_BASE_INTERVAL = 10
-const BODY_LINE_PAUSE = 95
-const BODY_PUNCTUATION_PAUSE = 46
-const BODY_MIN_DURATION = 460
-const BODY_MAX_DURATION = 2800
-const BODY_ROOT_MARGIN = "0px 0px -12% 0px"
+import {
+  PUBLISHED_MOTION_CONFIG,
+  sanitizeMotionConfig,
+} from "./motion-default.js"
+import "./motion-hub.js"
 
-const bodyObserver = "IntersectionObserver" in window
-  ? new IntersectionObserver(handleBodyIntersections, {
-      root: null,
-      rootMargin: BODY_ROOT_MARGIN,
-      threshold: 0.12,
-    })
-  : null
-
-const bodyStates = new WeakMap()
-const navStates = new WeakMap()
+let motion = sanitizeMotionConfig(window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
+let bodyObserver = null
 let appObserver = null
 let catalogObserver = null
+let bodyAttributeObserver = null
 let hoveredNavCategory = null
 let focusedNavCategory = null
 let scanFrame = 0
 let bodyStartSequence = 0
+let currentNav = null
+let navPushMeasureFrame = 0
+let navPushFrame = 0
+let navPushLastTime = 0
+
+const bodyStates = new WeakMap()
+const navStates = new WeakMap()
+const navPushStates = new Map()
 
 const BODY_SELECTOR = [
   "#app main p",
   "#app main li",
-  "#app .about-section p",
-  "#app .about-section li",
+  "#app main figcaption",
+  "#app .project-meta",
+  "#app .footer-gallery-meta",
   "#app .resume-project-body",
   "#app .resume-sidebar-body",
   "#app .resume-education-program",
+  "#app .resume-project-head p",
+  "#app .resume-project-head time",
+  "#app .detail-heading p",
+  "#app .detail-heading span",
+  "#app .framer-derived-year",
+  "#app .framer-derived-category",
+  "#app .framer-case-year",
+  "#app .framer-case-category",
   "#app .body-copy-en",
   "#app .body-copy-zh",
 ].join(",")
 
 const BODY_EXCLUDE_SELECTOR = [
   ".nav-detail",
-  ".project-meta",
-  ".footer-gallery-meta",
-  ".detail-heading",
-  ".framer-derived-hero",
-  ".framer-case-hero",
-  ".resume-project-head",
-  ".resume-education-head",
+  ".site-header",
+  ".dither-lab",
+  ".project-lightbox",
   "[data-typewriter-skip]",
 ].join(",")
 
@@ -89,17 +92,50 @@ function ensureStyles() {
     [data-typewriter-body="typing"]::after {
       content: "";
       display: inline-block;
-      width: 1px;
+      width: var(--tw-caret-width, 1px);
       height: 0.92em;
       margin-left: 0.08em;
       vertical-align: -0.08em;
       background: currentColor;
-      animation: typewriter-caret-blink 720ms steps(1, end) infinite;
+      animation: typewriter-caret-blink var(--tw-caret-blink, 520ms) steps(1, end) infinite;
       pointer-events: none;
+    }
+
+    .nav-item {
+      --nav-typewriter-push-x: 0px;
+      translate: var(--nav-typewriter-push-x) 0;
+      will-change: transform, translate;
     }
 
     [data-typewriter-body] {
       position: relative;
+    }
+
+    [data-typewriter-body="observing"] {
+      visibility: hidden;
+    }
+
+    [data-typewriter-body="typing"],
+    [data-typewriter-body="done"] {
+      visibility: visible;
+    }
+
+    .project-media {
+      overflow: hidden;
+    }
+
+    .dither-preview-canvas {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+    }
+
+    .catalog[data-active-filter]
+      .project-card.is-filter-muted:has(.dither-preview-canvas[data-active="true"])
+      .project-halftone {
+      opacity: 0 !important;
+      visibility: hidden !important;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -111,6 +147,11 @@ function ensureStyles() {
     }
   `
   document.head.append(style)
+}
+
+function applyMotionCssVariables() {
+  document.documentElement.style.setProperty("--tw-caret-blink", `${motion.caretBlinkMs}ms`)
+  document.documentElement.style.setProperty("--tw-caret-width", `${motion.caretWidthPx}px`)
 }
 
 function getCatalogFilter() {
@@ -147,6 +188,7 @@ function renderNavState(state) {
   const visible = state.count > 0 || editing || state.target > 0
   state.detail.classList.toggle("is-typewriter-visible", visible)
   state.detail.classList.toggle("is-typewriter-editing", editing)
+  scheduleNavPushMeasure()
 }
 
 function animateNavState(state, time) {
@@ -157,7 +199,7 @@ function animateNavState(state, time) {
   state.accumulator += elapsed
 
   const growing = state.target > state.count
-  const interval = growing ? NAV_TYPE_INTERVAL : NAV_DELETE_INTERVAL
+  const interval = Math.max(1, growing ? motion.navTypeMs : motion.navDeleteMs)
   let changed = false
 
   while (state.count !== state.target && state.accumulator >= interval) {
@@ -202,11 +244,149 @@ function refreshNavTargets() {
     if (!navStates.has(detail)) createNavState(detail)
     setNavTarget(detail, item.dataset.navCategory === activeCategory)
   })
+  scheduleNavPushMeasure()
+}
+
+function clearDetachedPushStates() {
+  for (const [item] of navPushStates) {
+    if (!item.isConnected) navPushStates.delete(item)
+  }
+}
+
+function getPushState(item) {
+  let state = navPushStates.get(item)
+  if (!state) {
+    state = { item, x: 0, velocity: 0, target: 0 }
+    navPushStates.set(item, state)
+  }
+  return state
+}
+
+function requestNavPushFrame() {
+  if (navPushFrame) return
+  navPushFrame = requestAnimationFrame(animateNavPush)
+}
+
+function setAllPushTargetsToZero(items = []) {
+  items.forEach((item) => {
+    getPushState(item).target = 0
+  })
+  requestNavPushFrame()
+}
+
+function measureNavPushTargets() {
+  navPushMeasureFrame = 0
+  const nav = document.querySelector(".nav-list")
+  if (!nav) return
+
+  const items = [...nav.querySelectorAll(".nav-item[data-nav-category]")]
+  clearDetachedPushStates()
+  items.forEach((item) => { getPushState(item).target = 0 })
+
+  if (
+    prefersReducedMotion() ||
+    document.body.dataset.navDensity === "full" ||
+    items.length < 2
+  ) {
+    setAllPushTargetsToZero(items)
+    return
+  }
+
+  const category = getEffectiveNavCategory()
+  const activeIndex = items.findIndex((item) => item.dataset.navCategory === category)
+  if (activeIndex <= 0) {
+    requestNavPushFrame()
+    return
+  }
+
+  const activeItem = items[activeIndex]
+  const detail = activeItem.querySelector(".nav-detail")
+  const detailState = detail ? navStates.get(detail) : null
+  if (!detail || !detailState || detailState.count <= 0) {
+    requestNavPushFrame()
+    return
+  }
+
+  const detailRect = detail.getBoundingClientRect()
+  const navRect = nav.getBoundingClientRect()
+  if (detailRect.width <= 1 || navRect.width <= 1) {
+    requestNavPushFrame()
+    return
+  }
+
+  let rightBoundary = detailRect.left - motion.navPushGapPx
+
+  for (let index = activeIndex - 1; index >= 0; index -= 1) {
+    const item = items[index]
+    const push = getPushState(item)
+    const rect = item.getBoundingClientRect()
+    const baseLeft = rect.left - push.x
+    const baseRight = rect.right - push.x
+    let target = Math.min(0, rightBoundary - baseRight)
+
+    const minimumTarget = navRect.left - baseLeft
+    target = Math.max(target, minimumTarget)
+    push.target = target
+    rightBoundary = baseLeft + target - motion.navPushGapPx
+  }
+
+  requestNavPushFrame()
+}
+
+function scheduleNavPushMeasure() {
+  if (navPushMeasureFrame) return
+  navPushMeasureFrame = requestAnimationFrame(measureNavPushTargets)
+}
+
+function animateNavPush(time) {
+  navPushFrame = 0
+  const elapsed = navPushLastTime ? Math.min(0.034, (time - navPushLastTime) / 1000) : 1 / 60
+  navPushLastTime = time
+  let moving = false
+
+  const stiffness = Math.max(1, motion.navSpringStiffness)
+  const damping = Math.max(0, motion.navSpringDamping)
+  const mass = Math.max(0.1, motion.navSpringMass)
+
+  for (const state of navPushStates.values()) {
+    if (!state.item.isConnected) continue
+
+    if (prefersReducedMotion()) {
+      state.x = state.target
+      state.velocity = 0
+    } else {
+      const displacement = state.x - state.target
+      const acceleration = (-stiffness * displacement - damping * state.velocity) / mass
+      state.velocity += acceleration * elapsed
+      state.x += state.velocity * elapsed
+
+      if (Math.abs(state.x - state.target) < 0.08 && Math.abs(state.velocity) < 1.2) {
+        state.x = state.target
+        state.velocity = 0
+      } else {
+        moving = true
+      }
+    }
+
+    state.item.style.setProperty("--nav-typewriter-push-x", `${state.x.toFixed(2)}px`)
+  }
+
+  if (moving) navPushFrame = requestAnimationFrame(animateNavPush)
+  else navPushLastTime = 0
 }
 
 function bindNav() {
   const nav = document.querySelector(".nav-list")
-  if (!nav || nav.dataset.typewriterBound === "true") {
+  if (!nav) return
+
+  if (currentNav !== nav) {
+    currentNav = nav
+    hoveredNavCategory = null
+    focusedNavCategory = null
+    navPushStates.clear()
+  }
+
+  if (nav.dataset.typewriterBound === "true") {
     refreshNavTargets()
     return
   }
@@ -237,6 +417,11 @@ function bindNav() {
     })
   })
 
+  if ("ResizeObserver" in window) {
+    const observer = new ResizeObserver(scheduleNavPushMeasure)
+    observer.observe(nav)
+  }
+
   refreshNavTargets()
 }
 
@@ -255,6 +440,22 @@ function bindCatalogObserver() {
   catalogObserver.observe(catalog, {
     attributes: true,
     attributeFilter: ["data-active-filter"],
+  })
+}
+
+function bindBodyAttributeObserver() {
+  bodyAttributeObserver?.disconnect()
+  if (!("MutationObserver" in window)) return
+  bodyAttributeObserver = new MutationObserver((mutations) => {
+    if (mutations.some((mutation) =>
+      mutation.attributeName === "data-nav-density" || mutation.attributeName === "data-header-compact",
+    )) {
+      scheduleNavPushMeasure()
+    }
+  })
+  bodyAttributeObserver.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["data-nav-density", "data-header-compact"],
   })
 }
 
@@ -311,30 +512,33 @@ function measureLineStarts(records) {
 }
 
 function charDuration(character) {
-  if (/[.!?。！？;；:：]/.test(character)) return BODY_PUNCTUATION_PAUSE
-  if (/[,，、]/.test(character)) return BODY_BASE_INTERVAL * 2.2
-  if (/\s/.test(character)) return BODY_BASE_INTERVAL * 0.35
-  return BODY_BASE_INTERVAL
+  if (/[.!?。！？;；:：]/.test(character)) return motion.bodyPunctuationPauseMs
+  if (/[,，、]/.test(character)) return motion.bodyCommaPauseMs
+  if (/\s/.test(character)) return motion.bodyCharMs * motion.bodySpaceFactor
+  return motion.bodyCharMs
 }
 
 function buildTimeline(records, lineStarts, total) {
   const chars = new Array(total)
   for (const record of records) {
-    for (let i = 0; i < record.text.length; i += 1) {
-      chars[record.start + i] = record.text[i]
+    for (let index = 0; index < record.text.length; index += 1) {
+      chars[record.start + index] = record.text[index]
     }
   }
 
   const timeline = new Float32Array(total + 1)
   let elapsed = 0
   for (let index = 0; index < total; index += 1) {
-    if (lineStarts.has(index)) elapsed += BODY_LINE_PAUSE
+    if (lineStarts.has(index)) elapsed += motion.bodyLinePauseMs
     elapsed += charDuration(chars[index] || "")
     timeline[index + 1] = elapsed
   }
 
   if (!elapsed) return timeline
-  const targetDuration = Math.min(BODY_MAX_DURATION, Math.max(BODY_MIN_DURATION, elapsed))
+  const targetDuration = Math.min(
+    motion.bodyMaxDurationMs,
+    Math.max(motion.bodyMinDurationMs, elapsed),
+  )
   const scale = targetDuration / elapsed
   if (Math.abs(scale - 1) > 0.001) {
     for (let index = 1; index < timeline.length; index += 1) {
@@ -425,10 +629,14 @@ function startBodyState(block) {
 
   block.dataset.typewriterBody = "typing"
   block.setAttribute("aria-busy", "true")
+  if (!block.hasAttribute("aria-label")) {
+    const readable = (block.textContent || "").trim()
+    if (readable) block.setAttribute("aria-label", readable)
+  }
   block.style.minHeight = `${Math.ceil(rect.height)}px`
   setVisibleCharacterCount(state, 0)
 
-  const sequenceDelay = Math.min(240, bodyStartSequence * 70)
+  const sequenceDelay = Math.min(motion.blockStaggerMs * 3, bodyStartSequence * motion.blockStaggerMs)
   bodyStartSequence = (bodyStartSequence + 1) % 4
   window.setTimeout(() => {
     if (block.dataset.typewriterBody !== "typing") return
@@ -442,6 +650,27 @@ function handleBodyIntersections(entries) {
     .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
 
   entering.forEach((entry) => startBodyState(entry.target))
+}
+
+function configureBodyObserver() {
+  const observing = [...document.querySelectorAll('[data-typewriter-body="observing"]')]
+  bodyObserver?.disconnect()
+  bodyObserver = null
+
+  if (!("IntersectionObserver" in window) || prefersReducedMotion()) {
+    observing.forEach((block) => {
+      block.dataset.typewriterBody = "done"
+      block.style.removeProperty("min-height")
+    })
+    return
+  }
+
+  bodyObserver = new IntersectionObserver(handleBodyIntersections, {
+    root: null,
+    rootMargin: `0px 0px -${motion.triggerBottomPct}% 0px`,
+    threshold: motion.triggerThreshold,
+  })
+  observing.forEach((block) => bodyObserver.observe(block))
 }
 
 function shouldTypeBodyBlock(block, candidateSet) {
@@ -458,7 +687,10 @@ function shouldTypeBodyBlock(block, candidateSet) {
 }
 
 function scanBodyBlocks() {
-  if (!bodyObserver || prefersReducedMotion()) return
+  if (prefersReducedMotion()) return
+  if (!bodyObserver) configureBodyObserver()
+  if (!bodyObserver) return
+
   const raw = [...document.querySelectorAll(BODY_SELECTOR)]
   const candidateSet = new Set(raw)
   raw.forEach((block) => {
@@ -488,13 +720,38 @@ function bindAppObserver() {
   appObserver.observe(app, { childList: true, subtree: true })
 }
 
+function applyMotionConfig(nextConfig) {
+  const previousTriggerThreshold = motion.triggerThreshold
+  const previousTriggerBottomPct = motion.triggerBottomPct
+  motion = sanitizeMotionConfig(nextConfig || PUBLISHED_MOTION_CONFIG)
+  applyMotionCssVariables()
+
+  if (
+    previousTriggerThreshold !== motion.triggerThreshold ||
+    previousTriggerBottomPct !== motion.triggerBottomPct
+  ) {
+    configureBodyObserver()
+  }
+
+  scheduleNavPushMeasure()
+}
+
 function boot() {
   ensureStyles()
+  applyMotionCssVariables()
+  configureBodyObserver()
   bindNav()
   bindCatalogObserver()
+  bindBodyAttributeObserver()
   scanBodyBlocks()
   bindAppObserver()
-  window.addEventListener("hashchange", refreshNavTargets)
+
+  window.addEventListener("hashchange", () => {
+    refreshNavTargets()
+    scheduleNavPushMeasure()
+  })
+  window.addEventListener("resize", scheduleNavPushMeasure, { passive: true })
+  window.addEventListener("red:motion-config", (event) => applyMotionConfig(event.detail))
 }
 
 if (document.readyState === "loading") {

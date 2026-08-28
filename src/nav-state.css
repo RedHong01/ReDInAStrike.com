@@ -3,7 +3,10 @@
   --nav-selection-fade-ms: 460ms;
 }
 
-/* Selected category stays at full ink while the other category titles fade back. */
+/*
+ * Category selection is expressed only through hierarchy, not geometry.
+ * Keep every category anchor in its native layout position.
+ */
 .nav-title {
   opacity: 1;
   transition:
@@ -24,18 +27,10 @@
 }
 
 /*
- * The selected category anchor never expands or shifts itself. nav-collision.js
- * measures the active subtitle and moves only preceding categories far enough left
- * to create a clean lane. The same rule therefore works for every category/detail.
+ * The base stylesheet used min-width + inline margins to reserve room for nav detail
+ * copy. Typewriter subtitles are an overlay/static secondary line and must never push
+ * sibling categories horizontally.
  */
-.nav-item {
-  --nav-collision-x: 0px;
-  translate: var(--nav-collision-x) 0;
-  transition:
-    transform 440ms var(--nav-ease),
-    translate 440ms var(--nav-ease);
-}
-
 .nav-item.is-nav-active,
 .nav-item.is-nav-locked:not(.is-nav-lock-suppressed),
 .nav-item:focus-visible {
@@ -44,8 +39,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nav-title,
-  .nav-item {
+  .nav-title {
     transition-duration: 0ms;
   }
 }

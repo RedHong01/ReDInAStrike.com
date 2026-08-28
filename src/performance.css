@@ -264,6 +264,11 @@ body[data-layout-transition="true"] .framer-case-shell {
   width: 100%;
 }
 
+/* Pitchfork cover artwork already carries its own white page/background. */
+.detail-page[data-route="/pitchfork"] .framer-derived-intro figure {
+  background: transparent;
+}
+
 /* The layout can change because the header changed the shell width even when
  * the viewport did not cross a media-query breakpoint. Container queries make
  * the internal auto-layout respond to that actual shell width. */

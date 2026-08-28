@@ -33,10 +33,14 @@
  * The base nav previously expanded min-width / inline margins for active or locked
  * items so their detail copy could claim layout space. That made the selected group
  * visibly push left. Detail copy is absolutely positioned, so it can reveal without
- * moving the category title or its siblings.
+ * moving the selected category itself.
  */
 .nav-item {
-  transition: transform 440ms var(--nav-ease);
+  --nav-collision-x: 0px;
+  translate: var(--nav-collision-x) 0;
+  transition:
+    transform 440ms var(--nav-ease),
+    translate 440ms var(--nav-ease);
 }
 
 .nav-item.is-nav-active,
@@ -46,8 +50,41 @@
   margin-inline: 0;
 }
 
+/*
+ * Interaction has the longest subtitle ("UI & UX Prototype / Plugin").
+ * Its detail is right-anchored and therefore extends mainly to the left. After the
+ * active-item width reservation was removed, that text could overlap On going.
+ * Keep Interaction fixed and let only its left neighbours fan out to create clearance.
+ */
+@media (min-width: 981px) {
+  .nav-list:has(
+      .nav-item[data-nav-category="interaction"]:is(
+          .is-nav-active,
+          .is-nav-locked:not(.is-nav-lock-suppressed),
+          :hover,
+          :focus-visible
+        )
+    )
+    .nav-item[data-nav-category="ongoing"] {
+    --nav-collision-x: clamp(-62px, -3.4vw, -42px);
+  }
+
+  .nav-list:has(
+      .nav-item[data-nav-category="interaction"]:is(
+          .is-nav-active,
+          .is-nav-locked:not(.is-nav-lock-suppressed),
+          :hover,
+          :focus-visible
+        )
+    )
+    .nav-item[data-nav-category="game"] {
+    --nav-collision-x: clamp(-30px, -1.55vw, -18px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .nav-title {
+  .nav-title,
+  .nav-item {
     transition-duration: 0ms;
   }
 }

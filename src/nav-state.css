@@ -1,0 +1,35 @@
+:root {
+  --nav-selection-muted-opacity: 0.28;
+  --nav-selection-fade-ms: 460ms;
+}
+
+/*
+ * Selected-category emphasis.
+ * The existing nav state machine marks the chosen category with .is-nav-locked.
+ * Keep the selected title at full ink while the other category titles fade back.
+ * Opacity is compositor-friendly and avoids triggering layout during filter changes.
+ */
+.nav-title {
+  opacity: 1;
+  transition:
+    transform 420ms var(--nav-ease),
+    color 260ms ease,
+    opacity var(--nav-selection-fade-ms) var(--nav-ease);
+}
+
+.nav-list:has(.nav-item.is-nav-locked) .nav-item .nav-title {
+  opacity: var(--nav-selection-muted-opacity);
+}
+
+.nav-list:has(.nav-item.is-nav-locked) .nav-item.is-nav-locked .nav-title,
+.nav-list:has(.nav-item.is-nav-locked) .nav-item.is-nav-active .nav-title,
+.nav-list:has(.nav-item.is-nav-locked) .nav-item:hover .nav-title,
+.nav-list:has(.nav-item.is-nav-locked) .nav-item:focus-visible .nav-title {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-title {
+    transition-duration: 0ms;
+  }
+}

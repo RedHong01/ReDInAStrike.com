@@ -1,0 +1,43 @@
+html.red-perf-pass-1 {
+  --perf-layout-logo-size: 150px;
+  --perf-layout-header-height: 200px;
+  --logo-width: calc(var(--perf-layout-logo-size) * 0.7776);
+}
+
+html.red-perf-pass-1 .site-header {
+  --logo-width: calc(var(--logo-size) * 0.7776);
+}
+
+html.red-perf-pass-1 .footer-gallery {
+  --gallery-pocket-top: var(--perf-layout-header-height, var(--header-height));
+}
+
+html.red-perf-pass-1 .site-header::before {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: backdrop-filter;
+}
+
+html.red-perf-pass-1 .project-media {
+  contain: paint;
+}
+
+html.red-perf-pass-1 .project-halftone,
+html.red-perf-pass-1 .dither-preview-canvas {
+  contain: paint;
+}
+
+/* Keep the developer tool cheap enough that it does not distort performance testing. */
+html.red-perf-pass-1 .dither-lab,
+html.red-perf-pass-1 .dither-lab__sticky-head {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.red-perf-pass-1 .dither-lab {
+  background: rgba(var(--paper-rgb, 248, 247, 245), 0.98);
+}
+
+html.red-perf-pass-1 .dither-lab__sticky-head {
+  background: rgba(var(--paper-rgb, 248, 247, 245), 0.99);
+}

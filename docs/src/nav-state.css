@@ -3,12 +3,7 @@
   --nav-selection-fade-ms: 460ms;
 }
 
-/*
- * Selected-category emphasis.
- * The existing nav state machine marks the chosen category with .is-nav-locked.
- * Keep the selected title at full ink while the other category titles fade back.
- * Opacity is compositor-friendly and avoids triggering layout during filter changes.
- */
+/* Selected category stays at full ink while the other category titles fade back. */
 .nav-title {
   opacity: 1;
   transition:
@@ -29,11 +24,9 @@
 }
 
 /*
- * Keep category anchors horizontally stable.
- * The base nav previously expanded min-width / inline margins for active or locked
- * items so their detail copy could claim layout space. That made the selected group
- * visibly push left. Detail copy is absolutely positioned, so it can reveal without
- * moving the selected category itself.
+ * The selected category anchor never expands or shifts itself. nav-collision.js
+ * measures the active subtitle and moves only preceding categories far enough left
+ * to create a clean lane. The same rule therefore works for every category/detail.
  */
 .nav-item {
   --nav-collision-x: 0px;
@@ -48,43 +41,6 @@
 .nav-item:focus-visible {
   min-width: 0;
   margin-inline: 0;
-}
-
-/*
- * Interaction has the longest subtitle ("UI & UX Prototype / Plugin").
- * Its detail is right-anchored and therefore extends mainly to the left. Keep the
- * Interaction anchor fixed and let only its left neighbours fan out for clearance.
- *
- * Important: hover/visual classes are transient. The persistent state is the catalog
- * filter itself, so once Interaction is selected the clearance remains until the
- * filter changes or is cleared.
- */
-@media (min-width: 981px) {
-  body:has(.catalog[data-active-filter="interaction"])
-    .nav-item[data-nav-category="ongoing"],
-  .nav-list:has(
-      .nav-item[data-nav-category="interaction"]:is(
-          .is-nav-active,
-          :hover,
-          :focus-visible
-        )
-    )
-    .nav-item[data-nav-category="ongoing"] {
-    --nav-collision-x: clamp(-62px, -3.4vw, -42px);
-  }
-
-  body:has(.catalog[data-active-filter="interaction"])
-    .nav-item[data-nav-category="game"],
-  .nav-list:has(
-      .nav-item[data-nav-category="interaction"]:is(
-          .is-nav-active,
-          :hover,
-          :focus-visible
-        )
-    )
-    .nav-item[data-nav-category="game"] {
-    --nav-collision-x: clamp(-30px, -1.55vw, -18px);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

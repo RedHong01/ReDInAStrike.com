@@ -3,6 +3,7 @@ import { renderCard } from "./dither-engine.js"
 
 const DITHER_NEAR_MARGIN = 1000
 const INITIAL_PRIORITY_CARD_COUNT = 8
+const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 
 const state = {
   renderFrame: 0,
@@ -18,6 +19,58 @@ const state = {
   dirtyCards: new Set(),
   boundImages: new WeakSet(),
   destroyed: false,
+}
+
+function ensurePublicStyles() {
+  if (document.getElementById(PUBLIC_STYLE_ID)) return
+  const style = document.createElement("style")
+  style.id = PUBLIC_STYLE_ID
+  style.textContent = `
+    .project-media {
+      overflow: hidden;
+    }
+
+    .dither-preview-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+      background: var(--paper);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--catalog-muted-hover-ms, 475ms) cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .catalog[data-active-filter]
+      .project-card.is-filter-muted
+      .dither-preview-canvas[data-active="true"] {
+      opacity: 1;
+    }
+
+    .catalog[data-active-filter]
+      .project-card.is-filter-muted.is-muted-restore-intent
+      .dither-preview-canvas {
+      opacity: 0;
+    }
+
+    .catalog[data-active-filter]
+      .project-card.is-filter-muted.is-muted-restore-return
+      .dither-preview-canvas[data-active="true"] {
+      opacity: 1;
+    }
+
+    .catalog[data-active-filter]
+      .project-card.is-filter-muted:has(.dither-preview-canvas[data-active="true"])
+      .project-halftone {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+  `
+  document.head.appendChild(style)
 }
 
 function isActiveCard(card) {
@@ -226,6 +279,7 @@ function bindCatalog(nextCatalog = document.querySelector(".catalog")) {
 }
 
 function boot() {
+  ensurePublicStyles()
   bindCatalog()
 
   if ("MutationObserver" in window) {

@@ -117,6 +117,17 @@ function disconnectCatalogObservers() {
   state.nearCards.clear()
 }
 
+function classListContains(classValue, token) {
+  return String(classValue || "").split(/\s+/).includes(token)
+}
+
+function mutedStateChanged(mutation) {
+  if (mutation.type !== "attributes" || mutation.attributeName !== "class") return false
+  const hadMuted = classListContains(mutation.oldValue, "is-filter-muted")
+  const hasMuted = mutation.target?.classList?.contains("is-filter-muted") === true
+  return hadMuted !== hasMuted
+}
+
 function bindCatalog(nextCatalog = document.querySelector(".catalog")) {
   if (state.destroyed) return
   if (state.catalog === nextCatalog && nextCatalog?.isConnected) {
@@ -131,13 +142,19 @@ function bindCatalog(nextCatalog = document.querySelector(".catalog")) {
   if ("MutationObserver" in window) {
     state.observer = new MutationObserver((mutations) => {
       const structureChanged = mutations.some((mutation) => mutation.type === "childList")
+      const filterChanged = mutations.some((mutation) =>
+        mutation.type === "attributes" && mutation.attributeName === "data-active-filter"
+      )
+      const mutedChanged = mutations.some(mutedStateChanged)
+
       if (structureChanged) requestSync()
-      requestRender()
+      if (structureChanged || filterChanged || mutedChanged) requestRender()
     })
     state.observer.observe(state.catalog, {
       childList: true,
       subtree: true,
       attributes: true,
+      attributeOldValue: true,
       attributeFilter: ["class", "data-active-filter"],
     })
   }

@@ -22,6 +22,7 @@
     syntheticRuleRectReads: 0,
     nativeFooterRectReads: 0,
     syntheticFooterRectReads: 0,
+    suppressedFooterFrames: 0,
   }
 
   window.__RED_PERF__ = Object.freeze({
@@ -40,6 +41,7 @@
   const nativeGetBoundingClientRect = Element.prototype.getBoundingClientRect
   const nativeAddEventListener = EventTarget.prototype.addEventListener
   const nativeRemoveEventListener = EventTarget.prototype.removeEventListener
+  const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window)
   const rootStyle = document.documentElement.style
   const pendingHeaderProperties = new Map()
   const headerStyleCache = new Map()
@@ -62,6 +64,10 @@
     "--glass-blur",
     "--header-glass-shadow-alpha",
     "--header-rule-alpha",
+  ])
+  const FOOTER_FRAME_CALLBACKS = new Set([
+    "animateFooterGallery",
+    "animateFooterGalleryLoop",
   ])
 
   function resolveHeader() {
@@ -140,6 +146,15 @@
     }
 
     return nativeSetProperty.call(this, name, value, priority)
+  }
+
+  window.requestAnimationFrame = function performanceScopedAnimationFrame(callback) {
+    const callbackName = typeof callback === "function" ? callback.name : ""
+    if (!perfState.footerActive && FOOTER_FRAME_CALLBACKS.has(callbackName)) {
+      perfState.suppressedFooterFrames += 1
+      return 0
+    }
+    return nativeRequestAnimationFrame(callback)
   }
 
   function isProjectRuleTarget(element) {
@@ -225,6 +240,12 @@
     if (perfState.footerActive === next) return
     perfState.footerActive = next
     document.documentElement.dataset.footerPerfActive = next ? "true" : "false"
+
+    if (next) {
+      nativeRequestAnimationFrame(() => {
+        window.dispatchEvent(new Event("scroll"))
+      })
+    }
   }
 
   function footerPointerWrapper(listener) {
@@ -320,7 +341,7 @@
 
   function scheduleObserverSweep() {
     if (geometrySweepFrame) return
-    geometrySweepFrame = requestAnimationFrame(() => {
+    geometrySweepFrame = nativeRequestAnimationFrame(() => {
       geometrySweepFrame = 0
       sweepDetachedResizeTargets()
       setupFooterWakeObserver()

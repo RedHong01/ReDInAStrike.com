@@ -15,6 +15,7 @@ const state = {
   observedMedia: new Set(),
   observedCards: new Set(),
   nearCards: new Set(),
+  dirtyCards: new Set(),
   boundImages: new WeakSet(),
   destroyed: false,
 }
@@ -33,6 +34,14 @@ function deactivateCard(card) {
   if (canvas?.dataset.active !== "false") canvas.dataset.active = "false"
 }
 
+function markCardDirty(card) {
+  if (card?.isConnected) state.dirtyCards.add(card)
+}
+
+function markAllCardsDirty() {
+  state.catalog?.querySelectorAll(".project-card").forEach(markCardDirty)
+}
+
 function renderEligibleCards() {
   state.renderFrame = 0
   if (state.destroyed || !state.catalog?.isConnected) return
@@ -43,15 +52,22 @@ function renderEligibleCards() {
   cards.forEach((card, index) => {
     if (!isActiveCard(card)) {
       deactivateCard(card)
+      state.dirtyCards.delete(card)
       return
     }
+
+    const canvas = card.querySelector(":scope .dither-preview-canvas")
+    const needsRender = state.dirtyCards.has(card) || !canvas
+    if (!needsRender) return
 
     const shouldRender =
       !hasIntersectionObserver ||
       state.nearCards.has(card) ||
       index < INITIAL_PRIORITY_CARD_COUNT
 
-    if (shouldRender) renderCard(card, PUBLISHED_DITHER_CONFIG)
+    if (!shouldRender) return
+    renderCard(card, PUBLISHED_DITHER_CONFIG)
+    state.dirtyCards.delete(card)
   })
 }
 
@@ -63,7 +79,10 @@ function requestRender() {
 function bindImageLoad(img) {
   if (!img || img.complete || state.boundImages.has(img)) return
   state.boundImages.add(img)
-  img.addEventListener("load", requestRender, { once: true, passive: true })
+  img.addEventListener("load", () => {
+    markCardDirty(img.closest(".project-card"))
+    requestRender()
+  }, { once: true, passive: true })
 }
 
 function syncObservedTargets() {
@@ -72,7 +91,7 @@ function syncObservedTargets() {
   if (state.destroyed || !catalog?.isConnected) return
 
   const nextMedia = new Set(catalog.querySelectorAll(".project-media"))
-  for (const media of state.observedMedia) {
+  for (const media of [...state.observedMedia]) {
     if (nextMedia.has(media)) continue
     state.resizeObserver?.unobserve(media)
     state.observedMedia.delete(media)
@@ -81,19 +100,22 @@ function syncObservedTargets() {
     if (state.observedMedia.has(media)) continue
     state.observedMedia.add(media)
     state.resizeObserver?.observe(media)
+    markCardDirty(media.closest(".project-card"))
   }
 
   const nextCards = new Set(catalog.querySelectorAll(".project-card"))
-  for (const card of state.observedCards) {
+  for (const card of [...state.observedCards]) {
     if (nextCards.has(card)) continue
     state.cardObserver?.unobserve(card)
     state.observedCards.delete(card)
     state.nearCards.delete(card)
+    state.dirtyCards.delete(card)
   }
   for (const card of nextCards) {
     if (state.observedCards.has(card)) continue
     state.observedCards.add(card)
     state.cardObserver?.observe(card)
+    markCardDirty(card)
   }
 
   catalog.querySelectorAll("img").forEach(bindImageLoad)
@@ -115,6 +137,7 @@ function disconnectCatalogObservers() {
   state.observedMedia.clear()
   state.observedCards.clear()
   state.nearCards.clear()
+  state.dirtyCards.clear()
 }
 
 function classListContains(classValue, token) {
@@ -141,13 +164,27 @@ function bindCatalog(nextCatalog = document.querySelector(".catalog")) {
 
   if ("MutationObserver" in window) {
     state.observer = new MutationObserver((mutations) => {
-      const structureChanged = mutations.some((mutation) => mutation.type === "childList")
-      const filterChanged = mutations.some((mutation) =>
-        mutation.type === "attributes" && mutation.attributeName === "data-active-filter"
-      )
-      const mutedChanged = mutations.some(mutedStateChanged)
+      let structureChanged = false
+      let filterChanged = false
+      let mutedChanged = false
+
+      mutations.forEach((mutation) => {
+        if (mutation.type === "childList") {
+          structureChanged = true
+          return
+        }
+        if (mutation.attributeName === "data-active-filter") {
+          filterChanged = true
+          return
+        }
+        if (mutedStateChanged(mutation)) {
+          mutedChanged = true
+          markCardDirty(mutation.target.closest?.(".project-card") || mutation.target)
+        }
+      })
 
       if (structureChanged) requestSync()
+      if (filterChanged) markAllCardsDirty()
       if (structureChanged || filterChanged || mutedChanged) requestRender()
     })
     state.observer.observe(state.catalog, {
@@ -160,23 +197,24 @@ function bindCatalog(nextCatalog = document.querySelector(".catalog")) {
   }
 
   if ("ResizeObserver" in window) {
-    state.resizeObserver = new ResizeObserver(requestRender)
+    state.resizeObserver = new ResizeObserver((entries) => {
+      entries.forEach((entry) => markCardDirty(entry.target.closest(".project-card")))
+      requestRender()
+    })
   }
 
   if ("IntersectionObserver" in window) {
     state.cardObserver = new IntersectionObserver((entries) => {
-      let changed = false
+      let shouldRender = false
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          if (!state.nearCards.has(entry.target)) {
-            state.nearCards.add(entry.target)
-            changed = true
-          }
-        } else if (state.nearCards.delete(entry.target)) {
-          changed = true
+          state.nearCards.add(entry.target)
+          if (state.dirtyCards.has(entry.target)) shouldRender = true
+        } else {
+          state.nearCards.delete(entry.target)
         }
       })
-      if (changed) requestRender()
+      if (shouldRender) requestRender()
     }, {
       root: null,
       rootMargin: `${DITHER_NEAR_MARGIN}px 0px`,

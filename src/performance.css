@@ -22,6 +22,10 @@ html.red-perf-pass-1 .site-header::before {
   will-change: backdrop-filter;
 }
 
+html.red-perf-pass-1 .project-row {
+  contain: layout paint;
+}
+
 html.red-perf-pass-1 .project-media {
   contain: paint;
 }
@@ -29,6 +33,11 @@ html.red-perf-pass-1 .project-media {
 html.red-perf-pass-1 .project-halftone,
 html.red-perf-pass-1 .dither-preview-canvas {
   contain: paint;
+}
+
+html.red-perf-pass-1[data-footer-perf-active="false"] .footer-gallery-runner,
+html.red-perf-pass-1[data-footer-perf-active="false"] .footer-gallery-track {
+  will-change: auto !important;
 }
 
 /* Keep the developer tool cheap enough that it does not distort performance testing. */

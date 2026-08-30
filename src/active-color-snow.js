@@ -19,6 +19,7 @@ const activeStates = new Set()
 const paletteCache = new Map()
 const prewarmQueued = new Set()
 const prewarmImageBound = new WeakSet()
+const playImageBound = new WeakSet()
 const hoverCardsBound = new WeakSet()
 
 let animationFrame = 0
@@ -31,6 +32,8 @@ let panelWatchObserver = null
 let prewarmHandle = 0
 let paperCacheKey = ""
 let paperCacheValue = [248, 247, 245, 255]
+let inkCacheKey = ""
+let inkCacheValue = [69, 69, 69, 255]
 
 function configFromUrl() {
   const encoded = new URLSearchParams(location.search).get("activeColorConfig")
@@ -102,6 +105,19 @@ function ensureStyles() {
       opacity: 1;
       transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1) 50ms !important;
     }
+    html[${ROOT_ATTRIBUTE}="true"] .catalog[data-filter-phase="entering"] .project-media::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 7;
+      background: var(--paper);
+      opacity: 1;
+      pointer-events: none;
+    }
+    html[${ROOT_ATTRIBUTE}="true"] .catalog[data-filter-phase="entering"]
+      .project-media:has(.${CANVAS_CLASS})::after {
+      opacity: 0;
+    }
     .${CANVAS_CLASS} {
       position: absolute;
       inset: 0;
@@ -155,6 +171,16 @@ function readPaperColor() {
   paperCacheKey = value
   paperCacheValue = parseColor(value)
   return paperCacheValue
+}
+
+function readInkColor() {
+  const value =
+    getComputedStyle(document.documentElement).getPropertyValue("--ink").trim() ||
+    "#454545"
+  if (value === inkCacheKey) return inkCacheValue
+  inkCacheKey = value
+  inkCacheValue = parseColor(value, [69, 69, 69, 255])
+  return inkCacheValue
 }
 
 function parseObjectPositionRatio(value) {
@@ -235,6 +261,39 @@ function logicalGridSize(media, config) {
     rows = Math.max(1, Math.floor(rows / scale))
   }
   return { cols, rows }
+}
+
+function signalOrder(config, col, row) {
+  const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
+  const clusterMix = clamp(config.activeColorClusterMix)
+  const localRandom = hash01(config.activeColorSeed, col, row, 1)
+  const clusterRandom = hash01(
+    config.activeColorSeed,
+    Math.floor(col / clusterSize),
+    Math.floor(row / clusterSize),
+    9,
+  )
+  return localRandom * (1 - clusterMix) + clusterRandom * clusterMix
+}
+
+function buildPlaceholderGrid(media, config) {
+  if (!media) return null
+  const { cols, rows } = logicalGridSize(media, config)
+  const order = new Float32Array(cols * rows)
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      order[row * cols + col] = signalOrder(config, col, row)
+    }
+  }
+
+  return {
+    key: `placeholder|${cols}x${rows}|${config.activeColorSeed}`,
+    cols,
+    rows,
+    count: cols * rows,
+    order,
+  }
 }
 
 function paletteDescriptor(img, media, config) {
@@ -391,8 +450,6 @@ function buildLocalPalette(img, media, config, descriptor = paletteDescriptor(im
   const mix = clamp(config.activeColorNeighborMix)
   const levels = config.activeColorPaletteLevels
   const saturation = config.activeColorSaturation
-  const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
-  const clusterMix = clamp(config.activeColorClusterMix)
   const integral = integralChannels(source, cols, rows)
 
   for (let row = 0; row < rows; row += 1) {
@@ -429,14 +486,7 @@ function buildLocalPalette(img, media, config, descriptor = paletteDescriptor(im
       palette[offset + 2] = quantize(satB, levels)
       palette[offset + 3] = 255
 
-      const localRandom = hash01(config.activeColorSeed, col, row, 1)
-      const clusterRandom = hash01(
-        config.activeColorSeed,
-        Math.floor(col / clusterSize),
-        Math.floor(row / clusterSize),
-        9,
-      )
-      order[index] = localRandom * (1 - clusterMix) + clusterRandom * clusterMix
+      order[index] = signalOrder(config, col, row)
     }
   }
 
@@ -489,6 +539,43 @@ function buildRestoreSourcePixels(card, grid, paper = readPaperColor()) {
   }
 }
 
+function drawPlaceholderState(state, frameTick, now) {
+  const { ctx, grid, config, paper, ink } = state
+  const data = state.framePixels
+  const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
+  const clusterMix = clamp(config.activeColorClusterMix)
+  const density = clamp(0.22 + config.activeColorNoiseDensity * 0.5)
+  const timeSeconds = now / 1000
+
+  for (let index = 0; index < grid.count; index += 1) {
+    const col = index % grid.cols
+    const row = Math.floor(index / grid.cols)
+    const clusterCol = Math.floor(col / clusterSize)
+    const clusterRow = Math.floor(row / clusterSize)
+    const local = hash01(config.activeColorSeed, col, row, 3000 + frameTick)
+    const cluster = hash01(
+      config.activeColorSeed,
+      clusterCol,
+      clusterRow,
+      4000 + Math.floor(frameTick * 0.72),
+    )
+    const wave = 0.5 + Math.sin(timeSeconds * 6.4 + grid.order[index] * Math.PI * 2) * 0.5
+    const signal = local * (1 - clusterMix) + cluster * clusterMix
+    const active = signal < density
+    const inkMix = active
+      ? 0.24 + hash01(config.activeColorSeed, row, col, 5000 + frameTick) * 0.5
+      : 0.035 + wave * 0.055
+    const offset = index * 4
+
+    data[offset] = paper[0] * (1 - inkMix) + ink[0] * inkMix
+    data[offset + 1] = paper[1] * (1 - inkMix) + ink[1] * inkMix
+    data[offset + 2] = paper[2] * (1 - inkMix) + ink[2] * inkMix
+    data[offset + 3] = 255
+  }
+
+  ctx.putImageData(state.imageData, 0, 0)
+}
+
 function cancelCard(card, { remove = true } = {}) {
   const state = cardStates.get(card)
   if (state) activeStates.delete(state)
@@ -536,6 +623,11 @@ function drawState(state, now) {
   const density = clamp(config.activeColorNoiseDensity * envelope)
   const data = state.framePixels
   data.fill(0)
+
+  if (state.mode === "placeholder") {
+    drawPlaceholderState(state, frameTick, now)
+    return
+  }
 
   if (state.mode === "restore" && state.sourcePixels) {
     if (progress <= 0.001) {
@@ -667,7 +759,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
   if (
     !config.activeColorEnabled ||
     prefersReducedMotion() ||
-    !cardNearViewport(card)
+    (!options.includeOffscreen && !cardNearViewport(card))
   ) {
     return false
   }
@@ -675,6 +767,46 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
   const media = card.querySelector(".project-media")
   const img = media?.querySelector("img")
   if (!media || !img) return false
+
+  const startPlaceholder = () => {
+    if (options.placeholder === false) return false
+    const grid = buildPlaceholderGrid(media, config)
+    if (!grid) return false
+    const canvas = ensureCanvas(card, grid.cols, grid.rows)
+    const ctx = canvas?.getContext("2d", { alpha: true })
+    if (!canvas || !ctx) return false
+
+    ctx.imageSmoothingEnabled = false
+    canvas.style.transition = "none"
+    canvas.style.opacity = "1"
+    canvas.style.visibility = "visible"
+
+    const framePixels = new Uint8ClampedArray(grid.count * 4)
+    const imageData = new ImageData(framePixels, grid.cols, grid.rows)
+    const state = {
+      card,
+      canvas,
+      ctx,
+      grid,
+      config,
+      direction,
+      mode: "placeholder",
+      reason: options.reason || "loading",
+      paper: readPaperColor(),
+      ink: readInkColor(),
+      framePixels,
+      imageData,
+      startTime: performance.now(),
+      lastDraw: 0,
+      finished: false,
+    }
+
+    cardStates.set(card, state)
+    activeStates.add(state)
+    drawState(state, state.startTime)
+    scheduleAnimationLoop()
+    return true
+  }
 
   const run = () => {
     if (!card.isConnected || !img.complete || !img.naturalWidth) return false
@@ -711,6 +843,8 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
 
     const framePixels = new Uint8ClampedArray(grid.count * 4)
     const imageData = new ImageData(framePixels, grid.cols, grid.rows)
+    const previous = cardStates.get(card)
+    if (previous) activeStates.delete(previous)
     const localConfig = {
       ...config,
       activeColorDurationMs: sourcePixels
@@ -747,12 +881,13 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
 
   if (img.complete && img.naturalWidth) return run()
 
-  if (!prewarmImageBound.has(img)) {
-    prewarmImageBound.add(img)
+  const placeholderStarted = startPlaceholder()
+  if (!playImageBound.has(img)) {
+    playImageBound.add(img)
     img.addEventListener(
       "load",
       () => {
-        prewarmImageBound.delete(img)
+        playImageBound.delete(img)
         if (!card.isConnected) return
         schedulePrewarm(card.closest(".catalog"))
         run()
@@ -760,22 +895,28 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       { once: true, passive: true },
     )
   }
-  return false
+  return placeholderStarted
 }
 
 function allCards(targetCatalog = catalog) {
   return [...targetCatalog?.querySelectorAll(".project-card") || []]
 }
 
-function activeCards(targetCatalog = catalog) {
-  return [
-    ...targetCatalog?.querySelectorAll(
-      ".project-card:not(.is-filter-muted)",
-    ) || [],
-  ]
+function playableCards(targetCatalog = catalog, { includeMuted = false } = {}) {
+  return includeMuted
+    ? allCards(targetCatalog)
+    : [
+        ...targetCatalog?.querySelectorAll(
+          ".project-card:not(.is-filter-muted)",
+        ) || [],
+      ]
 }
 
-function playCatalog(targetCatalog, direction, { force = false } = {}) {
+function playCatalog(
+  targetCatalog,
+  direction,
+  { force = false, includeMuted = false, includeOffscreen = false } = {},
+) {
   if (
     !targetCatalog ||
     !runtimeConfig.activeColorEnabled ||
@@ -792,8 +933,10 @@ function playCatalog(targetCatalog, direction, { force = false } = {}) {
   }
 
   let played = 0
-  activeCards(targetCatalog).forEach((card, index) => {
-    if (playCard(card, direction, index, runtimeConfig)) played += 1
+  playableCards(targetCatalog, { includeMuted }).forEach((card, index) => {
+    if (playCard(card, direction, index, runtimeConfig, { includeOffscreen })) {
+      played += 1
+    }
   })
   return played
 }
@@ -909,14 +1052,22 @@ function handleCatalogPhase(targetCatalog) {
   lastPhase = phase
 
   if (phase === "exiting") {
-    playCatalog(targetCatalog, "out", { force: true })
+    playCatalog(targetCatalog, "out", {
+      force: true,
+      includeMuted: true,
+      includeOffscreen: true,
+    })
     return
   }
 
   if (phase === "entering") {
     stopCatalogStates(targetCatalog)
     schedulePrewarm(targetCatalog)
-    requestAnimationFrame(() => playCatalog(targetCatalog, "in", { force: true }))
+    playCatalog(targetCatalog, "in", {
+      force: true,
+      includeMuted: true,
+      includeOffscreen: true,
+    })
     return
   }
 
@@ -943,9 +1094,6 @@ function bindCatalog(nextCatalog) {
     if (mutations.some((mutation) => mutation.type === "childList")) {
       schedulePrewarm(catalog)
       bindCardHoverSnow(catalog)
-      if (catalog.dataset.filterPhase === "entering") {
-        requestAnimationFrame(() => playCatalog(catalog, "in", { force: true }))
-      }
     }
 
     handleCatalogPhase(catalog)

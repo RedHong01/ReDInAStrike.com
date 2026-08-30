@@ -3094,6 +3094,26 @@ function catalogFilterDuration(duration) {
   return prefersReducedMotion() ? 1 : duration
 }
 
+function catalogFineSignalSnowDuration(catalog, direction) {
+  const config =
+    window.__RED_ACTIVE_COLOR_SNOW__?.getConfig?.() ||
+    window.__RED_ACTIVE_COLOR_CONFIG__
+  if (!catalog || !config?.activeColorEnabled || prefersReducedMotion()) return 0
+
+  const cards = [...catalog.querySelectorAll(".project-card")]
+  if (!cards.length) return 0
+
+  const baseDuration =
+    direction === "out"
+      ? Number(config.activeColorExitDurationMs)
+      : Number(config.activeColorDurationMs) + Number(config.activeColorSettleMs || 0)
+  const startDelay = Number(config.activeColorDelayMs) || 0
+  const stagger = Number(config.activeColorStaggerMs) || 0
+  const finalDelay = Math.max(0, cards.length - 1) * Math.max(0, stagger)
+  const total = Math.max(0, baseDuration || 0) + startDelay + finalDelay
+  return catalogFilterDuration(total)
+}
+
 function setCatalogCardTimingVars(catalog, property, step = CATALOG_FILTER_STAGGER_MS, maxDelay = 196) {
   const cards = [...catalog.querySelectorAll(".project-card")]
   cards.forEach((card, index) => {
@@ -3837,9 +3857,13 @@ function startCatalogFilterTransition() {
   )
   catalog.dataset.filterPhase = "exiting"
 
+  const snowExitDuration = catalogFineSignalSnowDuration(catalog, "out")
   siteState.catalogFilterTimer = window.setTimeout(() => {
     commitCatalogFilterTransition(cycle)
-  }, catalogFilterDuration(CATALOG_FILTER_EXIT_MS) + exitDelay + 40)
+  }, Math.max(
+    catalogFilterDuration(CATALOG_FILTER_EXIT_MS) + exitDelay + 40,
+    snowExitDuration + 50,
+  ))
 }
 
 function setCatalogFilter(category) {

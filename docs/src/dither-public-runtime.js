@@ -1,19 +1,19 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260830-resizesnow2"
+import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260830-resizesnow3"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   cancelReveal,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-resizesnow2"
+} from "./reveal-motion.js?v=20260830-resizesnow3"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
   cancelDitherResizeSnow,
   playPreparedDitherResizeSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-resizesnow2"
+} from "./dither-resize-snow.js?v=20260830-resizesnow3"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -21,10 +21,12 @@ const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const RETRY_DELAYS = [0, 60, 160, 360, 800, 1600]
 const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
+const RESIZE_SETTLE_MS = 120
 
 const state = {
   destroyed: false,
   renderFrame: 0,
+  resizeTimer: 0,
   appObserver: null,
   catalogObserver: null,
   resizeObserver: null,
@@ -326,6 +328,15 @@ function requestRender() {
   state.renderFrame = requestAnimationFrame(renderPublishedDither)
 }
 
+function requestSettledResizeRender() {
+  if (state.destroyed) return
+  clearTimeout(state.resizeTimer)
+  state.resizeTimer = window.setTimeout(() => {
+    state.resizeTimer = 0
+    requestRender()
+  }, RESIZE_SETTLE_MS)
+}
+
 function mutedClassChanged(mutation) {
   const target = mutation.target
   if (!(target instanceof Element) || !target.classList.contains("project-card")) return false
@@ -447,10 +458,7 @@ function boot() {
   if (!publishedIsGenerated()) return
 
   if ("ResizeObserver" in window) {
-    state.resizeObserver = new ResizeObserver(() => {
-      if (state.destroyed) return
-      requestRender()
-    })
+    state.resizeObserver = new ResizeObserver(requestSettledResizeRender)
   }
 
   if ("IntersectionObserver" in window) {
@@ -461,7 +469,7 @@ function boot() {
     })
   }
 
-  window.addEventListener("resize", requestRender, { passive: true })
+  window.addEventListener("resize", requestSettledResizeRender, { passive: true })
 }
 
 export function destroyPublicDitherRuntime() {
@@ -481,8 +489,10 @@ export function destroyPublicDitherRuntime() {
   state.observedRevealCards.clear()
   state.retryTimers.forEach((timer) => clearTimeout(timer))
   state.retryTimers.clear()
+  clearTimeout(state.resizeTimer)
+  state.resizeTimer = 0
   document.querySelectorAll(".project-card").forEach((card) => releaseViewportReveal(card))
-  window.removeEventListener("resize", requestRender)
+  window.removeEventListener("resize", requestSettledResizeRender)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()
 }

@@ -1,19 +1,19 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260830-resizesnow2"
+import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260830-resizesnow3"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   cancelReveal,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-resizesnow2"
+} from "./reveal-motion.js?v=20260830-resizesnow3"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
   cancelDitherResizeSnow,
   playPreparedDitherResizeSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-resizesnow2"
+} from "./dither-resize-snow.js?v=20260830-resizesnow3"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"

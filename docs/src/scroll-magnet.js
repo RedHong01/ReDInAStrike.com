@@ -1,17 +1,20 @@
 const CONFIG = Object.freeze({
-  idleMs: 118,
-  recentInputMs: 1100,
-  suppressAfterUiMs: 720,
-  attractionRatio: 0.34,
-  minAttractionPx: 140,
-  maxAttractionPx: 340,
+  idleMs: 168,
+  recentInputMs: 1350,
+  suppressAfterUiMs: 760,
+  attractionRatio: 0.24,
+  minAttractionPx: 96,
+  maxAttractionPx: 240,
   snapInsetRatio: 0.055,
   minSnapInsetPx: 18,
   maxSnapInsetPx: 58,
-  minDistancePx: 7,
-  durationMinMs: 270,
-  durationMaxMs: 540,
-  durationPerPx: 0.68,
+  minDistancePx: 10,
+  durationMinMs: 360,
+  durationMaxMs: 720,
+  durationPerPx: 1.05,
+  reverseAllowancePx: 64,
+  velocityGatePxMs: 0.095,
+  velocityDecayMs: 92,
 })
 
 const STATION_SELECTORS = [
@@ -33,6 +36,8 @@ let settleTimer = 0
 let animationFrame = 0
 let animationToken = 0
 let lastScrollY = window.scrollY || 0
+let lastScrollAt = performance.now()
+let lastVelocity = 0
 let lastDirection = 0
 let lastInputAt = -Infinity
 let suppressUntil = 0
@@ -145,9 +150,16 @@ function markUserInput(direction = 0) {
   if (direction) lastDirection = Math.sign(direction)
 }
 
-function smootherStep(t) {
+function softMagnetStep(t) {
   const x = clamp(t, 0, 1)
-  return x * x * x * (x * (x * 6 - 15) + 10)
+  const x2 = x * x
+  const x4 = x2 * x2
+  return x4 * (35 + x * (-84 + x * (70 - 20 * x)))
+}
+
+function effectiveVelocity() {
+  const age = Math.max(0, now() - lastScrollAt)
+  return Math.abs(lastVelocity) * Math.exp(-age / CONFIG.velocityDecayMs)
 }
 
 function animateTo(targetY, station) {
@@ -176,7 +188,7 @@ function animateTo(targetY, station) {
     }
 
     const progress = clamp((time - startedAt) / duration, 0, 1)
-    const eased = smootherStep(progress)
+    const eased = softMagnetStep(progress)
     window.scrollTo(0, startY + distance * eased)
 
     if (progress < 1) {
@@ -187,9 +199,11 @@ function animateTo(targetY, station) {
     animationFrame = 0
     window.scrollTo(0, targetY)
     lastScrollY = targetY
+    lastVelocity = 0
+    lastScrollAt = now()
     lastSnappedElement = station
     lastSnappedY = targetY
-    suppressUntil = Math.max(suppressUntil, now() + 190)
+    suppressUntil = Math.max(suppressUntil, now() + 230)
     delete document.documentElement.dataset.scrollMagnet
     restoreScrollBehavior(currentAnimation)
   }
@@ -213,13 +227,15 @@ function candidateForCurrentPosition() {
     const distance = Math.abs(delta)
     if (distance < CONFIG.minDistancePx || distance > attraction) continue
 
+    const oppositeDirection = lastDirection !== 0 && Math.sign(delta) !== lastDirection
+    if (oppositeDirection && distance > CONFIG.reverseAllowancePx) continue
+
     let score = distance
-    if (lastDirection > 0 && delta < 0) score += Math.abs(delta) * 0.3
-    if (lastDirection < 0 && delta > 0) score += Math.abs(delta) * 0.3
+    if (oppositeDirection) score += distance * 0.72
 
     if (
       station === lastSnappedElement &&
-      Math.abs(currentY - lastSnappedY) < Math.min(92, attraction * 0.42)
+      Math.abs(currentY - lastSnappedY) < Math.min(84, attraction * 0.38)
     ) {
       score += attraction
     }
@@ -236,6 +252,7 @@ function shouldAttemptSnap() {
   if (document.hidden) return false
   if (time < suppressUntil) return false
   if (time - lastInputAt > CONFIG.recentInputMs) return false
+  if (effectiveVelocity() > CONFIG.velocityGatePxMs) return false
   if (document.body.style.overflow === "hidden") return false
   if (document.querySelector(".catalog[data-filter-phase]")) return false
   return true
@@ -243,24 +260,36 @@ function shouldAttemptSnap() {
 
 function attemptSnap() {
   settleTimer = 0
-  if (!shouldAttemptSnap()) return
+  if (!shouldAttemptSnap()) {
+    if (now() - lastInputAt <= CONFIG.recentInputMs && effectiveVelocity() > CONFIG.velocityGatePxMs) {
+      scheduleSettle()
+    }
+    return
+  }
   const candidate = candidateForCurrentPosition()
   if (!candidate) return
   animateTo(candidate.targetY, candidate.station)
 }
 
 function scheduleSettle() {
-  if (!shouldAttemptSnap()) return
+  if (reducedMotion() || document.hidden) return
   clearTimeout(settleTimer)
   settleTimer = window.setTimeout(attemptSnap, CONFIG.idleMs)
 }
 
 function handleScroll() {
   if (animationFrame) return
+  const time = now()
   const y = window.scrollY || 0
   const delta = y - lastScrollY
-  if (Math.abs(delta) > 0.25) lastDirection = Math.sign(delta)
+  const dt = Math.max(1, time - lastScrollAt)
+  if (Math.abs(delta) > 0.25) {
+    lastDirection = Math.sign(delta)
+    const instantaneous = delta / dt
+    lastVelocity = lastVelocity * 0.68 + instantaneous * 0.32
+  }
   lastScrollY = y
+  lastScrollAt = time
   scheduleSettle()
 }
 
@@ -333,6 +362,7 @@ function bindMutationObserver() {
 function boot() {
   if (window.__RED_SCROLL_MAGNET__?.version) return
   lastScrollY = window.scrollY || 0
+  lastScrollAt = now()
   bindMutationObserver()
 
   window.addEventListener("scroll", handleScroll, { passive: true })
@@ -353,7 +383,7 @@ function boot() {
   })
 
   window.__RED_SCROLL_MAGNET__ = {
-    version: 1,
+    version: 2,
     config: CONFIG,
     refresh: invalidateStations,
     snap: attemptSnap,

@@ -1,3 +1,10 @@
+import {
+  constrainBinaryGridSize,
+  readBinaryColors,
+  smooth01,
+} from "./binary-surface-core.js"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
   { label: "On going", detail: "Latest Personal Project", hash: "ongoing" },
@@ -177,6 +184,10 @@ const HOME_RETURN_COVER_MS = 620
 const HOME_RETURN_REVEAL_MS = 680
 const HOME_RETURN_FONT_READY_MS = 520
 const HOME_RETURN_READY_TIMEOUT_MS = 1100
+const ROUTE_EXIT_SNOW_MAX_CELLS = 76000
+const ROUTE_EXIT_SNOW_MIN_COLUMNS = 144
+const ROUTE_EXIT_SNOW_SOFTNESS = 0.105
+const ROUTE_EXIT_SNOW_INK_NOISE = 0.18
 const HALFTONE_RENDER_MARGIN = 1100
 const HALFTONE_PROGRESS_STEPS = 260
 const HALFTONE_LOGICAL_COLUMNS = 132
@@ -688,6 +699,66 @@ function routeFromLocation() {
   return routeMap.has(candidate) ? candidate : "/"
 }
 
+function normalizedPathname(pathname) {
+  const clean = String(pathname || "/").replace(/\/+$/, "")
+  return clean || "/"
+}
+
+function homePathname() {
+  return normalizedPathname(new URL(base, window.location.href).pathname)
+}
+
+function routeFromNavigationUrl(url) {
+  if (!(url instanceof URL)) return null
+  if (url.origin !== window.location.origin) return null
+
+  const pathname = normalizedPathname(url.pathname)
+  if (pathname === "/" || pathname === homePathname()) return "/"
+
+  const parts = url.pathname.split("/").filter(Boolean)
+  const last = parts[parts.length - 1]
+  if (!last) return "/"
+
+  const candidate = `/${last}`
+  return routeMap.has(candidate) ? candidate : null
+}
+
+function decodedUrlHash(url) {
+  const rawHash = String(url?.hash || "").replace(/^#/, "")
+  try {
+    return decodeURIComponent(rawHash)
+  } catch {
+    return rawHash
+  }
+}
+
+function routeTargetFromUrl(value = homeUrl()) {
+  let url
+  try {
+    url = value instanceof URL ? new URL(value.href) : new URL(value, window.location.href)
+  } catch {
+    return null
+  }
+
+  const path = routeFromNavigationUrl(url)
+  if (!path) return null
+  const hash = decodedUrlHash(url)
+
+  return {
+    url,
+    path,
+    hash,
+    scrollMode: path === "/" && hash === "resume" ? "section" : "top",
+  }
+}
+
+function pushRouteUrl(target) {
+  if (!target?.url) return
+  if (window.location.href !== target.url.href) {
+    window.history.pushState(null, "", target.url.href)
+  }
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
 }
@@ -741,6 +812,196 @@ function waitForImageReady(image) {
   })
 }
 
+function routeSnowHash(value, seed = 1) {
+  let hash = Math.imul((value + 0x9e3779b9) ^ seed, 0x85ebca6b)
+  hash ^= hash >>> 13
+  hash = Math.imul(hash, 0xc2b2ae35)
+  hash ^= hash >>> 16
+  return (hash >>> 0) / 4294967295
+}
+
+function visibleDitherCellPx() {
+  const canvases = [
+    ...document.querySelectorAll(
+      '.dither-preview-canvas[data-active="true"], .project-halftone[data-active="true"]',
+    ),
+  ]
+  const values = canvases
+    .map((canvas) => Number(canvas.dataset.ditherCellPx))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b)
+
+  if (values.length) return values[Math.floor(values.length / 2)]
+
+  const config = PUBLISHED_DITHER_CONFIG
+  const referenceWidth = Number(config.adaptiveReferenceWidth) || 604
+  const columns = Number(config.columns) || 240
+  return referenceWidth / columns
+}
+
+function routeExitSnowGrid() {
+  const viewportWidth = Math.max(1, Math.ceil(window.innerWidth || document.documentElement.clientWidth || 1))
+  const viewportHeight = Math.max(1, Math.ceil(window.innerHeight || document.documentElement.clientHeight || 1))
+  const baseCellPx = clamp(
+    visibleDitherCellPx() * 1.35,
+    Number(PUBLISHED_DITHER_CONFIG.adaptiveMinCellPx) || 1.95,
+    (Number(PUBLISHED_DITHER_CONFIG.adaptiveMaxCellPx) || 3.6) * 2.2,
+  )
+  const cols = Math.max(ROUTE_EXIT_SNOW_MIN_COLUMNS, Math.round(viewportWidth / baseCellPx))
+  const rows = Math.max(1, Math.round(viewportHeight / baseCellPx))
+  const grid = constrainBinaryGridSize(cols, rows, {
+    ...PUBLISHED_DITHER_CONFIG,
+    adaptiveMaxGridCells: Math.min(
+      ROUTE_EXIT_SNOW_MAX_CELLS,
+      Number(PUBLISHED_DITHER_CONFIG.adaptiveMaxGridCells) || ROUTE_EXIT_SNOW_MAX_CELLS,
+    ),
+  })
+
+  return {
+    ...grid,
+    viewportWidth,
+    viewportHeight,
+  }
+}
+
+function drawRouteExitSnowFrame(context, imageData, orders, colors, progress, frameSeed) {
+  const data = imageData.data
+  const paper = colors.paper
+  const ink = colors.ink
+  const easedProgress = smooth01(progress)
+  const softness = ROUTE_EXIT_SNOW_SOFTNESS
+
+  for (let index = 0; index < orders.length; index += 1) {
+    const offset = index * 4
+    const order = orders[index]
+    if (order > easedProgress) {
+      data[offset + 3] = 0
+      continue
+    }
+
+    const edge = clamp((easedProgress - order) / softness, 0, 1)
+    const isBoundary = edge < 1
+    const flicker = routeSnowHash(index, frameSeed)
+    const useInk = isBoundary
+      ? flicker < ROUTE_EXIT_SNOW_INK_NOISE + (1 - edge) * 0.34
+      : flicker < 0.018
+    const color = useInk ? ink : paper
+    const alpha = isBoundary ? Math.round(255 * (0.45 + edge * 0.55)) : 255
+
+    data[offset] = color[0]
+    data[offset + 1] = color[1]
+    data[offset + 2] = color[2]
+    data[offset + 3] = alpha
+  }
+
+  context.putImageData(imageData, 0, 0)
+}
+
+function startCatalogRouteExitSnow(duration) {
+  const catalog = document.querySelector(".catalog")
+  const player = window.__RED_ACTIVE_COLOR_SNOW__
+  if (!catalog || !player?.playCatalog || prefersReducedMotion()) return
+
+  const attribute = "data-color-snow-exit-duration-ms"
+  const previous = catalog.getAttribute(attribute)
+  catalog.setAttribute(attribute, String(Math.max(1, Math.round(duration))))
+  player.playCatalog(catalog, "out", {
+    force: true,
+    includeMuted: true,
+    includeOffscreen: false,
+    reason: "route-exit",
+  })
+  if (previous === null) catalog.removeAttribute(attribute)
+  else catalog.setAttribute(attribute, previous)
+}
+
+function playRouteExitSnow(id, duration = HOME_RETURN_COVER_MS) {
+  if (prefersReducedMotion()) return Promise.resolve(true)
+  const transition = siteState.homeReturnTransition
+  if (!transition || transition.id !== id) return Promise.resolve(false)
+
+  startCatalogRouteExitSnow(duration)
+
+  const canvas = document.createElement("canvas")
+  canvas.className = "page-route-exit-snow"
+  canvas.setAttribute("aria-hidden", "true")
+  const context = canvas.getContext("2d", { alpha: true })
+  if (!context) return Promise.resolve(false)
+
+  const grid = routeExitSnowGrid()
+  canvas.width = grid.cols
+  canvas.height = grid.rows
+  canvas.style.width = `${grid.viewportWidth}px`
+  canvas.style.height = `${grid.viewportHeight}px`
+  document.body.appendChild(canvas)
+
+  const colors = readBinaryColors()
+  const imageData = context.createImageData(grid.cols, grid.rows)
+  const orders = new Float32Array(grid.cols * grid.rows)
+  const seed = Math.round(performance.now()) ^ grid.cols ^ (grid.rows << 8)
+  for (let index = 0; index < orders.length; index += 1) {
+    const x = index % grid.cols
+    const y = Math.floor(index / grid.cols)
+    const diagonal = (x / Math.max(1, grid.cols - 1)) * 0.22 + (y / Math.max(1, grid.rows - 1)) * 0.16
+    orders[index] = clamp(routeSnowHash(index, seed) * 0.78 + diagonal, 0, 1)
+  }
+
+  let frame = 0
+  let startTime = 0
+  let frameCount = 0
+  let resolved = false
+
+  const cleanup = () => {
+    if (frame) cancelAnimationFrame(frame)
+    frame = 0
+    canvas.remove()
+    if (siteState.homeReturnTransition?.snowCleanup === cleanup) {
+      siteState.homeReturnTransition.snowCleanup = null
+    }
+  }
+
+  transition.snowCleanup?.()
+  transition.snowCleanup = cleanup
+
+  return new Promise((resolve) => {
+    const finish = (value) => {
+      if (resolved) return
+      resolved = true
+      resolve(value)
+    }
+
+    const step = (time) => {
+      if (!isCurrentHomeReturnTransition(id)) {
+        cleanup()
+        finish(false)
+        return
+      }
+
+      if (!startTime) startTime = time
+      const progress = clamp((time - startTime) / Math.max(1, duration), 0, 1)
+      drawRouteExitSnowFrame(context, imageData, orders, colors, progress, seed + frameCount * 37)
+      frameCount += 1
+
+      if (progress >= 1) {
+        frame = 0
+        finish(true)
+        return
+      }
+
+      frame = requestAnimationFrame(step)
+    }
+
+    frame = requestAnimationFrame(step)
+  })
+}
+
+function cleanupRouteExitSnow(id) {
+  const transition = siteState.homeReturnTransition
+  if (!transition || transition.id !== id) return
+  transition.snowCleanup?.()
+  transition.snowCleanup = null
+}
+
 function applyHomeReturnTransitionVisual(transition = siteState.homeReturnTransition) {
   if (!transition) return
   const compactProgress = clamp(transition.compactProgress || 0, 0, 1)
@@ -755,7 +1016,11 @@ function applyHomeReturnTransitionVisual(transition = siteState.homeReturnTransi
     window.scrollTo({ top: siteState.homeReturnLockedScrollY, left: 0, behavior: "auto" })
     siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
   }
-  if (transition.phase === "revealing" && isHomeRoute() && (window.scrollY || window.pageYOffset || 0) !== 0) {
+  if (
+    transition.phase === "revealing" &&
+    transition.scrollMode !== "section" &&
+    (window.scrollY || window.pageYOffset || 0) !== 0
+  ) {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
     siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
   }
@@ -824,14 +1089,15 @@ function homeUrl() {
 }
 
 function pushHomeRoute() {
-  const url = homeUrl()
-  if (window.location.href !== url.href) {
-    window.history.pushState(null, "", url.href)
-  }
+  pushRouteUrl(routeTargetFromUrl(homeUrl()))
   window.scrollTo({ top: 0, left: 0, behavior: "auto" })
 }
 
-async function waitForHomeFirstPaint(id) {
+function targetRouteDatasetValue(path) {
+  return path === "/" ? "home" : path
+}
+
+async function waitForRouteFirstPaint(id, target) {
   await waitForAnimationFrames(2)
   if (!isCurrentHomeReturnTransition(id)) return false
 
@@ -839,24 +1105,50 @@ async function waitForHomeFirstPaint(id) {
   await Promise.race([fontReady, waitForMs(HOME_RETURN_FONT_READY_MS)])
   if (!isCurrentHomeReturnTransition(id)) return false
 
-  const firstRowImages = [
-    ...document.querySelectorAll('main[data-route="home"] .catalog .project-row:first-child img'),
-  ]
+  const main = document.querySelector(".site-main")
+  if (!main || main.dataset.route !== targetRouteDatasetValue(target.path)) return false
+
+  const images = [...main.querySelectorAll("img")].filter(
+    (image, index) => index < 6 || image.loading === "eager",
+  )
   await Promise.race([
-    Promise.all(firstRowImages.map((image) => waitForImageReady(image))),
+    Promise.all(images.map((image) => waitForImageReady(image))),
     waitForMs(HOME_RETURN_READY_TIMEOUT_MS),
   ])
   await waitForAnimationFrames(1)
-  return isCurrentHomeReturnTransition(id) && isHomeRoute()
+  return isCurrentHomeReturnTransition(id)
 }
 
-async function settleHomeReturnScrollTop(id) {
+function currentRouteCompactProgress() {
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  return clamp(scrollY / readHeaderMetrics().distance, 0, 1)
+}
+
+function sectionScrollTop(hash) {
+  const target = document.getElementById(hash)
+  if (!target) return null
+  const currentY = window.scrollY || window.pageYOffset || 0
+  const headerOffset = readHeaderMetrics().compactHeight + 1
+  return Math.max(0, target.getBoundingClientRect().top + currentY - headerOffset)
+}
+
+async function settleRouteScrollPosition(id, target) {
   for (let attempt = 0; attempt < 18; attempt += 1) {
     if (!isCurrentHomeReturnTransition(id)) return false
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    if (target.scrollMode === "section" && target.hash) {
+      scrollToPageSection(target.hash, { immediate: true })
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    }
     siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
     await waitForAnimationFrames(1)
-    if ((window.scrollY || window.pageYOffset || 0) <= 0.5) return true
+    if (target.scrollMode === "section" && target.hash) {
+      const expectedTop = sectionScrollTop(target.hash)
+      if (expectedTop === null) return true
+      if (Math.abs((window.scrollY || window.pageYOffset || 0) - expectedTop) <= 1.5) return true
+    } else if ((window.scrollY || window.pageYOffset || 0) <= 0.5) {
+      return true
+    }
   }
   return isCurrentHomeReturnTransition(id)
 }
@@ -865,6 +1157,7 @@ function cancelHomeReturnTransition(options = {}) {
   const transition = siteState.homeReturnTransition
   if (!transition) return
   if (transition.frame) cancelAnimationFrame(transition.frame)
+  transition.snowCleanup?.()
   siteState.homeReturnTransition = null
   clearHomeReturnTransitionPhase()
   unlockHomeReturnScroll()
@@ -879,11 +1172,23 @@ function finishHomeReturnTransition(id) {
   if (!isCurrentHomeReturnTransition(id)) return
   const transition = siteState.homeReturnTransition
   if (transition?.frame) cancelAnimationFrame(transition.frame)
+  transition?.snowCleanup?.()
+  const finalCompactProgress = Number.isFinite(transition?.targetCompactProgress)
+    ? transition.targetCompactProgress
+    : currentRouteCompactProgress()
+  const shouldScrollTop = transition?.scrollMode !== "section"
+  const targetHash = transition?.targetHash || ""
   siteState.homeReturnTransition = null
   clearHomeReturnTransitionPhase()
   unlockHomeReturnScroll()
-  window.scrollTo({ top: 0, left: 0, behavior: "auto" })
-  setHeaderTarget(0, true)
+  if (shouldScrollTop) {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    setHeaderTarget(0, true)
+  } else {
+    setHeaderTarget(finalCompactProgress, true)
+    if (targetHash) scrollToPageSection(targetHash, { immediate: true })
+    setHeaderTarget(currentRouteCompactProgress(), true)
+  }
   siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
   setupNavHoverSpacing({ force: true })
   requestLayoutEffectsUpdate({
@@ -892,7 +1197,9 @@ function finishHomeReturnTransition(id) {
   })
 }
 
-async function startHomeReturnTransition() {
+async function startHomeReturnTransition(value = homeUrl(), options = {}) {
+  const target = routeTargetFromUrl(value)
+  if (!target) return
   if (isHomeReturnTransitionActive()) return
 
   window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: HOME_RETURN_COVER_MS + HOME_RETURN_REVEAL_MS })
@@ -906,6 +1213,12 @@ async function startHomeReturnTransition() {
     frame: 0,
     coverProgress: 0,
     compactProgress: startCompactProgress,
+    targetPath: target.path,
+    targetHash: target.hash,
+    targetHref: target.url.href,
+    scrollMode: target.scrollMode,
+    targetCompactProgress: target.scrollMode === "section" ? currentRouteCompactProgress() : 0,
+    snowCleanup: null,
   }
 
   if (siteState.followFrame) cancelAnimationFrame(siteState.followFrame)
@@ -916,14 +1229,17 @@ async function startHomeReturnTransition() {
   lockHomeReturnScroll()
   setHomeReturnTransitionPhase("covering")
 
-  const covered = await animateHomeReturnHeader({
-    id,
-    fromCover: 0,
-    toCover: 1,
-    fromCompact: startCompactProgress,
-    toCompact: 0,
-    duration: HOME_RETURN_COVER_MS,
-  })
+  const [covered] = await Promise.all([
+    animateHomeReturnHeader({
+      id,
+      fromCover: 0,
+      toCover: 1,
+      fromCompact: startCompactProgress,
+      toCompact: 0,
+      duration: HOME_RETURN_COVER_MS,
+    }),
+    playRouteExitSnow(id, HOME_RETURN_COVER_MS),
+  ])
   if (!covered || !isCurrentHomeReturnTransition(id)) return
 
   setHomeReturnTransitionPhase("covered")
@@ -934,9 +1250,10 @@ async function startHomeReturnTransition() {
   window.scrollTo({ top: 0, left: 0, behavior: "auto" })
   siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
   cancelLayoutEffectsUpdate({ clearPending: true })
-  pushHomeRoute()
+  if (options.updateHistory !== false) pushRouteUrl(target)
   window.scrollTo({ top: 0, left: 0, behavior: "auto" })
   render()
+  cleanupRouteExitSnow(id)
   setHomeReturnSpacerHeight(homeSpacerHeight)
   lockHomeReturnScroll()
   const transition = siteState.homeReturnTransition
@@ -948,29 +1265,44 @@ async function startHomeReturnTransition() {
   window.scrollTo({ top: 0, left: 0, behavior: "auto" })
   siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
 
-  const ready = await waitForHomeFirstPaint(id)
+  const ready = await waitForRouteFirstPaint(id, target)
   if (!ready || !isCurrentHomeReturnTransition(id)) return
 
   unlockHomeReturnScroll()
-  const scrollSettled = await settleHomeReturnScrollTop(id)
+  const scrollSettled = await settleRouteScrollPosition(id, target)
   if (!scrollSettled || !isCurrentHomeReturnTransition(id)) return
+  const revealCompactProgress = target.scrollMode === "section" ? currentRouteCompactProgress() : 0
+  siteState.homeReturnTransition.targetCompactProgress = revealCompactProgress
   setHomeReturnTransitionPhase("revealing")
   const revealed = await animateHomeReturnHeader({
     id,
     fromCover: 1,
     toCover: 0,
-    fromCompact: 0,
-    toCompact: 0,
+    fromCompact: revealCompactProgress,
+    toCompact: revealCompactProgress,
     duration: HOME_RETURN_REVEAL_MS,
   })
   if (revealed) finishHomeReturnTransition(id)
 }
 
-function navigateHomeWithoutTransition() {
+function navigateRouteWithoutTransition(value = homeUrl(), options = {}) {
+  const target = routeTargetFromUrl(value)
+  if (!target) return
   cancelHomeReturnTransition({ syncHeaderToScroll: false })
-  pushHomeRoute()
+  if (options.updateHistory !== false) pushRouteUrl(target)
+  if (target.scrollMode !== "section") window.scrollTo({ top: 0, left: 0, behavior: "auto" })
   render()
-  setHeaderTarget(0, true)
+  if (target.scrollMode === "section" && target.hash) {
+    scrollToPageSection(target.hash, { immediate: true })
+    scheduleScrollToPageSection(target.hash, { immediate: true, attempts: 5 })
+    setHeaderTarget(currentRouteCompactProgress(), true)
+  } else {
+    setHeaderTarget(0, true)
+  }
+}
+
+function navigateHomeWithoutTransition() {
+  navigateRouteWithoutTransition(homeUrl())
 }
 
 function escapeHtml(value) {
@@ -3982,14 +4314,16 @@ function commitCatalogFilterTransition(cycle) {
 
   const category = siteState.catalogFilterTarget
   const commitStarted = performance.now()
+  const usesLegacyHalftone = !publicDitherOwnsMutedCards()
   catalog.dataset.filterPhase = "entering"
-  catalog.dataset.halftonePhase = "primed"
+  if (usesLegacyHalftone) catalog.dataset.halftonePhase = "primed"
+  else delete catalog.dataset.halftonePhase
   catalog.innerHTML = catalogRowsMarkup(category)
   refreshDomCache()
   siteState.catalogFilterCurrent = category
   siteState.catalogFilterPhase = "entering"
   updateCatalogFilterDataset(catalog, category)
-  primeCatalogHalftoneDots(catalog)
+  if (usesLegacyHalftone) primeCatalogHalftoneDots(catalog)
   const enterDelay = setCatalogCardTimingVars(
     catalog,
     "--project-filter-enter-delay",
@@ -4003,16 +4337,19 @@ function commitCatalogFilterTransition(cycle) {
   window.setTimeout(() => requestAnimationFrame(() => {
     if (cycle !== siteState.catalogFilterCycle) return
     catalog.dataset.filterPhase = "settling"
-    catalog.dataset.halftonePhase = "waiting"
+    if (usesLegacyHalftone) catalog.dataset.halftonePhase = "waiting"
+    else delete catalog.dataset.halftonePhase
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
-    window.setTimeout(() => {
-      if (cycle !== siteState.catalogFilterCycle) return
-      if (!catalog.isConnected || catalog.dataset.filterPhase !== "settling") return
-      catalog.dataset.halftonePhase = "printing"
-      animateCatalogHalftoneDots(catalog, cycle, {
-        duration: CATALOG_HALFTONE_DRAW_MS,
-      })
-    }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + enterDelay + CATALOG_HALFTONE_DELAY_MS))
+    if (usesLegacyHalftone) {
+      window.setTimeout(() => {
+        if (cycle !== siteState.catalogFilterCycle) return
+        if (!catalog.isConnected || catalog.dataset.filterPhase !== "settling") return
+        catalog.dataset.halftonePhase = "printing"
+        animateCatalogHalftoneDots(catalog, cycle, {
+          duration: CATALOG_HALFTONE_DRAW_MS,
+        })
+      }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + enterDelay + CATALOG_HALFTONE_DELAY_MS))
+    }
   }), catalogFilterDuration(CATALOG_COLOR_SNOW_ENTER_DEFER_MS + 34))
 
   siteState.catalogFilterEnterTimer = window.setTimeout(() => {
@@ -4037,9 +4374,12 @@ function commitCatalogFilterTransition(cycle) {
     requestLayoutEffectsUpdate({ rules: true, footer: true })
   }, Math.max(
     catalogFilterDuration(CATALOG_FILTER_ENTER_MS) + enterDelay + 80,
-    catalogFilterDuration(CATALOG_FILTER_ENTER_MS + CATALOG_HALFTONE_DELAY_MS + CATALOG_HALFTONE_DRAW_MS) +
-      enterDelay +
-      160,
+    catalogFineSignalSnowDuration(catalog, "in") + 80,
+    usesLegacyHalftone
+      ? catalogFilterDuration(CATALOG_FILTER_ENTER_MS + CATALOG_HALFTONE_DELAY_MS + CATALOG_HALFTONE_DRAW_MS) +
+        enterDelay +
+        160
+      : 0,
   ))
 }
 
@@ -4265,13 +4605,17 @@ function setupNavHoverInteraction() {
     updatePageHash(category)
   }
 
-  const initialHash = decodeURIComponent(window.location.hash.replace(/^#/, ""))
+  const initialHash = decodedUrlHash(new URL(window.location.href))
   const initialCategory = normalizeCatalogFilter(initialHash)
   if (initialCategory && document.querySelector(".catalog")) {
     siteState.catalogFilterLocked = initialCategory
     replaceCatalogFilterImmediately(initialCategory)
     setVisualActive(itemForCategory(initialCategory))
-  } else if (initialHash === "resume" && document.querySelector(".catalog")) {
+  } else if (
+    initialHash === "resume" &&
+    document.querySelector(".catalog") &&
+    siteState.homeReturnTransition?.targetHash !== "resume"
+  ) {
     scheduleScrollToPageSection("resume", { immediate: true, attempts: 5, delay: 180 })
   }
 
@@ -4302,6 +4646,7 @@ function setupNavHoverInteraction() {
     })
 
     item.addEventListener("click", (event) => {
+      if (event.defaultPrevented) return
       clearHoverScroll()
       if (item.dataset.navCategory === "resume") {
         event.preventDefault()
@@ -4559,35 +4904,61 @@ function setupHoverEmbeds() {
   })
 }
 
-function handleHomeLogoClick(event) {
-  const logo = event.target?.closest?.("[data-home-logo]")
-  if (!logo) return
+function handleRouteLinkClick(event) {
+  const link = event.target?.closest?.("a[href]")
+  if (!link) return
   if (event.defaultPrevented) return
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
   if (Number.isFinite(event.button) && event.button !== 0) return
+  if (link.target && link.target !== "_self") return
+  if (link.hasAttribute("download")) return
+
+  let target
+  try {
+    target = routeTargetFromUrl(new URL(link.getAttribute("href"), window.location.href))
+  } catch {
+    return
+  }
+  if (!target) return
 
   if (isHomeReturnTransitionActive()) {
     event.preventDefault()
     return
   }
 
-  if (isHomeRoute()) return
-
-  event.preventDefault()
-  if (prefersReducedMotion()) {
-    navigateHomeWithoutTransition()
+  if (target.path === routeFromLocation()) {
+    if (target.path !== "/" || !target.hash) event.preventDefault()
     return
   }
 
-  startHomeReturnTransition()
+  event.preventDefault()
+  if (prefersReducedMotion()) {
+    navigateRouteWithoutTransition(target.url)
+    return
+  }
+
+  startHomeReturnTransition(target.url)
 }
 
 function handlePopState() {
-  cancelHomeReturnTransition()
-  render()
+  const target = routeTargetFromUrl(new URL(window.location.href))
+  if (!target) {
+    cancelHomeReturnTransition()
+    render()
+    return
+  }
+
+  const currentDomRoute = document.querySelector(".site-main")?.dataset.route
+  if (currentDomRoute === targetRouteDatasetValue(target.path) || prefersReducedMotion()) {
+    navigateRouteWithoutTransition(target.url, { updateHistory: false })
+    return
+  }
+
+  cancelHomeReturnTransition({ syncHeaderToScroll: false })
+  startHomeReturnTransition(target.url, { updateHistory: false })
 }
 
-document.addEventListener("click", handleHomeLogoClick, { capture: true })
+document.addEventListener("click", handleRouteLinkClick, { capture: true })
 window.addEventListener("red:public-dither-ready", (event) => {
   if (event?.detail?.generated) stopLegacyCatalogHalftoneWork()
 })

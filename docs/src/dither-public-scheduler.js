@@ -26,6 +26,7 @@ const ACTIVE_COLOR_RETURN_ATTRIBUTE = "data-active-color-return"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
+const CATEGORY_ENTER_DITHER_ATTRIBUTE = "data-dither-category-enter-reveal"
 const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
 const HOVER_BINARY_RETURN_ATTRIBUTE = "data-hover-binary-return"
 const PRIORITY_MARGIN = 760
@@ -88,6 +89,31 @@ function allowInitialDitherSnow(catalog) {
     sequenceKey === state.initialRevealSequenceKey &&
     !catalog?.dataset.filterPhase
   )
+}
+
+function catalogIsEnteringFilter(catalog) {
+  const phase = catalog?.dataset?.filterPhase || ""
+  return Boolean(
+    catalog?.dataset?.activeFilter &&
+    (phase === "entering" || phase === "settling" || phase === "color-snow")
+  )
+}
+
+function allowCategoryEnterDitherSnow(card, catalog, activeCanvas) {
+  return Boolean(
+    !activeCanvas &&
+    isMutedByActiveFilter(card, catalog) &&
+    (catalogIsEnteringFilter(catalog) || card?.hasAttribute?.(CATEGORY_ENTER_DITHER_ATTRIBUTE))
+  )
+}
+
+function initialDitherSnowDuration(catalog, tier, reason) {
+  const fallback = tier === "priority" ? 560 : 460
+  if (reason !== "category-enter") return fallback
+
+  const planned = Number(catalog?.dataset?.colorSnowEnterDurationMs)
+  if (!Number.isFinite(planned) || planned <= 0) return tier === "priority" ? 660 : 540
+  return Math.round(Math.min(920, Math.max(fallback, planned * 0.72)))
 }
 
 function publishedMode() {
@@ -371,11 +397,17 @@ function renderOne(card, catalog, generation, tier) {
 
   const media = card.querySelector(".project-media")
   const activeCanvas = media?.querySelector('.dither-preview-canvas[data-active="true"]')
+  const initialSnowReason = allowCategoryEnterDitherSnow(card, catalog, activeCanvas)
+    ? "category-enter"
+    : allowInitialDitherSnow(catalog)
+      ? "initial"
+      : ""
   const preparedSnow = activeCanvas
     ? prepareDitherResizeSnow(card, PUBLISHED_DITHER_CONFIG)
-    : allowInitialDitherSnow(catalog)
+    : initialSnowReason
       ? prepareDitherInitialSnow(card, PUBLISHED_DITHER_CONFIG, {
-          durationMs: tier === "priority" ? 560 : 460,
+          reason: initialSnowReason,
+          durationMs: initialDitherSnowDuration(catalog, tier, initialSnowReason),
         })
       : null
   const started = performance.now()
@@ -396,6 +428,7 @@ function renderOne(card, catalog, generation, tier) {
   canvas.dataset.publishedMode = publishedMode()
   media?.setAttribute("data-dither-ready", "true")
   card.removeAttribute("data-dither-pending")
+  card.removeAttribute(CATEGORY_ENTER_DITHER_ATTRIBUTE)
   state.pendingCards.delete(card)
   playPreparedDitherResizeSnow(preparedSnow)
 
@@ -548,6 +581,7 @@ function syncResizeTargets(catalog) {
 function queueMutedCards(catalog, cards, { restart = false } = {}) {
   if (restart) cancelScheduledWork()
   const generation = state.generation
+  const markCategoryEnterReveal = catalogIsEnteringFilter(catalog)
   const ranked = []
   let shouldRefreshReveal = false
 
@@ -560,9 +594,14 @@ function queueMutedCards(catalog, cards, { restart = false } = {}) {
       if (canvas) canvas.dataset.active = "false"
       card.querySelector(".project-media")?.removeAttribute("data-dither-ready")
       card.removeAttribute("data-dither-pending")
+      card.removeAttribute(CATEGORY_ENTER_DITHER_ATTRIBUTE)
       cancelDitherResizeSnow(card)
       releaseReveal(card)
       continue
+    }
+
+    if (markCategoryEnterReveal && !card.querySelector('.dither-preview-canvas[data-active="true"]')) {
+      card.setAttribute(CATEGORY_ENTER_DITHER_ATTRIBUTE, "true")
     }
 
     if (activeColorOwnsCard(card)) {

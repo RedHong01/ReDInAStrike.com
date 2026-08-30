@@ -525,6 +525,17 @@ body[data-home-return-transition] .nav-list {
   pointer-events: none;
 }
 
+.page-route-exit-snow {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
 body[data-layout-transition="true"] .site-header {
   transition: height var(--responsive-duration) var(--responsive-ease);
 }

@@ -430,6 +430,7 @@ const siteState = {
   ruleFadeUpdates: [],
   ruleGeometryCache: new WeakMap(),
   ruleGeometryGeneration: 0,
+  aboutNaturalTopCache: null,
   catalogFilterTarget: null,
   catalogFilterCurrent: null,
   catalogFilterLocked: null,
@@ -2551,6 +2552,25 @@ function readCachedRuleRect(element) {
   return rect
 }
 
+function readCachedAboutNaturalTop(about) {
+  const cached = siteState.aboutNaturalTopCache
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  if (cached?.element === about && cached.generation === siteState.ruleGeometryGeneration) {
+    const headerDelta = siteState.headerVisualBottom - cached.headerHeight
+    return cached.documentTop + headerDelta - scrollY
+  }
+
+  const rect = about.getBoundingClientRect()
+  const naturalTop = rect.top + Math.max(0, siteState.aboutPull || 0)
+  siteState.aboutNaturalTopCache = {
+    element: about,
+    generation: siteState.ruleGeometryGeneration,
+    documentTop: naturalTop + scrollY,
+    headerHeight: siteState.headerVisualBottom,
+  }
+  return naturalTop
+}
+
 function invalidateCatalogContentBottom() {
   siteState.catalogContentBottomDocument = null
   siteState.catalogContentBottomHeaderHeight = null
@@ -2561,6 +2581,7 @@ function invalidateCatalogContentBottom() {
 function invalidateRuleGeometry() {
   siteState.ruleGeometryCache = new WeakMap()
   siteState.ruleGeometryGeneration += 1
+  siteState.aboutNaturalTopCache = null
 }
 
 function requestLayoutEffectsUpdate(options = {}) {
@@ -3313,7 +3334,6 @@ function updateFooterGalleryReveal(options = {}) {
   const { header, catalog, gallery, galleryViewport: viewport, about } = siteState.dom
   if (!header || !catalog || !gallery || !viewport || !about) return 0
 
-  const aboutRect = about.getBoundingClientRect()
   const headerBottom =
     siteState.headerVisualBottom > 0
       ? siteState.headerVisualBottom
@@ -3321,7 +3341,7 @@ function updateFooterGalleryReveal(options = {}) {
   const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
   const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0)
   const finalContentBottom = getCatalogContentBottom(catalog, headerBottom)
-  const naturalAboutTop = aboutRect.top + (siteState.aboutPull || 0)
+  const naturalAboutTop = readCachedAboutNaturalTop(about)
   const targetPocketHeight = clamp(
     viewportHeight * (viewportWidth <= 700 ? 0.5 : 0.52),
     viewportWidth <= 700 ? 300 : 380,

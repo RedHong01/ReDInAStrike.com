@@ -38,8 +38,37 @@
   margin-inline: 0;
 }
 
+/*
+ * Treat the secondary category copy as a fine signal, not another headline.
+ * It should quietly confirm the active category without adding motion/weight.
+ */
+body[data-nav-density="full"] .nav-detail {
+  font-size: clamp(8px, 0.58vw, 10px);
+  line-height: 1;
+  letter-spacing: 0.055em;
+  max-height: 12px;
+  margin-top: 2px;
+  opacity: 0;
+  clip-path: none;
+  transform: none;
+  will-change: opacity;
+  transition:
+    opacity 300ms ease,
+    max-width 0s linear 300ms,
+    visibility 0s linear 300ms;
+}
+
+body[data-nav-density="full"] .nav-item.is-nav-active .nav-detail,
+body[data-nav-density="full"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed) .nav-detail,
+body[data-nav-density="full"] .nav-item:focus-visible .nav-detail {
+  opacity: 0.58;
+  transform: none;
+  transition-delay: 90ms, 0s, 0s;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .nav-title {
+  .nav-title,
+  body[data-nav-density="full"] .nav-detail {
     transition-duration: 0ms;
   }
 }

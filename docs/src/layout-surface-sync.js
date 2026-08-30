@@ -3,7 +3,6 @@ const ACTIVE_WINDOW_MS = 900
 let frame = 0
 let activeUntil = 0
 let lastLogo = ""
-let lastHeader = ""
 
 function syncLayoutSurface() {
   frame = 0
@@ -12,15 +11,13 @@ function syncLayoutSurface() {
 
   const root = document.documentElement
   const logo = header.style.getPropertyValue("--logo-size").trim()
-  const height = header.style.getPropertyValue("--header-height").trim()
 
+  // The performance prelude deliberately keeps its own header-height geometry
+  // cache. Only refine the horizontal logo/layout proxy here; leave the header
+  // height proxy under the prelude's ownership so synthetic rect math stays exact.
   if (logo && logo !== lastLogo) {
     lastLogo = logo
     root.style.setProperty("--perf-layout-logo-size", logo)
-  }
-  if (height && height !== lastHeader) {
-    lastHeader = height
-    root.style.setProperty("--perf-layout-header-height", height)
   }
 
   if (performance.now() < activeUntil) frame = requestAnimationFrame(syncLayoutSurface)

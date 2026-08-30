@@ -6,7 +6,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js"
+} from "./reveal-motion.js?v=20260829-viewport1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -97,7 +97,8 @@ function applyCategoryAliases(catalog) {
   const ongoingGameLink = [...catalog.querySelectorAll(".project-card a[href]")]
     .find((link) => {
       try {
-        return new URL(link.href, window.location.href).pathname.endsWith(ONGOING_GAME_PROJECT_PATH)
+        const pathname = new URL(link.href, window.location.href).pathname.replace(/\/+$/, "")
+        return pathname.endsWith(ONGOING_GAME_PROJECT_PATH)
       } catch {
         return String(link.getAttribute("href") || "").includes("ongoing-game-project")
       }

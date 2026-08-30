@@ -744,8 +744,8 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .catalog[data-active-filter]:not([data-filter-phase]) .project-card.is-filter-muted.is-muted-restore-return[data-active-color-return="true"] .project-media > img {
-  opacity: 1;
-  visibility: visible;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .catalog[data-active-filter][data-filter-phase] .project-card.is-filter-muted .project-media > img {

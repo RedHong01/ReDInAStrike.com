@@ -1,5 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260830-binarysurface1"
+import { renderCard } from "./dither-engine.js?v=20260830-adaptivegrid1"
 import {
   BINARY_MOTION_DEFAULTS,
   binaryBitsEqual,
@@ -11,7 +11,7 @@ import {
   sampleBinaryCanvas,
   smooth01,
   writeBinaryPixel,
-} from "./binary-surface-core.js?v=20260830-binarysurface1"
+} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
 
 const STYLE_ID = "red-hover-binary-return-style"
 const CANVAS_CLASS = "dither-hover-return-snow-canvas"

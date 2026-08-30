@@ -1,7 +1,8 @@
 import {
   isBinaryDitherMode,
+  resolveBinarySurfaceGrid,
   logicalGridForMedia,
-} from "./binary-surface-core.js?v=20260830-binarysurface1"
+} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
 
 export const DITHER_MODES = [
   ["native", "Native Dot"],
@@ -19,7 +20,7 @@ export const CONTROL_GROUPS = [
     title: "Sampling",
     description: "How finely the source image is sampled before it becomes paper / ink.",
     controls: [
-      { key: "columns", label: "Columns", min: 48, max: 240, step: 4, decimals: 0 },
+      { key: "columns", label: "Base columns", min: 48, max: 240, step: 4, decimals: 0 },
     ],
   },
   {
@@ -101,7 +102,7 @@ export function sanitizeConfig(input, published) {
     const value = Number.isFinite(raw) ? raw : fallback
     config[key] = roundToStep(clamp(value, meta.min, meta.max), meta.step)
   }
-  config.version = 2
+  config.version = 3
   return config
 }
 
@@ -216,6 +217,16 @@ function configSignature(config) {
     config.lineAngle,
     config.lineLength,
     config.lineWeight,
+    config.adaptiveColumns,
+    config.adaptiveReferenceWidth,
+    config.adaptiveMinColumns,
+    config.adaptiveMaxColumns,
+    config.adaptiveColumnStep,
+    config.adaptiveWidthBucketPx,
+    config.adaptiveScaleExponent,
+    config.adaptiveMinCellPx,
+    config.adaptiveMaxCellPx,
+    config.adaptiveMaxGridCells,
   ].join("|")
 }
 
@@ -457,6 +468,7 @@ export function renderCard(card, config) {
   const rect = media.getBoundingClientRect()
   const cssWidth = Math.max(1, Math.round(rect.width))
   const cssHeight = Math.max(1, Math.round(rect.height))
+  const surfaceGrid = resolveBinarySurfaceGrid(media, config)
   const sample = sampleImage(img, media, config)
   if (!sample) return
 
@@ -474,6 +486,7 @@ export function renderCard(card, config) {
     img.naturalWidth,
     img.naturalHeight,
     sample.key,
+    binaryMode ? `${surfaceGrid.cols}x${surfaceGrid.rows}|${surfaceGrid.widthBucket}` : "",
     binaryMode ? "" : `${cssWidth}x${cssHeight}@${dpr}`,
   ].join("|")
 
@@ -482,6 +495,9 @@ export function renderCard(card, config) {
   canvas.dataset.ditherMode = config.mode || "native"
   canvas.dataset.ditherCssWidth = String(cssWidth)
   canvas.dataset.ditherCssHeight = String(cssHeight)
+  canvas.dataset.ditherCellPx = binaryMode ? surfaceGrid.cellPx.toFixed(3) : ""
+  canvas.dataset.ditherGridBucket = binaryMode ? String(Math.round(surfaceGrid.widthBucket)) : ""
+  canvas.dataset.ditherAdaptive = binaryMode ? String(surfaceGrid.adaptive) : "false"
   canvas.dataset.ditherSource = sourceKey
   canvas.dataset.ditherSurfaceVersion = binaryMode ? "1" : "0"
   canvas.dataset.ditherPixelScale = binaryMode ? "1" : String(dpr)

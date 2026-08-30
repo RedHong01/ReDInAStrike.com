@@ -3332,6 +3332,7 @@ function stopCatalogHalftoneVisibleUpdate() {
 }
 
 function scheduleCatalogHalftoneRender(card) {
+  if (publicDitherOwnsMutedCards()) return
   if (!card || siteState.halftoneRenderQueued.has(card)) return
   siteState.halftoneRenderQueued.add(card)
   siteState.halftoneRenderQueue.push(card)
@@ -3341,6 +3342,11 @@ function scheduleCatalogHalftoneRender(card) {
 
 function processCatalogHalftoneRenderQueue() {
   siteState.halftoneRenderFrame = 0
+  if (publicDitherOwnsMutedCards()) {
+    siteState.halftoneRenderQueue.length = 0
+    siteState.halftoneRenderQueued.clear()
+    return
+  }
   const start = performance.now()
   const colors = readCatalogHalftoneColors()
   let processed = 0
@@ -3391,8 +3397,28 @@ function disconnectCatalogHalftoneObservers() {
   siteState.halftoneNearCards.clear()
 }
 
+function publicDitherOwnsMutedCards() {
+  const mode = document.documentElement.getAttribute("data-red-published-dither")
+  return Boolean(mode && mode !== "native")
+}
+
+function stopLegacyCatalogHalftoneWork() {
+  stopCatalogHalftoneAnimation()
+  stopCatalogHalftoneVisibleUpdate()
+  if (siteState.halftoneRenderFrame) cancelAnimationFrame(siteState.halftoneRenderFrame)
+  siteState.halftoneRenderFrame = 0
+  siteState.halftoneRenderQueue.length = 0
+  siteState.halftoneRenderQueued.clear()
+  disconnectCatalogHalftoneObservers()
+  siteState.halftoneObserverReady = true
+}
+
 function setupCatalogHalftoneObservers(catalog = siteState.dom.catalog) {
   if (!catalog) return
+  if (publicDitherOwnsMutedCards()) {
+    stopLegacyCatalogHalftoneWork()
+    return
+  }
 
   const mutedCards = siteState.dom.catalog === catalog
     ? siteState.dom.mutedCards
@@ -3481,6 +3507,11 @@ function isNearViewport(element, margin = HALFTONE_RENDER_MARGIN) {
 }
 
 function updateVisibleCatalogHalftoneCards(catalog = siteState.dom.catalog) {
+  if (publicDitherOwnsMutedCards()) {
+    siteState.visibleHalftoneCards = []
+    return siteState.visibleHalftoneCards
+  }
+
   if (!catalog || !catalog.dataset.activeFilter) {
     siteState.visibleHalftoneCards = []
     return siteState.visibleHalftoneCards
@@ -3790,6 +3821,7 @@ function drawProjectHalftone(card, progress, colors = readCatalogHalftoneColors(
 }
 
 function renderCatalogHalftones(catalog, progress = siteState.catalogHalftoneProgress, options = {}) {
+  if (publicDitherOwnsMutedCards()) return
   if (!catalog) return
   siteState.catalogHalftoneProgress = clamp(progress, 0, 1)
   const visibleOnly = options.visibleOnly !== false
@@ -3804,6 +3836,7 @@ function renderCatalogHalftones(catalog, progress = siteState.catalogHalftonePro
 }
 
 function requestVisibleCatalogHalftones() {
+  if (publicDitherOwnsMutedCards()) return
   const { catalog, mutedCards } = siteState.dom
   if (!catalog?.dataset.activeFilter || !mutedCards.length) return
   if (siteState.catalogHalftoneVisibleFrame) return
@@ -3818,17 +3851,20 @@ function requestVisibleCatalogHalftones() {
 function clearCatalogHalftoneInline(catalog) {
   stopCatalogHalftoneAnimation()
   stopCatalogHalftoneVisibleUpdate()
+  if (publicDitherOwnsMutedCards()) return
   renderCatalogHalftones(catalog, 1)
 }
 
 function primeCatalogHalftoneDots(catalog, progress = 0) {
   stopCatalogHalftoneAnimation()
   stopCatalogHalftoneVisibleUpdate()
+  if (publicDitherOwnsMutedCards()) return
   renderCatalogHalftones(catalog, progress)
 }
 
 function animateCatalogHalftoneDots(catalog, cycle, options = {}) {
   stopCatalogHalftoneAnimation()
+  if (publicDitherOwnsMutedCards()) return
 
   if (!catalog.querySelector(".project-card.is-filter-muted")) return
 
@@ -3946,14 +3982,16 @@ function commitCatalogFilterTransition(cycle) {
 
   const category = siteState.catalogFilterTarget
   const commitStarted = performance.now()
+  const usesLegacyHalftone = !publicDitherOwnsMutedCards()
   catalog.dataset.filterPhase = "entering"
-  catalog.dataset.halftonePhase = "primed"
+  if (usesLegacyHalftone) catalog.dataset.halftonePhase = "primed"
+  else delete catalog.dataset.halftonePhase
   catalog.innerHTML = catalogRowsMarkup(category)
   refreshDomCache()
   siteState.catalogFilterCurrent = category
   siteState.catalogFilterPhase = "entering"
   updateCatalogFilterDataset(catalog, category)
-  primeCatalogHalftoneDots(catalog)
+  if (usesLegacyHalftone) primeCatalogHalftoneDots(catalog)
   const enterDelay = setCatalogCardTimingVars(
     catalog,
     "--project-filter-enter-delay",
@@ -3967,16 +4005,19 @@ function commitCatalogFilterTransition(cycle) {
   window.setTimeout(() => requestAnimationFrame(() => {
     if (cycle !== siteState.catalogFilterCycle) return
     catalog.dataset.filterPhase = "settling"
-    catalog.dataset.halftonePhase = "waiting"
+    if (usesLegacyHalftone) catalog.dataset.halftonePhase = "waiting"
+    else delete catalog.dataset.halftonePhase
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
-    window.setTimeout(() => {
-      if (cycle !== siteState.catalogFilterCycle) return
-      if (!catalog.isConnected || catalog.dataset.filterPhase !== "settling") return
-      catalog.dataset.halftonePhase = "printing"
-      animateCatalogHalftoneDots(catalog, cycle, {
-        duration: CATALOG_HALFTONE_DRAW_MS,
-      })
-    }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + enterDelay + CATALOG_HALFTONE_DELAY_MS))
+    if (usesLegacyHalftone) {
+      window.setTimeout(() => {
+        if (cycle !== siteState.catalogFilterCycle) return
+        if (!catalog.isConnected || catalog.dataset.filterPhase !== "settling") return
+        catalog.dataset.halftonePhase = "printing"
+        animateCatalogHalftoneDots(catalog, cycle, {
+          duration: CATALOG_HALFTONE_DRAW_MS,
+        })
+      }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + enterDelay + CATALOG_HALFTONE_DELAY_MS))
+    }
   }), catalogFilterDuration(CATALOG_COLOR_SNOW_ENTER_DEFER_MS + 34))
 
   siteState.catalogFilterEnterTimer = window.setTimeout(() => {
@@ -4001,9 +4042,12 @@ function commitCatalogFilterTransition(cycle) {
     requestLayoutEffectsUpdate({ rules: true, footer: true })
   }, Math.max(
     catalogFilterDuration(CATALOG_FILTER_ENTER_MS) + enterDelay + 80,
-    catalogFilterDuration(CATALOG_FILTER_ENTER_MS + CATALOG_HALFTONE_DELAY_MS + CATALOG_HALFTONE_DRAW_MS) +
-      enterDelay +
-      160,
+    catalogFineSignalSnowDuration(catalog, "in") + 80,
+    usesLegacyHalftone
+      ? catalogFilterDuration(CATALOG_FILTER_ENTER_MS + CATALOG_HALFTONE_DELAY_MS + CATALOG_HALFTONE_DRAW_MS) +
+        enterDelay +
+        160
+      : 0,
   ))
 }
 
@@ -4552,5 +4596,8 @@ function handlePopState() {
 }
 
 document.addEventListener("click", handleHomeLogoClick, { capture: true })
+window.addEventListener("red:public-dither-ready", (event) => {
+  if (event?.detail?.generated) stopLegacyCatalogHalftoneWork()
+})
 window.addEventListener("popstate", handlePopState)
 render()

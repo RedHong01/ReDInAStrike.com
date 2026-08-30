@@ -28,7 +28,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260830-perfevents1").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260830-adaptivegrid1").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,

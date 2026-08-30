@@ -1,4 +1,8 @@
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
+import {
+  constrainBinaryGridSize,
+  logicalGridFromCanvas,
+} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
 
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
@@ -7,7 +11,6 @@ const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
 const TARGET_FRAME_MS = 1000 / 60
 const IDLE_FLICKER_FRAME_MS = 1000 / 30
-const MAX_GRID_CELLS = 52000
 const VIEWPORT_LINGER_MS = 220
 const VIEWPORT_PROGRESS_EPSILON = 0.0025
 const MAX_GRID_CACHE_PER_CANVAS = 6
@@ -254,28 +257,12 @@ function activeColorOwnsCard(card) {
 }
 
 function constrainGridSize(cols, rows) {
-  cols = Math.max(1, Math.round(cols))
-  rows = Math.max(1, Math.round(rows))
-  const cellCount = cols * rows
-  if (cellCount > MAX_GRID_CELLS) {
-    const scale = Math.sqrt(cellCount / MAX_GRID_CELLS)
-    cols = Math.max(1, Math.floor(cols / scale))
-    rows = Math.max(1, Math.floor(rows / scale))
-  }
-  return { cols, rows }
+  return constrainBinaryGridSize(cols, rows)
 }
 
 function logicalGridSize(finalCanvas, config) {
-  const ditherCols = Number(finalCanvas?.dataset?.ditherColumns)
-  const ditherRows = Number(finalCanvas?.dataset?.ditherRows)
-  if (
-    Number.isFinite(ditherCols) &&
-    ditherCols > 0 &&
-    Number.isFinite(ditherRows) &&
-    ditherRows > 0
-  ) {
-    return constrainGridSize(ditherCols, ditherRows)
-  }
+  const ditherGrid = logicalGridFromCanvas(finalCanvas)
+  if (ditherGrid) return constrainGridSize(ditherGrid.cols, ditherGrid.rows)
 
   const rect = finalCanvas.getBoundingClientRect()
   const cssWidth = Math.max(1, rect.width)

@@ -1,15 +1,15 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260830-binarysurface1"
+import { renderCard } from "./dither-engine.js?v=20260830-adaptivegrid1"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   binaryGridNeedsUpdate,
-} from "./binary-surface-core.js?v=20260830-binarysurface1"
+} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
 import {
   cancelReveal,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-perfevents1"
+} from "./reveal-motion.js?v=20260830-adaptivegrid1"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -17,10 +17,10 @@ import {
   playPreparedDitherResizeSnow,
   prepareDitherInitialSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-perfstream1"
+} from "./dither-resize-snow.js?v=20260830-adaptivegrid1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
-const PUBLIC_STYLE_VERSION = "6"
+const PUBLIC_STYLE_VERSION = "7"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const ACTIVE_COLOR_RETURN_ATTRIBUTE = "data-active-color-return"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
@@ -37,9 +37,11 @@ const RESIZE_SETTLE_MS = 90
 const state = {
   destroyed: false,
   renderFrame: 0,
+  revealRefreshFrame: 0,
   priorityFrame: 0,
   idleHandle: 0,
   resizeTimer: 0,
+  layoutSettleTimers: new Set(),
   generation: 0,
   priorityQueue: [],
   idleQueue: [],
@@ -55,6 +57,7 @@ const state = {
   revealSequenceKey: "",
   initialRevealSequenceKey: null,
   initialRevealActive: true,
+  lastModeBroadcast: "",
   perf: {
     priorityRendered: 0,
     idleRendered: 0,
@@ -62,6 +65,9 @@ const state = {
     lastCardRenderMs: 0,
     skippedCssResize: 0,
     logicalResizeRenders: 0,
+    skippedUpToDate: 0,
+    enqueued: 0,
+    revealRefreshes: 0,
   },
 }
 
@@ -90,6 +96,10 @@ function publishedMode() {
 
 function publishedIsGenerated() {
   return publishedMode() !== "native"
+}
+
+function imageSource(img) {
+  return img?.currentSrc || img?.src || ""
 }
 
 function ensurePublicStyles() {
@@ -153,8 +163,8 @@ function ensurePublicStyles() {
       .catalog[data-active-filter]:not([data-filter-phase])
       .project-card.is-filter-muted.is-muted-restore-return[${ACTIVE_COLOR_RETURN_ATTRIBUTE}="true"]
       .project-media > img {
-      opacity: 1 !important;
-      visibility: visible !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
     }
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
       .catalog[data-active-filter] .project-card.is-filter-muted
@@ -196,7 +206,13 @@ function ensurePublicStyles() {
 }
 
 function applyPublishedModeState() {
-  document.documentElement.setAttribute(ROOT_MODE_ATTRIBUTE, publishedMode())
+  const mode = publishedMode()
+  document.documentElement.setAttribute(ROOT_MODE_ATTRIBUTE, mode)
+  if (state.lastModeBroadcast === mode) return
+  state.lastModeBroadcast = mode
+  window.dispatchEvent(new CustomEvent("red:public-dither-ready", {
+    detail: { mode, generated: mode !== "native" },
+  }))
 }
 
 function activeCatalog() {
@@ -295,6 +311,28 @@ function releaseReveal(card, { forgetSignature = true } = {}) {
   if (forgetSignature) state.revealSignatures.delete(card)
 }
 
+function requestRevealRefresh(options = {}) {
+  if (state.destroyed || state.revealRefreshFrame || !pageIsVisible()) return
+  state.revealRefreshFrame = requestAnimationFrame(() => {
+    state.revealRefreshFrame = 0
+    if (state.destroyed || !pageIsVisible()) return
+    state.perf.revealRefreshes += 1
+    refreshViewportDitherReveals({ linger: false, ...options })
+  })
+}
+
+function ditherCanvasIsCurrent(card, catalog) {
+  if (!isMutedByActiveFilter(card, catalog)) return false
+  const media = card?.querySelector?.(".project-media")
+  const img = media?.querySelector?.("img")
+  const canvas = media?.querySelector?.('.dither-preview-canvas[data-active="true"]')
+  if (!img?.complete || img.naturalWidth <= 0 || !canvas || canvas.width <= 1 || canvas.height <= 1) return false
+  if ((canvas.dataset.ditherMode || "native") !== publishedMode()) return false
+  if (canvas.dataset.ditherSource !== imageSource(img)) return false
+  if (canvas.dataset.ditherSurfaceVersion !== "1" && publishedIsGenerated()) return false
+  return !binaryGridNeedsUpdate(canvas, media, PUBLISHED_DITHER_CONFIG)
+}
+
 function cancelScheduledWork() {
   state.generation += 1
   state.priorityQueue.length = 0
@@ -362,7 +400,7 @@ function renderOne(card, catalog, generation, tier) {
   playPreparedDitherResizeSnow(preparedSnow)
 
   if (viewportDistance(card) <= REVEAL_MARGIN) {
-    if (armReveal(card, catalog)) refreshViewportDitherReveals({ linger: false })
+    if (armReveal(card, catalog)) requestRevealRefresh()
   }
   return true
 }
@@ -469,9 +507,11 @@ function handleCardIntersections(entries) {
     if (hoverBinaryReturnOwnsCard(card)) continue
     if (!entry.isIntersecting) continue
     promoteCard(card)
-    if (card.querySelector('.dither-preview-canvas[data-active="true"]')) armReveal(card, catalog)
+    if (card.querySelector('.dither-preview-canvas[data-active="true"]')) {
+      if (armReveal(card, catalog)) requestRevealRefresh()
+    }
   }
-  refreshViewportDitherReveals({ linger: false })
+  requestRevealRefresh()
 }
 
 function syncCardTargets(catalog) {
@@ -505,10 +545,11 @@ function syncResizeTargets(catalog) {
   }
 }
 
-function queueMutedCards(catalog, cards) {
-  cancelScheduledWork()
+function queueMutedCards(catalog, cards, { restart = false } = {}) {
+  if (restart) cancelScheduledWork()
   const generation = state.generation
   const ranked = []
+  let shouldRefreshReveal = false
 
   for (const card of cards) {
     const img = card.querySelector(".project-media img")
@@ -535,6 +576,17 @@ function queueMutedCards(catalog, cards) {
       continue
     }
 
+    if (ditherCanvasIsCurrent(card, catalog)) {
+      card.removeAttribute("data-dither-pending")
+      state.pendingCards.delete(card)
+      card.querySelector(".project-media")?.setAttribute("data-dither-ready", "true")
+      state.perf.skippedUpToDate += 1
+      if (viewportDistance(card) <= REVEAL_MARGIN && armReveal(card, catalog)) {
+        shouldRefreshReveal = true
+      }
+      continue
+    }
+
     const distance = viewportDistance(card)
     ranked.push({ card, distance })
   }
@@ -542,14 +594,25 @@ function queueMutedCards(catalog, cards) {
   ranked.sort((a, b) => a.distance - b.distance)
   for (const { card, distance } of ranked) {
     const tier = distance <= PRIORITY_MARGIN ? "priority" : "idle"
+    const pending = state.pendingCards.get(card)
+    if (pending?.generation === generation) {
+      if (pending.tier !== "priority" && tier === "priority") {
+        pending.tier = "priority"
+        card.setAttribute("data-dither-pending", "priority")
+        state.priorityQueue.push(card)
+      }
+      continue
+    }
     card.setAttribute("data-dither-pending", tier)
     state.pendingCards.set(card, { generation, tier })
+    state.perf.enqueued += 1
     if (tier === "priority") state.priorityQueue.push(card)
     else state.idleQueue.push(card)
   }
 
   schedulePriorityQueue()
   scheduleIdleQueue()
+  if (shouldRefreshReveal) requestRevealRefresh()
 }
 
 function renderPublishedDither() {
@@ -567,12 +630,15 @@ function renderPublishedDither() {
   syncCardTargets(catalog)
 
   const sequenceKey = currentSequenceKey(catalog)
-  if (sequenceKey !== state.revealSequenceKey) {
+  const sequenceChanged = sequenceKey !== state.revealSequenceKey
+  if (sequenceChanged) {
     resetViewportDitherRevealSequence()
     state.revealSequenceKey = sequenceKey
   }
 
-  queueMutedCards(catalog, [...catalog.querySelectorAll(".project-card")])
+  queueMutedCards(catalog, [...catalog.querySelectorAll(".project-card")], {
+    restart: sequenceChanged,
+  })
 }
 
 function requestRender() {
@@ -586,15 +652,22 @@ function handleVisibilityChange() {
     cancelScheduledWork()
     if (state.renderFrame) cancelAnimationFrame(state.renderFrame)
     state.renderFrame = 0
+    if (state.revealRefreshFrame) cancelAnimationFrame(state.revealRefreshFrame)
+    state.revealRefreshFrame = 0
     return
   }
   requestRender()
-  refreshViewportDitherReveals({ linger: false })
+  requestRevealRefresh()
 }
 
-function handleHoverBinaryReturnComplete() {
-  requestRender()
-  refreshViewportDitherReveals({ linger: false })
+function handleHoverBinaryReturnComplete(event) {
+  const card = event?.detail?.card
+  const catalog = card?.closest?.(".catalog")
+  if (card?.isConnected && catalog) {
+    queueMutedCards(catalog, [card])
+  } else {
+    requestRender()
+  }
 }
 
 function mediaNeedsLogicalResize(media) {
@@ -602,8 +675,8 @@ function mediaNeedsLogicalResize(media) {
   const catalog = card?.closest?.(".catalog")
   if (!card || !isMutedByActiveFilter(card, catalog)) return false
   if (hoverBinaryReturnOwnsCard(card)) return false
-  const canvas = media.querySelector('.dither-preview-canvas[data-active="true"]')
-  return binaryGridNeedsUpdate(canvas, media, PUBLISHED_DITHER_CONFIG)
+  if (state.pendingCards.get(card)?.generation === state.generation) return false
+  return !ditherCanvasIsCurrent(card, catalog)
 }
 
 function requestSettledResizeRender(entries = null) {
@@ -626,6 +699,26 @@ function requestSettledResizeRender(entries = null) {
     state.perf.logicalResizeRenders += 1
     requestRender()
   }, RESIZE_SETTLE_MS)
+}
+
+function requestLayoutSettleRender() {
+  if (state.destroyed || !pageIsVisible() || !publishedIsGenerated()) return
+  const catalog = activeCatalog()
+  if (!catalog) return
+  const needsRender = [...catalog.querySelectorAll(".project-media")]
+    .some(mediaNeedsLogicalResize)
+  if (needsRender) requestRender()
+}
+
+function scheduleInitialLayoutSettleChecks() {
+  if (state.destroyed || state.layoutSettleTimers.size || !publishedIsGenerated()) return
+  ;[180, 520, 980].forEach((delay) => {
+    const timer = window.setTimeout(() => {
+      state.layoutSettleTimers.delete(timer)
+      requestLayoutSettleRender()
+    }, delay)
+    state.layoutSettleTimers.add(timer)
+  })
 }
 
 function mutedClassChanged(mutation) {
@@ -689,14 +782,32 @@ function bindCatalogObserver() {
       (mutation.type === "attributes" && mutation.target === catalog && mutation.attributeName === "data-active-filter"),
     )) applyCategoryAliases(catalog)
 
-    const shouldRender = mutations.some((mutation) => {
-      if (mutation.type === "childList") return !generatedCanvasMutationOnly(mutation)
-      if (mutation.type !== "attributes") return false
-      if (motionAttributeChanged(mutation)) return motionAttributeShouldRender(mutation)
-      if (mutation.target === catalog && mutation.attributeName === "data-active-filter") return true
-      return mutation.attributeName === "class" && mutedClassChanged(mutation)
-    })
-    if (shouldRender) requestRender()
+    let shouldRender = false
+    const motionCards = new Set()
+    for (const mutation of mutations) {
+      if (mutation.type === "childList") {
+        if (!generatedCanvasMutationOnly(mutation)) shouldRender = true
+        continue
+      }
+      if (mutation.type !== "attributes") continue
+      if (motionAttributeChanged(mutation)) {
+        if (motionAttributeShouldRender(mutation)) motionCards.add(mutation.target)
+        continue
+      }
+      if (mutation.target === catalog && mutation.attributeName === "data-active-filter") {
+        shouldRender = true
+        continue
+      }
+      if (mutation.attributeName === "class" && mutedClassChanged(mutation)) {
+        shouldRender = true
+      }
+    }
+
+    if (shouldRender) {
+      requestRender()
+    } else if (motionCards.size) {
+      queueMutedCards(catalog, [...motionCards])
+    }
   })
 
   state.catalogObserver.observe(catalog, {
@@ -754,6 +865,7 @@ function boot() {
   }
 
   requestRender()
+  scheduleInitialLayoutSettleChecks()
 }
 
 export function destroyPublicDitherRuntime() {
@@ -762,8 +874,12 @@ export function destroyPublicDitherRuntime() {
   cancelScheduledWork()
   if (state.renderFrame) cancelAnimationFrame(state.renderFrame)
   state.renderFrame = 0
+  if (state.revealRefreshFrame) cancelAnimationFrame(state.revealRefreshFrame)
+  state.revealRefreshFrame = 0
   clearTimeout(state.resizeTimer)
   state.resizeTimer = 0
+  for (const timer of state.layoutSettleTimers) window.clearTimeout(timer)
+  state.layoutSettleTimers.clear()
   state.appObserver?.disconnect()
   state.catalogObserver?.disconnect()
   state.resizeObserver?.disconnect()

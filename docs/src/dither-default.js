@@ -1,9 +1,19 @@
 // This file is the public-site source of truth for the dither effect.
 // Editing this object changes what every visitor sees when the Dither Hub is closed.
 export const PUBLISHED_DITHER_CONFIG = Object.freeze({
-  version: 2,
+  version: 3,
   mode: "floyd",
   columns: 240,
+  adaptiveColumns: true,
+  adaptiveReferenceWidth: 604,
+  adaptiveMinColumns: 176,
+  adaptiveMaxColumns: 384,
+  adaptiveColumnStep: 4,
+  adaptiveWidthBucketPx: 16,
+  adaptiveScaleExponent: 0.58,
+  adaptiveMinCellPx: 1.95,
+  adaptiveMaxCellPx: 3.6,
+  adaptiveMaxGridCells: 86000,
   inkGain: 0.75,
   inkBias: -0.01,
   contrast: 2.2,

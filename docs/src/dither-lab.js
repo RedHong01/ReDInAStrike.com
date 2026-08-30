@@ -1,14 +1,14 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import "./native-halftone-bypass.js?v=20260829-batch2"
-import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260830-hoverleave1"
+import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260830-perfflow1"
 import "./layout-surface-sync.js?v=20260830-perfevents1"
 import "./scroll-magnet.js?v=20260830-scrolllock1"
-import "./active-color-snow.js?v=20260830-hoverleave1"
+import "./active-color-snow.js?v=20260830-perfflow1"
 import "./hover-binary-return.js?v=20260830-binaryowner1"
 import "./fine-signal-preset-runtime.js?v=20260830-binarysurface1"
 import "./active-color-replay-dedupe.js?v=20260829-activecolor2"
 import "./active-color-transition-bridge.js?v=20260829-activecolor2"
-import "./binary-pixel-handoff.js?v=20260830-perfstream1"
+import "./binary-pixel-handoff.js?v=20260830-adaptivegrid1"
 
 const params = new URLSearchParams(window.location.search)
 const autoOpen =

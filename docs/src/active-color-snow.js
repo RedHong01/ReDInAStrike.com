@@ -4,9 +4,12 @@ import {
   sanitizeActiveColorConfig,
 } from "./active-color-default.js"
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+import {
+  logicalGridForMedia,
+} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
 
 const STYLE_ID = "red-active-color-snow-style"
-const STYLE_VERSION = "2"
+const STYLE_VERSION = "4"
 const CANVAS_CLASS = "active-color-snow-canvas"
 const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const RETURN_ATTRIBUTE = "data-active-color-return"
@@ -18,7 +21,7 @@ const ENTER_DURATION_ATTRIBUTE = "data-color-snow-enter-duration-ms"
 const ENTER_DEFER_ATTRIBUTE = "data-color-snow-enter-defer-ms"
 const BOUNDARY_COOLDOWN_MS = 520
 const HOVER_RESTORE_SOURCE_WAIT_MS = 900
-const MAX_GRID_CELLS = 42000
+const MAX_GRID_CELLS = 86000
 const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
 const TARGET_FRAME_MS = 1000 / 60
@@ -175,8 +178,8 @@ function ensureStyles() {
     html[${ROOT_ATTRIBUTE}="true"] .catalog[data-active-filter]:not([data-filter-phase])
       .project-card.is-filter-muted.is-muted-restore-return[${RETURN_ATTRIBUTE}="true"]
       .project-media > img {
-      opacity: 1 !important;
-      visibility: visible !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
     }
     html[${ROOT_ATTRIBUTE}="true"] .project-card[${RETURN_ATTRIBUTE}="true"]
       .dither-preview-canvas[data-active="true"],
@@ -355,13 +358,8 @@ function publishedDitherGridSize(media) {
     return null
   }
 
-  const rect = media.getBoundingClientRect()
-  const cols = Number(PUBLISHED_DITHER_CONFIG.columns)
-  if (!Number.isFinite(cols) || cols <= 0) return null
-
-  const width = Math.max(1, rect.width)
-  const height = Math.max(1, rect.height)
-  return constrainGridSize(cols, cols * height / width)
+  const grid = logicalGridForMedia(media, PUBLISHED_DITHER_CONFIG)
+  return constrainGridSize(grid.cols, grid.rows)
 }
 
 function configuredSnowGridSize(media, config) {
@@ -893,9 +891,9 @@ function reverseHoverState(card, state) {
   clearRestoreReady(card)
   holdMotion(card)
   state.hiddenSource = hideRestoreSource(card)
-  card.setAttribute(RETURN_ATTRIBUTE, "true")
   activeStates.add(state)
   drawState(state, now)
+  card.setAttribute(RETURN_ATTRIBUTE, "true")
   scheduleAnimationLoop()
   return true
 }
@@ -972,6 +970,55 @@ function drawState(state, now) {
     }
 
     const restoring = state.mode === "restore"
+    if (!restoring) {
+      const returnProgress = progress
+      state.restoreProgress = 1 - returnProgress
+      const settleProgress = smooth01(returnProgress)
+      const settleSoftness = 0.1
+
+      for (let index = 0; index < grid.count; index += 1) {
+        const settleThreshold = 0.035 + (1 - grid.order[index]) * 0.93
+        const settled = smooth01(
+          (settleProgress - settleThreshold + settleSoftness) /
+            (settleSoftness * 2),
+        )
+        const col = index % grid.cols
+        const row = Math.floor(index / grid.cols)
+        const offset = index * 4
+        const transitionBand = 4 * settled * (1 - settled)
+        const flicker = hash01(
+          config.activeColorSeed,
+          col,
+          row,
+          2200 + frameTick,
+        )
+        const colorChance = clamp(
+          density * (1 - config.activeColorPaperRatio * 0.5) +
+            transitionBand * 0.28,
+        )
+        const useColorSnow = flicker < colorChance
+        const snow = useColorSnow ? grid.palette : paper
+        const snowMix = clamp(transitionBand * (0.24 + density * 0.24))
+        const baseR =
+          grid.palette[offset] * (1 - settled) + state.sourcePixels[offset] * settled
+        const baseG =
+          grid.palette[offset + 1] * (1 - settled) +
+          state.sourcePixels[offset + 1] * settled
+        const baseB =
+          grid.palette[offset + 2] * (1 - settled) +
+          state.sourcePixels[offset + 2] * settled
+
+        data[offset] = baseR * (1 - snowMix) + snow[0] * snowMix
+        data[offset + 1] = baseG * (1 - snowMix) + snow[1] * snowMix
+        data[offset + 2] = baseB * (1 - snowMix) + snow[2] * snowMix
+        data[offset + 3] = 255
+      }
+
+      ctx.putImageData(state.imageData, 0, 0)
+      if (raw >= 1) finishState(state)
+      return
+    }
+
     const restoreProgress = restoring ? progress : 1 - progress
     state.restoreProgress = restoreProgress
     const decodeProgress = smooth01(restoreProgress / 0.62)
@@ -1196,10 +1243,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     if (!canvas || !ctx) return false
 
     holdMotion(card)
-    if (mode === "restore-reverse" && sourcePixels) {
-      clearRestoreReady(card)
-      card.setAttribute(RETURN_ATTRIBUTE, "true")
-    }
+    if (mode === "restore-reverse" && sourcePixels) clearRestoreReady(card)
     const hiddenSource =
       mode === "restore-reverse" && sourcePixels
         ? hideRestoreSource(card)
@@ -1255,6 +1299,9 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     cardStates.set(card, state)
     activeStates.add(state)
     drawState(state, state.startTime)
+    if (mode === "restore-reverse" && sourcePixels) {
+      card.setAttribute(RETURN_ATTRIBUTE, "true")
+    }
     if (mode === "restore" && sourcePixels) markRestoreReady(card)
     scheduleAnimationLoop()
     return true

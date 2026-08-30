@@ -1,18 +1,21 @@
 import { ACTIVE_COLOR_PRESETS, PUBLISHED_ACTIVE_COLOR_CONFIG } from "./active-color-default.js?v=20260830-finesignal1"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260830-adaptivegrid1"
+import {
+  logicalGridForMedia,
+  logicalGridFromCanvas,
+} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
 
 const STYLE_ID = "red-binary-pixel-handoff-style"
-const STYLE_VERSION = "1"
+const STYLE_VERSION = "2"
 const CANVAS_CLASS = "binary-pixel-handoff-canvas"
 const HANDOFF_ATTR = "data-binary-handoff"
 const TARGET_FRAME_MS = 1000 / 60
 const FINE_SIGNAL = ACTIVE_COLOR_PRESETS.find((preset) => preset.id === "fine-signal")?.values || PUBLISHED_ACTIVE_COLOR_CONFIG
-const CELL_PX = Number(FINE_SIGNAL.activeColorCellPx) || 3
 const CLUSTER_SIZE = Math.max(1, Math.round(Number(FINE_SIGNAL.activeColorClusterSize) || 3))
 const CLUSTER_MIX = clampNumber(Number(FINE_SIGNAL.activeColorClusterMix), 0, 1, 0.16)
 const SIGNAL_FLICKER = clampNumber(Number(FINE_SIGNAL.activeColorFlicker), 0, 1, 0.62)
 const IN_DURATION_MS = Number(FINE_SIGNAL.activeColorDurationMs) || 660
 const OUT_DURATION_MS = Number(FINE_SIGNAL.activeColorExitDurationMs) || 350
-const MAX_GRID_CELLS = 36000
 const MAX_WAIT_MS = 1800
 const TAU = Math.PI * 2
 
@@ -110,17 +113,8 @@ function nearViewport(card, margin = 260) {
   return rect.bottom >= -margin && rect.top <= height + margin
 }
 
-function gridSize(media) {
-  const rect = media.getBoundingClientRect()
-  let cols = Math.max(1, Math.ceil(Math.max(1, rect.width) / CELL_PX))
-  let rows = Math.max(1, Math.ceil(Math.max(1, rect.height) / CELL_PX))
-  const count = cols * rows
-  if (count > MAX_GRID_CELLS) {
-    const scale = Math.sqrt(count / MAX_GRID_CELLS)
-    cols = Math.max(1, Math.floor(cols / scale))
-    rows = Math.max(1, Math.floor(rows / scale))
-  }
-  return { cols, rows }
+function gridSize(media, finalCanvas) {
+  return logicalGridFromCanvas(finalCanvas) || logicalGridForMedia(media, PUBLISHED_DITHER_CONFIG)
 }
 
 function ensureCanvas(card, cols, rows) {
@@ -141,7 +135,7 @@ function ensureCanvas(card, cols, rows) {
 function buildGrid(card, finalCanvas) {
   const media = card?.querySelector(".project-media")
   if (!media || !finalCanvas || finalCanvas.width < 2 || finalCanvas.height < 2) return null
-  const { cols, rows } = gridSize(media)
+  const { cols, rows } = gridSize(media, finalCanvas)
   const sample = document.createElement("canvas")
   sample.width = cols
   sample.height = rows

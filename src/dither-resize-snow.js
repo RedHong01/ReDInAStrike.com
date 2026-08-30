@@ -9,7 +9,7 @@ import {
   sampleBinaryCanvas,
   smooth01,
   writeBinaryPixel,
-} from "./binary-surface-core.js?v=20260830-binarysurface1"
+} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
 
 const STYLE_ID = "red-dither-resize-snow-style"
 const STYLE_VERSION = "1"

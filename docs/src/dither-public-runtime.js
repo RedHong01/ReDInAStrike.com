@@ -1,5 +1,7 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import { renderCard, resetSampleCache } from "./dither-engine.js"
+import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
+import { playDitherReveal } from "./reveal-motion.js"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -14,6 +16,7 @@ const state = {
   observedMedia: new Set(),
   boundImages: new WeakSet(),
   retryTimers: new Set(),
+  revealSignatures: new WeakMap(),
 }
 
 function publishedMode() {
@@ -102,6 +105,11 @@ function isMutedByActiveFilter(card, catalog) {
   )
 }
 
+function revealSignature(card, catalog) {
+  const img = card.querySelector(".project-media img")
+  return `${catalog?.dataset.activeFilter || ""}|${publishedMode()}|${img?.currentSrc || img?.src || ""}`
+}
+
 function bindImageLoad(img) {
   if (!img || img.complete || state.boundImages.has(img)) return
   state.boundImages.add(img)
@@ -142,6 +150,7 @@ function renderPublishedDither() {
   syncResizeTargets(catalog)
 
   const cards = [...catalog.querySelectorAll(".project-card")]
+  let mutedIndex = 0
   cards.forEach((card) => {
     const img = card.querySelector(".project-media img")
     bindImageLoad(img)
@@ -149,16 +158,25 @@ function renderPublishedDither() {
     if (!isMutedByActiveFilter(card, catalog)) {
       const canvas = card.querySelector(".dither-preview-canvas")
       if (canvas) canvas.dataset.active = "false"
+      card.querySelector(".dither-reveal-canvas")?.remove()
+      state.revealSignatures.delete(card)
       return
     }
 
     renderCard(card, PUBLISHED_DITHER_CONFIG)
 
     const canvas = card.querySelector(".dither-preview-canvas")
-    if (canvas) {
-      canvas.dataset.active = "true"
-      canvas.dataset.publishedMode = publishedMode()
+    if (!canvas) return
+    canvas.dataset.active = "true"
+    canvas.dataset.publishedMode = publishedMode()
+
+    const canReveal = img?.complete && img.naturalWidth > 0 && canvas.width > 1 && canvas.height > 1
+    const signature = revealSignature(card, catalog)
+    if (canReveal && state.revealSignatures.get(card) !== signature) {
+      state.revealSignatures.set(card, signature)
+      playDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG, { index: mutedIndex })
     }
+    mutedIndex += 1
   })
 }
 
@@ -179,11 +197,7 @@ function bindCatalogObserver() {
     let shouldRender = false
 
     for (const mutation of mutations) {
-      if (mutation.type === "childList") {
-        shouldRender = true
-        break
-      }
-      if (mutation.type === "attributes") {
+      if (mutation.type === "childList" || mutation.type === "attributes") {
         shouldRender = true
         break
       }
@@ -196,7 +210,6 @@ function bindCatalogObserver() {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeOldValue: false,
     attributeFilter: ["class", "data-active-filter"],
   })
 }
@@ -270,6 +283,7 @@ export function destroyPublicDitherRuntime() {
   state.retryTimers.forEach((timer) => clearTimeout(timer))
   state.retryTimers.clear()
 
+  document.querySelectorAll(".dither-reveal-canvas").forEach((canvas) => canvas.remove())
   window.removeEventListener("resize", requestRender)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()

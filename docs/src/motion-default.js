@@ -1,4 +1,62 @@
+export const REVEAL_MODES = [
+  ["none", "None"],
+  ["pixel-snow", "Pixel Snow"],
+  ["threshold-sweep", "Threshold Sweep"],
+  ["cluster-bloom", "Cluster Bloom"],
+  ["scan-lock", "Scan Lock"],
+]
+
+export const REVEAL_DIRECTIONS = [
+  ["top", "Top → Bottom"],
+  ["bottom", "Bottom → Top"],
+  ["left", "Left → Right"],
+  ["right", "Right → Left"],
+  ["center", "Center → Out"],
+]
+
 export const MOTION_GROUPS = [
+  {
+    title: "Reveal Timing",
+    description: "Global timing for the square-pixel image reveal that resolves into the final dither canvas.",
+    controls: [
+      { key: "revealDurationMs", label: "Reveal duration", min: 180, max: 3200, step: 10, decimals: 0, suffix: " ms" },
+      { key: "revealDelayMs", label: "Start delay", min: 0, max: 1200, step: 10, decimals: 0, suffix: " ms" },
+      { key: "revealStaggerMs", label: "Card stagger", min: 0, max: 220, step: 2, decimals: 0, suffix: " ms" },
+      { key: "revealSettleMs", label: "Final settle", min: 0, max: 800, step: 10, decimals: 0, suffix: " ms" },
+      { key: "revealCurve", label: "Resolve curve", min: 0.35, max: 3.5, step: 0.05, decimals: 2 },
+      { key: "revealSeed", label: "Random seed", min: 1, max: 9999, step: 1, decimals: 0 },
+    ],
+  },
+  {
+    title: "Pixel Screen",
+    description: "Grid scale and snow behaviour. Unresolved cells flicker as binary paper / ink noise before locking to the final image.",
+    controls: [
+      { key: "revealCellPx", label: "Pixel cell", min: 2, max: 28, step: 1, decimals: 0, suffix: " px" },
+      { key: "revealNoisePeak", label: "Snow density", min: 0, max: 1, step: 0.01, decimals: 2 },
+      { key: "revealNoiseFlicker", label: "Snow flicker", min: 0, max: 1, step: 0.01, decimals: 2 },
+      { key: "revealNoisePersistence", label: "Noise persistence", min: 0, max: 1, step: 0.01, decimals: 2 },
+      { key: "revealThresholdBias", label: "Threshold bias", min: -1, max: 1, step: 0.02, decimals: 2 },
+    ],
+  },
+  {
+    title: "Cluster Bloom",
+    description: "Controls the size, count, spread and local randomness of blooming pixel islands.",
+    controls: [
+      { key: "revealClusterSize", label: "Cluster size", min: 1, max: 12, step: 0.25, decimals: 2 },
+      { key: "revealClusterCount", label: "Cluster count", min: 1, max: 18, step: 1, decimals: 0 },
+      { key: "revealClusterSpread", label: "Cluster spread", min: 0, max: 1, step: 0.01, decimals: 2 },
+      { key: "revealClusterJitter", label: "Cluster jitter", min: 0, max: 1, step: 0.01, decimals: 2 },
+    ],
+  },
+  {
+    title: "Scan Lock",
+    description: "Directional screen-lock front with a noisy feathered edge. Direction is selectable above these controls.",
+    controls: [
+      { key: "revealScanFeather", label: "Scan feather", min: 0.01, max: 0.65, step: 0.01, decimals: 2 },
+      { key: "revealScanNoiseMix", label: "Edge noise mix", min: 0, max: 1, step: 0.01, decimals: 2 },
+      { key: "revealScanOvershoot", label: "Lock overshoot", min: 0, max: 0.35, step: 0.01, decimals: 2 },
+    ],
+  },
   {
     title: "Nav Typewriter",
     description: "Typing / deletion cadence and the blinking edit caret for category subtitles.",
@@ -48,7 +106,28 @@ export const MOTION_PARAM_META = new Map(
 )
 
 export const PUBLISHED_MOTION_CONFIG = Object.freeze({
-  version: 1,
+  version: 2,
+  revealEnabled: true,
+  revealMode: "pixel-snow",
+  revealDirection: "top",
+  revealDurationMs: 760,
+  revealDelayMs: 20,
+  revealStaggerMs: 34,
+  revealSettleMs: 130,
+  revealCurve: 1.35,
+  revealSeed: 17,
+  revealCellPx: 7,
+  revealNoisePeak: 0.42,
+  revealNoiseFlicker: 0.58,
+  revealNoisePersistence: 0.22,
+  revealThresholdBias: 0,
+  revealClusterSize: 4,
+  revealClusterCount: 6,
+  revealClusterSpread: 0.58,
+  revealClusterJitter: 0.32,
+  revealScanFeather: 0.18,
+  revealScanNoiseMix: 0.34,
+  revealScanOvershoot: 0.08,
   navTypeMs: 22,
   navDeleteMs: 14,
   caretBlinkMs: 520,
@@ -69,6 +148,89 @@ export const PUBLISHED_MOTION_CONFIG = Object.freeze({
   navSpringMass: 1,
 })
 
+export const REVEAL_PRESETS = [
+  {
+    id: "soft-snow",
+    label: "Soft Snow",
+    values: {
+      revealEnabled: true,
+      revealMode: "pixel-snow",
+      revealDurationMs: 760,
+      revealCellPx: 7,
+      revealNoisePeak: 0.42,
+      revealNoiseFlicker: 0.58,
+      revealNoisePersistence: 0.22,
+      revealCurve: 1.35,
+      revealSettleMs: 130,
+    },
+  },
+  {
+    id: "dense-monitor",
+    label: "Dense Monitor",
+    values: {
+      revealEnabled: true,
+      revealMode: "pixel-snow",
+      revealDurationMs: 610,
+      revealCellPx: 4,
+      revealNoisePeak: 0.7,
+      revealNoiseFlicker: 0.82,
+      revealNoisePersistence: 0.36,
+      revealCurve: 1.05,
+      revealSettleMs: 90,
+    },
+  },
+  {
+    id: "threshold-print",
+    label: "Threshold Print",
+    values: {
+      revealEnabled: true,
+      revealMode: "threshold-sweep",
+      revealDurationMs: 880,
+      revealCellPx: 6,
+      revealNoisePeak: 0.2,
+      revealNoiseFlicker: 0.24,
+      revealThresholdBias: -0.08,
+      revealCurve: 1.5,
+      revealSettleMs: 120,
+    },
+  },
+  {
+    id: "cluster-bloom",
+    label: "Cluster Bloom",
+    values: {
+      revealEnabled: true,
+      revealMode: "cluster-bloom",
+      revealDurationMs: 960,
+      revealCellPx: 7,
+      revealClusterSize: 4.6,
+      revealClusterCount: 7,
+      revealClusterSpread: 0.62,
+      revealClusterJitter: 0.26,
+      revealNoisePeak: 0.16,
+      revealSettleMs: 140,
+    },
+  },
+  {
+    id: "scan-lock",
+    label: "Scan Lock",
+    values: {
+      revealEnabled: true,
+      revealMode: "scan-lock",
+      revealDirection: "top",
+      revealDurationMs: 720,
+      revealCellPx: 6,
+      revealScanFeather: 0.16,
+      revealScanNoiseMix: 0.38,
+      revealScanOvershoot: 0.1,
+      revealNoisePeak: 0.24,
+      revealSettleMs: 100,
+    },
+  },
+]
+
+const REVEAL_MODE_IDS = new Set(REVEAL_MODES.map(([id]) => id))
+const REVEAL_DIRECTION_IDS = new Set(REVEAL_DIRECTIONS.map(([id]) => id))
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
 }
@@ -87,8 +249,11 @@ export function sanitizeMotionConfig(input, fallback = PUBLISHED_MOTION_CONFIG) 
     const value = Number.isFinite(raw) ? raw : fallbackValue
     config[key] = roundToStep(clamp(value, meta.min, meta.max), meta.step)
   }
+  config.revealEnabled = config.revealEnabled !== false
+  config.revealMode = REVEAL_MODE_IDS.has(config.revealMode) ? config.revealMode : fallback.revealMode
+  config.revealDirection = REVEAL_DIRECTION_IDS.has(config.revealDirection) ? config.revealDirection : fallback.revealDirection
   config.bodyMaxDurationMs = Math.max(config.bodyMinDurationMs, config.bodyMaxDurationMs)
-  config.version = 1
+  config.version = 2
   return config
 }
 

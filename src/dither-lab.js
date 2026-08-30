@@ -1,5 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { destroyPublicDitherRuntime } from "./dither-public-runtime.js?v=20260829-runtime3"
+import { destroyPublicDitherRuntime } from "./dither-public-runtime.js?v=20260829-runtime4"
 
 const params = new URLSearchParams(window.location.search)
 const autoOpen = params.get("ditherHub") === "1" || params.has("ditherConfig") || params.has("motionConfig")

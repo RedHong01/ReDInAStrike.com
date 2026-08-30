@@ -65,6 +65,10 @@ function reducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true
 }
 
+function homeReturnTransitionActive() {
+  return Boolean(document.documentElement.dataset.homeReturnTransition)
+}
+
 function viewportHeight() {
   return Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
 }
@@ -159,6 +163,7 @@ function cancelMagnet({ suppress = 0 } = {}) {
 }
 
 function markUserInput(direction = 0) {
+  if (homeReturnTransitionActive()) return
   cancelMagnet()
   lastInputAt = now()
   if (direction) lastDirection = Math.sign(direction)
@@ -309,6 +314,7 @@ function shouldAttemptSnap() {
   const time = now()
   if (reducedMotion()) return false
   if (document.hidden) return false
+  if (homeReturnTransitionActive()) return false
   if (time < suppressUntil) return false
   if (time - lastInputAt > CONFIG.recentInputMs) return false
   if (effectiveVelocity() > CONFIG.velocityGatePxMs) return false
@@ -332,12 +338,17 @@ function attemptSnap() {
 }
 
 function scheduleSettle() {
-  if (reducedMotion() || document.hidden) return
+  if (reducedMotion() || document.hidden || homeReturnTransitionActive()) return
   clearTimeout(settleTimer)
   settleTimer = window.setTimeout(attemptSnap, CONFIG.idleMs)
 }
 
 function handleScroll() {
+  if (homeReturnTransitionActive()) {
+    cancelMagnet({ suppress: CONFIG.suppressAfterUiMs })
+    syncScrollSample({ resetVelocity: true })
+    return
+  }
   if (animationFrame) return
   const time = now()
   const y = window.scrollY || 0
@@ -438,6 +449,9 @@ function boot() {
     cancelMagnet({ suppress: 180 })
   }, { passive: true })
   window.addEventListener("hashchange", () => cancelMagnet({ suppress: 780 }))
+  window.addEventListener("red:home-return-transition", (event) => {
+    if (event.detail?.active) cancelMagnet({ suppress: CONFIG.suppressAfterUiMs })
+  })
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) cancelMagnet()
   })

@@ -120,6 +120,12 @@ function ensureStyles() {
       visibility: visible;
     }
 
+    /*
+     * Generated dither must always cover the responsive media box while its expensive
+     * backing bitmap waits for the settled ResizeObserver redraw. The old bitmap is
+     * stretched by CSS for those few frames; the native dot layer underneath is hidden
+     * so stale circular halftone can never bleed around the edges.
+     */
     .project-media {
       overflow: hidden;
     }

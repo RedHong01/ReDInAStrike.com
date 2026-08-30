@@ -6,7 +6,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260829-boundary1"
+} from "./reveal-motion.js?v=20260830-breath4"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"

@@ -73,7 +73,12 @@
   function resolveHeader() {
     if (header?.isConnected) return header
     header = document.querySelector(".site-header")
-    if (header) flushPendingHeaderProperties()
+    if (header) {
+      for (const [name, value] of headerStyleCache) {
+        writeNative(header.style, name, value)
+      }
+      flushPendingHeaderProperties()
+    }
     return header
   }
 
@@ -91,12 +96,12 @@
 
   function setHeaderProperty(name, value, priority = "") {
     const next = String(value)
-    if (headerStyleCache.get(name) === next) return
     const target = resolveHeader()
     if (!target) {
       pendingHeaderProperties.set(name, [next, priority])
       return
     }
+    if (headerStyleCache.get(name) === next && target.style.getPropertyValue(name) === next) return
     headerStyleCache.set(name, next)
     writeNative(target.style, name, next, priority)
   }

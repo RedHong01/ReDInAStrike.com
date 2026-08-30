@@ -1,6 +1,6 @@
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 
-const OWNER = "breath3"
+const OWNER = "breath4"
 const IDLE_FRAME_MS = 1000 / 30
 const RETRY_DELAYS = [0, 80, 220, 520, 1000, 1800]
 
@@ -15,8 +15,10 @@ let legacyRevealApi = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
+    // Capture the scheduler's currently loaded reveal instance first. The new
+    // cache-busted module will replace window.__RED_REVEAL_MOTION__ afterwards.
     legacyRevealApi = window.__RED_REVEAL_MOTION__ || null
-    revealModulePromise = import("./reveal-motion.js?v=20260830-breath3").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260830-breath4").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -33,7 +35,10 @@ function currentConfig() {
   )
   return {
     ...base,
-    revealNoiseFlicker: Math.max(base.revealNoiseFlicker, 0.82),
+    // Frequency remains slow; this only increases how legible the breathing is
+    // while the scroll position itself is perfectly still.
+    revealNoiseFlicker: Math.max(base.revealNoiseFlicker, 0.92),
+    revealNoisePeak: Math.max(base.revealNoisePeak, 0.28),
   }
 }
 
@@ -77,6 +82,9 @@ async function migrateCard(card, catalog) {
 
   const api = await ensureRevealApi()
 
+  // Retire the old cached module's state before the new overlay is created.
+  // Otherwise its next RAF can see its old canvas detached and accidentally
+  // remove the newly-created canvas while cleaning itself up.
   if (!legacyCancelledCards.has(card) && legacyRevealApi?.cancel) {
     legacyRevealApi.cancel(card, { remove: true })
     legacyCancelledCards.add(card)
@@ -130,6 +138,8 @@ function breathLoop(now) {
   if (document.hidden || !revealApi) return
 
   if (!lastBreathDraw || now - lastBreathDraw >= IDLE_FRAME_MS) {
+    // Scroll determines WHERE the boundary is. This call advances only TIME,
+    // so a stationary boundary keeps breathing instead of freezing.
     revealApi.refresh({ linger: false })
     lastBreathDraw = now
   }

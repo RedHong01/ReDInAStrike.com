@@ -3,7 +3,7 @@ import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
 const TARGET_FRAME_MS = 1000 / 60
-const IDLE_FLICKER_FRAME_MS = 1000 / 36
+const IDLE_FLICKER_FRAME_MS = 1000 / 30
 const MAX_GRID_CELLS = 52000
 const VIEWPORT_LINGER_MS = 220
 const VIEWPORT_PROGRESS_EPSILON = 0.0025
@@ -331,6 +331,11 @@ function breathingWave(timeSeconds, cellPhase, rate) {
   return clamp(0.5 + primary * 0.26 + drift * 0.17 + secondary * 0.055)
 }
 
+function transitionPresence(value) {
+  const progress = clamp(value)
+  return smooth01(progress / 0.18) * (1 - smooth01((progress - 0.82) / 0.18))
+}
+
 function renderProgress(state, rawProgress, now) {
   const { canvas, grid, config, colors } = state
   const raw = clamp(rawProgress)
@@ -469,7 +474,7 @@ function renderBoundaryField(state, now, bounds) {
 
   const metrics = boundaryMetrics(bounds)
   const softness = pixelSoftness(config, "pixel-snow")
-  const breathAmount = 0.028 + config.revealNoiseFlicker * 0.068
+  const breathAmount = 0.045 + config.revealNoiseFlicker * 0.11
   const timeSeconds = now / 1000
   const data = state.framePixels
   data.fill(0)
@@ -502,13 +507,14 @@ function renderBoundaryField(state, now, bounds) {
 
     for (let index = rowStart; index < rowEnd; index += 1) {
       const threshold = PIXEL_THRESHOLD_MIN + grid.pixelOrder[index] * PIXEL_THRESHOLD_SPAN
-      let coverAlpha = smooth01((strength - threshold + softness) / (softness * 2))
+      const breath = breathingWave(timeSeconds, grid.flickerPhase[index], grid.breathRate[index])
+      const breathShift = (breath - 0.5) * 2 * breathAmount * transitionPresence(strength)
+      let coverAlpha = smooth01((strength + breathShift - threshold + softness) / (softness * 2))
       if (coverAlpha <= 0.001) continue
 
       const transitionBand = 4 * coverAlpha * (1 - coverAlpha)
-      const breath = breathingWave(timeSeconds, grid.flickerPhase[index], grid.breathRate[index])
       coverAlpha = clamp(
-        coverAlpha + (breath - 0.5) * 2 * breathAmount * transitionBand,
+        coverAlpha + (breath - 0.5) * 2 * breathAmount * 0.42 * transitionBand,
       )
 
       const inkPulse = 0.25 + breath * 0.75

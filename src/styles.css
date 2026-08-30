@@ -499,8 +499,15 @@ body[data-nav-density="full"] .nav-item:focus-visible .nav-detail {
 }
 
 body[data-home-return-transition] .site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
   z-index: 80;
   overflow: hidden;
+}
+
+body[data-home-return-transition] .site-header + .site-main {
+  padding-top: var(--home-return-spacer-height, var(--header-height));
 }
 
 body[data-home-return-transition] .site-main {

@@ -498,6 +498,26 @@ body[data-nav-density="full"] .nav-item:focus-visible .nav-detail {
   background: var(--paper);
 }
 
+body[data-home-return-transition] .site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 80;
+  overflow: hidden;
+}
+
+body[data-home-return-transition] .site-header + .site-main {
+  padding-top: var(--home-return-spacer-height, var(--header-height));
+}
+
+body[data-home-return-transition] .site-main {
+  pointer-events: none;
+}
+
+body[data-home-return-transition] .nav-list {
+  pointer-events: none;
+}
+
 body[data-layout-transition="true"] .site-header {
   transition: height var(--responsive-duration) var(--responsive-ease);
 }

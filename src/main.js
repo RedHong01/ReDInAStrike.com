@@ -177,6 +177,16 @@ const HALFTONE_PROGRESS_STEPS = 260
 const HALFTONE_LOGICAL_COLUMNS = 132
 const HALFTONE_RENDER_FRAME_BUDGET_MS = 4.5
 const HALFTONE_SOURCE_CACHE_LIMIT = 64
+const HEADER_VISUAL_STYLE_PROPERTIES = new Set([
+  "--header-height",
+  "--logo-size",
+  "--nav-scale",
+  "--detail-opacity",
+  "--glass-alpha",
+  "--glass-blur",
+  "--header-glass-shadow-alpha",
+  "--header-rule-alpha",
+])
 
 function projectDateRank(project) {
   const rawDate = String(project.date || "").trim()
@@ -383,7 +393,10 @@ const siteState = {
   homeReturnTransition: null,
   homeReturnTransitionId: 0,
   homeReturnScrollLocked: false,
+  homeReturnLockedScrollY: 0,
   homeReturnPreviousBodyOverflow: "",
+  homeReturnPreviousHtmlOverflowAnchor: "",
+  homeReturnPreviousBodyOverflowAnchor: "",
   navMetricKey: "",
   navHoverSpacingKey: "",
   headerMetricsWidth: -1,
@@ -562,20 +575,45 @@ function setHomeReturnTransitionPhase(phase) {
 function clearHomeReturnTransitionPhase() {
   delete document.documentElement.dataset.homeReturnTransition
   delete document.body.dataset.homeReturnTransition
+  removeRootStyleProperty("--home-return-spacer-height")
+  restoreHomeReturnOverflowAnchor()
   notifyHomeReturnTransition(false)
+}
+
+function currentHeaderHeight() {
+  const headerRect = siteState.dom.header?.getBoundingClientRect()
+  if (headerRect?.height > 0) return headerRect.height
+  if (siteState.headerVisualBottom > 0) return siteState.headerVisualBottom
+  return readHeaderMetrics().fullHeight
+}
+
+function setHomeReturnSpacerHeight(height = currentHeaderHeight()) {
+  setRootStyleProperty("--home-return-spacer-height", `${Math.max(0, height).toFixed(2)}px`)
 }
 
 function lockHomeReturnScroll() {
   if (siteState.homeReturnScrollLocked) return
   siteState.homeReturnScrollLocked = true
   siteState.homeReturnPreviousBodyOverflow = document.body.style.overflow
+  siteState.homeReturnPreviousHtmlOverflowAnchor = document.documentElement.style.overflowAnchor
+  siteState.homeReturnPreviousBodyOverflowAnchor = document.body.style.overflowAnchor
+  document.documentElement.style.overflowAnchor = "none"
+  document.body.style.overflowAnchor = "none"
   document.body.style.overflow = "hidden"
+}
+
+function restoreHomeReturnOverflowAnchor() {
+  document.documentElement.style.overflowAnchor = siteState.homeReturnPreviousHtmlOverflowAnchor
+  document.body.style.overflowAnchor = siteState.homeReturnPreviousBodyOverflowAnchor
+  siteState.homeReturnPreviousHtmlOverflowAnchor = ""
+  siteState.homeReturnPreviousBodyOverflowAnchor = ""
 }
 
 function unlockHomeReturnScroll() {
   if (!siteState.homeReturnScrollLocked) return
   siteState.homeReturnScrollLocked = false
   document.body.style.overflow = siteState.homeReturnPreviousBodyOverflow
+  siteState.homeReturnLockedScrollY = 0
   siteState.homeReturnPreviousBodyOverflow = ""
 }
 
@@ -657,6 +695,17 @@ function applyHomeReturnTransitionVisual(transition = siteState.homeReturnTransi
   siteState.visualProgress = compactProgress
   siteState.targetProgress = compactProgress
   applyHeaderProgress(compactProgress, { coverProgress })
+  if (
+    (transition.phase === "covering" || transition.phase === "covered") &&
+    Math.abs((window.scrollY || window.pageYOffset || 0) - siteState.homeReturnLockedScrollY) > 0.5
+  ) {
+    window.scrollTo({ top: siteState.homeReturnLockedScrollY, left: 0, behavior: "auto" })
+    siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
+  }
+  if (transition.phase === "revealing" && isHomeRoute() && (window.scrollY || window.pageYOffset || 0) !== 0) {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
+  }
 }
 
 function animateHomeReturnHeader({
@@ -748,6 +797,17 @@ async function waitForHomeFirstPaint(id) {
   return isCurrentHomeReturnTransition(id) && isHomeRoute()
 }
 
+async function settleHomeReturnScrollTop(id) {
+  for (let attempt = 0; attempt < 18; attempt += 1) {
+    if (!isCurrentHomeReturnTransition(id)) return false
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
+    await waitForAnimationFrames(1)
+    if ((window.scrollY || window.pageYOffset || 0) <= 0.5) return true
+  }
+  return isCurrentHomeReturnTransition(id)
+}
+
 function cancelHomeReturnTransition(options = {}) {
   const transition = siteState.homeReturnTransition
   if (!transition) return
@@ -782,9 +842,11 @@ function finishHomeReturnTransition(id) {
 async function startHomeReturnTransition() {
   if (isHomeReturnTransitionActive()) return
 
+  window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: HOME_RETURN_COVER_MS + HOME_RETURN_REVEAL_MS })
   const id = siteState.homeReturnTransitionId + 1
   siteState.homeReturnTransitionId = id
   const startCompactProgress = clamp(siteState.visualProgress, 0, 1)
+  siteState.homeReturnLockedScrollY = window.scrollY || window.pageYOffset || 0
   siteState.homeReturnTransition = {
     id,
     phase: "covering",
@@ -796,6 +858,7 @@ async function startHomeReturnTransition() {
   if (siteState.followFrame) cancelAnimationFrame(siteState.followFrame)
   siteState.followFrame = 0
   siteState.lastFrameTime = 0
+  setHomeReturnSpacerHeight()
   lockHomeReturnScroll()
   setHomeReturnTransitionPhase("covering")
 
@@ -812,10 +875,22 @@ async function startHomeReturnTransition() {
   setHomeReturnTransitionPhase("covered")
   pushHomeRoute()
   render()
+  setHomeReturnSpacerHeight(readHeaderMetrics().fullHeight)
+  const transition = siteState.homeReturnTransition
+  if (transition && transition.id === id) {
+    transition.coverProgress = 1
+    transition.compactProgress = 0
+    applyHomeReturnTransitionVisual(transition)
+  }
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
 
   const ready = await waitForHomeFirstPaint(id)
   if (!ready || !isCurrentHomeReturnTransition(id)) return
 
+  unlockHomeReturnScroll()
+  const scrollSettled = await settleHomeReturnScrollTop(id)
+  if (!scrollSettled || !isCurrentHomeReturnTransition(id)) return
   setHomeReturnTransitionPhase("revealing")
   const revealed = await animateHomeReturnHeader({
     id,
@@ -1990,10 +2065,38 @@ function readHeaderMetrics() {
   return metrics
 }
 
+function inlineStyleValueMatches(current, next) {
+  if (current === next) return true
+  const currentMatch = String(current).trim().match(/^(-?\d+(?:\.\d+)?)(.*)$/)
+  const nextMatch = String(next).trim().match(/^(-?\d+(?:\.\d+)?)(.*)$/)
+  if (!currentMatch || !nextMatch) return false
+  const currentNumber = Number.parseFloat(current)
+  const nextNumber = Number.parseFloat(next)
+  return (
+    Number.isFinite(currentNumber) &&
+    Number.isFinite(nextNumber) &&
+    currentMatch[2] === nextMatch[2] &&
+    Math.abs(currentNumber - nextNumber) < 0.01
+  )
+}
+
 function setRootStyleProperty(name, value) {
-  if (siteState.headerStyleCache[name] === value) return
-  siteState.headerStyleCache[name] = value
-  document.documentElement.style.setProperty(name, value)
+  const next = String(value)
+  if (siteState.headerStyleCache[name] === next) {
+    const header =
+      HEADER_VISUAL_STYLE_PROPERTIES.has(name) && window.__RED_PERF__
+        ? siteState.dom.header || document.querySelector("[data-site-header]")
+        : null
+    if (!header || inlineStyleValueMatches(header.style.getPropertyValue(name), next)) return
+  }
+  siteState.headerStyleCache[name] = next
+  document.documentElement.style.setProperty(name, next)
+}
+
+function removeRootStyleProperty(name) {
+  if (!(name in siteState.headerStyleCache) && !document.documentElement.style.getPropertyValue(name)) return
+  delete siteState.headerStyleCache[name]
+  document.documentElement.style.removeProperty(name)
 }
 
 function setBodyDatasetValue(name, value) {

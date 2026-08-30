@@ -1,6 +1,7 @@
 import { ACTIVE_COLOR_PRESETS, PUBLISHED_ACTIVE_COLOR_CONFIG } from "./active-color-default.js?v=20260830-finesignal1"
 
 const STYLE_ID = "red-binary-pixel-handoff-style"
+const STYLE_VERSION = "1"
 const CANVAS_CLASS = "binary-pixel-handoff-canvas"
 const HANDOFF_ATTR = "data-binary-handoff"
 const TARGET_FRAME_MS = 1000 / 60
@@ -59,11 +60,13 @@ function prefersReducedMotion() {
 
 function ensureStyles() {
   let style = document.getElementById(STYLE_ID)
+  if (style?.dataset.version === STYLE_VERSION) return
   if (!style) {
     style = document.createElement("style")
     style.id = STYLE_ID
     document.head.appendChild(style)
   }
+  style.dataset.version = STYLE_VERSION
   style.textContent = `
     .dither-preview-canvas {
       transition: none !important;

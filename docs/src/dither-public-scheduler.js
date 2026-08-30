@@ -17,9 +17,10 @@ import {
   playPreparedDitherResizeSnow,
   prepareDitherInitialSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-categorycover5"
+} from "./dither-resize-snow.js?v=20260830-perfstream1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
+const PUBLIC_STYLE_VERSION = "1"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
@@ -90,11 +91,13 @@ function publishedIsGenerated() {
 
 function ensurePublicStyles() {
   let style = document.getElementById(PUBLIC_STYLE_ID)
+  if (style?.dataset.version === PUBLIC_STYLE_VERSION) return
   if (!style) {
     style = document.createElement("style")
     style.id = PUBLIC_STYLE_ID
     document.head.appendChild(style)
   }
+  style.dataset.version = PUBLIC_STYLE_VERSION
   style.textContent = `
     .project-media { overflow: hidden; }
     .dither-preview-canvas {
@@ -145,6 +148,10 @@ function applyPublishedModeState() {
 
 function activeCatalog() {
   return document.querySelector(".catalog")
+}
+
+function pageIsVisible() {
+  return document.visibilityState !== "hidden"
 }
 
 function applyCategoryAliases(catalog) {
@@ -300,7 +307,7 @@ function renderOne(card, catalog, generation, tier) {
 
 function processPriorityQueue() {
   state.priorityFrame = 0
-  if (state.destroyed) return
+  if (state.destroyed || !pageIsVisible()) return
   const catalog = activeCatalog()
   if (!catalog) return
   const generation = state.generation
@@ -316,18 +323,20 @@ function processPriorityQueue() {
     if (rendered >= 1 || performance.now() - started >= PRIORITY_FRAME_BUDGET_MS) break
   }
 
-  if (state.priorityQueue.length) state.priorityFrame = requestAnimationFrame(processPriorityQueue)
+  if (state.priorityQueue.length && pageIsVisible()) {
+    state.priorityFrame = requestAnimationFrame(processPriorityQueue)
+  }
   else scheduleIdleQueue()
 }
 
 function schedulePriorityQueue() {
-  if (state.destroyed || state.priorityFrame || !state.priorityQueue.length) return
+  if (state.destroyed || state.priorityFrame || !pageIsVisible() || !state.priorityQueue.length) return
   state.priorityFrame = requestAnimationFrame(processPriorityQueue)
 }
 
 function processIdleQueue(deadline) {
   state.idleHandle = 0
-  if (state.destroyed) return
+  if (state.destroyed || !pageIsVisible()) return
   const catalog = activeCatalog()
   if (!catalog) return
   const generation = state.generation
@@ -357,6 +366,7 @@ function scheduleIdleQueue() {
     state.destroyed ||
     state.idleHandle ||
     state.priorityFrame ||
+    !pageIsVisible() ||
     state.priorityQueue.length ||
     !state.idleQueue.length
   ) return
@@ -475,7 +485,7 @@ function queueMutedCards(catalog, cards) {
 
 function renderPublishedDither() {
   state.renderFrame = 0
-  if (state.destroyed) return
+  if (state.destroyed || !pageIsVisible()) return
   applyPublishedModeState()
   ensurePublicStyles()
 
@@ -497,8 +507,20 @@ function renderPublishedDither() {
 }
 
 function requestRender() {
-  if (state.destroyed || state.renderFrame) return
+  if (state.destroyed || state.renderFrame || !pageIsVisible()) return
   state.renderFrame = requestAnimationFrame(renderPublishedDither)
+}
+
+function handleVisibilityChange() {
+  if (state.destroyed) return
+  if (!pageIsVisible()) {
+    cancelScheduledWork()
+    if (state.renderFrame) cancelAnimationFrame(state.renderFrame)
+    state.renderFrame = 0
+    return
+  }
+  requestRender()
+  refreshViewportDitherReveals({ linger: false })
 }
 
 function mediaNeedsLogicalResize(media) {
@@ -633,6 +655,7 @@ function bindAppObserver() {
 function boot() {
   applyPublishedModeState()
   ensurePublicStyles()
+  document.addEventListener("visibilitychange", handleVisibilityChange)
   bindAppObserver()
   bindCatalogObserver()
 
@@ -671,6 +694,7 @@ export function destroyPublicDitherRuntime() {
   state.observedCards.clear()
   document.querySelectorAll(".project-card").forEach((card) => releaseReveal(card))
   window.removeEventListener("resize", requestRender)
+  document.removeEventListener("visibilitychange", handleVisibilityChange)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()
 }

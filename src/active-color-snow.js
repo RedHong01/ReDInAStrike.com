@@ -6,6 +6,7 @@ import {
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 
 const STYLE_ID = "red-active-color-snow-style"
+const STYLE_VERSION = "1"
 const CANVAS_CLASS = "active-color-snow-canvas"
 const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const RETURN_ATTRIBUTE = "data-active-color-return"
@@ -23,6 +24,15 @@ const CATEGORY_READY_DEFER_STEP_MS = 9
 const CATEGORY_READY_DEFER_MAX_MS = 150
 const RESTORE_SOURCE_SELECTOR =
   '.dither-preview-canvas[data-active="true"], .project-halftone'
+const RUNTIME_OVERLAY_CLASSES = [
+  CANVAS_CLASS,
+  "active-color-placeholder-canvas",
+  "dither-preview-canvas",
+  "dither-reveal-canvas",
+  "dither-resize-snow-canvas",
+  "dither-hover-return-snow-canvas",
+  "binary-pixel-handoff-canvas",
+]
 
 const cardStates = new WeakMap()
 const activeStates = new Set()
@@ -84,13 +94,19 @@ function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true
 }
 
+function pageIsVisible() {
+  return document.visibilityState !== "hidden"
+}
+
 function ensureStyles() {
   let style = document.getElementById(STYLE_ID)
+  if (style?.dataset.version === STYLE_VERSION) return
   if (!style) {
     style = document.createElement("style")
     style.id = STYLE_ID
     document.head.appendChild(style)
   }
+  style.dataset.version = STYLE_VERSION
   style.textContent = `
     html[${ROOT_ATTRIBUTE}="true"] .catalog[data-filter-phase] .project-card {
       opacity: 1 !important;
@@ -1297,6 +1313,7 @@ function prewarmCard(card, config = runtimeConfig) {
 
 function runPrewarm(deadline) {
   prewarmHandle = 0
+  if (!pageIsVisible()) return
   let processed = 0
 
   for (const card of [...prewarmQueued]) {
@@ -1319,7 +1336,7 @@ function schedulePrewarm(targetCatalog = catalog) {
   if (targetCatalog) {
     allCards(targetCatalog).forEach((card) => prewarmQueued.add(card))
   }
-  if (!prewarmQueued.size || prewarmHandle) return
+  if (!prewarmQueued.size || prewarmHandle || !pageIsVisible()) return
 
   if ("requestIdleCallback" in window) {
     prewarmHandle = window.requestIdleCallback(runPrewarm, { timeout: 700 })
@@ -1329,6 +1346,21 @@ function schedulePrewarm(targetCatalog = catalog) {
       32,
     )
   }
+}
+
+function cancelPrewarmHandle() {
+  if (!prewarmHandle) return
+  if ("cancelIdleCallback" in window) window.cancelIdleCallback(prewarmHandle)
+  else window.clearTimeout(prewarmHandle)
+  prewarmHandle = 0
+}
+
+function handleVisibilityChange() {
+  if (!pageIsVisible()) {
+    cancelPrewarmHandle()
+    return
+  }
+  schedulePrewarm(catalog)
 }
 
 function bindCardHoverSnow(targetCatalog = catalog) {
@@ -1385,6 +1417,17 @@ function clearPaletteCache() {
   prewarmQueued.clear()
 }
 
+function isRuntimeOverlayNode(node) {
+  return node instanceof Element &&
+    RUNTIME_OVERLAY_CLASSES.some((className) => node.classList.contains(className))
+}
+
+function runtimeOverlayMutationOnly(mutation) {
+  if (mutation.type !== "childList") return false
+  const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
+  return Boolean(nodes.length) && nodes.every(isRuntimeOverlayNode)
+}
+
 function handleCatalogPhase(targetCatalog) {
   if (!targetCatalog || !runtimeConfig.activeColorEnabled) return
   const phase = targetCatalog.dataset.filterPhase || ""
@@ -1433,7 +1476,9 @@ function bindCatalog(nextCatalog) {
   if (!catalog || !("MutationObserver" in window)) return
 
   catalogObserver = new MutationObserver((mutations) => {
-    if (mutations.some((mutation) => mutation.type === "childList")) {
+    if (mutations.some((mutation) =>
+      mutation.type === "childList" && !runtimeOverlayMutationOnly(mutation)
+    )) {
       schedulePrewarm(catalog)
       bindCardHoverSnow(catalog)
     }
@@ -1521,6 +1566,7 @@ window.addEventListener(
   },
   { passive: true },
 )
+document.addEventListener("visibilitychange", handleVisibilityChange)
 
 document.addEventListener(
   "DOMContentLoaded",

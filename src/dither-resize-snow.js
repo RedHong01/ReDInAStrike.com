@@ -12,6 +12,7 @@ import {
 } from "./binary-surface-core.js?v=20260830-binarysurface1"
 
 const STYLE_ID = "red-dither-resize-snow-style"
+const STYLE_VERSION = "1"
 export const DITHER_RESIZE_SNOW_CLASS = "dither-resize-snow-canvas"
 export const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
 
@@ -33,12 +34,14 @@ function prefersReducedMotion() {
 
 function ensureStyles() {
   let style = document.getElementById(STYLE_ID)
+  if (style?.dataset.version === STYLE_VERSION) return
   if (!style) {
     style = document.createElement("style")
     style.id = STYLE_ID
     document.head.appendChild(style)
   }
 
+  style.dataset.version = STYLE_VERSION
   style.textContent = `
     .${DITHER_RESIZE_SNOW_CLASS} {
       position: absolute;
@@ -116,6 +119,23 @@ function ensureCanvas(card, cols, rows) {
   if (canvas.width !== cols) canvas.width = cols
   if (canvas.height !== rows) canvas.height = rows
   return canvas
+}
+
+function changedBinaryIndices(oldBits, newBits) {
+  let count = 0
+  for (let index = 0; index < oldBits.length; index += 1) {
+    if (oldBits[index] !== newBits[index]) count += 1
+  }
+
+  const indices = new Uint32Array(count)
+  let writeIndex = 0
+  for (let index = 0; index < oldBits.length; index += 1) {
+    if (oldBits[index] !== newBits[index]) {
+      indices[writeIndex] = index
+      writeIndex += 1
+    }
+  }
+  return indices
 }
 
 function cancelState(card, remove = true) {
@@ -249,6 +269,7 @@ function drawState(state, now) {
     imageData,
     startTime,
     seed,
+    changedIndices,
   } = state
 
   if (!card.isConnected || !canvas.isConnected) {
@@ -263,14 +284,10 @@ function drawState(state, now) {
   const frameTick = Math.floor(now / 46)
   const data = framePixels
 
-  for (let index = 0; index < oldBits.length; index += 1) {
+  for (let changeIndex = 0; changeIndex < changedIndices.length; changeIndex += 1) {
+    const index = changedIndices[changeIndex]
     const oldBit = oldBits[index]
     const newBit = newBits[index]
-
-    if (oldBit === newBit) {
-      writeBinaryPixel(data, index * 4, oldBit, paper, ink)
-      continue
-    }
 
     let bit = oldBit
     const threshold = 0.035 + order[index] * 0.93
@@ -338,10 +355,17 @@ export function playPreparedDitherResizeSnow(prepared) {
     return false
   }
 
+  const changedIndices = changedBinaryIndices(prepared.oldBits, newBits)
+  if (!changedIndices.length) {
+    cancelState(prepared.card)
+    return false
+  }
+
   const seed = BINARY_MOTION_DEFAULTS.seed + prepared.cols * 3 + prepared.rows * 5
   const state = {
     ...prepared,
     newBits,
+    changedIndices,
     order: buildBinaryOrder(prepared.cols, prepared.rows, seed),
     startTime: performance.now(),
     lastDraw: 0,

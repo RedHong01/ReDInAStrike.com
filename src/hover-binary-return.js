@@ -26,6 +26,7 @@ const TRANSITION_SOFTNESS = BINARY_MOTION_DEFAULTS.softness
 const STABLE_TIMEOUT_MS = 900
 const TARGET_PREP_FRAMES = 2
 const REMOVE_GUARD_FRAMES = 2
+const BOUNDARY_SYNC_TIMEOUT_MS = 180
 
 const snapshots = new WeakMap()
 const states = new WeakMap()
@@ -313,6 +314,14 @@ function activeColorStillSettling(card) {
   )
 }
 
+function isCurrentState(state) {
+  return Boolean(state?.card?.isConnected && states.get(state.card) === state)
+}
+
+function waitForMs(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
 function nextFrames(count, callback) {
   let remaining = Math.max(0, count | 0)
   const step = () => {
@@ -326,8 +335,55 @@ function nextFrames(count, callback) {
   requestAnimationFrame(step)
 }
 
-function prepareCurrentViewportTarget(state) {
-  if (!state.card.isConnected || states.get(state.card) !== state) {
+function waitFrames(count) {
+  return new Promise((resolve) => nextFrames(count, resolve))
+}
+
+async function syncBoundarySurface(state) {
+  const breath = window.__RED_BOUNDARY_BREATH__
+  const sync =
+    typeof breath?.syncCardNow === "function"
+      ? () => breath.syncCardNow(state.card, { refresh: true })
+      : typeof breath?.syncNow === "function"
+        ? () => breath.syncNow({ refresh: true })
+        : null
+  if (!sync) return false
+  const result = await Promise.race([
+    Promise.resolve(sync()),
+    waitForMs(BOUNDARY_SYNC_TIMEOUT_MS).then(() => false),
+  ])
+  return result === true
+}
+
+function sampleCurrentTargetBits(state) {
+  const currentFinal = sourceCanvas(state.card)
+  if (!canvasHasPixels(currentFinal)) return null
+  return sampleCompositeBinary(
+    currentFinal,
+    currentRevealCanvas(state.card),
+    state.cols,
+    state.rows,
+    state.paper,
+    state.ink,
+  )
+}
+
+function drawDisplayBits(state, bits) {
+  if (!bits || bits.length !== state.displayBits.length) return false
+  drawBinaryBits(
+    state.ctx,
+    state.imageData,
+    state.framePixels,
+    bits,
+    state.paper,
+    state.ink,
+  )
+  state.displayBits.set(bits)
+  return true
+}
+
+async function prepareCurrentViewportTarget(state) {
+  if (!isCurrentState(state)) {
     cancelState(state.card)
     return
   }
@@ -344,39 +400,38 @@ function prepareCurrentViewportTarget(state) {
   finalCanvas.dataset.active = "true"
   finalCanvas.dataset.publishedMode = PUBLISHED_DITHER_CONFIG?.mode || "native"
 
+  await syncBoundarySurface(state)
+  if (!isCurrentState(state)) {
+    cancelState(state.card)
+    return
+  }
+
   const revealApi = window.__RED_REVEAL_MOTION__
-  revealApi?.trackViewport?.(state.card, finalCanvas, window.__RED_MOTION_CONFIG__ || null)
+  if (!currentRevealCanvas(state.card)) {
+    revealApi?.trackViewport?.(state.card, finalCanvas, window.__RED_MOTION_CONFIG__ || null)
+  }
   revealApi?.refreshViewport?.({ linger: false })
 
-  nextFrames(TARGET_PREP_FRAMES, () => {
-    if (!state.card.isConnected || states.get(state.card) !== state) {
+  await waitFrames(TARGET_PREP_FRAMES)
+  await syncBoundarySurface(state)
+  if (!isCurrentState(state)) {
+    cancelState(state.card)
+    return
+  }
+
+  revealApi?.refreshViewport?.({ linger: false })
+  requestAnimationFrame(() => {
+    if (!isCurrentState(state)) {
       cancelState(state.card)
       return
     }
 
-    revealApi?.refreshViewport?.({ linger: false })
-    requestAnimationFrame(() => {
-      if (!state.card.isConnected || states.get(state.card) !== state) {
-        cancelState(state.card)
-        return
-      }
-
-      const currentFinal = sourceCanvas(state.card)
-      if (!canvasHasPixels(currentFinal)) {
-        finishState(state)
-        return
-      }
-
-      const targetBits = sampleCompositeBinary(
-        currentFinal,
-        currentRevealCanvas(state.card),
-        state.cols,
-        state.rows,
-        state.paper,
-        state.ink,
-      )
-      beginDirectTransition(state, targetBits)
-    })
+    const targetBits = sampleCurrentTargetBits(state)
+    if (!targetBits) {
+      finishState(state)
+      return
+    }
+    beginDirectTransition(state, targetBits)
   })
 }
 
@@ -394,7 +449,7 @@ function waitForViewportStable(state) {
       return
     }
 
-    prepareCurrentViewportTarget(state)
+    void prepareCurrentViewportTarget(state)
   }
   state.waitFrame = requestAnimationFrame(check)
 }
@@ -406,16 +461,21 @@ function finishState(state) {
   // field is guaranteed to own the exact next painted frame.
   nextFrames(REMOVE_GUARD_FRAMES, () => {
     if (states.get(state.card) !== state) return
-    window.__RED_REVEAL_MOTION__?.refreshViewport?.({ linger: false })
-    requestAnimationFrame(() => {
+    void syncBoundarySurface(state).then(() => {
       if (states.get(state.card) !== state) return
-      state.canvas.remove()
-      state.card.removeAttribute(HANDOFF_ATTRIBUTE)
-      states.delete(state.card)
-      snapshots.delete(state.card)
-      window.dispatchEvent(new CustomEvent("red:hover-binary-return-complete", {
-        detail: { card: state.card },
-      }))
+      window.__RED_REVEAL_MOTION__?.refreshViewport?.({ linger: false })
+      requestAnimationFrame(() => {
+        if (states.get(state.card) !== state) return
+        const targetBits = sampleCurrentTargetBits(state)
+        drawDisplayBits(state, targetBits)
+        state.canvas.remove()
+        state.card.removeAttribute(HANDOFF_ATTRIBUTE)
+        states.delete(state.card)
+        snapshots.delete(state.card)
+        window.dispatchEvent(new CustomEvent("red:hover-binary-return-complete", {
+          detail: { card: state.card },
+        }))
+      })
     })
   })
 }

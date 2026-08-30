@@ -20,6 +20,7 @@ const CONFIG = Object.freeze({
   settleVelocityPxS: 7,
   maxSpringMs: 1180,
   postSnapSuppressMs: 210,
+  headerSettleSuppressMs: 180,
 })
 
 const STATION_SELECTORS = [
@@ -67,6 +68,28 @@ function reducedMotion() {
 
 function homeReturnTransitionActive() {
   return Boolean(document.documentElement.dataset.homeReturnTransition)
+}
+
+function headerMotionState() {
+  const api = window.__RED_HEADER_MOTION__
+  if (api && typeof api.snapshot === "function") {
+    try {
+      return api.snapshot()
+    } catch {}
+  }
+
+  const root = document.documentElement
+  return {
+    moving: root.dataset.headerMotion === "moving",
+    settledAt: Number.parseFloat(root.dataset.headerMotionSettledAt || "0") || 0,
+  }
+}
+
+function headerMotionBlocksSnap() {
+  const state = headerMotionState()
+  if (state?.moving) return true
+  const settledAt = Number.parseFloat(state?.settledAt || "0") || 0
+  return settledAt > 0 && now() - settledAt < CONFIG.headerSettleSuppressMs
 }
 
 function viewportHeight() {
@@ -323,6 +346,7 @@ function shouldAttemptSnap() {
   if (time < suppressUntil) return false
   if (time - lastInputAt > CONFIG.recentInputMs) return false
   if (effectiveVelocity() > CONFIG.velocityGatePxMs) return false
+  if (headerMotionBlocksSnap()) return false
   if (document.body.style.overflow === "hidden") return false
   if (document.querySelector(".catalog[data-filter-phase]")) return false
   return true
@@ -331,7 +355,10 @@ function shouldAttemptSnap() {
 function attemptSnap() {
   settleTimer = 0
   if (!shouldAttemptSnap()) {
-    if (now() - lastInputAt <= CONFIG.recentInputMs && effectiveVelocity() > CONFIG.velocityGatePxMs) {
+    if (
+      now() - lastInputAt <= CONFIG.recentInputMs &&
+      (effectiveVelocity() > CONFIG.velocityGatePxMs || headerMotionBlocksSnap())
+    ) {
       scheduleSettle()
     }
     return
@@ -454,6 +481,10 @@ function boot() {
     cancelMagnet({ suppress: 180 })
   }, { passive: true })
   window.addEventListener("hashchange", () => cancelMagnet({ suppress: 780 }))
+  window.addEventListener("red:header-motion", (event) => {
+    if (event.detail?.moving) return
+    if (now() - lastInputAt <= CONFIG.recentInputMs) scheduleSettle()
+  }, { passive: true })
   window.addEventListener("red:home-return-transition", (event) => {
     if (event.detail?.active) cancelMagnet({ suppress: CONFIG.suppressAfterUiMs })
   })
@@ -462,7 +493,7 @@ function boot() {
   })
 
   window.__RED_SCROLL_MAGNET__ = {
-    version: 4,
+    version: 5,
     config: CONFIG,
     refresh: invalidateStations,
     snap: attemptSnap,

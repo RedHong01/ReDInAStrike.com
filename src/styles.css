@@ -262,6 +262,13 @@ img {
   isolation: isolate;
 }
 
+html[data-header-motion="moving"],
+html[data-scroll-magnet="moving"],
+html[data-header-motion="moving"] body,
+html[data-scroll-magnet="moving"] body {
+  overflow-anchor: none;
+}
+
 .site-header::before {
   content: "";
   position: absolute;

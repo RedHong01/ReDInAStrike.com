@@ -1,6 +1,6 @@
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 
-const OWNER = "breath6"
+const OWNER = "breath7"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
@@ -26,7 +26,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260830-resizesnow3").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260830-binaryowner1").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -285,6 +285,30 @@ function scheduleSync() {
   })
 }
 
+async function syncNow({ refresh = true } = {}) {
+  if (document.hidden) return false
+  await ensureRevealApi()
+  const hasTrackedCard = await syncTrackedCards()
+  if (refresh) revealApi.refresh({ linger: false })
+  if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
+  return hasTrackedCard
+}
+
+async function syncCardNow(card, { refresh = true } = {}) {
+  if (document.hidden) return false
+  const targetCatalog = activeCatalog()
+  if (!targetCatalog || !card?.isConnected || card.closest(".catalog") !== targetCatalog) {
+    return false
+  }
+
+  await ensureRevealApi()
+  const tracked = await migrateCard(card, targetCatalog)
+  pruneOverlays()
+  if (refresh) revealApi.refresh({ linger: false })
+  if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
+  return tracked
+}
+
 function mutedClassChanged(mutation) {
   const target = mutation.target
   if (!(target instanceof Element) || !target.classList.contains("project-card")) return false
@@ -395,6 +419,7 @@ function start() {
   window.addEventListener("scroll", wakeLoopOnly, { passive: true })
   window.addEventListener("resize", scheduleResizeSync, { passive: true })
   window.addEventListener("red:motion-config", scheduleSync)
+  window.addEventListener("red:hover-binary-return-complete", scheduleSync)
   window.addEventListener("red:home-return-transition", (event) => {
     if (!event.detail?.active) scheduleSync()
   })
@@ -403,8 +428,10 @@ function start() {
   })
 
   window.__RED_BOUNDARY_BREATH__ = {
-    version: 6,
+    version: 7,
     sync: scheduleSync,
+    syncNow,
+    syncCardNow,
     wake: wakeLoopOnly,
     get trackedCards() { return trackedCards.size },
     get ownedOverlays() { return ownedOverlays.size },

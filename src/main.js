@@ -183,6 +183,7 @@ const HALFTONE_RENDER_FRAME_BUDGET_MS = 4.5
 const HALFTONE_SOURCE_CACHE_LIMIT = 64
 const HEADER_SCROLL_EDGE_EPSILON = 0.006
 const HEADER_SCROLL_ANCHOR_JITTER_PX = 1.5
+const HEADER_SCROLL_DIRECT_INPUT_MS = 260
 const HEADER_VISUAL_STYLE_PROPERTIES = new Set([
   "--header-height",
   "--logo-size",
@@ -388,6 +389,8 @@ const siteState = {
   visualProgress: 0,
   followFrame: 0,
   lastFrameTime: 0,
+  headerMotionSettledAt: 0,
+  headerDirectScrollInputUntil: 0,
   lastScrollY: 0,
   scrollFrame: 0,
   pendingScrollDelta: 0,
@@ -560,6 +563,49 @@ function isHomeReturnTransitionActive() {
 
 function isCurrentHomeReturnTransition(id) {
   return siteState.homeReturnTransition?.id === id
+}
+
+function isScrollMagnetMotionActive() {
+  return document.documentElement.dataset.scrollMagnet === "moving"
+}
+
+function isHeaderMotionActive() {
+  return Boolean(siteState.followFrame) || Math.abs(siteState.targetProgress - siteState.visualProgress) > 0.0015
+}
+
+function headerMotionSnapshot() {
+  return {
+    version: 1,
+    moving: isHeaderMotionActive(),
+    settledAt: siteState.headerMotionSettledAt,
+    targetProgress: siteState.targetProgress,
+    visualProgress: siteState.visualProgress,
+  }
+}
+
+function publishHeaderMotionState(active = isHeaderMotionActive()) {
+  const root = document.documentElement
+  const next = active ? "moving" : "settled"
+  if (!active) {
+    siteState.headerMotionSettledAt = performance.now()
+    root.dataset.headerMotionSettledAt = siteState.headerMotionSettledAt.toFixed(1)
+  }
+  if (root.dataset.headerMotion === next) return
+  root.dataset.headerMotion = next
+  window.dispatchEvent(new CustomEvent("red:header-motion", { detail: headerMotionSnapshot() }))
+}
+
+function markHeaderDirectScrollInput() {
+  siteState.headerDirectScrollInputUntil = Math.max(
+    siteState.headerDirectScrollInputUntil,
+    performance.now() + HEADER_SCROLL_DIRECT_INPUT_MS,
+  )
+}
+
+window.__RED_HEADER_MOTION__ = {
+  version: 1,
+  isMoving: isHeaderMotionActive,
+  snapshot: headerMotionSnapshot,
 }
 
 function notifyHomeReturnTransition(active, phase = "") {
@@ -882,12 +928,16 @@ async function startHomeReturnTransition() {
   setHomeReturnTransitionPhase("covered")
   const homeSpacerHeight = readHeaderMetrics().fullHeight
   setHomeReturnSpacerHeight(homeSpacerHeight)
+  unlockHomeReturnScroll()
   siteState.homeReturnLockedScrollY = 0
   window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
   cancelLayoutEffectsUpdate({ clearPending: true })
   pushHomeRoute()
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" })
   render()
   setHomeReturnSpacerHeight(homeSpacerHeight)
+  lockHomeReturnScroll()
   const transition = siteState.homeReturnTransition
   if (transition && transition.id === id) {
     transition.coverProgress = 1
@@ -2168,7 +2218,7 @@ function applyHeaderProgress(progress, options = {}) {
   const logo = metrics.fullLogo + (metrics.compactLogo - metrics.fullLogo) * progress
   const navScale = 1 + (0.88 - 1) * progress
   const detailOpacity = 1
-  const glassAlpha = 0.76 + (0.96 - 0.76) * coverProgress
+  const glassAlpha = 0.76 + (1 - 0.76) * coverProgress
   const glassBlur = 18 + (26 - 18) * coverProgress
   const glassShadowAlpha = 0
   const ruleAlpha = 0.82
@@ -4267,6 +4317,7 @@ function animateHeader(time) {
     siteState.followFrame = 0
     siteState.lastFrameTime = 0
     applyHeaderProgress(siteState.visualProgress)
+    publishHeaderMotionState(false)
     return
   }
 
@@ -4285,12 +4336,27 @@ function setHeaderTarget(nextProgress, immediate = false) {
     siteState.lastFrameTime = 0
     siteState.visualProgress = siteState.targetProgress
     applyHeaderProgress(siteState.visualProgress)
+    publishHeaderMotionState(false)
     return
   }
 
+  publishHeaderMotionState(true)
   if (!siteState.followFrame) {
     siteState.followFrame = requestAnimationFrame(animateHeader)
   }
+}
+
+function shouldSuppressHeaderScrollDelta(delta) {
+  if (isScrollMagnetMotionActive()) return true
+  if (performance.now() < siteState.headerDirectScrollInputUntil) return true
+  if (!isHeaderMotionActive()) return false
+
+  const deltaDirection = Math.sign(delta)
+  const motionDirection = Math.sign(siteState.targetProgress - siteState.visualProgress)
+  if (!deltaDirection || !motionDirection) return false
+  if (deltaDirection !== motionDirection) return true
+
+  return Math.abs(delta) <= HEADER_SCROLL_ANCHOR_JITTER_PX * 2.5
 }
 
 function updateHeaderFromScroll(delta) {
@@ -4327,7 +4393,7 @@ function requestScrollEffectsUpdate(delta) {
     siteState.pendingScrollDelta = 0
     siteState.scrollFrame = 0
 
-    updateHeaderFromScroll(pendingDelta)
+    if (!shouldSuppressHeaderScrollDelta(pendingDelta)) updateHeaderFromScroll(pendingDelta)
     nudgeFooterGallery()
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
     if (!siteState.halftoneObserver || !siteState.halftoneObserverReady) {
@@ -4370,7 +4436,10 @@ function setupHeader() {
       if (!handledGalleryWheel || hasVerticalScroll) {
         holdFooterGalleryDuringScroll(time)
       }
-      updateHeaderFromScroll(event.deltaY)
+      if (hasVerticalScroll) {
+        markHeaderDirectScrollInput()
+        updateHeaderFromScroll(verticalDelta)
+      }
     },
     { passive: true }
   )

@@ -25,6 +25,7 @@ const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
+const HOVER_BINARY_RETURN_ATTRIBUTE = "data-hover-binary-return"
 const PRIORITY_MARGIN = 760
 const REVEAL_MARGIN = 920
 const PRIORITY_FRAME_BUDGET_MS = 5.25
@@ -209,6 +210,10 @@ function activeColorOwnsCard(card) {
   )
 }
 
+function hoverBinaryReturnOwnsCard(card) {
+  return card?.getAttribute?.(HOVER_BINARY_RETURN_ATTRIBUTE) === "true"
+}
+
 function motionBlocksReveal(card) {
   return (
     activeColorOwnsCard(card) ||
@@ -288,7 +293,7 @@ function renderOne(card, catalog, generation, tier) {
     !card?.isConnected ||
     !isMutedByActiveFilter(card, catalog)
   ) return false
-  if (activeColorOwnsCard(card)) return false
+  if (activeColorOwnsCard(card) || hoverBinaryReturnOwnsCard(card)) return false
 
   const img = card.querySelector(".project-media img")
   bindImageLoad(img)
@@ -429,6 +434,7 @@ function handleCardIntersections(entries) {
       releaseReveal(card, { forgetSignature: false })
       continue
     }
+    if (hoverBinaryReturnOwnsCard(card)) continue
     if (!entry.isIntersecting) continue
     promoteCard(card)
     if (card.querySelector('.dither-preview-canvas[data-active="true"]')) armReveal(card, catalog)
@@ -491,6 +497,11 @@ function queueMutedCards(catalog, cards) {
       releaseReveal(card, { forgetSignature: false })
       continue
     }
+    if (hoverBinaryReturnOwnsCard(card)) {
+      card.removeAttribute("data-dither-pending")
+      state.pendingCards.delete(card)
+      continue
+    }
 
     const distance = viewportDistance(card)
     ranked.push({ card, distance })
@@ -549,10 +560,16 @@ function handleVisibilityChange() {
   refreshViewportDitherReveals({ linger: false })
 }
 
+function handleHoverBinaryReturnComplete() {
+  requestRender()
+  refreshViewportDitherReveals({ linger: false })
+}
+
 function mediaNeedsLogicalResize(media) {
   const card = media?.closest?.(".project-card")
   const catalog = card?.closest?.(".catalog")
   if (!card || !isMutedByActiveFilter(card, catalog)) return false
+  if (hoverBinaryReturnOwnsCard(card)) return false
   const canvas = media.querySelector('.dither-preview-canvas[data-active="true"]')
   return binaryGridNeedsUpdate(canvas, media, PUBLISHED_DITHER_CONFIG)
 }
@@ -682,6 +699,7 @@ function boot() {
   applyPublishedModeState()
   ensurePublicStyles()
   document.addEventListener("visibilitychange", handleVisibilityChange)
+  window.addEventListener("red:hover-binary-return-complete", handleHoverBinaryReturnComplete)
   bindAppObserver()
   bindCatalogObserver()
 
@@ -720,6 +738,7 @@ export function destroyPublicDitherRuntime() {
   state.observedCards.clear()
   document.querySelectorAll(".project-card").forEach((card) => releaseReveal(card))
   window.removeEventListener("resize", requestRender)
+  window.removeEventListener("red:hover-binary-return-complete", handleHoverBinaryReturnComplete)
   document.removeEventListener("visibilitychange", handleVisibilityChange)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()

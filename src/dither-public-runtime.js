@@ -19,7 +19,9 @@ const state = {
   appObserver: null,
   catalogObserver: null,
   resizeObserver: null,
+  revealObserver: null,
   observedMedia: new Set(),
+  observedRevealCards: new Set(),
   boundImages: new WeakSet(),
   retryTimers: new Set(),
   revealSignatures: new WeakMap(),
@@ -135,6 +137,13 @@ function revealSignature(card, catalog, canvas) {
   ].join("|")
 }
 
+function cardIntersectsViewport(card) {
+  const rect = card?.getBoundingClientRect?.()
+  if (!rect) return false
+  const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+  return rect.bottom > 0 && rect.top < viewportHeight
+}
+
 function bindImageLoad(img) {
   if (!img || img.complete || state.boundImages.has(img)) return
   state.boundImages.add(img)
@@ -157,6 +166,70 @@ function syncResizeTargets(catalog) {
     if (state.observedMedia.has(media)) continue
     state.observedMedia.add(media)
     state.resizeObserver.observe(media)
+  }
+}
+
+function armViewportReveal(card, catalog) {
+  if (!isMutedByActiveFilter(card, catalog)) return false
+  const img = card.querySelector(".project-media img")
+  const canvas = card.querySelector('.dither-preview-canvas[data-active="true"]')
+  if (!img?.complete || img.naturalWidth <= 0 || !canvas || canvas.width <= 1 || canvas.height <= 1) {
+    return false
+  }
+
+  const signature = revealSignature(card, catalog, canvas)
+  const existingReveal = card.querySelector(".dither-reveal-canvas")
+  if (state.revealSignatures.get(card) === signature && existingReveal) return true
+
+  state.revealSignatures.set(card, signature)
+  return trackViewportDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG)
+}
+
+function releaseViewportReveal(card, { forgetSignature = true } = {}) {
+  cancelReveal(card, { remove: true })
+  if (forgetSignature) state.revealSignatures.delete(card)
+}
+
+function handleRevealIntersections(entries) {
+  if (state.destroyed) return
+  const catalog = activeCatalog()
+  if (!catalog) return
+
+  let changed = false
+  entries.forEach((entry) => {
+    const card = entry.target
+    if (!card?.isConnected || !isMutedByActiveFilter(card, catalog)) {
+      releaseViewportReveal(card)
+      return
+    }
+
+    if (entry.isIntersecting) {
+      changed = armViewportReveal(card, catalog) || changed
+    } else {
+      releaseViewportReveal(card)
+    }
+  })
+
+  if (changed) refreshViewportDitherReveals({ linger: false })
+}
+
+function syncRevealTargets(catalog) {
+  if (!state.revealObserver) return
+  const nextCards = new Set(catalog?.querySelectorAll(".project-card.is-filter-muted") || [])
+
+  for (const card of [...state.observedRevealCards]) {
+    if (nextCards.has(card)) continue
+    state.revealObserver.unobserve(card)
+    state.observedRevealCards.delete(card)
+    releaseViewportReveal(card)
+  }
+
+  for (const card of nextCards) {
+    if (!state.observedRevealCards.has(card)) {
+      state.observedRevealCards.add(card)
+      state.revealObserver.observe(card)
+    }
+    if (cardIntersectsViewport(card)) armViewportReveal(card, catalog)
   }
 }
 
@@ -186,8 +259,11 @@ function renderPublishedDither() {
     if (!isMutedByActiveFilter(card, catalog)) {
       const canvas = card.querySelector(".dither-preview-canvas")
       if (canvas) canvas.dataset.active = "false"
-      cancelReveal(card, { remove: true })
-      state.revealSignatures.delete(card)
+      if (state.revealObserver && state.observedRevealCards.has(card)) {
+        state.revealObserver.unobserve(card)
+        state.observedRevealCards.delete(card)
+      }
+      releaseViewportReveal(card)
       return
     }
 
@@ -196,15 +272,9 @@ function renderPublishedDither() {
     if (!canvas) return
     canvas.dataset.active = "true"
     canvas.dataset.publishedMode = publishedMode()
-
-    const canReveal = img?.complete && img.naturalWidth > 0 && canvas.width > 1 && canvas.height > 1
-    const signature = revealSignature(card, catalog, canvas)
-    if (canReveal && state.revealSignatures.get(card) !== signature) {
-      state.revealSignatures.set(card, signature)
-      trackViewportDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG)
-    }
   })
 
+  syncRevealTargets(catalog)
   refreshViewportDitherReveals({ linger: false })
 }
 
@@ -220,6 +290,14 @@ function mutedClassChanged(mutation) {
   return before.has("is-filter-muted") !== target.classList.contains("is-filter-muted")
 }
 
+function revealCanvasMutationOnly(mutation) {
+  if (mutation.type !== "childList") return false
+  const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
+  return nodes.length > 0 && nodes.every((node) =>
+    node instanceof Element && node.classList.contains("dither-reveal-canvas"),
+  )
+}
+
 function bindCatalogObserver() {
   state.catalogObserver?.disconnect()
   state.catalogObserver = null
@@ -228,8 +306,16 @@ function bindCatalogObserver() {
 
   state.catalogObserver = new MutationObserver((mutations) => {
     if (state.destroyed) return
+
+    if (mutations.some((mutation) =>
+      mutation.type === "childList" ||
+      (mutation.type === "attributes" && mutation.target === catalog && mutation.attributeName === "data-active-filter"),
+    )) {
+      applyCategoryAliases(catalog)
+    }
+
     const shouldRender = mutations.some((mutation) => {
-      if (mutation.type === "childList") return true
+      if (mutation.type === "childList") return !revealCanvasMutationOnly(mutation)
       if (mutation.type !== "attributes") return false
       if (mutation.target === catalog && mutation.attributeName === "data-active-filter") return true
       return mutation.attributeName === "class" && mutedClassChanged(mutation)
@@ -291,6 +377,14 @@ function boot() {
     })
   }
 
+  if ("IntersectionObserver" in window) {
+    state.revealObserver = new IntersectionObserver(handleRevealIntersections, {
+      root: null,
+      rootMargin: "0px",
+      threshold: 0,
+    })
+  }
+
   window.addEventListener("resize", requestRender, { passive: true })
 }
 
@@ -302,13 +396,16 @@ export function destroyPublicDitherRuntime() {
   state.appObserver?.disconnect()
   state.catalogObserver?.disconnect()
   state.resizeObserver?.disconnect()
+  state.revealObserver?.disconnect()
   state.appObserver = null
   state.catalogObserver = null
   state.resizeObserver = null
+  state.revealObserver = null
   state.observedMedia.clear()
+  state.observedRevealCards.clear()
   state.retryTimers.forEach((timer) => clearTimeout(timer))
   state.retryTimers.clear()
-  document.querySelectorAll(".project-card").forEach((card) => cancelReveal(card, { remove: true }))
+  document.querySelectorAll(".project-card").forEach((card) => releaseViewportReveal(card))
   window.removeEventListener("resize", requestRender)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()

@@ -1,12 +1,19 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260830-snowlock2"
+import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260830-resizesnow2"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   cancelReveal,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-snowlock2"
+} from "./reveal-motion.js?v=20260830-resizesnow2"
+import {
+  DITHER_RESIZE_MOTION_ATTRIBUTE,
+  DITHER_RESIZE_SNOW_CLASS,
+  cancelDitherResizeSnow,
+  playPreparedDitherResizeSnow,
+  prepareDitherResizeSnow,
+} from "./dither-resize-snow.js?v=20260830-resizesnow2"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -129,7 +136,15 @@ function isMutedByActiveFilter(card, catalog) {
 function activeColorOwnsCard(card) {
   return (
     card?.getAttribute?.(ACTIVE_COLOR_MOTION_ATTRIBUTE) === "true" ||
-    card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true"
+    card?.classList?.contains("is-muted-restore-intent")
+  )
+}
+
+function motionBlocksReveal(card) {
+  return (
+    activeColorOwnsCard(card) ||
+    card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true" ||
+    card?.getAttribute?.(DITHER_RESIZE_MOTION_ATTRIBUTE) === "true"
   )
 }
 
@@ -180,7 +195,7 @@ function syncResizeTargets(catalog) {
 
 function armViewportReveal(card, catalog) {
   if (!isMutedByActiveFilter(card, catalog)) return false
-  if (activeColorOwnsCard(card)) {
+  if (motionBlocksReveal(card)) {
     releaseViewportReveal(card, { forgetSignature: false })
     return false
   }
@@ -215,7 +230,7 @@ function handleRevealIntersections(entries) {
       releaseViewportReveal(card)
       return
     }
-    if (activeColorOwnsCard(card)) {
+    if (motionBlocksReveal(card)) {
       releaseViewportReveal(card, { forgetSignature: false })
       return
     }
@@ -276,6 +291,7 @@ function renderPublishedDither() {
     if (!isMutedByActiveFilter(card, catalog)) {
       const canvas = card.querySelector(".dither-preview-canvas")
       if (canvas) canvas.dataset.active = "false"
+      cancelDitherResizeSnow(card)
       if (state.revealObserver && state.observedRevealCards.has(card)) {
         state.revealObserver.unobserve(card)
         state.observedRevealCards.delete(card)
@@ -284,11 +300,21 @@ function renderPublishedDither() {
       return
     }
 
+    if (activeColorOwnsCard(card)) {
+      releaseViewportReveal(card, { forgetSignature: false })
+      return
+    }
+
+    const preparedResize = prepareDitherResizeSnow(card, PUBLISHED_DITHER_CONFIG)
     renderCard(card, PUBLISHED_DITHER_CONFIG)
     const canvas = card.querySelector(".dither-preview-canvas")
-    if (!canvas) return
+    if (!canvas) {
+      cancelDitherResizeSnow(card)
+      return
+    }
     canvas.dataset.active = "true"
     canvas.dataset.publishedMode = publishedMode()
+    playPreparedDitherResizeSnow(preparedResize)
   })
 
   syncRevealTargets(catalog)
@@ -307,22 +333,33 @@ function mutedClassChanged(mutation) {
   return before.has("is-filter-muted") !== target.classList.contains("is-filter-muted")
 }
 
-function activeColorMotionChanged(mutation) {
+function motionAttributeChanged(mutation) {
   return (
     mutation.target instanceof Element &&
     mutation.target.classList.contains("project-card") &&
     (
       mutation.attributeName === ACTIVE_COLOR_MOTION_ATTRIBUTE ||
-      mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE
+      mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE ||
+      mutation.attributeName === DITHER_RESIZE_MOTION_ATTRIBUTE
     )
   )
+}
+
+function motionAttributeShouldRender(mutation) {
+  if (!motionAttributeChanged(mutation)) return false
+  if (mutation.attributeName === DITHER_RESIZE_MOTION_ATTRIBUTE) return false
+  if (mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) return true
+  return !activeColorOwnsCard(mutation.target)
 }
 
 function revealCanvasMutationOnly(mutation) {
   if (mutation.type !== "childList") return false
   const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
   return nodes.length > 0 && nodes.every((node) =>
-    node instanceof Element && node.classList.contains("dither-reveal-canvas"),
+    node instanceof Element && (
+      node.classList.contains("dither-reveal-canvas") ||
+      node.classList.contains(DITHER_RESIZE_SNOW_CLASS)
+    ),
   )
 }
 
@@ -335,8 +372,8 @@ function bindCatalogObserver() {
   state.catalogObserver = new MutationObserver((mutations) => {
     if (state.destroyed) return
     mutations.forEach((mutation) => {
-      if (!activeColorMotionChanged(mutation)) return
-      if (activeColorOwnsCard(mutation.target)) {
+      if (!motionAttributeChanged(mutation)) return
+      if (motionBlocksReveal(mutation.target)) {
         releaseViewportReveal(mutation.target, { forgetSignature: false })
       }
     })
@@ -351,7 +388,7 @@ function bindCatalogObserver() {
     const shouldRender = mutations.some((mutation) => {
       if (mutation.type === "childList") return !revealCanvasMutationOnly(mutation)
       if (mutation.type !== "attributes") return false
-      if (activeColorMotionChanged(mutation)) return !activeColorOwnsCard(mutation.target)
+      if (motionAttributeChanged(mutation)) return motionAttributeShouldRender(mutation)
       if (mutation.target === catalog && mutation.attributeName === "data-active-filter") return true
       return mutation.attributeName === "class" && mutedClassChanged(mutation)
     })
@@ -368,6 +405,7 @@ function bindCatalogObserver() {
       "data-active-filter",
       ACTIVE_COLOR_MOTION_ATTRIBUTE,
       ACTIVE_COLOR_COOLDOWN_ATTRIBUTE,
+      DITHER_RESIZE_MOTION_ATTRIBUTE,
     ],
   })
 }

@@ -1,12 +1,19 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260830-snowlock2"
+import { renderCard } from "./dither-engine.js?v=20260830-resizesnow2"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   cancelReveal,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-snowlock2"
+} from "./reveal-motion.js?v=20260830-resizesnow2"
+import {
+  DITHER_RESIZE_MOTION_ATTRIBUTE,
+  DITHER_RESIZE_SNOW_CLASS,
+  cancelDitherResizeSnow,
+  playPreparedDitherResizeSnow,
+  prepareDitherResizeSnow,
+} from "./dither-resize-snow.js?v=20260830-resizesnow2"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -17,7 +24,7 @@ const PRIORITY_MARGIN = 760
 const REVEAL_MARGIN = 920
 const PRIORITY_FRAME_BUDGET_MS = 5.25
 const IDLE_TIMEOUT_MS = 650
-const RESIZE_SETTLE_MS = 90
+const RESIZE_SETTLE_MS = 120
 
 const state = {
   destroyed: false,
@@ -139,7 +146,15 @@ function isMutedByActiveFilter(card, catalog) {
 function activeColorOwnsCard(card) {
   return (
     card?.getAttribute?.(ACTIVE_COLOR_MOTION_ATTRIBUTE) === "true" ||
-    card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true"
+    card?.classList?.contains("is-muted-restore-intent")
+  )
+}
+
+function motionBlocksReveal(card) {
+  return (
+    activeColorOwnsCard(card) ||
+    card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true" ||
+    card?.getAttribute?.(DITHER_RESIZE_MOTION_ATTRIBUTE) === "true"
   )
 }
 
@@ -167,7 +182,7 @@ function revealSignature(card, catalog, canvas) {
 
 function armReveal(card, catalog) {
   if (!isMutedByActiveFilter(card, catalog)) return false
-  if (activeColorOwnsCard(card)) {
+  if (motionBlocksReveal(card)) {
     releaseReveal(card, { forgetSignature: false })
     return false
   }
@@ -216,11 +231,13 @@ function renderOne(card, catalog, generation, tier) {
     !card?.isConnected ||
     !isMutedByActiveFilter(card, catalog)
   ) return false
+  if (activeColorOwnsCard(card)) return false
 
   const img = card.querySelector(".project-media img")
   bindImageLoad(img)
   if (!img?.complete || img.naturalWidth <= 0) return false
 
+  const preparedResize = prepareDitherResizeSnow(card, PUBLISHED_DITHER_CONFIG)
   const started = performance.now()
   renderCard(card, PUBLISHED_DITHER_CONFIG)
   const elapsed = performance.now() - started
@@ -230,11 +247,15 @@ function renderOne(card, catalog, generation, tier) {
   else state.perf.priorityRendered += 1
 
   const canvas = card.querySelector(".dither-preview-canvas")
-  if (!canvas) return false
+  if (!canvas) {
+    cancelDitherResizeSnow(card)
+    return false
+  }
   canvas.dataset.active = "true"
   canvas.dataset.publishedMode = publishedMode()
   card.removeAttribute("data-dither-pending")
   state.pendingCards.delete(card)
+  playPreparedDitherResizeSnow(preparedResize)
 
   if (viewportDistance(card) <= REVEAL_MARGIN) {
     if (armReveal(card, catalog)) refreshViewportDitherReveals({ linger: false })
@@ -336,7 +357,7 @@ function handleCardIntersections(entries) {
       releaseReveal(card)
       continue
     }
-    if (activeColorOwnsCard(card)) {
+    if (motionBlocksReveal(card)) {
       releaseReveal(card, { forgetSignature: false })
       continue
     }
@@ -391,7 +412,14 @@ function queueMutedCards(catalog, cards) {
       const canvas = card.querySelector(".dither-preview-canvas")
       if (canvas) canvas.dataset.active = "false"
       card.removeAttribute("data-dither-pending")
+      cancelDitherResizeSnow(card)
       releaseReveal(card)
+      continue
+    }
+
+    if (activeColorOwnsCard(card)) {
+      card.removeAttribute("data-dither-pending")
+      releaseReveal(card, { forgetSignature: false })
       continue
     }
 
@@ -440,6 +468,15 @@ function requestRender() {
   state.renderFrame = requestAnimationFrame(renderPublishedDither)
 }
 
+function requestSettledResizeRender() {
+  if (state.destroyed) return
+  clearTimeout(state.resizeTimer)
+  state.resizeTimer = window.setTimeout(() => {
+    state.resizeTimer = 0
+    requestRender()
+  }, RESIZE_SETTLE_MS)
+}
+
 function mutedClassChanged(mutation) {
   const target = mutation.target
   if (!(target instanceof Element) || !target.classList.contains("project-card")) return false
@@ -447,15 +484,23 @@ function mutedClassChanged(mutation) {
   return before.has("is-filter-muted") !== target.classList.contains("is-filter-muted")
 }
 
-function activeColorMotionChanged(mutation) {
+function motionAttributeChanged(mutation) {
   return (
     mutation.target instanceof Element &&
     mutation.target.classList.contains("project-card") &&
     (
       mutation.attributeName === ACTIVE_COLOR_MOTION_ATTRIBUTE ||
-      mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE
+      mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE ||
+      mutation.attributeName === DITHER_RESIZE_MOTION_ATTRIBUTE
     )
   )
+}
+
+function motionAttributeShouldRender(mutation) {
+  if (!motionAttributeChanged(mutation)) return false
+  if (mutation.attributeName === DITHER_RESIZE_MOTION_ATTRIBUTE) return false
+  if (mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) return true
+  return !activeColorOwnsCard(mutation.target)
 }
 
 function generatedCanvasMutationOnly(mutation) {
@@ -466,7 +511,8 @@ function generatedCanvasMutationOnly(mutation) {
     node instanceof Element && (
       node.classList.contains("dither-preview-canvas") ||
       node.classList.contains("dither-reveal-canvas") ||
-      node.classList.contains("active-color-snow-canvas")
+      node.classList.contains("active-color-snow-canvas") ||
+      node.classList.contains(DITHER_RESIZE_SNOW_CLASS)
     )
   )
 }
@@ -480,8 +526,8 @@ function bindCatalogObserver() {
   state.catalogObserver = new MutationObserver((mutations) => {
     if (state.destroyed) return
     mutations.forEach((mutation) => {
-      if (!activeColorMotionChanged(mutation)) return
-      if (activeColorOwnsCard(mutation.target)) {
+      if (!motionAttributeChanged(mutation)) return
+      if (motionBlocksReveal(mutation.target)) {
         releaseReveal(mutation.target, { forgetSignature: false })
       }
     })
@@ -493,7 +539,7 @@ function bindCatalogObserver() {
     const shouldRender = mutations.some((mutation) => {
       if (mutation.type === "childList") return !generatedCanvasMutationOnly(mutation)
       if (mutation.type !== "attributes") return false
-      if (activeColorMotionChanged(mutation)) return !activeColorOwnsCard(mutation.target)
+      if (motionAttributeChanged(mutation)) return motionAttributeShouldRender(mutation)
       if (mutation.target === catalog && mutation.attributeName === "data-active-filter") return true
       return mutation.attributeName === "class" && mutedClassChanged(mutation)
     })
@@ -510,6 +556,7 @@ function bindCatalogObserver() {
       "data-active-filter",
       ACTIVE_COLOR_MOTION_ATTRIBUTE,
       ACTIVE_COLOR_COOLDOWN_ATTRIBUTE,
+      DITHER_RESIZE_MOTION_ATTRIBUTE,
     ],
   })
 }
@@ -537,11 +584,7 @@ function boot() {
   if (!publishedIsGenerated()) return
 
   if ("ResizeObserver" in window) {
-    state.resizeObserver = new ResizeObserver(() => {
-      if (state.destroyed) return
-      clearTimeout(state.resizeTimer)
-      state.resizeTimer = window.setTimeout(requestRender, RESIZE_SETTLE_MS)
-    })
+    state.resizeObserver = new ResizeObserver(requestSettledResizeRender)
   }
 
   if ("IntersectionObserver" in window) {
@@ -553,7 +596,7 @@ function boot() {
   }
 
   requestRender()
-  window.addEventListener("resize", requestRender, { passive: true })
+  window.addEventListener("resize", requestSettledResizeRender, { passive: true })
 }
 
 export function destroyPublicDitherRuntime() {
@@ -571,7 +614,7 @@ export function destroyPublicDitherRuntime() {
   state.observedMedia.clear()
   state.observedCards.clear()
   document.querySelectorAll(".project-card").forEach((card) => releaseReveal(card))
-  window.removeEventListener("resize", requestRender)
+  window.removeEventListener("resize", requestSettledResizeRender)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()
 }

@@ -139,6 +139,11 @@ function ensureStyles() {
       opacity: 0 !important;
       visibility: hidden !important;
     }
+    html[${ROOT_ATTRIBUTE}="true"] .project-card[${MOTION_ATTRIBUTE}="true"]
+      .dither-resize-snow-canvas {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
     .${CANVAS_CLASS} {
       position: absolute;
       inset: 0;
@@ -665,6 +670,7 @@ function holdMotion(card) {
   if (!card) return
   cancelMotionRelease(card)
   clearBoundaryCooldown(card)
+  window.__RED_DITHER_RESIZE_SNOW__?.cancel?.(card)
   card.setAttribute(MOTION_ATTRIBUTE, "true")
 }
 

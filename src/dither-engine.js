@@ -410,9 +410,23 @@ export function renderCard(card, config) {
 
   const sample = sampleImage(img, cssWidth, cssHeight, config)
   if (!sample) return
+  const sourceKey = img.currentSrc || img.src || ""
   canvas.dataset.ditherColumns = String(sample.cols)
   canvas.dataset.ditherRows = String(sample.rows)
   canvas.dataset.ditherMode = config.mode || "native"
+  canvas.dataset.ditherCssWidth = String(cssWidth)
+  canvas.dataset.ditherCssHeight = String(cssHeight)
+  canvas.dataset.ditherSource = sourceKey
+  canvas.dataset.ditherRenderSignature = [
+    config.mode || "native",
+    sourceKey,
+    img.naturalWidth,
+    img.naturalHeight,
+    cssWidth,
+    cssHeight,
+    sample.cols,
+    sample.rows,
+  ].join("|")
 
   const inkValues = buildInk(sample, config)
   const ctx = canvas.getContext("2d")

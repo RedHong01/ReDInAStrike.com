@@ -4,6 +4,7 @@ const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
+const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
 const TARGET_FRAME_MS = 1000 / 60
 const IDLE_FLICKER_FRAME_MS = 1000 / 30
 const MAX_GRID_CELLS = 52000
@@ -102,7 +103,8 @@ function ensureStyles() {
       visibility: hidden !important;
     }
     .project-card[${ACTIVE_COLOR_MOTION_ATTRIBUTE}="true"] .${CANVAS_CLASS},
-    .project-card[${ACTIVE_COLOR_COOLDOWN_ATTRIBUTE}="true"] .${CANVAS_CLASS} {
+    .project-card[${ACTIVE_COLOR_COOLDOWN_ATTRIBUTE}="true"] .${CANVAS_CLASS},
+    .project-card[${DITHER_RESIZE_MOTION_ATTRIBUTE}="true"] .${CANVAS_CLASS} {
       opacity: 0 !important;
       visibility: hidden !important;
     }
@@ -157,7 +159,8 @@ export function cancelReveal(card, { remove = false } = {}) {
 function activeColorOwnsCard(card) {
   return (
     card?.getAttribute?.(ACTIVE_COLOR_MOTION_ATTRIBUTE) === "true" ||
-    card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true"
+    card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true" ||
+    card?.getAttribute?.(DITHER_RESIZE_MOTION_ATTRIBUTE) === "true"
   )
 }
 

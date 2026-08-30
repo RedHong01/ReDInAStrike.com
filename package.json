@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node server.mjs",
     "build": "node scripts/build.mjs",
-    "preview": "node server.mjs dist 4174"
+    "preview": "node server.mjs dist 4174",
+    "audit:events": "node scripts/audit-events.mjs"
   },
   "engines": {
     "node": ">=24"

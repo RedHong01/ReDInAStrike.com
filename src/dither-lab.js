@@ -1,5 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import "./native-halftone-bypass.js?v=20260829-batch1"
+import "./native-halftone-bypass.js?v=20260829-batch2"
 import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260829-batch1"
 import "./scroll-magnet.js?v=20260829-magnet3"
 import "./active-color-snow.js?v=20260829-handoff2"
@@ -41,6 +41,7 @@ function ensureCss() {
 async function loadCore() {
   if (!corePromise) {
     corePromise = (async () => {
+      window.__RED_NATIVE_HALFTONE_BYPASS__?.destroy?.()
       destroyPublicDitherRuntime?.()
       window.__RED_DITHER_PUBLIC_RUNTIME__?.destroy?.()
       await ensureCss()

@@ -1,7 +1,7 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import { destroyPublicDitherRuntime } from "./dither-public-runtime.js?v=20260829-runtime6"
-import "./active-color-snow.js?v=20260829-activecolor1"
-import "./active-color-transition-bridge.js?v=20260829-activecolor1"
+import "./active-color-snow.js?v=20260829-activecolor2"
+import "./active-color-transition-bridge.js?v=20260829-activecolor2"
 
 const params = new URLSearchParams(window.location.search)
 const autoOpen =

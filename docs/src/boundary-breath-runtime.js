@@ -1,17 +1,31 @@
-import {
-  refreshViewportDitherReveals,
-  trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-breath2"
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 
-const OWNER = "breath2"
+const OWNER = "breath3"
 const IDLE_FRAME_MS = 1000 / 30
 const RETRY_DELAYS = [0, 80, 220, 520, 1000, 1800]
 
 const trackedSignatures = new WeakMap()
+const legacyCancelledCards = new WeakSet()
 let breathFrame = 0
 let syncFrame = 0
 let lastBreathDraw = 0
+let revealModulePromise = null
+let revealApi = null
+let legacyRevealApi = null
+
+function ensureRevealApi() {
+  if (!revealModulePromise) {
+    legacyRevealApi = window.__RED_REVEAL_MOTION__ || null
+    revealModulePromise = import("./reveal-motion.js?v=20260830-breath3").then((module) => {
+      revealApi = {
+        refresh: module.refreshViewportDitherReveals,
+        track: module.trackViewportDitherReveal,
+      }
+      return revealApi
+    })
+  }
+  return revealModulePromise
+}
 
 function currentConfig() {
   const base = sanitizeMotionConfig(
@@ -47,7 +61,7 @@ function cardSignature(card, finalCanvas) {
   ].join("|")
 }
 
-function migrateCard(card, catalog) {
+async function migrateCard(card, catalog) {
   if (!isMutedCard(card, catalog)) return false
   const finalCanvas = card.querySelector('.dither-preview-canvas[data-active="true"]')
   if (!finalCanvas || finalCanvas.width < 2 || finalCanvas.height < 2) return false
@@ -61,11 +75,14 @@ function migrateCard(card, catalog) {
     return true
   }
 
-  const tracked = trackViewportDitherReveal(
-    card,
-    finalCanvas,
-    currentConfig(),
-  )
+  const api = await ensureRevealApi()
+
+  if (!legacyCancelledCards.has(card) && legacyRevealApi?.cancel) {
+    legacyRevealApi.cancel(card, { remove: true })
+    legacyCancelledCards.add(card)
+  }
+
+  const tracked = api.track(card, finalCanvas, currentConfig())
   if (!tracked) return false
 
   const overlay = card.querySelector(".dither-reveal-canvas")
@@ -74,13 +91,13 @@ function migrateCard(card, catalog) {
   return true
 }
 
-function syncTrackedCards() {
+async function syncTrackedCards() {
   const catalog = activeCatalog()
   if (!catalog) return false
 
   let hasTrackedCard = false
   for (const card of catalog.querySelectorAll(".project-card")) {
-    if (migrateCard(card, catalog)) hasTrackedCard = true
+    if (await migrateCard(card, catalog)) hasTrackedCard = true
   }
   return hasTrackedCard
 }
@@ -110,10 +127,10 @@ function hasVisibleBreathingField() {
 
 function breathLoop(now) {
   breathFrame = 0
-  if (document.hidden) return
+  if (document.hidden || !revealApi) return
 
   if (!lastBreathDraw || now - lastBreathDraw >= IDLE_FRAME_MS) {
-    refreshViewportDitherReveals({ linger: false })
+    revealApi.refresh({ linger: false })
     lastBreathDraw = now
   }
 
@@ -122,10 +139,11 @@ function breathLoop(now) {
   }
 }
 
-function wakeBreathing({ sync = true } = {}) {
+async function wakeBreathing({ sync = true } = {}) {
   if (document.hidden) return
-  if (sync) syncTrackedCards()
-  refreshViewportDitherReveals({ linger: false })
+  await ensureRevealApi()
+  if (sync) await syncTrackedCards()
+  revealApi.refresh({ linger: false })
   if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
 }
 
@@ -133,7 +151,7 @@ function scheduleSync() {
   if (syncFrame) return
   syncFrame = requestAnimationFrame(() => {
     syncFrame = 0
-    wakeBreathing({ sync: true })
+    void wakeBreathing({ sync: true })
   })
 }
 
@@ -161,14 +179,14 @@ function start() {
   })
 
   for (const delay of RETRY_DELAYS) {
-    window.setTimeout(() => wakeBreathing({ sync: true }), delay)
+    window.setTimeout(() => void wakeBreathing({ sync: true }), delay)
   }
 
-  window.addEventListener("scroll", () => wakeBreathing({ sync: true }), { passive: true })
-  window.addEventListener("resize", () => wakeBreathing({ sync: true }), { passive: true })
+  window.addEventListener("scroll", () => void wakeBreathing({ sync: true }), { passive: true })
+  window.addEventListener("resize", () => void wakeBreathing({ sync: true }), { passive: true })
   window.addEventListener("red:motion-config", () => scheduleSync())
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) wakeBreathing({ sync: true })
+    if (!document.hidden) void wakeBreathing({ sync: true })
   })
 }
 

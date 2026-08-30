@@ -11,6 +11,8 @@ const MAX_GRID_CELLS = 42000
 const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
 const TARGET_FRAME_MS = 1000 / 60
+const RESTORE_SOURCE_SELECTOR =
+  '.dither-preview-canvas[data-active="true"], .project-halftone'
 
 const cardStates = new WeakMap()
 const activeStates = new Set()
@@ -39,6 +41,10 @@ let runtimeConfig = sanitizeActiveColorConfig(configFromUrl() || PUBLISHED_ACTIV
 window.__RED_ACTIVE_COLOR_CONFIG__ = runtimeConfig
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value))
+const smooth01 = (value) => {
+  const t = clamp(value)
+  return t * t * (3 - 2 * t)
+}
 
 function hash32(value) {
   let x = value | 0
@@ -457,6 +463,32 @@ function writePixel(data, offset, rgba) {
   data[offset + 3] = rgba[3]
 }
 
+function rgbaCss(rgba) {
+  return `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, ${rgba[3] / 255})`
+}
+
+function buildRestoreSourcePixels(card, grid, paper = readPaperColor()) {
+  const source = card?.querySelector(RESTORE_SOURCE_SELECTOR)
+  if (!source || source.width < 1 || source.height < 1) return null
+
+  const sample = document.createElement("canvas")
+  sample.width = grid.cols
+  sample.height = grid.rows
+  const ctx = sample.getContext("2d", { willReadFrequently: true })
+  if (!ctx) return null
+
+  ctx.imageSmoothingEnabled = true
+  ctx.fillStyle = rgbaCss(paper)
+  ctx.fillRect(0, 0, grid.cols, grid.rows)
+
+  try {
+    ctx.drawImage(source, 0, 0, grid.cols, grid.rows)
+    return new Uint8ClampedArray(ctx.getImageData(0, 0, grid.cols, grid.rows).data)
+  } catch {
+    return null
+  }
+}
+
 function cancelCard(card, { remove = true } = {}) {
   const state = cardStates.get(card)
   if (state) activeStates.delete(state)
@@ -504,6 +536,71 @@ function drawState(state, now) {
   const density = clamp(config.activeColorNoiseDensity * envelope)
   const data = state.framePixels
   data.fill(0)
+
+  if (state.mode === "restore" && state.sourcePixels) {
+    if (progress <= 0.001) {
+      data.set(state.sourcePixels)
+      ctx.putImageData(state.imageData, 0, 0)
+      return
+    }
+
+    const decodeProgress = smooth01(progress / 0.62)
+    const rebuildProgress = progress <= 0.42 ? 0 : smooth01((progress - 0.42) / 0.58)
+    const decodeSoftness = 0.085
+    const rebuildSoftness = 0.1
+
+    for (let index = 0; index < grid.count; index += 1) {
+      const decodeThreshold = 0.035 + grid.order[index] * 0.93
+      const decoded = smooth01(
+        (decodeProgress - decodeThreshold + decodeSoftness) /
+          (decodeSoftness * 2),
+      )
+      const rebuildThreshold = 0.035 + (1 - grid.order[index]) * 0.93
+      const rebuilt = smooth01(
+        (rebuildProgress - rebuildThreshold + rebuildSoftness) /
+          (rebuildSoftness * 2),
+      )
+      if (rebuilt >= 0.995) continue
+
+      const col = index % grid.cols
+      const row = Math.floor(index / grid.cols)
+      const offset = index * 4
+      const decodeBand = 4 * decoded * (1 - decoded)
+      const rebuildBand = 4 * rebuilt * (1 - rebuilt)
+      const transitionBand = Math.max(decodeBand, rebuildBand)
+      const flicker = hash01(
+        config.activeColorSeed,
+        col,
+        row,
+        2000 + frameTick,
+      )
+      const colorChance = clamp(
+        density * (1 - config.activeColorPaperRatio * 0.48) +
+          transitionBand * 0.3,
+      )
+      const useColorSnow = flicker < colorChance
+      const snow = useColorSnow ? grid.palette : paper
+      const snowMix = clamp(transitionBand * (0.24 + density * 0.24))
+      const overlayAlpha = clamp(1 - rebuilt)
+      const baseR =
+        state.sourcePixels[offset] * (1 - decoded) + grid.palette[offset] * decoded
+      const baseG =
+        state.sourcePixels[offset + 1] * (1 - decoded) +
+        grid.palette[offset + 1] * decoded
+      const baseB =
+        state.sourcePixels[offset + 2] * (1 - decoded) +
+        grid.palette[offset + 2] * decoded
+
+      data[offset] = baseR * (1 - snowMix) + snow[0] * snowMix
+      data[offset + 1] = baseG * (1 - snowMix) + snow[1] * snowMix
+      data[offset + 2] = baseB * (1 - snowMix) + snow[2] * snowMix
+      data[offset + 3] = Math.round(state.sourcePixels[offset + 3] * overlayAlpha)
+    }
+
+    ctx.putImageData(state.imageData, 0, 0)
+    if (raw >= 1) finishState(state)
+    return
+  }
 
   for (let index = 0; index < grid.count; index += 1) {
     const covered =
@@ -593,6 +690,20 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     const ctx = canvas?.getContext("2d", { alpha: true })
     if (!canvas || !ctx) return false
 
+    const paper = readPaperColor()
+    const mode =
+      options.mode ||
+      (
+        options.reason === "hover" &&
+        card.classList.contains("is-filter-muted")
+          ? "restore"
+          : "snow"
+      )
+    const sourcePixels =
+      mode === "restore"
+        ? buildRestoreSourcePixels(card, grid, paper)
+        : null
+
     ctx.imageSmoothingEnabled = false
     canvas.style.transition = "none"
     canvas.style.opacity = "1"
@@ -602,6 +713,9 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     const imageData = new ImageData(framePixels, grid.cols, grid.rows)
     const localConfig = {
       ...config,
+      activeColorDurationMs: sourcePixels
+        ? config.activeColorDurationMs + config.activeColorSettleMs
+        : config.activeColorDurationMs,
       activeColorDelayMs:
         config.activeColorDelayMs +
         Math.max(0, index) * config.activeColorStaggerMs,
@@ -613,8 +727,10 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       grid,
       config: localConfig,
       direction,
+      mode: sourcePixels ? "restore" : "snow",
       reason: options.reason || "transition",
-      paper: readPaperColor(),
+      paper,
+      sourcePixels,
       framePixels,
       imageData,
       startTime: performance.now(),

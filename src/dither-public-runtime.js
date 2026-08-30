@@ -11,6 +11,7 @@ import {
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const RETRY_DELAYS = [0, 60, 160, 360, 800, 1600]
+const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
 
 const state = {
   destroyed: false,
@@ -90,6 +91,28 @@ function activeCatalog() {
   return document.querySelector(".catalog")
 }
 
+function applyCategoryAliases(catalog) {
+  if (!catalog || catalog.dataset.activeFilter !== "game") return
+
+  const ongoingGameLink = [...catalog.querySelectorAll(".project-card a[href]")]
+    .find((link) => {
+      try {
+        return new URL(link.href, window.location.href).pathname.endsWith(ONGOING_GAME_PROJECT_PATH)
+      } catch {
+        return String(link.getAttribute("href") || "").includes("ongoing-game-project")
+      }
+    })
+  const card = ongoingGameLink?.closest(".project-card")
+  if (!card) return
+
+  card.dataset.categoryAlias = "game"
+  card.classList.remove(
+    "is-filter-muted",
+    "is-muted-restore-intent",
+    "is-muted-restore-return",
+  )
+}
+
 function isMutedByActiveFilter(card, catalog) {
   return Boolean(
     publishedIsGenerated() &&
@@ -144,6 +167,8 @@ function renderPublishedDither() {
 
   const catalog = activeCatalog()
   if (!catalog) return
+  applyCategoryAliases(catalog)
+  if (!publishedIsGenerated()) return
   syncResizeTargets(catalog)
 
   const sequenceKey = `${catalog.dataset.activeFilter || ""}|${publishedMode()}`
@@ -249,6 +274,11 @@ function scheduleRetries() {
 function boot() {
   applyPublishedModeState()
   ensurePublicStyles()
+  bindAppObserver()
+  bindCatalogObserver()
+  requestRender()
+  scheduleRetries()
+
   if (!publishedIsGenerated()) return
 
   if ("ResizeObserver" in window) {
@@ -260,10 +290,6 @@ function boot() {
     })
   }
 
-  bindAppObserver()
-  bindCatalogObserver()
-  requestRender()
-  scheduleRetries()
   window.addEventListener("resize", requestRender, { passive: true })
 }
 

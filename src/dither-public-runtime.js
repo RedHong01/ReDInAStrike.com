@@ -1,12 +1,16 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import { renderCard, resetSampleCache } from "./dither-engine.js"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
-import { playDitherReveal } from "./reveal-motion.js"
+import {
+  cancelReveal,
+  refreshViewportDitherReveals,
+  resetViewportDitherRevealSequence,
+  trackViewportDitherReveal,
+} from "./reveal-motion.js"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const RETRY_DELAYS = [0, 60, 160, 360, 800, 1600]
-const REVEAL_VIEWPORT_MARGIN = 520
 
 const state = {
   destroyed: false,
@@ -18,6 +22,7 @@ const state = {
   boundImages: new WeakSet(),
   retryTimers: new Set(),
   revealSignatures: new WeakMap(),
+  revealSequenceKey: "",
 }
 
 function publishedMode() {
@@ -93,16 +98,17 @@ function isMutedByActiveFilter(card, catalog) {
   )
 }
 
-function revealSignature(card, catalog) {
+function revealSignature(card, catalog, canvas) {
   const img = card.querySelector(".project-media img")
-  return `${catalog?.dataset.activeFilter || ""}|${publishedMode()}|${img?.currentSrc || img?.src || ""}`
-}
-
-function isNearRevealViewport(card) {
-  const rect = card?.getBoundingClientRect?.()
-  if (!rect) return false
-  const height = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
-  return rect.bottom >= -REVEAL_VIEWPORT_MARGIN && rect.top <= height + REVEAL_VIEWPORT_MARGIN
+  const rect = canvas?.getBoundingClientRect?.()
+  const cssSize = rect ? `${Math.round(rect.width)}x${Math.round(rect.height)}` : "0x0"
+  return [
+    catalog?.dataset.activeFilter || "",
+    publishedMode(),
+    img?.currentSrc || img?.src || "",
+    `${canvas?.width || 0}x${canvas?.height || 0}`,
+    cssSize,
+  ].join("|")
 }
 
 function bindImageLoad(img) {
@@ -140,8 +146,13 @@ function renderPublishedDither() {
   if (!catalog) return
   syncResizeTargets(catalog)
 
+  const sequenceKey = `${catalog.dataset.activeFilter || ""}|${publishedMode()}`
+  if (sequenceKey !== state.revealSequenceKey) {
+    resetViewportDitherRevealSequence()
+    state.revealSequenceKey = sequenceKey
+  }
+
   const cards = [...catalog.querySelectorAll(".project-card")]
-  let visibleMutedIndex = 0
   cards.forEach((card) => {
     const img = card.querySelector(".project-media img")
     bindImageLoad(img)
@@ -149,7 +160,7 @@ function renderPublishedDither() {
     if (!isMutedByActiveFilter(card, catalog)) {
       const canvas = card.querySelector(".dither-preview-canvas")
       if (canvas) canvas.dataset.active = "false"
-      card.querySelector(".dither-reveal-canvas")?.remove()
+      cancelReveal(card, { remove: true })
       state.revealSignatures.delete(card)
       return
     }
@@ -161,15 +172,14 @@ function renderPublishedDither() {
     canvas.dataset.publishedMode = publishedMode()
 
     const canReveal = img?.complete && img.naturalWidth > 0 && canvas.width > 1 && canvas.height > 1
-    const signature = revealSignature(card, catalog)
+    const signature = revealSignature(card, catalog, canvas)
     if (canReveal && state.revealSignatures.get(card) !== signature) {
       state.revealSignatures.set(card, signature)
-      if (isNearRevealViewport(card)) {
-        playDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG, { index: visibleMutedIndex })
-        visibleMutedIndex += 1
-      }
+      trackViewportDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG)
     }
   })
+
+  refreshViewportDitherReveals({ linger: false })
 }
 
 function requestRender() {
@@ -271,7 +281,7 @@ export function destroyPublicDitherRuntime() {
   state.observedMedia.clear()
   state.retryTimers.forEach((timer) => clearTimeout(timer))
   state.retryTimers.clear()
-  document.querySelectorAll(".dither-reveal-canvas").forEach((canvas) => canvas.remove())
+  document.querySelectorAll(".project-card").forEach((card) => cancelReveal(card, { remove: true }))
   window.removeEventListener("resize", requestRender)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()

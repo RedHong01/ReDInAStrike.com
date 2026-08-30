@@ -6,7 +6,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260829-viewport1"
+} from "./reveal-motion.js?v=20260829-viewport2"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -371,8 +371,6 @@ function boot() {
   if ("ResizeObserver" in window) {
     state.resizeObserver = new ResizeObserver(() => {
       if (state.destroyed) return
-      // dither-engine's sample key already contains logical rows / object-fit / position.
-      // Do not globally discard every image sample for an ordinary settled media resize.
       requestRender()
     })
   }

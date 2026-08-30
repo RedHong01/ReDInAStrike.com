@@ -56,21 +56,21 @@ Shared defaults live in `binary-surface-core.js`:
 - cluster mix: 0.16
 - smoothstep progress curve
 
-Resize and hover-return should read the canonical old/new bit placement and perturb only cells whose bit changed. They must never temporarily reveal a separate full-resolution raster between states.
+Resize and hover-return read the canonical old/new bit placement and perturb only cells whose bit changed. They must never temporarily reveal a separate full-resolution raster between states.
 
 ## 5. Category transition timing
 
 The visual dissolve must remain active through the catalog DOM handoff. The Fine Signal exit duration is aligned with the catalog structural exit budget (430 ms), with no extra start delay. Entry keeps the longer resolve/settle envelope so the new catalog can finish layout and priority rendering under the transition.
 
-Expensive binary sampling is cached by source/grid/config so rebuilding category DOM does not require a fresh image sample and Floyd solve for every card.
+Expensive binary source sampling and diffusion maps are cached by source/grid/config so rebuilding category DOM does not require a fresh image sample and Floyd solve for every card.
 
 ## 6. Header-driven layout and breakpoints
 
-The header is allowed to drive content bounding continuously. The layout proxy follows the visual header at fine increments instead of the previous 4 px / 2 px buckets.
+The header is allowed to drive content bounding continuously. The horizontal content-width proxy follows the visual logo at fine increments instead of the previous coarse 4 px width bucket. The vertical header-height proxy remains under `performance-prelude.js` ownership so its synthetic geometry cache stays internally consistent; that vertical proxy does not define the binary media grid.
 
-This continuous layout resize must not wake the binary solver. During scroll, the existing logical surface simply scales with the card. ResizeObserver only schedules a binary render when the logical grid itself changes.
+Continuous card-width changes must not wake the binary solver. During scroll, the existing logical surface simply scales with the card. `ResizeObserver` only schedules a binary render when the logical columns or rows actually change.
 
-This rule is identical on desktop, tablet, phone, portrait, and landscape breakpoints.
+This rule is identical on desktop, tablet, phone, portrait, and landscape breakpoints. A breakpoint that changes column count but keeps the media aspect ratio keeps the same binary field. A breakpoint that intentionally changes the media aspect ratio produces a new integer grid and uses the binary resize reconcile motion.
 
 ## 7. Performance rules
 

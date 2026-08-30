@@ -181,6 +181,8 @@ const HALFTONE_PROGRESS_STEPS = 260
 const HALFTONE_LOGICAL_COLUMNS = 132
 const HALFTONE_RENDER_FRAME_BUDGET_MS = 4.5
 const HALFTONE_SOURCE_CACHE_LIMIT = 64
+const HEADER_SCROLL_EDGE_EPSILON = 0.006
+const HEADER_SCROLL_ANCHOR_JITTER_PX = 1.5
 const HEADER_VISUAL_STYLE_PROPERTIES = new Set([
   "--header-height",
   "--logo-size",
@@ -4278,11 +4280,24 @@ function setHeaderTarget(nextProgress, immediate = false) {
 function updateHeaderFromScroll(delta) {
   if (isHomeReturnTransitionActive()) return
   const metrics = readHeaderMetrics()
-  if (window.scrollY <= 2 && delta <= 0) {
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  if (scrollY <= 2 && delta <= 0) {
     setHeaderTarget(0)
     return
   }
   if (Math.abs(delta) < 0.35) return
+
+  const nearExpanded = siteState.targetProgress <= HEADER_SCROLL_EDGE_EPSILON
+  const nearCompact = siteState.targetProgress >= 1 - HEADER_SCROLL_EDGE_EPSILON
+  if (
+    scrollY > metrics.distance + 24 &&
+    Math.abs(delta) <= HEADER_SCROLL_ANCHOR_JITTER_PX &&
+    (nearExpanded || nearCompact)
+  ) {
+    setHeaderTarget(nearCompact ? 1 : 0)
+    return
+  }
+
   setHeaderTarget(siteState.targetProgress + delta / metrics.distance)
 }
 

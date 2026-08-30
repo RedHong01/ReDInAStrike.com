@@ -1,4 +1,4 @@
-import "./scroll-magnet.js?v=20260829-magnet2"
+import "./scroll-magnet.js?v=20260830-scrollstable1"
 
 let corePromise = null
 

@@ -111,10 +111,15 @@ function isVisibleStation(element) {
   return rect.height > 28 && rect.width > 8
 }
 
+function isEligibleStation(element) {
+  if (!element?.matches?.(".catalog .project-row")) return true
+  return Boolean(element.id)
+}
+
 function stations() {
   if (stationCache) return stationCache.filter((element) => element.isConnected)
   const unique = new Set(document.querySelectorAll(STATION_SELECTORS))
-  stationCache = [...unique].filter(isVisibleStation)
+  stationCache = [...unique].filter((element) => isEligibleStation(element) && isVisibleStation(element))
   return stationCache
 }
 
@@ -185,7 +190,8 @@ function stationTargetY(station) {
 
 function animateTo(initialTargetY, station) {
   const startY = window.scrollY || 0
-  const initialDistance = initialTargetY - startY
+  const lockedTargetY = clamp(initialTargetY, 0, pageMaxScroll())
+  const initialDistance = lockedTargetY - startY
   if (Math.abs(initialDistance) < CONFIG.minDistancePx) return
 
   const inheritedVelocity = clamp(
@@ -207,7 +213,7 @@ function animateTo(initialTargetY, station) {
     position: startY,
     velocity: inheritedVelocity,
     lastTime: startedAt,
-    targetY: initialTargetY,
+    targetY: lockedTargetY,
   }
   currentAnimation = animation
   document.documentElement.dataset.scrollMagnet = "moving"
@@ -233,12 +239,11 @@ function animateTo(initialTargetY, station) {
       return
     }
 
-    const dynamicTarget = stationTargetY(station)
-    if (dynamicTarget == null) {
+    if (!station?.isConnected || !isEligibleStation(station)) {
       cancelMagnet({ suppress: 120 })
       return
     }
-    animation.targetY = dynamicTarget
+    animation.targetY = clamp(animation.targetY, 0, pageMaxScroll())
 
     const elapsed = time - startedAt
     const dt = clamp((time - animation.lastTime) / 1000, 1 / 240, 1 / 30)
@@ -457,7 +462,7 @@ function boot() {
   })
 
   window.__RED_SCROLL_MAGNET__ = {
-    version: 3,
+    version: 4,
     config: CONFIG,
     refresh: invalidateStations,
     snap: attemptSnap,

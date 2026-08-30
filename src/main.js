@@ -181,6 +181,8 @@ const HALFTONE_PROGRESS_STEPS = 260
 const HALFTONE_LOGICAL_COLUMNS = 132
 const HALFTONE_RENDER_FRAME_BUDGET_MS = 4.5
 const HALFTONE_SOURCE_CACHE_LIMIT = 64
+const HEADER_SCROLL_EDGE_EPSILON = 0.006
+const HEADER_SCROLL_ANCHOR_JITTER_PX = 1.5
 const HEADER_VISUAL_STYLE_PROPERTIES = new Set([
   "--header-height",
   "--logo-size",
@@ -861,6 +863,7 @@ async function startHomeReturnTransition() {
 
   if (siteState.followFrame) cancelAnimationFrame(siteState.followFrame)
   siteState.followFrame = 0
+  cancelLayoutEffectsUpdate({ clearPending: true })
   siteState.lastFrameTime = 0
   setHomeReturnSpacerHeight()
   lockHomeReturnScroll()
@@ -877,9 +880,14 @@ async function startHomeReturnTransition() {
   if (!covered || !isCurrentHomeReturnTransition(id)) return
 
   setHomeReturnTransitionPhase("covered")
+  const homeSpacerHeight = readHeaderMetrics().fullHeight
+  setHomeReturnSpacerHeight(homeSpacerHeight)
+  siteState.homeReturnLockedScrollY = 0
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  cancelLayoutEffectsUpdate({ clearPending: true })
   pushHomeRoute()
   render()
-  setHomeReturnSpacerHeight(readHeaderMetrics().fullHeight)
+  setHomeReturnSpacerHeight(homeSpacerHeight)
   const transition = siteState.homeReturnTransition
   if (transition && transition.id === id) {
     transition.coverProgress = 1
@@ -2123,6 +2131,7 @@ function requestLayoutEffectsUpdate(options = {}) {
   if (options.rules) siteState.layoutPendingRules = true
   if (options.footer) siteState.layoutPendingFooter = true
   if (!siteState.layoutPendingRules && !siteState.layoutPendingFooter) return
+  if (isHomeReturnTransitionActive()) return
   if (siteState.layoutFrame) return
 
   siteState.layoutFrame = requestAnimationFrame(() => {
@@ -2135,6 +2144,15 @@ function requestLayoutEffectsUpdate(options = {}) {
     if (updateRules) updateProjectRuleReveal()
     if (updateFooter) updateFooterGalleryReveal()
   })
+}
+
+function cancelLayoutEffectsUpdate(options = {}) {
+  if (siteState.layoutFrame) cancelAnimationFrame(siteState.layoutFrame)
+  siteState.layoutFrame = 0
+  if (options.clearPending) {
+    siteState.layoutPendingRules = false
+    siteState.layoutPendingFooter = false
+  }
 }
 
 function applyHeaderProgress(progress, options = {}) {
@@ -4278,11 +4296,24 @@ function setHeaderTarget(nextProgress, immediate = false) {
 function updateHeaderFromScroll(delta) {
   if (isHomeReturnTransitionActive()) return
   const metrics = readHeaderMetrics()
-  if (window.scrollY <= 2 && delta <= 0) {
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  if (scrollY <= 2 && delta <= 0) {
     setHeaderTarget(0)
     return
   }
   if (Math.abs(delta) < 0.35) return
+
+  const nearExpanded = siteState.targetProgress <= HEADER_SCROLL_EDGE_EPSILON
+  const nearCompact = siteState.targetProgress >= 1 - HEADER_SCROLL_EDGE_EPSILON
+  if (
+    scrollY > metrics.distance + 24 &&
+    Math.abs(delta) <= HEADER_SCROLL_ANCHOR_JITTER_PX &&
+    (nearExpanded || nearCompact)
+  ) {
+    setHeaderTarget(nearCompact ? 1 : 0)
+    return
+  }
+
   setHeaderTarget(siteState.targetProgress + delta / metrics.distance)
 }
 

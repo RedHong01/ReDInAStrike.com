@@ -42,6 +42,9 @@
   </head>
   <body data-base="%BASE%">
     <div id="app"></div>
+    <script>
+      document.body.dataset.base = new URL(document.body.dataset.base || "./", window.location.href).href
+    </script>
     <script src="%BASE%src/performance-prelude.js"></script>
     <script src="%BASE%src/project-metadata-prelude.js"></script>
     <script type="module" src="%BASE%src/main.js"></script>

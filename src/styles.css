@@ -117,11 +117,11 @@
   --responsive-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --catalog-muted-hover-ms: 475ms;
   --serif: "Red EB Garamond", "Red Minion Pro", "Minion Pro", "Garamond Premier Pro", YuMincho, "Times New Roman", serif;
-  --zh-serif: "STFangsong", "FangSong", "STSong", "Songti TC", "Noto Serif TC", "PMingLiU", serif;
+  --zh-serif: "Songti SC", "Songti TC", "Hiragino Mincho ProN", "Hiragino Mincho Pro", YuMincho, "Yu Mincho", "Noto Serif CJK SC", "Noto Serif CJK TC", "Noto Serif SC", "Noto Serif TC", "STSong", "STFangsong", "FangSong", SimSun, "PMingLiU", serif;
   --body-latin-font: var(--serif);
   --mono: "Red Courier Prime", "Courier Prime", "Courier New", monospace;
   --type-subtitle-font: var(--mono);
-  --name-serif: "Songti SC", "STSong", "STFangsong", "Red Noto Serif TC", "Songti TC", "Noto Serif SC", YuMincho, "Yu Mincho", serif;
+  --name-serif: "Red Noto Serif TC", "Songti SC", "Songti TC", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Noto Serif SC", "Noto Serif TC", YuMincho, "Yu Mincho", "STSong", "STFangsong", serif;
   --display-italic: "Red EB Garamond", "EB Garamond", "Garamond Premier Pro Display", "Garamond Premier Pro", "Times New Roman", serif;
 }
 

@@ -6,7 +6,7 @@ import "./active-color-snow.js?v=20260829-handoff2"
 import "./fine-signal-preset-runtime.js?v=20260830-finesignal1"
 import "./active-color-replay-dedupe.js?v=20260829-activecolor2"
 import "./active-color-transition-bridge.js?v=20260829-activecolor2"
-import "./binary-pixel-handoff.js?v=20260830-binary1"
+import "./binary-pixel-handoff.js?v=20260830-binary2"
 
 const params = new URLSearchParams(window.location.search)
 const autoOpen =

@@ -3877,6 +3877,8 @@ function commitCatalogFilterTransition(cycle) {
 
   const category = siteState.catalogFilterTarget
   const commitStarted = performance.now()
+  catalog.dataset.filterPhase = "entering"
+  catalog.dataset.halftonePhase = "primed"
   catalog.innerHTML = catalogRowsMarkup(category)
   refreshDomCache()
   siteState.catalogFilterCurrent = category
@@ -3891,8 +3893,6 @@ function commitCatalogFilterTransition(cycle) {
   )
   refreshCatalogAfterFilter(catalog)
   planCatalogEnterSnowTiming(catalog, performance.now() - commitStarted)
-  catalog.dataset.filterPhase = "entering"
-  catalog.dataset.halftonePhase = "primed"
 
   catalog.getBoundingClientRect()
   window.setTimeout(() => requestAnimationFrame(() => {

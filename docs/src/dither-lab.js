@@ -1,6 +1,6 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import "./native-halftone-bypass.js?v=20260829-batch2"
-import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260830-perfstream1"
+import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260830-filtermask2"
 import "./layout-surface-sync.js?v=20260830-binarysurface1"
 import "./scroll-magnet.js?v=20260829-magnet3"
 import "./active-color-snow.js?v=20260830-perfstream1"

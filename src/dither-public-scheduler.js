@@ -20,7 +20,7 @@ import {
 } from "./dither-resize-snow.js?v=20260830-perfstream1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
-const PUBLIC_STYLE_VERSION = "1"
+const PUBLIC_STYLE_VERSION = "3"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
@@ -116,6 +116,29 @@ function ensurePublicStyles() {
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       transition: opacity var(--catalog-muted-hover-ms, 475ms) cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted .project-media::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: block;
+      background: var(--paper);
+      opacity: 1;
+      pointer-events: none;
+      transition: opacity 90ms linear;
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted
+      .project-media[data-dither-ready="true"]::before,
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent
+      .project-media::before,
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted[${ACTIVE_COLOR_MOTION_ATTRIBUTE}="true"]
+      .project-media:has(.active-color-snow-canvas)::before {
+      opacity: 0;
     }
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
       .catalog[data-active-filter] .project-card.is-filter-muted .project-halftone {
@@ -290,11 +313,13 @@ function renderOne(card, catalog, generation, tier) {
 
   const canvas = card.querySelector(".dither-preview-canvas")
   if (!canvas) {
+    media?.removeAttribute("data-dither-ready")
     cancelDitherResizeSnow(card)
     return false
   }
   canvas.dataset.active = "true"
   canvas.dataset.publishedMode = publishedMode()
+  media?.setAttribute("data-dither-ready", "true")
   card.removeAttribute("data-dither-pending")
   state.pendingCards.delete(card)
   playPreparedDitherResizeSnow(preparedSnow)
@@ -454,6 +479,7 @@ function queueMutedCards(catalog, cards) {
     if (!isMutedByActiveFilter(card, catalog)) {
       const canvas = card.querySelector(".dither-preview-canvas")
       if (canvas) canvas.dataset.active = "false"
+      card.querySelector(".project-media")?.removeAttribute("data-dither-ready")
       card.removeAttribute("data-dither-pending")
       cancelDitherResizeSnow(card)
       releaseReveal(card)

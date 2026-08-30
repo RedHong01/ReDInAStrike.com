@@ -1,3 +1,5 @@
+import "./scroll-magnet.js?v=20260829-magnet1"
+
 let corePromise = null
 
 export function activateMotionHub() {

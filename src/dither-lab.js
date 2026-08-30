@@ -1,4 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+import { destroyPublicDitherRuntime } from "./dither-public-runtime.js"
 
 const params = new URLSearchParams(window.location.search)
 const autoOpen = params.get("ditherHub") === "1" || params.has("ditherConfig") || params.has("motionConfig")
@@ -6,7 +7,6 @@ const publishedNeedsRuntime = PUBLISHED_DITHER_CONFIG?.mode && PUBLISHED_DITHER_
 let corePromise = null
 let coreLoaded = false
 let cssPromise = null
-let publicRuntimePromise = null
 
 function ensureCss() {
   if (cssPromise) return cssPromise
@@ -29,17 +29,10 @@ function ensureCss() {
   return cssPromise
 }
 
-function loadPublicRuntime() {
-  if (!publishedNeedsRuntime || autoOpen) return Promise.resolve(null)
-  if (!publicRuntimePromise) publicRuntimePromise = import("./dither-public-runtime.js")
-  return publicRuntimePromise
-}
-
 async function loadCore() {
   if (!corePromise) {
     corePromise = (async () => {
-      const runtime = await publicRuntimePromise
-      runtime?.destroyPublicDitherRuntime?.()
+      destroyPublicDitherRuntime?.()
       window.__RED_DITHER_PUBLIC_RUNTIME__?.destroy?.()
       await ensureCss()
       const module = await import("./dither-hub-entry.js")
@@ -50,8 +43,11 @@ async function loadCore() {
   return corePromise
 }
 
-if (autoOpen) loadCore()
-else loadPublicRuntime()
+if (!publishedNeedsRuntime) {
+  destroyPublicDitherRuntime?.()
+} else if (autoOpen) {
+  loadCore()
+}
 
 window.addEventListener("keydown", async (event) => {
   if (coreLoaded) return

@@ -17,7 +17,7 @@ import {
   playPreparedDitherResizeSnow,
   prepareDitherInitialSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-categorycover1"
+} from "./dither-resize-snow.js?v=20260830-categorycover5"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -49,6 +49,8 @@ const state = {
   boundImages: new WeakSet(),
   revealSignatures: new WeakMap(),
   revealSequenceKey: "",
+  initialRevealSequenceKey: null,
+  initialRevealActive: true,
   perf: {
     priorityRendered: 0,
     idleRendered: 0,
@@ -57,6 +59,25 @@ const state = {
     skippedCssResize: 0,
     logicalResizeRenders: 0,
   },
+}
+
+function currentSequenceKey(catalog) {
+  return `${catalog?.dataset.activeFilter || ""}|${publishedMode()}`
+}
+
+function allowInitialDitherSnow(catalog) {
+  const sequenceKey = currentSequenceKey(catalog)
+  if (state.initialRevealSequenceKey === null) {
+    state.initialRevealSequenceKey = sequenceKey
+  } else if (sequenceKey !== state.initialRevealSequenceKey) {
+    state.initialRevealActive = false
+  }
+
+  return (
+    state.initialRevealActive &&
+    sequenceKey === state.initialRevealSequenceKey &&
+    !catalog?.dataset.filterPhase
+  )
 }
 
 function publishedMode() {
@@ -247,9 +268,11 @@ function renderOne(card, catalog, generation, tier) {
   const activeCanvas = media?.querySelector('.dither-preview-canvas[data-active="true"]')
   const preparedSnow = activeCanvas
     ? prepareDitherResizeSnow(card, PUBLISHED_DITHER_CONFIG)
-    : prepareDitherInitialSnow(card, PUBLISHED_DITHER_CONFIG, {
-        durationMs: tier === "priority" ? 560 : 460,
-      })
+    : allowInitialDitherSnow(catalog)
+      ? prepareDitherInitialSnow(card, PUBLISHED_DITHER_CONFIG, {
+          durationMs: tier === "priority" ? 560 : 460,
+        })
+      : null
   const started = performance.now()
   renderCard(card, PUBLISHED_DITHER_CONFIG)
   const elapsed = performance.now() - started
@@ -464,7 +487,7 @@ function renderPublishedDither() {
   syncResizeTargets(catalog)
   syncCardTargets(catalog)
 
-  const sequenceKey = `${catalog.dataset.activeFilter || ""}|${publishedMode()}`
+  const sequenceKey = currentSequenceKey(catalog)
   if (sequenceKey !== state.revealSequenceKey) {
     resetViewportDitherRevealSequence()
     state.revealSequenceKey = sequenceKey

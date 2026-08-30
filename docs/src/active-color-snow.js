@@ -1342,6 +1342,12 @@ function bindCardHoverSnow(targetCatalog = catalog) {
       if (event?.pointerType === "touch") return
       const parentCatalog = card.closest(".catalog")
       if (!parentCatalog || parentCatalog.dataset.filterPhase) return
+      if (
+        !parentCatalog.dataset.activeFilter ||
+        !card.classList.contains("is-filter-muted")
+      ) {
+        return
+      }
       playCard(card, "in", 0, runtimeConfig, { reason: "hover" })
     }
 

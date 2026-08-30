@@ -3895,7 +3895,7 @@ function commitCatalogFilterTransition(cycle) {
   catalog.dataset.halftonePhase = "primed"
 
   catalog.getBoundingClientRect()
-  requestAnimationFrame(() => {
+  window.setTimeout(() => requestAnimationFrame(() => {
     if (cycle !== siteState.catalogFilterCycle) return
     catalog.dataset.filterPhase = "settling"
     catalog.dataset.halftonePhase = "waiting"
@@ -3908,7 +3908,7 @@ function commitCatalogFilterTransition(cycle) {
         duration: CATALOG_HALFTONE_DRAW_MS,
       })
     }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + enterDelay + CATALOG_HALFTONE_DELAY_MS))
-  })
+  }), catalogFilterDuration(CATALOG_COLOR_SNOW_ENTER_DEFER_MS + 34))
 
   siteState.catalogFilterEnterTimer = window.setTimeout(() => {
     if (cycle !== siteState.catalogFilterCycle) return

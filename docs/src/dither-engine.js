@@ -1,3 +1,8 @@
+import {
+  isBinaryDitherMode,
+  logicalGridForMedia,
+} from "./binary-surface-core.js?v=20260830-binarysurface1"
+
 export const DITHER_MODES = [
   ["native", "Native Dot"],
   ["dot", "Dot Remix"],
@@ -61,6 +66,8 @@ export const PARAM_META = new Map(
 )
 
 const MODE_IDS = new Set(DITHER_MODES.map(([id]) => id))
+const SAMPLE_CACHE_LIMIT = 96
+const BINARY_MAP_CACHE_LIMIT = 128
 const BAYER_8 = [
   [0, 48, 12, 60, 3, 51, 15, 63],
   [32, 16, 44, 28, 35, 19, 47, 31],
@@ -72,7 +79,8 @@ const BAYER_8 = [
   [42, 26, 38, 22, 41, 25, 37, 21],
 ]
 
-let sampleCache = new WeakMap()
+let sampleCache = new Map()
+let binaryMapCache = new Map()
 
 export function clamp(value, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value))
@@ -126,7 +134,15 @@ export function decodeConfig(encoded, published) {
 }
 
 export function resetSampleCache() {
-  sampleCache = new WeakMap()
+  sampleCache = new Map()
+  binaryMapCache = new Map()
+}
+
+function remember(cache, key, value, limit) {
+  if (cache.has(key)) cache.delete(key)
+  cache.set(key, value)
+  while (cache.size > limit) cache.delete(cache.keys().next().value)
+  return value
 }
 
 function parseObjectPositionRatio(value) {
@@ -154,9 +170,8 @@ function parseObjectPositionRatio(value) {
   return { x, y }
 }
 
-function getImageRect(img, width, height) {
+function getImageRect(img, width, height, style = getComputedStyle(img)) {
   if (!img.naturalWidth || !img.naturalHeight) return null
-  const style = getComputedStyle(img)
   const fit = style.objectFit || "fill"
   const iw = img.naturalWidth
   const ih = img.naturalHeight
@@ -184,13 +199,40 @@ function readColors() {
   }
 }
 
-function sampleImage(img, cssWidth, cssHeight, config) {
+function configSignature(config) {
+  return [
+    config.mode,
+    config.columns,
+    config.inkGain,
+    config.inkBias,
+    config.contrast,
+    config.threshold,
+    config.dotScale,
+    config.bayerScale,
+    config.blueScale,
+    config.blueMix,
+    config.screenAngle,
+    config.screenFrequency,
+    config.lineAngle,
+    config.lineLength,
+    config.lineWeight,
+  ].join("|")
+}
+
+function sampleImage(img, media, config) {
   const style = getComputedStyle(img)
-  const cols = Math.round(config.columns)
-  const rows = Math.max(1, Math.round(cols * cssHeight / Math.max(1, cssWidth)))
-  const key = [img.currentSrc || img.src, img.naturalWidth, img.naturalHeight, cols, rows, style.objectFit, style.objectPosition].join("|")
-  const cached = sampleCache.get(img)
-  if (cached?.key === key) return cached
+  const { cols, rows } = logicalGridForMedia(media, config)
+  const key = [
+    img.currentSrc || img.src,
+    img.naturalWidth,
+    img.naturalHeight,
+    cols,
+    rows,
+    style.objectFit || "fill",
+    style.objectPosition || "50% 50%",
+  ].join("|")
+  const cached = sampleCache.get(key)
+  if (cached) return cached
 
   const canvas = document.createElement("canvas")
   canvas.width = cols
@@ -200,7 +242,7 @@ function sampleImage(img, cssWidth, cssHeight, config) {
   const { paper } = readColors()
   ctx.fillStyle = paper
   ctx.fillRect(0, 0, cols, rows)
-  const rect = getImageRect(img, cols, rows)
+  const rect = getImageRect(img, cols, rows, style)
   if (!rect) return null
 
   try {
@@ -211,9 +253,7 @@ function sampleImage(img, cssWidth, cssHeight, config) {
       const j = i * 4
       luminance[i] = (data[j] * 0.2126 + data[j + 1] * 0.7152 + data[j + 2] * 0.0722) / 255
     }
-    const sample = { key, cols, rows, luminance }
-    sampleCache.set(img, sample)
-    return sample
+    return remember(sampleCache, key, { key, cols, rows, luminance }, SAMPLE_CACHE_LIMIT)
   } catch {
     return null
   }
@@ -280,6 +320,25 @@ function buildDiffusionMap(sample, ink, config, type) {
   return output
 }
 
+function cachedDiffusionMap(sample, config, type) {
+  const key = [
+    sample.key,
+    type,
+    config.inkGain,
+    config.inkBias,
+    config.contrast,
+    config.threshold,
+  ].join("|")
+  const cached = binaryMapCache.get(key)
+  if (cached) return cached
+  return remember(
+    binaryMapCache,
+    key,
+    buildDiffusionMap(sample, buildInk(sample, config), config, type),
+    BINARY_MAP_CACHE_LIMIT,
+  )
+}
+
 function ensureCanvas(card) {
   const media = card.querySelector(".project-media")
   if (!media) return null
@@ -335,9 +394,9 @@ function renderBlue(ctx, sample, ink, width, height, config) {
   paintBinaryCells(ctx, sample, ink, width, height, (i, x, y) => ink[i] > shiftedThreshold(blueNoiseThreshold(x, y, config), config))
 }
 
-function renderDiffusion(ctx, sample, ink, width, height, config, type) {
-  const map = buildDiffusionMap(sample, ink, config, type)
-  paintBinaryCells(ctx, sample, ink, width, height, (i) => map[i] === 1)
+function renderDiffusion(ctx, sample, width, height, config, type) {
+  const map = cachedDiffusionMap(sample, config, type)
+  paintBinaryCells(ctx, sample, map, width, height, (i) => map[i] === 1)
 }
 
 function renderScreen(ctx, sample, ink, width, height, config) {
@@ -352,7 +411,7 @@ function renderScreen(ctx, sample, ink, width, height, config) {
     const amount = ink[i]
     if (amount < 0.01) continue
     const x = (i % sample.cols + 0.5) * sx
-    const y = (Math.floor(i / sample.cols) + 0.5) * sy
+    const y = (Math.floor(i / sample.cols + 0.5)) * sy
     const divisor = Math.max(1, cell * frequency)
     const u = (x * cos + y * sin) / divisor
     const v = (-x * sin + y * cos) / divisor
@@ -398,52 +457,74 @@ export function renderCard(card, config) {
   const rect = media.getBoundingClientRect()
   const cssWidth = Math.max(1, Math.round(rect.width))
   const cssHeight = Math.max(1, Math.round(rect.height))
-  const dpr = Math.min(devicePixelRatio || 1, 2)
-  const targetWidth = Math.max(1, Math.round(cssWidth * dpr))
-  const targetHeight = Math.max(1, Math.round(cssHeight * dpr))
-  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-    canvas.width = targetWidth
-    canvas.height = targetHeight
-  }
-  canvas.style.width = `${cssWidth}px`
-  canvas.style.height = `${cssHeight}px`
-
-  const sample = sampleImage(img, cssWidth, cssHeight, config)
+  const sample = sampleImage(img, media, config)
   if (!sample) return
+
   const sourceKey = img.currentSrc || img.src || ""
+  const binaryMode = isBinaryDitherMode(config.mode)
+  const dpr = binaryMode ? 1 : Math.min(devicePixelRatio || 1, 2)
+  const renderWidth = binaryMode ? sample.cols : cssWidth
+  const renderHeight = binaryMode ? sample.rows : cssHeight
+  const targetWidth = binaryMode ? sample.cols : Math.max(1, Math.round(cssWidth * dpr))
+  const targetHeight = binaryMode ? sample.rows : Math.max(1, Math.round(cssHeight * dpr))
+  const signature = [
+    binaryMode ? "logical-binary-v1" : "raster-v1",
+    configSignature(config),
+    sourceKey,
+    img.naturalWidth,
+    img.naturalHeight,
+    sample.key,
+    binaryMode ? "" : `${cssWidth}x${cssHeight}@${dpr}`,
+  ].join("|")
+
   canvas.dataset.ditherColumns = String(sample.cols)
   canvas.dataset.ditherRows = String(sample.rows)
   canvas.dataset.ditherMode = config.mode || "native"
   canvas.dataset.ditherCssWidth = String(cssWidth)
   canvas.dataset.ditherCssHeight = String(cssHeight)
   canvas.dataset.ditherSource = sourceKey
-  canvas.dataset.ditherRenderSignature = [
-    config.mode || "native",
-    sourceKey,
-    img.naturalWidth,
-    img.naturalHeight,
-    cssWidth,
-    cssHeight,
-    sample.cols,
-    sample.rows,
-  ].join("|")
+  canvas.dataset.ditherSurfaceVersion = binaryMode ? "1" : "0"
+  canvas.dataset.ditherPixelScale = binaryMode ? "1" : String(dpr)
 
-  const inkValues = buildInk(sample, config)
+  canvas.style.width = "100%"
+  canvas.style.height = "100%"
+
+  if (
+    canvas.dataset.ditherRenderSignature === signature &&
+    canvas.width === targetWidth &&
+    canvas.height === targetHeight
+  ) {
+    return
+  }
+
+  if (canvas.width !== targetWidth) canvas.width = targetWidth
+  if (canvas.height !== targetHeight) canvas.height = targetHeight
+  canvas.dataset.ditherRenderSignature = signature
+
   const ctx = canvas.getContext("2d")
   if (!ctx) return
   const { paper, ink } = readColors()
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  ctx.clearRect(0, 0, cssWidth, cssHeight)
+  ctx.imageSmoothingEnabled = false
+  ctx.clearRect(0, 0, renderWidth, renderHeight)
   ctx.fillStyle = paper
-  ctx.fillRect(0, 0, cssWidth, cssHeight)
+  ctx.fillRect(0, 0, renderWidth, renderHeight)
   ctx.fillStyle = ink
   ctx.strokeStyle = ink
 
-  if (config.mode === "dot") renderDot(ctx, sample, inkValues, cssWidth, cssHeight, config)
-  else if (config.mode === "bayer") renderBayer(ctx, sample, inkValues, cssWidth, cssHeight, config)
-  else if (config.mode === "blue") renderBlue(ctx, sample, inkValues, cssWidth, cssHeight, config)
-  else if (config.mode === "atkinson") renderDiffusion(ctx, sample, inkValues, cssWidth, cssHeight, config, "atkinson")
-  else if (config.mode === "floyd") renderDiffusion(ctx, sample, inkValues, cssWidth, cssHeight, config, "floyd")
-  else if (config.mode === "screen") renderScreen(ctx, sample, inkValues, cssWidth, cssHeight, config)
-  else if (config.mode === "line") renderLine(ctx, sample, inkValues, cssWidth, cssHeight, config)
+  if (config.mode === "atkinson") {
+    renderDiffusion(ctx, sample, renderWidth, renderHeight, config, "atkinson")
+    return
+  }
+  if (config.mode === "floyd") {
+    renderDiffusion(ctx, sample, renderWidth, renderHeight, config, "floyd")
+    return
+  }
+
+  const inkValues = buildInk(sample, config)
+  if (config.mode === "dot") renderDot(ctx, sample, inkValues, renderWidth, renderHeight, config)
+  else if (config.mode === "bayer") renderBayer(ctx, sample, inkValues, renderWidth, renderHeight, config)
+  else if (config.mode === "blue") renderBlue(ctx, sample, inkValues, renderWidth, renderHeight, config)
+  else if (config.mode === "screen") renderScreen(ctx, sample, inkValues, renderWidth, renderHeight, config)
+  else if (config.mode === "line") renderLine(ctx, sample, inkValues, renderWidth, renderHeight, config)
 }

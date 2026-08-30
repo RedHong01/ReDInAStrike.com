@@ -1,45 +1,30 @@
+import {
+  BINARY_MOTION_DEFAULTS,
+  binaryBitsEqual,
+  buildBinaryOrder,
+  drawBinaryBits,
+  hash01,
+  logicalGridForMedia,
+  readBinaryColors,
+  sampleBinaryCanvas,
+  smooth01,
+  writeBinaryPixel,
+} from "./binary-surface-core.js?v=20260830-binarysurface1"
+
 const STYLE_ID = "red-dither-resize-snow-style"
 export const DITHER_RESIZE_SNOW_CLASS = "dither-resize-snow-canvas"
 export const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
 
 const TARGET_FRAME_MS = 1000 / 60
 const VIEWPORT_MARGIN = 180
-const MAX_GRID_CELLS = 52000
-const RESIZE_DURATION_MS = 420
-const RESIZE_SOFTNESS = 0.095
+const RESIZE_DURATION_MS = BINARY_MOTION_DEFAULTS.durationMs
+const RESIZE_SOFTNESS = BINARY_MOTION_DEFAULTS.softness
 
 const resizeStates = new WeakMap()
 const activeStates = new Set()
 let animationFrame = 0
-let paperCacheKey = ""
-let paperCacheValue = [248, 247, 245, 255]
-let inkCacheKey = ""
-let inkCacheValue = [69, 69, 69, 255]
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value))
-const smooth01 = (value) => {
-  const t = clamp(value)
-  return t * t * (3 - 2 * t)
-}
-
-function hash32(value) {
-  let x = value | 0
-  x ^= x >>> 16
-  x = Math.imul(x, 0x7feb352d)
-  x ^= x >>> 15
-  x = Math.imul(x, 0x846ca68b)
-  x ^= x >>> 16
-  return x >>> 0
-}
-
-function hash01(seed, a = 0, b = 0, c = 0) {
-  return hash32(
-    (seed | 0) ^
-    Math.imul((a | 0) + 1, 73856093) ^
-    Math.imul((b | 0) + 1, 19349663) ^
-    Math.imul((c | 0) + 1, 83492791),
-  ) / 4294967295
-}
 
 function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true
@@ -82,51 +67,6 @@ function ensureStyles() {
   `
 }
 
-function parseColor(css, fallback) {
-  const canvas = document.createElement("canvas")
-  canvas.width = canvas.height = 1
-  const ctx = canvas.getContext("2d", { willReadFrequently: true })
-  if (!ctx) return fallback
-  try {
-    ctx.fillStyle = css
-    ctx.fillRect(0, 0, 1, 1)
-    return [...ctx.getImageData(0, 0, 1, 1).data]
-  } catch {
-    return fallback
-  }
-}
-
-function readPaperColor() {
-  const value =
-    getComputedStyle(document.documentElement).getPropertyValue("--paper").trim() ||
-    "#f8f7f5"
-  if (value === paperCacheKey) return paperCacheValue
-  paperCacheKey = value
-  paperCacheValue = parseColor(value, [248, 247, 245, 255])
-  return paperCacheValue
-}
-
-function readInkColor() {
-  const value =
-    getComputedStyle(document.documentElement).getPropertyValue("--ink").trim() ||
-    "#454545"
-  if (value === inkCacheKey) return inkCacheValue
-  inkCacheKey = value
-  inkCacheValue = parseColor(value, [69, 69, 69, 255])
-  return inkCacheValue
-}
-
-function colorDistance(data, offset, rgba) {
-  const dr = data[offset] - rgba[0]
-  const dg = data[offset + 1] - rgba[1]
-  const db = data[offset + 2] - rgba[2]
-  return dr * dr + dg * dg + db * db
-}
-
-function isInk(data, offset, paper, ink) {
-  return colorDistance(data, offset, ink) <= colorDistance(data, offset, paper)
-}
-
 function cardNearViewport(card) {
   const rect = card?.getBoundingClientRect?.()
   if (!rect) return false
@@ -134,75 +74,32 @@ function cardNearViewport(card) {
     window.innerHeight || 0,
     document.documentElement.clientHeight || 0,
   )
-  return (
-    rect.bottom >= -VIEWPORT_MARGIN &&
-    rect.top <= viewportHeight + VIEWPORT_MARGIN
-  )
-}
-
-function constrainGridSize(cols, rows) {
-  cols = Math.max(1, Math.round(cols))
-  rows = Math.max(1, Math.round(rows))
-  const count = cols * rows
-  if (count > MAX_GRID_CELLS) {
-    const scale = Math.sqrt(count / MAX_GRID_CELLS)
-    cols = Math.max(1, Math.floor(cols / scale))
-    rows = Math.max(1, Math.floor(rows / scale))
-  }
-  return { cols, rows }
+  return rect.bottom >= -VIEWPORT_MARGIN && rect.top <= viewportHeight + VIEWPORT_MARGIN
 }
 
 function gridForMedia(media, config) {
+  const grid = logicalGridForMedia(media, config)
   const rect = media.getBoundingClientRect()
-  const cssWidth = Math.max(1, Math.round(rect.width))
-  const cssHeight = Math.max(1, Math.round(rect.height))
-  const cols = Math.max(1, Math.round(Number(config?.columns) || 240))
-  const grid = constrainGridSize(cols, cols * cssHeight / cssWidth)
-  return { ...grid, cssWidth, cssHeight }
+  return {
+    ...grid,
+    cssWidth: Math.max(1, Math.round(rect.width)),
+    cssHeight: Math.max(1, Math.round(rect.height)),
+  }
 }
 
 function imageSource(img) {
   return img?.currentSrc || img?.src || ""
 }
 
-function canTransitionFromCurrentCanvas(card, media, img, canvas, grid, config, force) {
+function canTransitionFromCurrentCanvas(img, canvas, grid, config, force) {
   if (force) return true
   if (canvas.dataset.active !== "true") return false
-  if (!canvas.dataset.ditherCssWidth || !canvas.dataset.ditherCssHeight) return false
   if (canvas.dataset.ditherSource !== imageSource(img)) return false
   if ((canvas.dataset.ditherMode || "native") !== (config?.mode || "native")) return false
 
-  const oldWidth = Number(canvas.dataset.ditherCssWidth)
-  const oldHeight = Number(canvas.dataset.ditherCssHeight)
   const oldCols = Number(canvas.dataset.ditherColumns)
   const oldRows = Number(canvas.dataset.ditherRows)
-  const widthChanged = Math.abs(oldWidth - grid.cssWidth) >= 1
-  const heightChanged = Math.abs(oldHeight - grid.cssHeight) >= 1
-  const gridChanged = oldCols !== grid.cols || oldRows !== grid.rows
-  return widthChanged || heightChanged || gridChanged
-}
-
-function sampleBinaryCanvas(sourceCanvas, cols, rows, paper, ink) {
-  const sample = document.createElement("canvas")
-  sample.width = cols
-  sample.height = rows
-  const ctx = sample.getContext("2d", { willReadFrequently: true })
-  if (!ctx) return null
-  ctx.imageSmoothingEnabled = false
-  ctx.fillStyle = `rgba(${paper[0]}, ${paper[1]}, ${paper[2]}, ${paper[3] / 255})`
-  ctx.fillRect(0, 0, cols, rows)
-
-  try {
-    ctx.drawImage(sourceCanvas, 0, 0, cols, rows)
-    const data = ctx.getImageData(0, 0, cols, rows).data
-    const bits = new Uint8Array(cols * rows)
-    for (let index = 0; index < bits.length; index += 1) {
-      bits[index] = isInk(data, index * 4, paper, ink) ? 1 : 0
-    }
-    return bits
-  } catch {
-    return null
-  }
+  return oldCols !== grid.cols || oldRows !== grid.rows
 }
 
 function ensureCanvas(card, cols, rows) {
@@ -218,33 +115,6 @@ function ensureCanvas(card, cols, rows) {
   if (canvas.width !== cols) canvas.width = cols
   if (canvas.height !== rows) canvas.height = rows
   return canvas
-}
-
-function writeBinaryPixel(data, offset, bit, paper, ink) {
-  const rgba = bit ? ink : paper
-  data[offset] = rgba[0]
-  data[offset + 1] = rgba[1]
-  data[offset + 2] = rgba[2]
-  data[offset + 3] = 255
-}
-
-function drawBits(ctx, imageData, framePixels, bits, paper, ink) {
-  for (let index = 0; index < bits.length; index += 1) {
-    writeBinaryPixel(framePixels, index * 4, bits[index], paper, ink)
-  }
-  ctx.putImageData(imageData, 0, 0)
-}
-
-function buildOrder(cols, rows, seed) {
-  const order = new Float32Array(cols * rows)
-  for (let row = 0; row < rows; row += 1) {
-    for (let col = 0; col < cols; col += 1) {
-      const local = hash01(seed, col, row, 17)
-      const cluster = hash01(seed, Math.floor(col / 3), Math.floor(row / 3), 31)
-      order[row * cols + col] = local * 0.84 + cluster * 0.16
-    }
-  }
-  return order
 }
 
 function cancelState(card, remove = true) {
@@ -274,8 +144,6 @@ export function prepareDitherResizeSnow(card, config, options = {}) {
 
   const grid = gridForMedia(media, config)
   if (!canTransitionFromCurrentCanvas(
-    card,
-    media,
     img,
     sourceCanvas,
     grid,
@@ -283,8 +151,7 @@ export function prepareDitherResizeSnow(card, config, options = {}) {
     options.force === true,
   )) return null
 
-  const paper = readPaperColor()
-  const ink = readInkColor()
+  const { paper, ink } = readBinaryColors()
   const oldBits = sampleBinaryCanvas(sourceCanvas, grid.cols, grid.rows, paper, ink)
   if (!oldBits) return null
 
@@ -301,7 +168,7 @@ export function prepareDitherResizeSnow(card, config, options = {}) {
 
   const framePixels = new Uint8ClampedArray(oldBits.length * 4)
   const imageData = new ImageData(framePixels, grid.cols, grid.rows)
-  drawBits(ctx, imageData, framePixels, oldBits, paper, ink)
+  drawBinaryBits(ctx, imageData, framePixels, oldBits, paper, ink)
 
   return {
     card,
@@ -324,7 +191,6 @@ function drawState(state, now) {
     canvas,
     ctx,
     cols,
-    rows,
     oldBits,
     newBits,
     order,
@@ -378,7 +244,7 @@ function drawState(state, now) {
   ctx.putImageData(imageData, 0, 0)
 
   if (raw >= 1) {
-    drawBits(ctx, imageData, framePixels, newBits, paper, ink)
+    drawBinaryBits(ctx, imageData, framePixels, newBits, paper, ink)
     activeStates.delete(state)
     resizeStates.delete(card)
     requestAnimationFrame(() => {
@@ -395,9 +261,7 @@ function animationLoop(now) {
 }
 
 function scheduleAnimationLoop() {
-  if (!animationFrame && activeStates.size) {
-    animationFrame = requestAnimationFrame(animationLoop)
-  }
+  if (!animationFrame && activeStates.size) animationFrame = requestAnimationFrame(animationLoop)
 }
 
 export function playPreparedDitherResizeSnow(prepared) {
@@ -420,11 +284,16 @@ export function playPreparedDitherResizeSnow(prepared) {
     return false
   }
 
-  const seed = 2203 + prepared.cols * 3 + prepared.rows * 5
+  if (binaryBitsEqual(prepared.oldBits, newBits)) {
+    cancelState(prepared.card)
+    return false
+  }
+
+  const seed = BINARY_MOTION_DEFAULTS.seed + prepared.cols * 3 + prepared.rows * 5
   const state = {
     ...prepared,
     newBits,
-    order: buildOrder(prepared.cols, prepared.rows, seed),
+    order: buildBinaryOrder(prepared.cols, prepared.rows, seed),
     startTime: performance.now(),
     lastDraw: 0,
     seed,

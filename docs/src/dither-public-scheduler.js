@@ -1,6 +1,9 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260830-resizesnow3"
+import { renderCard } from "./dither-engine.js?v=20260830-binarysurface1"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
+import {
+  binaryGridNeedsUpdate,
+} from "./binary-surface-core.js?v=20260830-binarysurface1"
 import {
   cancelReveal,
   refreshViewportDitherReveals,
@@ -13,7 +16,7 @@ import {
   cancelDitherResizeSnow,
   playPreparedDitherResizeSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-resizesnow3"
+} from "./dither-resize-snow.js?v=20260830-binarysurface1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -24,7 +27,7 @@ const PRIORITY_MARGIN = 760
 const REVEAL_MARGIN = 920
 const PRIORITY_FRAME_BUDGET_MS = 5.25
 const IDLE_TIMEOUT_MS = 650
-const RESIZE_SETTLE_MS = 120
+const RESIZE_SETTLE_MS = 90
 
 const state = {
   destroyed: false,
@@ -50,6 +53,8 @@ const state = {
     idleRendered: 0,
     maxCardRenderMs: 0,
     lastCardRenderMs: 0,
+    skippedCssResize: 0,
+    logicalResizeRenders: 0,
   },
 }
 
@@ -83,6 +88,8 @@ function ensurePublicStyles() {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
       transition: opacity var(--catalog-muted-hover-ms, 475ms) cubic-bezier(0.22, 1, 0.36, 1);
     }
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
@@ -120,7 +127,7 @@ function activeCatalog() {
 
 function applyCategoryAliases(catalog) {
   if (!catalog || catalog.dataset.activeFilter !== "game") return
-  const ongoingGameLink = [...catalog.querySelectorAll(".project-card a[href]")]
+  const ongoingGameLink = [...catalog.querySelectorAll("a.project-card[href]")]
     .find((link) => {
       try {
         const pathname = new URL(link.href, window.location.href).pathname.replace(/\/+$/, "")
@@ -169,14 +176,12 @@ function viewportDistance(card) {
 
 function revealSignature(card, catalog, canvas) {
   const img = card.querySelector(".project-media img")
-  const rect = canvas?.getBoundingClientRect?.()
-  const cssSize = rect ? `${Math.round(rect.width)}x${Math.round(rect.height)}` : "0x0"
   return [
     catalog?.dataset.activeFilter || "",
     publishedMode(),
     img?.currentSrc || img?.src || "",
-    `${canvas?.width || 0}x${canvas?.height || 0}`,
-    cssSize,
+    canvas?.dataset?.ditherRenderSignature || "",
+    `${canvas?.dataset?.ditherColumns || canvas?.width || 0}x${canvas?.dataset?.ditherRows || canvas?.height || 0}`,
   ].join("|")
 }
 
@@ -278,7 +283,6 @@ function processPriorityQueue() {
     if (!pending || pending.generation !== generation || pending.tier !== "priority") continue
     renderOne(card, catalog, generation, "priority")
     rendered += 1
-    // Never let a single animation frame perform more than one expensive first-time Floyd.
     if (rendered >= 1 || performance.now() - started >= PRIORITY_FRAME_BUDGET_MS) break
   }
 
@@ -312,7 +316,6 @@ function processIdleQueue(deadline) {
 
     renderOne(card, catalog, generation, "idle")
     rendered += 1
-    // One offscreen card per idle slice avoids background work turning into visible jank.
     if (rendered >= 1) break
   }
 
@@ -468,11 +471,32 @@ function requestRender() {
   state.renderFrame = requestAnimationFrame(renderPublishedDither)
 }
 
-function requestSettledResizeRender() {
+function mediaNeedsLogicalResize(media) {
+  const card = media?.closest?.(".project-card")
+  const catalog = card?.closest?.(".catalog")
+  if (!card || !isMutedByActiveFilter(card, catalog)) return false
+  const canvas = media.querySelector('.dither-preview-canvas[data-active="true"]')
+  return binaryGridNeedsUpdate(canvas, media, PUBLISHED_DITHER_CONFIG)
+}
+
+function requestSettledResizeRender(entries = null) {
   if (state.destroyed) return
+  const targets = Array.isArray(entries)
+    ? entries.map((entry) => entry?.target).filter(Boolean)
+    : entries && typeof entries.length === "number"
+      ? [...entries].map((entry) => entry?.target).filter(Boolean)
+      : [...state.observedMedia]
+
+  const needsRender = targets.some(mediaNeedsLogicalResize)
+  if (!needsRender) {
+    state.perf.skippedCssResize += Math.max(1, targets.length)
+    return
+  }
+
   clearTimeout(state.resizeTimer)
   state.resizeTimer = window.setTimeout(() => {
     state.resizeTimer = 0
+    state.perf.logicalResizeRenders += 1
     requestRender()
   }, RESIZE_SETTLE_MS)
 }
@@ -512,7 +536,8 @@ function generatedCanvasMutationOnly(mutation) {
       node.classList.contains("dither-preview-canvas") ||
       node.classList.contains("dither-reveal-canvas") ||
       node.classList.contains("active-color-snow-canvas") ||
-      node.classList.contains(DITHER_RESIZE_SNOW_CLASS)
+      node.classList.contains(DITHER_RESIZE_SNOW_CLASS) ||
+      node.classList.contains("dither-hover-return-snow-canvas")
     )
   )
 }
@@ -585,6 +610,8 @@ function boot() {
 
   if ("ResizeObserver" in window) {
     state.resizeObserver = new ResizeObserver(requestSettledResizeRender)
+  } else {
+    window.addEventListener("resize", requestRender, { passive: true })
   }
 
   if ("IntersectionObserver" in window) {
@@ -596,7 +623,6 @@ function boot() {
   }
 
   requestRender()
-  window.addEventListener("resize", requestSettledResizeRender, { passive: true })
 }
 
 export function destroyPublicDitherRuntime() {
@@ -614,7 +640,7 @@ export function destroyPublicDitherRuntime() {
   state.observedMedia.clear()
   state.observedCards.clear()
   document.querySelectorAll(".project-card").forEach((card) => releaseReveal(card))
-  window.removeEventListener("resize", requestSettledResizeRender)
+  window.removeEventListener("resize", requestRender)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()
 }

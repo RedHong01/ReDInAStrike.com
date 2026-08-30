@@ -8,7 +8,7 @@ export const PUBLISHED_DITHER_CONFIG = Object.freeze({
   inkBias: -0.01,
   contrast: 2.2,
   threshold: 0.535,
-  dotScale: 0.6,
+  dotScale: 0.64,
   bayerScale: 2,
   blueScale: 1.2,
   blueMix: 0.63,

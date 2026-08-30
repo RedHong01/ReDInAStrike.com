@@ -1,27 +1,33 @@
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 
-const OWNER = "breath5"
+const OWNER = "breath6"
 const IDLE_FRAME_MS = 1000 / 30
+const RESIZE_SYNC_MS = 120
 const RETRY_DELAYS = [0, 80, 220, 520, 1000, 1800]
 
 const trackedSignatures = new WeakMap()
-const legacyCancelledCards = new WeakSet()
+const trackedCards = new Set()
+const ownedOverlays = new Set()
+const visibleOverlays = new Set()
+
 let breathFrame = 0
 let syncFrame = 0
 let lastBreathDraw = 0
+let resizeTimer = 0
 let revealModulePromise = null
 let revealApi = null
-let legacyRevealApi = null
+let catalog = null
+let appObserver = null
+let catalogObserver = null
+let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    // Capture the scheduler's currently loaded reveal instance first. The new
-    // cache-busted module will replace window.__RED_REVEAL_MOTION__ afterwards.
-    legacyRevealApi = window.__RED_REVEAL_MOTION__ || null
     revealModulePromise = import("./reveal-motion.js?v=20260830-breath5").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
+        cancel: module.cancelReveal,
       }
       return revealApi
     })
@@ -35,8 +41,8 @@ function currentConfig() {
   )
   return {
     ...base,
-    // Frequency remains slow; this only increases how legible the breathing is
-    // while the scroll position itself is perfectly still.
+    // Keep the published Fine Signal look, but let the boundary remain legible
+    // while the page is stationary.
     revealNoiseFlicker: Math.max(base.revealNoiseFlicker, 1),
     revealNoisePeak: Math.max(base.revealNoisePeak, 0.52),
   }
@@ -46,89 +52,187 @@ function activeCatalog() {
   return document.querySelector(".catalog[data-active-filter]")
 }
 
-function isMutedCard(card, catalog) {
+function isMutedCard(card, targetCatalog) {
   return Boolean(
     card?.isConnected &&
-    catalog &&
-    card.closest(".catalog") === catalog &&
+    targetCatalog &&
+    card.closest(".catalog") === targetCatalog &&
     card.classList.contains("is-filter-muted"),
   )
 }
 
-function cardSignature(card, finalCanvas) {
+function cardSignature(card, finalCanvas, targetCatalog) {
   const image = card.querySelector(".project-media img")
   return [
     finalCanvas.width,
     finalCanvas.height,
     finalCanvas.dataset.publishedMode || "",
     image?.currentSrc || image?.src || "",
-    activeCatalog()?.dataset.activeFilter || "",
+    targetCatalog?.dataset.activeFilter || "",
   ].join("|")
 }
 
-async function migrateCard(card, catalog) {
-  if (!isMutedCard(card, catalog)) return false
+function viewportHeight() {
+  return Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+}
+
+function overlayLooksVisible(overlay) {
+  if (!overlay?.isConnected) return false
+  if (overlay.style.visibility === "hidden" || overlay.style.opacity === "0") return false
+  return true
+}
+
+function ensureOverlayObserver() {
+  if (overlayObserver || !("IntersectionObserver" in window)) return overlayObserver
+
+  overlayObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const overlay = entry.target
+      if (!overlay?.isConnected) {
+        visibleOverlays.delete(overlay)
+        continue
+      }
+      if (entry.isIntersecting) visibleOverlays.add(overlay)
+      else visibleOverlays.delete(overlay)
+    }
+  }, {
+    root: null,
+    rootMargin: "0px",
+    threshold: 0,
+  })
+
+  return overlayObserver
+}
+
+function ownOverlay(overlay) {
+  if (!overlay) return
+  overlay.dataset.boundaryBreathOwner = OWNER
+  if (ownedOverlays.has(overlay)) return
+
+  ownedOverlays.add(overlay)
+  const observer = ensureOverlayObserver()
+  if (observer) {
+    observer.observe(overlay)
+    // Seed visibility once so the breathing loop does not wait for the first
+    // IntersectionObserver delivery after a freshly-created canvas appears.
+    const rect = overlay.getBoundingClientRect()
+    if (rect.bottom > 0 && rect.top < viewportHeight()) visibleOverlays.add(overlay)
+  }
+}
+
+function pruneOverlays() {
+  for (const overlay of [...ownedOverlays]) {
+    if (overlay?.isConnected && overlay.dataset.boundaryBreathOwner === OWNER) continue
+    overlayObserver?.unobserve(overlay)
+    ownedOverlays.delete(overlay)
+    visibleOverlays.delete(overlay)
+  }
+}
+
+function forgetCard(card) {
+  trackedCards.delete(card)
+  trackedSignatures.delete(card)
+  const overlay = card?.querySelector?.(
+    `.dither-reveal-canvas[data-boundary-breath-owner="${OWNER}"]`,
+  )
+  if (overlay) {
+    overlayObserver?.unobserve(overlay)
+    ownedOverlays.delete(overlay)
+    visibleOverlays.delete(overlay)
+  }
+}
+
+function cancelTrackedCard(card) {
+  revealApi?.cancel?.(card, { remove: true })
+  forgetCard(card)
+}
+
+async function migrateCard(card, targetCatalog) {
+  if (!isMutedCard(card, targetCatalog)) return false
+
   const finalCanvas = card.querySelector('.dither-preview-canvas[data-active="true"]')
   if (!finalCanvas || finalCanvas.width < 2 || finalCanvas.height < 2) return false
 
-  const signature = cardSignature(card, finalCanvas)
+  const signature = cardSignature(card, finalCanvas, targetCatalog)
   const existing = card.querySelector(".dither-reveal-canvas")
   if (
     trackedSignatures.get(card) === signature &&
     existing?.dataset.boundaryBreathOwner === OWNER
   ) {
+    trackedCards.add(card)
+    ownOverlay(existing)
     return true
   }
 
   const api = await ensureRevealApi()
+  // Route/filter state may have changed while the dynamic import was resolving.
+  if (!isMutedCard(card, targetCatalog)) return false
+  const currentCanvas = card.querySelector('.dither-preview-canvas[data-active="true"]')
+  if (
+    currentCanvas !== finalCanvas ||
+    !currentCanvas ||
+    currentCanvas.width < 2 ||
+    currentCanvas.height < 2
+  ) return false
 
-  // Retire the old cached module's state before the new overlay is created.
-  // Otherwise its next RAF can see its old canvas detached and accidentally
-  // remove the newly-created canvas while cleaning itself up.
-  if (!legacyCancelledCards.has(card) && legacyRevealApi?.cancel) {
-    legacyRevealApi.cancel(card, { remove: true })
-    legacyCancelledCards.add(card)
-  }
-
-  const tracked = api.track(card, finalCanvas, currentConfig())
+  // trackViewportDitherReveal already cancels the previous state for this card,
+  // so a second legacy-cancel pass is unnecessary and could race the scheduler.
+  const tracked = api.track(card, currentCanvas, currentConfig())
   if (!tracked) return false
 
   const overlay = card.querySelector(".dither-reveal-canvas")
-  if (overlay) overlay.dataset.boundaryBreathOwner = OWNER
+  ownOverlay(overlay)
+  trackedCards.add(card)
   trackedSignatures.set(card, signature)
   return true
 }
 
 async function syncTrackedCards() {
-  const catalog = activeCatalog()
-  if (!catalog) return false
+  const targetCatalog = activeCatalog()
+  if (!targetCatalog) {
+    if (revealApi) {
+      for (const card of [...trackedCards]) cancelTrackedCard(card)
+    } else {
+      trackedCards.clear()
+    }
+    pruneOverlays()
+    return false
+  }
+
+  const mutedCards = new Set(targetCatalog.querySelectorAll(".project-card.is-filter-muted"))
+  if (trackedCards.size) {
+    await ensureRevealApi()
+    for (const card of [...trackedCards]) {
+      if (!mutedCards.has(card) || !card.isConnected) cancelTrackedCard(card)
+    }
+  }
 
   let hasTrackedCard = false
-  for (const card of catalog.querySelectorAll(".project-card")) {
-    if (await migrateCard(card, catalog)) hasTrackedCard = true
+  for (const card of mutedCards) {
+    if (await migrateCard(card, targetCatalog)) hasTrackedCard = true
   }
+  pruneOverlays()
   return hasTrackedCard
 }
 
-function viewportRange() {
-  const bottom = Math.max(
-    window.innerHeight || 0,
-    document.documentElement.clientHeight || 0,
-  )
-  const header = document.querySelector(".site-header")
-  const top = Math.max(0, Math.min(bottom, header?.getBoundingClientRect?.().bottom || 0))
-  return { top, bottom }
-}
-
 function hasVisibleBreathingField() {
-  const { top, bottom } = viewportRange()
-  for (const overlay of document.querySelectorAll(
-    `.dither-reveal-canvas[data-boundary-breath-owner="${OWNER}"]`,
-  )) {
-    if (!overlay.isConnected) continue
-    if (overlay.style.visibility === "hidden" || overlay.style.opacity === "0") continue
+  pruneOverlays()
+
+  if (overlayObserver) {
+    for (const overlay of [...visibleOverlays]) {
+      if (overlayLooksVisible(overlay)) return true
+      if (!overlay?.isConnected) visibleOverlays.delete(overlay)
+    }
+    return false
+  }
+
+  // IntersectionObserver fallback: only inspect the small set of canvases owned
+  // by this runtime rather than querying every reveal canvas each frame.
+  const height = viewportHeight()
+  for (const overlay of ownedOverlays) {
+    if (!overlayLooksVisible(overlay)) continue
     const rect = overlay.getBoundingClientRect()
-    if (rect.bottom > top && rect.top < bottom) return true
+    if (rect.bottom > 0 && rect.top < height) return true
   }
   return false
 }
@@ -138,22 +242,29 @@ function breathLoop(now) {
   if (document.hidden || !revealApi) return
 
   if (!lastBreathDraw || now - lastBreathDraw >= IDLE_FRAME_MS) {
-    // Scroll determines WHERE the boundary is. This call advances only TIME,
-    // so a stationary boundary keeps breathing instead of freezing.
+    // Scroll controls WHERE the boundary sits; this advances only TIME so a
+    // stationary boundary keeps breathing at 30fps instead of freezing.
     revealApi.refresh({ linger: false })
     lastBreathDraw = now
   }
 
-  if (hasVisibleBreathingField()) {
-    breathFrame = requestAnimationFrame(breathLoop)
-  }
+  if (hasVisibleBreathingField()) breathFrame = requestAnimationFrame(breathLoop)
 }
 
-async function wakeBreathing({ sync = true } = {}) {
+function wakeLoopOnly() {
+  if (document.hidden) return
+  void ensureRevealApi().then(() => {
+    // Always allow one frame after input. It refreshes visibility, then stops
+    // immediately if no owned reveal canvas is on screen.
+    if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
+  })
+}
+
+async function wakeBreathing({ sync = false, refresh = true } = {}) {
   if (document.hidden) return
   await ensureRevealApi()
   if (sync) await syncTrackedCards()
-  revealApi.refresh({ linger: false })
+  if (refresh) revealApi.refresh({ linger: false })
   if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
 }
 
@@ -161,43 +272,119 @@ function scheduleSync() {
   if (syncFrame) return
   syncFrame = requestAnimationFrame(() => {
     syncFrame = 0
-    void wakeBreathing({ sync: true })
+    void wakeBreathing({ sync: true, refresh: true })
   })
 }
 
-const observer = new MutationObserver((mutations) => {
-  for (const mutation of mutations) {
-    if (mutation.type === "childList") {
-      if (mutation.addedNodes.length || mutation.removedNodes.length) {
-        scheduleSync()
-        return
-      }
-    }
-    if (mutation.type === "attributes") {
-      scheduleSync()
-      return
-    }
-  }
-})
+function mutedClassChanged(mutation) {
+  const target = mutation.target
+  if (!(target instanceof Element) || !target.classList.contains("project-card")) return false
+  const before = new Set(String(mutation.oldValue || "").split(/\s+/).filter(Boolean))
+  return before.has("is-filter-muted") !== target.classList.contains("is-filter-muted")
+}
 
-function start() {
-  observer.observe(document.body, {
-    subtree: true,
+function structuralMutationNeedsSync(mutation) {
+  if (mutation.type !== "childList") return false
+  const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
+  return nodes.some((node) => {
+    if (!(node instanceof Element)) return false
+    if (node.matches?.(".project-card, .dither-preview-canvas")) return true
+    return Boolean(node.querySelector?.(".project-card, .dither-preview-canvas"))
+  })
+}
+
+function catalogMutationNeedsSync(mutation, targetCatalog) {
+  if (mutation.type === "childList") return structuralMutationNeedsSync(mutation)
+  if (mutation.type !== "attributes") return false
+  if (mutation.target === targetCatalog && mutation.attributeName === "data-active-filter") return true
+  if (mutation.attributeName === "data-active") {
+    return mutation.target instanceof Element && mutation.target.classList.contains("dither-preview-canvas")
+  }
+  if (mutation.attributeName === "class") return mutedClassChanged(mutation)
+  return false
+}
+
+function bindCatalog(nextCatalog) {
+  if (catalog === nextCatalog && catalogObserver) return
+
+  catalogObserver?.disconnect()
+  catalogObserver = null
+  catalog = nextCatalog || null
+
+  if (!catalog || !("MutationObserver" in window)) {
+    scheduleSync()
+    return
+  }
+
+  const boundCatalog = catalog
+  catalogObserver = new MutationObserver((mutations) => {
+    if (mutations.some((mutation) => catalogMutationNeedsSync(mutation, boundCatalog))) {
+      scheduleSync()
+    }
+  })
+  catalogObserver.observe(catalog, {
     childList: true,
+    subtree: true,
     attributes: true,
+    attributeOldValue: true,
     attributeFilter: ["class", "data-active", "data-active-filter"],
   })
+  scheduleSync()
+}
 
-  for (const delay of RETRY_DELAYS) {
-    window.setTimeout(() => void wakeBreathing({ sync: true }), delay)
+function bindApp() {
+  const app = document.querySelector("#app")
+  if (!app || !("MutationObserver" in window)) {
+    bindCatalog(document.querySelector(".catalog"))
+    return
   }
 
-  window.addEventListener("scroll", () => void wakeBreathing({ sync: true }), { passive: true })
-  window.addEventListener("resize", () => void wakeBreathing({ sync: true }), { passive: true })
-  window.addEventListener("red:motion-config", () => scheduleSync())
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) void wakeBreathing({ sync: true })
+  appObserver?.disconnect()
+  appObserver = new MutationObserver(() => {
+    bindCatalog(document.querySelector(".catalog"))
   })
+  // main.js replaces the app's top-level page markup on navigation. Nested
+  // canvas work is handled by the targeted catalog observer instead.
+  appObserver.observe(app, { childList: true, subtree: false })
+  bindCatalog(document.querySelector(".catalog"))
+}
+
+function scheduleResizeSync() {
+  clearTimeout(resizeTimer)
+  resizeTimer = window.setTimeout(() => {
+    resizeTimer = 0
+    scheduleSync()
+  }, RESIZE_SYNC_MS)
+}
+
+function start() {
+  bindApp()
+
+  // Keep the startup retries for slow image/dither creation, but funnel all of
+  // them through the same rAF-coalesced targeted sync.
+  for (const delay of RETRY_DELAYS) window.setTimeout(scheduleSync, delay)
+
+  // reveal-motion already updates boundary POSITION on scroll. Do not rescan
+  // every project card for every scroll event; only ensure the idle breath loop
+  // is awake.
+  window.addEventListener("scroll", wakeLoopOnly, { passive: true })
+  window.addEventListener("resize", scheduleResizeSync, { passive: true })
+  window.addEventListener("red:motion-config", scheduleSync)
+  window.addEventListener("red:home-return-transition", (event) => {
+    if (!event.detail?.active) scheduleSync()
+  })
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) scheduleSync()
+  })
+
+  window.__RED_BOUNDARY_BREATH__ = {
+    version: 6,
+    sync: scheduleSync,
+    wake: wakeLoopOnly,
+    get trackedCards() { return trackedCards.size },
+    get ownedOverlays() { return ownedOverlays.size },
+    get visibleOverlays() { return visibleOverlays.size },
+  }
 }
 
 if (document.readyState === "loading") {

@@ -1,11 +1,17 @@
+import { ACTIVE_COLOR_PRESETS, PUBLISHED_ACTIVE_COLOR_CONFIG } from "./active-color-default.js?v=20260830-finesignal1"
+
 const STYLE_ID = "red-binary-pixel-handoff-style"
 const CANVAS_CLASS = "binary-pixel-handoff-canvas"
 const HANDOFF_ATTR = "data-binary-handoff"
 const TARGET_FRAME_MS = 1000 / 60
-const CELL_PX = 6.5
+const FINE_SIGNAL = ACTIVE_COLOR_PRESETS.find((preset) => preset.id === "fine-signal")?.values || PUBLISHED_ACTIVE_COLOR_CONFIG
+const CELL_PX = Number(FINE_SIGNAL.activeColorCellPx) || 3
+const CLUSTER_SIZE = Math.max(1, Math.round(Number(FINE_SIGNAL.activeColorClusterSize) || 3))
+const CLUSTER_MIX = clampNumber(Number(FINE_SIGNAL.activeColorClusterMix), 0, 1, 0.16)
+const SIGNAL_FLICKER = clampNumber(Number(FINE_SIGNAL.activeColorFlicker), 0, 1, 0.62)
+const IN_DURATION_MS = Number(FINE_SIGNAL.activeColorDurationMs) || 660
+const OUT_DURATION_MS = Number(FINE_SIGNAL.activeColorExitDurationMs) || 350
 const MAX_GRID_CELLS = 36000
-const IN_DURATION_MS = 840
-const OUT_DURATION_MS = 760
 const MAX_WAIT_MS = 1800
 const TAU = Math.PI * 2
 
@@ -16,6 +22,11 @@ let animationFrame = 0
 let catalogObserver = null
 let appObserver = null
 let catalog = null
+
+function clampNumber(value, min, max, fallback) {
+  if (!Number.isFinite(value)) return fallback
+  return Math.min(max, Math.max(min, value))
+}
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value))
 const smooth01 = (value) => {
@@ -144,15 +155,15 @@ function buildGrid(card, finalCanvas) {
   const order = new Float32Array(count)
   const phase = new Float32Array(count)
   const rate = new Float32Array(count)
-  const seed = 17017
+  const seed = Number(FINE_SIGNAL.activeColorSeed) || 41
 
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       const index = row * cols + col
       const offset = index * 4
       const local = hash01(seed, col, row, 1)
-      const groupCol = Math.floor(col / 4)
-      const groupRow = Math.floor(row / 4)
+      const groupCol = Math.floor(col / CLUSTER_SIZE)
+      const groupRow = Math.floor(row / CLUSTER_SIZE)
       const cluster = hash01(seed, groupCol, groupRow, 11)
       const groupPhase = hash01(seed, groupCol, groupRow, 17)
       const individual = hash01(seed, row, col, 23)
@@ -162,7 +173,7 @@ function buildGrid(card, finalCanvas) {
         pixels[offset + 2] * 0.0722
       ) / 255
       const inkBias = (1 - luma) * 0.075
-      order[index] = clamp(local * 0.58 + cluster * 0.42 - inkBias)
+      order[index] = clamp(local * (1 - CLUSTER_MIX) + cluster * CLUSTER_MIX - inkBias)
       phase[index] = groupPhase * TAU + (individual - 0.5) * 0.82
       rate[index] = 0.18 + hash01(seed, groupRow, groupCol, 31) * 0.22
     }
@@ -205,8 +216,8 @@ function renderState(state, now) {
   const data = state.framePixels
   data.fill(0)
 
-  const softness = 0.105
-  const breatheAmount = 0.075
+  const softness = 0.092
+  const breatheAmount = 0.045 + SIGNAL_FLICKER * 0.035
   for (let index = 0; index < grid.count; index += 1) {
     const threshold = 0.035 + grid.order[index] * 0.93
     let alpha = smooth01((coverage - threshold + softness) / (softness * 2))
@@ -404,6 +415,7 @@ if (document.readyState === "loading") {
 
 window.__RED_BINARY_PIXEL_HANDOFF__ = {
   enabled: true,
+  preset: "fine-signal",
   play(card, direction = "in") {
     const finalCanvas = finalCanvasFor(card)
     if (!finalCanvas) return false

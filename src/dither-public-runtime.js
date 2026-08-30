@@ -6,6 +6,7 @@ import { playDitherReveal } from "./reveal-motion.js"
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const RETRY_DELAYS = [0, 60, 160, 360, 800, 1600]
+const REVEAL_VIEWPORT_MARGIN = 520
 
 const state = {
   destroyed: false,
@@ -34,12 +35,8 @@ function ensurePublicStyles() {
     style.id = PUBLIC_STYLE_ID
     document.head.appendChild(style)
   }
-
   style.textContent = `
-    .project-media {
-      overflow: hidden;
-    }
-
+    .project-media { overflow: hidden; }
     .dither-preview-canvas {
       position: absolute;
       inset: 0;
@@ -55,34 +52,25 @@ function ensurePublicStyles() {
       pointer-events: none;
       transition: opacity var(--catalog-muted-hover-ms, 475ms) cubic-bezier(0.22, 1, 0.36, 1);
     }
-
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
-      .catalog[data-active-filter]
-      .project-card.is-filter-muted
-      .project-halftone {
+      .catalog[data-active-filter] .project-card.is-filter-muted .project-halftone {
       opacity: 0 !important;
       visibility: hidden !important;
       display: none !important;
     }
-
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
-      .catalog[data-active-filter]
-      .project-card.is-filter-muted
+      .catalog[data-active-filter] .project-card.is-filter-muted
       .dither-preview-canvas[data-active="true"] {
       opacity: 1 !important;
       visibility: visible !important;
     }
-
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
-      .catalog[data-active-filter]
-      .project-card.is-filter-muted.is-muted-restore-intent
+      .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent
       .dither-preview-canvas[data-active="true"] {
       opacity: 0 !important;
     }
-
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
-      .catalog[data-active-filter]
-      .project-card.is-filter-muted.is-muted-restore-return
+      .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-return
       .dither-preview-canvas[data-active="true"] {
       opacity: 1 !important;
     }
@@ -110,6 +98,13 @@ function revealSignature(card, catalog) {
   return `${catalog?.dataset.activeFilter || ""}|${publishedMode()}|${img?.currentSrc || img?.src || ""}`
 }
 
+function isNearRevealViewport(card) {
+  const rect = card?.getBoundingClientRect?.()
+  if (!rect) return false
+  const height = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+  return rect.bottom >= -REVEAL_VIEWPORT_MARGIN && rect.top <= height + REVEAL_VIEWPORT_MARGIN
+}
+
 function bindImageLoad(img) {
   if (!img || img.complete || state.boundImages.has(img)) return
   state.boundImages.add(img)
@@ -123,13 +118,11 @@ function bindImageLoad(img) {
 function syncResizeTargets(catalog) {
   if (!state.resizeObserver) return
   const nextMedia = new Set(catalog?.querySelectorAll(".project-media") || [])
-
   for (const media of [...state.observedMedia]) {
     if (nextMedia.has(media)) continue
     state.resizeObserver.unobserve(media)
     state.observedMedia.delete(media)
   }
-
   for (const media of nextMedia) {
     if (state.observedMedia.has(media)) continue
     state.observedMedia.add(media)
@@ -140,17 +133,15 @@ function syncResizeTargets(catalog) {
 function renderPublishedDither() {
   state.renderFrame = 0
   if (state.destroyed) return
-
   applyPublishedModeState()
   ensurePublicStyles()
 
   const catalog = activeCatalog()
   if (!catalog) return
-
   syncResizeTargets(catalog)
 
   const cards = [...catalog.querySelectorAll(".project-card")]
-  let mutedIndex = 0
+  let visibleMutedIndex = 0
   cards.forEach((card) => {
     const img = card.querySelector(".project-media img")
     bindImageLoad(img)
@@ -164,7 +155,6 @@ function renderPublishedDither() {
     }
 
     renderCard(card, PUBLISHED_DITHER_CONFIG)
-
     const canvas = card.querySelector(".dither-preview-canvas")
     if (!canvas) return
     canvas.dataset.active = "true"
@@ -174,9 +164,11 @@ function renderPublishedDither() {
     const signature = revealSignature(card, catalog)
     if (canReveal && state.revealSignatures.get(card) !== signature) {
       state.revealSignatures.set(card, signature)
-      playDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG, { index: mutedIndex })
+      if (isNearRevealViewport(card)) {
+        playDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG, { index: visibleMutedIndex })
+        visibleMutedIndex += 1
+      }
     }
-    mutedIndex += 1
   })
 }
 
@@ -185,24 +177,27 @@ function requestRender() {
   state.renderFrame = requestAnimationFrame(renderPublishedDither)
 }
 
+function mutedClassChanged(mutation) {
+  const target = mutation.target
+  if (!(target instanceof Element) || !target.classList.contains("project-card")) return false
+  const before = new Set(String(mutation.oldValue || "").split(/\s+/).filter(Boolean))
+  return before.has("is-filter-muted") !== target.classList.contains("is-filter-muted")
+}
+
 function bindCatalogObserver() {
   state.catalogObserver?.disconnect()
   state.catalogObserver = null
-
   const catalog = activeCatalog()
   if (!catalog || !("MutationObserver" in window)) return
 
   state.catalogObserver = new MutationObserver((mutations) => {
     if (state.destroyed) return
-    let shouldRender = false
-
-    for (const mutation of mutations) {
-      if (mutation.type === "childList" || mutation.type === "attributes") {
-        shouldRender = true
-        break
-      }
-    }
-
+    const shouldRender = mutations.some((mutation) => {
+      if (mutation.type === "childList") return true
+      if (mutation.type !== "attributes") return false
+      if (mutation.target === catalog && mutation.attributeName === "data-active-filter") return true
+      return mutation.attributeName === "class" && mutedClassChanged(mutation)
+    })
     if (shouldRender) requestRender()
   })
 
@@ -210,6 +205,7 @@ function bindCatalogObserver() {
     childList: true,
     subtree: true,
     attributes: true,
+    attributeOldValue: true,
     attributeFilter: ["class", "data-active-filter"],
   })
 }
@@ -218,17 +214,14 @@ function bindAppObserver() {
   if (!("MutationObserver" in window)) return
   const app = document.querySelector("#app")
   if (!app) return
-
-  state.appObserver = new MutationObserver(() => {
+  state.appObserver?.disconnect()
+  state.appObserver = new MutationObserver((mutations) => {
     if (state.destroyed) return
+    if (!mutations.some((mutation) => mutation.type === "childList" && mutation.target === app)) return
     bindCatalogObserver()
     requestRender()
   })
-
-  state.appObserver.observe(app, {
-    childList: true,
-    subtree: true,
-  })
+  state.appObserver.observe(app, { childList: true })
 }
 
 function scheduleRetries() {
@@ -246,13 +239,13 @@ function scheduleRetries() {
 function boot() {
   applyPublishedModeState()
   ensurePublicStyles()
-
   if (!publishedIsGenerated()) return
 
   if ("ResizeObserver" in window) {
     state.resizeObserver = new ResizeObserver(() => {
       if (state.destroyed) return
-      resetSampleCache?.()
+      // dither-engine's sample key already contains logical rows / object-fit / position.
+      // Do not globally discard every image sample for an ordinary settled media resize.
       requestRender()
     })
   }
@@ -261,17 +254,14 @@ function boot() {
   bindCatalogObserver()
   requestRender()
   scheduleRetries()
-
   window.addEventListener("resize", requestRender, { passive: true })
 }
 
 export function destroyPublicDitherRuntime() {
   if (state.destroyed) return
   state.destroyed = true
-
   if (state.renderFrame) cancelAnimationFrame(state.renderFrame)
   state.renderFrame = 0
-
   state.appObserver?.disconnect()
   state.catalogObserver?.disconnect()
   state.resizeObserver?.disconnect()
@@ -279,10 +269,8 @@ export function destroyPublicDitherRuntime() {
   state.catalogObserver = null
   state.resizeObserver = null
   state.observedMedia.clear()
-
   state.retryTimers.forEach((timer) => clearTimeout(timer))
   state.retryTimers.clear()
-
   document.querySelectorAll(".dither-reveal-canvas").forEach((canvas) => canvas.remove())
   window.removeEventListener("resize", requestRender)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)

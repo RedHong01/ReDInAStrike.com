@@ -21,11 +21,11 @@ const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const HANDOFF_ATTRIBUTE = "data-hover-binary-return"
 
 const TARGET_FRAME_MS = 1000 / 60
-const SETTLE_DURATION_MS = BINARY_MOTION_DEFAULTS.durationMs
-const VIEWPORT_RECONCILE_MS = 220
+const DIRECT_HANDOFF_MS = BINARY_MOTION_DEFAULTS.durationMs
 const TRANSITION_SOFTNESS = BINARY_MOTION_DEFAULTS.softness
 const STABLE_TIMEOUT_MS = 900
-const VIEWPORT_PREP_FRAMES = 3
+const TARGET_PREP_FRAMES = 2
+const REMOVE_GUARD_FRAMES = 2
 
 const snapshots = new WeakMap()
 const states = new WeakMap()
@@ -80,48 +80,22 @@ function ensureStyles() {
   `
 }
 
-function cloneCanvas(source) {
-  if (!source || source.width < 2 || source.height < 2) return null
-  const clone = document.createElement("canvas")
-  clone.width = source.width
-  clone.height = source.height
-  const ctx = clone.getContext("2d", { alpha: true })
-  if (!ctx) return null
-  ctx.imageSmoothingEnabled = false
-  try {
-    ctx.drawImage(source, 0, 0)
-    return clone
-  } catch {
-    return null
-  }
-}
-
 function sourceCanvas(card) {
   return card?.querySelector?.('.dither-preview-canvas[data-active="true"]') || null
 }
 
-function captureSnapshot(card) {
-  if (!card?.isConnected || !card.classList.contains("is-filter-muted")) return null
-  const source = sourceCanvas(card)
-  const canvas = cloneCanvas(source)
-  if (!canvas) return null
-
-  const snapshot = {
-    canvas,
-    source: source?.dataset?.ditherSource || "",
-    mode: source?.dataset?.ditherMode || PUBLISHED_DITHER_CONFIG?.mode || "",
-    cols: Number(source?.dataset?.ditherColumns) || source.width,
-    rows: Number(source?.dataset?.ditherRows) || source.height,
-    signature: source?.dataset?.ditherRenderSignature || "",
-    capturedAt: performance.now(),
-  }
-  snapshots.set(card, snapshot)
-  return snapshot
+function currentRevealCanvas(card) {
+  const canvas = card?.querySelector?.(".dither-reveal-canvas")
+  return canvas?.isConnected ? canvas : null
 }
 
-function sampleCompositeBinary(baseCanvas, overlayCanvas, cols, rows, paper, ink) {
-  if (!baseCanvas) return null
-  if (!overlayCanvas?.isConnected) {
+function canvasHasPixels(canvas) {
+  return Boolean(canvas && canvas.width > 1 && canvas.height > 1)
+}
+
+function sampleCompositeBinary(baseCanvas, overlayCanvas, cols, rows, paper, ink, { respectVisibility = true } = {}) {
+  if (!canvasHasPixels(baseCanvas)) return null
+  if (!canvasHasPixels(overlayCanvas)) {
     return sampleBinaryCanvas(baseCanvas, cols, rows, paper, ink)
   }
 
@@ -136,28 +110,87 @@ function sampleCompositeBinary(baseCanvas, overlayCanvas, cols, rows, paper, ink
 
   try {
     ctx.drawImage(baseCanvas, 0, 0, cols, rows)
-    const style = getComputedStyle(overlayCanvas)
-    const opacity = Number.parseFloat(style.opacity)
-    if (
-      style.display !== "none" &&
-      style.visibility !== "hidden" &&
-      (Number.isFinite(opacity) ? opacity : 1) > 0.001
-    ) {
+
+    let shouldComposite = true
+    let opacity = 1
+    if (respectVisibility) {
+      const style = getComputedStyle(overlayCanvas)
+      opacity = Number.parseFloat(style.opacity)
+      shouldComposite = (
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        (Number.isFinite(opacity) ? opacity : 1) > 0.001
+      )
+    }
+
+    if (shouldComposite) {
       ctx.save()
       ctx.globalAlpha = Number.isFinite(opacity) ? opacity : 1
       ctx.drawImage(overlayCanvas, 0, 0, cols, rows)
       ctx.restore()
     }
+
     return sampleBinaryCanvas(sample, cols, rows, paper, ink)
   } catch {
     return null
   }
 }
 
+function bitsCanvas(bits, cols, rows, paper, ink) {
+  const canvas = document.createElement("canvas")
+  canvas.width = cols
+  canvas.height = rows
+  const ctx = canvas.getContext("2d", { alpha: true })
+  if (!ctx) return null
+  const framePixels = new Uint8ClampedArray(bits.length * 4)
+  const imageData = new ImageData(framePixels, cols, rows)
+  drawBinaryBits(ctx, imageData, framePixels, bits, paper, ink)
+  return canvas
+}
+
+function captureSnapshot(card) {
+  if (!card?.isConnected || !card.classList.contains("is-filter-muted")) return null
+  const media = card.querySelector(".project-media")
+  const source = sourceCanvas(card)
+  if (!media || !canvasHasPixels(source)) return null
+
+  const { cols, rows } = logicalGridForMedia(media, PUBLISHED_DITHER_CONFIG)
+  const { paper, ink } = readBinaryColors()
+  const reveal = currentRevealCanvas(card)
+
+  // Capture what the user actually sees, not the full static Floyd surface.
+  // pointerover runs before the active-color hover takes ownership, so an
+  // edge card keeps its current viewport-boundary mask in the snapshot.
+  const bits = sampleCompositeBinary(source, reveal, cols, rows, paper, ink)
+  if (!bits) return null
+  const canvas = bitsCanvas(bits, cols, rows, paper, ink)
+  if (!canvas) return null
+
+  const snapshot = {
+    canvas,
+    bits,
+    cols,
+    rows,
+    source: source.dataset.ditherSource || "",
+    mode: source.dataset.ditherMode || PUBLISHED_DITHER_CONFIG?.mode || "",
+    signature: source.dataset.ditherRenderSignature || "",
+    capturedAt: performance.now(),
+  }
+  snapshots.set(card, snapshot)
+  return snapshot
+}
+
+function snapshotBitsForGrid(snapshot, cols, rows, paper, ink) {
+  if (!snapshot) return null
+  if (snapshot.cols === cols && snapshot.rows === rows && snapshot.bits?.length === cols * rows) {
+    return Uint8Array.from(snapshot.bits)
+  }
+  return sampleBinaryCanvas(snapshot.canvas, cols, rows, paper, ink)
+}
+
 function ensureOverlay(card, cols, rows) {
   const media = card?.querySelector?.(".project-media")
   if (!media) return null
-
   let canvas = media.querySelector(`:scope > .${CANVAS_CLASS}`)
   if (!canvas) {
     canvas = document.createElement("canvas")
@@ -165,7 +198,6 @@ function ensureOverlay(card, cols, rows) {
     canvas.setAttribute("aria-hidden", "true")
     media.appendChild(canvas)
   }
-
   if (canvas.width !== cols) canvas.width = cols
   if (canvas.height !== rows) canvas.height = rows
   return canvas
@@ -178,7 +210,6 @@ function cancelState(card, { keepSnapshot = false } = {}) {
     if (state.waitFrame) cancelAnimationFrame(state.waitFrame)
     state.waitFrame = 0
   }
-
   states.delete(card)
   card?.querySelector?.(`.${CANVAS_CLASS}`)?.remove()
   card?.removeAttribute?.(HANDOFF_ATTRIBUTE)
@@ -186,44 +217,37 @@ function cancelState(card, { keepSnapshot = false } = {}) {
 }
 
 function scheduleLoop() {
-  if (!animationFrame && activeStates.size) {
-    animationFrame = requestAnimationFrame(animationLoop)
+  if (!animationFrame && activeStates.size) animationFrame = requestAnimationFrame(animationLoop)
+}
+
+function beginDirectTransition(state, targetBits) {
+  if (!targetBits) {
+    finishState(state)
+    return
   }
-}
 
-function phaseSeed(state, phase) {
-  return BINARY_MOTION_DEFAULTS.seed +
-    state.cols * 3 +
-    state.rows * 5 +
-    (phase === "viewport" ? 97 : 0)
-}
-
-function beginPhase(state, fromBits, toBits, duration, phase) {
-  if (binaryBitsEqual(fromBits, toBits)) {
-    state.fromBits = Uint8Array.from(toBits)
-    state.toBits = Uint8Array.from(toBits)
-    state.displayBits.set(toBits)
+  if (binaryBitsEqual(state.displayBits, targetBits)) {
     drawBinaryBits(
       state.ctx,
       state.imageData,
       state.framePixels,
-      toBits,
+      targetBits,
       state.paper,
       state.ink,
     )
-    if (phase === "settle") waitForViewportStable(state)
-    else finishState(state)
+    state.displayBits.set(targetBits)
+    finishState(state)
     return
   }
 
-  state.fromBits = Uint8Array.from(fromBits)
-  state.toBits = Uint8Array.from(toBits)
-  state.duration = Math.max(1, duration)
-  state.phase = phase
+  state.fromBits = Uint8Array.from(state.displayBits)
+  state.toBits = Uint8Array.from(targetBits)
+  state.duration = DIRECT_HANDOFF_MS
   state.startTime = performance.now()
   state.lastDraw = 0
-  state.seed = phaseSeed(state, phase)
+  state.seed = BINARY_MOTION_DEFAULTS.seed + state.cols * 3 + state.rows * 5 + 97
   state.order = buildBinaryOrder(state.cols, state.rows, state.seed)
+  state.phase = "viewport-direct"
   activeStates.add(state)
   drawState(state, state.startTime)
   scheduleLoop()
@@ -238,7 +262,7 @@ function drawState(state, now) {
   if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS) return
   state.lastDraw = now
 
-  const raw = clamp((now - state.startTime) / state.duration)
+  const raw = clamp((now - state.startTime) / Math.max(1, state.duration))
   const progress = smooth01(raw)
   const frameTick = Math.floor(now / 46)
   const data = state.framePixels
@@ -251,10 +275,8 @@ function drawState(state, now) {
     if (oldBit !== newBit) {
       const threshold = 0.035 + order[index] * 0.93
       const local = smooth01(
-        (progress - threshold + TRANSITION_SOFTNESS) /
-          (TRANSITION_SOFTNESS * 2),
+        (progress - threshold + TRANSITION_SOFTNESS) / (TRANSITION_SOFTNESS * 2),
       )
-
       if (local > 0.001 && local < 0.999) {
         const col = index % cols
         const row = Math.floor(index / cols)
@@ -270,25 +292,11 @@ function drawState(state, now) {
   }
 
   state.ctx.putImageData(state.imageData, 0, 0)
-
   if (raw < 1) return
 
-  drawBinaryBits(
-    state.ctx,
-    state.imageData,
-    state.framePixels,
-    toBits,
-    paper,
-    ink,
-  )
+  drawBinaryBits(state.ctx, state.imageData, state.framePixels, toBits, paper, ink)
   state.displayBits.set(toBits)
   activeStates.delete(state)
-
-  if (state.phase === "settle") {
-    waitForViewportStable(state)
-    return
-  }
-
   finishState(state)
 }
 
@@ -298,44 +306,11 @@ function animationLoop(now) {
   if (activeStates.size) animationFrame = requestAnimationFrame(animationLoop)
 }
 
-function currentRevealCanvas(card) {
-  const canvas = card?.querySelector?.(".dither-reveal-canvas")
-  return canvas?.isConnected ? canvas : null
-}
-
 function activeColorStillSettling(card) {
   return Boolean(
     card?.getAttribute?.(ACTIVE_COLOR_MOTION_ATTRIBUTE) === "true" ||
     card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true"
   )
-}
-
-function waitForViewportStable(state) {
-  if (!state.card.isConnected || states.get(state.card) !== state) {
-    cancelState(state.card)
-    return
-  }
-
-  const started = performance.now()
-  const check = () => {
-    state.waitFrame = 0
-    if (!state.card.isConnected || states.get(state.card) !== state) {
-      cancelState(state.card)
-      return
-    }
-
-    if (
-      activeColorStillSettling(state.card) &&
-      performance.now() - started < STABLE_TIMEOUT_MS
-    ) {
-      state.waitFrame = requestAnimationFrame(check)
-      return
-    }
-
-    prepareViewportTarget(state)
-  }
-
-  state.waitFrame = requestAnimationFrame(check)
 }
 
 function nextFrames(count, callback) {
@@ -351,80 +326,102 @@ function nextFrames(count, callback) {
   requestAnimationFrame(step)
 }
 
-function prepareViewportTarget(state) {
+function prepareCurrentViewportTarget(state) {
   if (!state.card.isConnected || states.get(state.card) !== state) {
     cancelState(state.card)
     return
   }
 
-  window.__RED_DITHER_PUBLIC_RUNTIME__?.render?.()
+  // Keep the handoff overlay opaque while the canonical static surface and
+  // viewport boundary are rebuilt underneath it. The full static card is
+  // never exposed between active-color and edge clipping.
+  renderCard(state.card, PUBLISHED_DITHER_CONFIG)
+  const finalCanvas = sourceCanvas(state.card)
+  if (!canvasHasPixels(finalCanvas)) {
+    finishState(state)
+    return
+  }
+  finalCanvas.dataset.active = "true"
+  finalCanvas.dataset.publishedMode = PUBLISHED_DITHER_CONFIG?.mode || "native"
 
-  nextFrames(VIEWPORT_PREP_FRAMES, () => {
+  const revealApi = window.__RED_REVEAL_MOTION__
+  revealApi?.trackViewport?.(state.card, finalCanvas, window.__RED_MOTION_CONFIG__ || null)
+  revealApi?.refreshViewport?.({ linger: false })
+
+  nextFrames(TARGET_PREP_FRAMES, () => {
     if (!state.card.isConnected || states.get(state.card) !== state) {
       cancelState(state.card)
       return
     }
 
-    window.__RED_REVEAL_MOTION__?.refreshViewport?.({ linger: false })
-
+    revealApi?.refreshViewport?.({ linger: false })
     requestAnimationFrame(() => {
       if (!state.card.isConnected || states.get(state.card) !== state) {
         cancelState(state.card)
         return
       }
 
-      const finalCanvas = sourceCanvas(state.card)
-      if (!finalCanvas) {
+      const currentFinal = sourceCanvas(state.card)
+      if (!canvasHasPixels(currentFinal)) {
         finishState(state)
         return
       }
 
       const targetBits = sampleCompositeBinary(
-        finalCanvas,
+        currentFinal,
         currentRevealCanvas(state.card),
         state.cols,
         state.rows,
         state.paper,
         state.ink,
       )
-
-      if (!targetBits || binaryBitsEqual(state.displayBits, targetBits)) {
-        finishState(state)
-        return
-      }
-
-      beginPhase(
-        state,
-        state.displayBits,
-        targetBits,
-        VIEWPORT_RECONCILE_MS,
-        "viewport",
-      )
+      beginDirectTransition(state, targetBits)
     })
   })
+}
+
+function waitForViewportStable(state) {
+  const started = performance.now()
+  const check = () => {
+    state.waitFrame = 0
+    if (!state.card.isConnected || states.get(state.card) !== state) {
+      cancelState(state.card)
+      return
+    }
+
+    if (activeColorStillSettling(state.card) && performance.now() - started < STABLE_TIMEOUT_MS) {
+      state.waitFrame = requestAnimationFrame(check)
+      return
+    }
+
+    prepareCurrentViewportTarget(state)
+  }
+  state.waitFrame = requestAnimationFrame(check)
 }
 
 function finishState(state) {
   if (states.get(state.card) !== state) return
 
-  requestAnimationFrame(() => {
+  // Keep the overlay for two guarded frames so the already-prepared reveal
+  // field is guaranteed to own the exact next painted frame.
+  nextFrames(REMOVE_GUARD_FRAMES, () => {
     if (states.get(state.card) !== state) return
-    state.canvas.remove()
-    state.card.removeAttribute(HANDOFF_ATTRIBUTE)
-    states.delete(state.card)
-    snapshots.delete(state.card)
-    window.dispatchEvent(new CustomEvent("red:hover-binary-return-complete", {
-      detail: { card: state.card },
-    }))
+    window.__RED_REVEAL_MOTION__?.refreshViewport?.({ linger: false })
+    requestAnimationFrame(() => {
+      if (states.get(state.card) !== state) return
+      state.canvas.remove()
+      state.card.removeAttribute(HANDOFF_ATTRIBUTE)
+      states.delete(state.card)
+      snapshots.delete(state.card)
+      window.dispatchEvent(new CustomEvent("red:hover-binary-return-complete", {
+        detail: { card: state.card },
+      }))
+    })
   })
 }
 
 function startHoverReturnHandoff(card) {
-  if (
-    prefersReducedMotion() ||
-    !card?.isConnected ||
-    !card.classList.contains("is-filter-muted")
-  ) {
+  if (prefersReducedMotion() || !card?.isConnected || !card.classList.contains("is-filter-muted")) {
     snapshots.delete(card)
     return false
   }
@@ -432,17 +429,16 @@ function startHoverReturnHandoff(card) {
   cancelState(card, { keepSnapshot: true })
   const snapshot = snapshots.get(card) || captureSnapshot(card)
   const media = card.querySelector(".project-media")
-  if (!snapshot?.canvas || !media) return false
+  if (!snapshot || !media) return false
 
   const { cols, rows } = logicalGridForMedia(media, PUBLISHED_DITHER_CONFIG)
   const { paper, ink } = readBinaryColors()
-  const oldBits = sampleBinaryCanvas(snapshot.canvas, cols, rows, paper, ink)
+  const oldBits = snapshotBitsForGrid(snapshot, cols, rows, paper, ink)
   if (!oldBits) return false
 
   const canvas = ensureOverlay(card, cols, rows)
   const ctx = canvas?.getContext("2d", { alpha: true })
   if (!canvas || !ctx) return false
-
   ctx.imageSmoothingEnabled = false
   canvas.style.transition = "none"
   canvas.style.opacity = "1"
@@ -462,40 +458,23 @@ function startHoverReturnHandoff(card) {
     framePixels,
     imageData,
     displayBits: Uint8Array.from(oldBits),
-    fromBits: oldBits,
-    toBits: oldBits,
+    fromBits: Uint8Array.from(oldBits),
+    toBits: Uint8Array.from(oldBits),
     order: buildBinaryOrder(cols, rows, BINARY_MOTION_DEFAULTS.seed),
-    duration: SETTLE_DURATION_MS,
-    phase: "settle",
+    duration: DIRECT_HANDOFF_MS,
+    phase: "hold-visible-snapshot",
     startTime: performance.now(),
     lastDraw: 0,
     waitFrame: 0,
     seed: BINARY_MOTION_DEFAULTS.seed,
   }
   states.set(card, state)
-
   drawBinaryBits(ctx, imageData, framePixels, oldBits, paper, ink)
 
-  // The static canvas is now the canonical logical surface. renderCard either
-  // reuses that exact bit field or performs a real logical-grid update; it no
-  // longer swaps in a DPR-sized raster during this handoff.
-  renderCard(card, PUBLISHED_DITHER_CONFIG)
-  const finalCanvas = sourceCanvas(card)
-  if (finalCanvas) {
-    finalCanvas.dataset.active = "true"
-    finalCanvas.dataset.publishedMode = PUBLISHED_DITHER_CONFIG?.mode || "native"
-  }
-
-  const newBits = finalCanvas
-    ? sampleBinaryCanvas(finalCanvas, cols, rows, paper, ink)
-    : null
-
-  if (!newBits) {
-    finishState(state)
-    return false
-  }
-
-  beginPhase(state, oldBits, newBits, SETTLE_DURATION_MS, "settle")
+  // Important: do not resolve to the full static Floyd image first. Hold the
+  // pre-hover visible state until the current viewport edge field is ready,
+  // then transition directly to that clipped target.
+  waitForViewportStable(state)
   return true
 }
 
@@ -508,13 +487,11 @@ function handleReturnMutation(mutation) {
     if (!snapshots.has(card)) captureSnapshot(card)
     return
   }
-
   if (mutation.oldValue === "true") startHoverReturnHandoff(card)
 }
 
 function bindCatalog(nextCatalog) {
   if (catalog === nextCatalog && catalogObserver) return
-
   catalogObserver?.disconnect()
   catalogObserver = null
   catalog = nextCatalog || null
@@ -522,15 +499,11 @@ function bindCatalog(nextCatalog) {
 
   catalogObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
-      if (
-        mutation.type === "attributes" &&
-        mutation.attributeName === RETURN_ATTRIBUTE
-      ) {
+      if (mutation.type === "attributes" && mutation.attributeName === RETURN_ATTRIBUTE) {
         handleReturnMutation(mutation)
       }
     }
   })
-
   catalogObserver.observe(catalog, {
     subtree: true,
     attributes: true,
@@ -587,10 +560,7 @@ function captureOnFocusIn(event) {
 function start() {
   ensureStyles()
   bindApp()
-  document.addEventListener("pointerover", captureOnPointerOver, {
-    passive: true,
-    capture: true,
-  })
+  document.addEventListener("pointerover", captureOnPointerOver, { passive: true, capture: true })
   document.addEventListener("focusin", captureOnFocusIn, true)
 
   window.__RED_HOVER_BINARY_RETURN__ = {

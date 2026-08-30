@@ -43,6 +43,8 @@ Only one motion system may visually own a card at a time. Priority:
 
 A higher-priority owner hides lower-priority overlays. Handoff must expose the next owner only after both owners refer to the same canonical bit field.
 
+For hover return specifically, the target owner is the current viewport composite, not the static binary surface. If a card is inside the top or bottom boundary field, the handoff must preserve that clipped state continuously. The full static card must never appear as an intermediate frame.
+
 ## 4. Shared binary motion language
 
 Binary motion uses paper and ink only. Changed cells transition; unchanged cells stay fixed.
@@ -60,13 +62,13 @@ Resize and hover-return read the canonical old/new bit placement and perturb onl
 
 ## 5. Category transition timing
 
-The visual dissolve must remain active through the catalog DOM handoff. The Fine Signal exit duration is aligned with the catalog structural exit budget (430 ms), with no extra start delay. Entry keeps the longer resolve/settle envelope so the new catalog can finish layout and priority rendering under the transition.
+The visual dissolve must remain active through the catalog DOM handoff. The Fine Signal exit duration is aligned with the catalog structural exit budget, with no uncovered structural frame. Entry keeps the longer resolve/settle envelope so the new catalog can finish layout and priority rendering under the transition.
 
 Expensive binary source sampling and diffusion maps are cached by source/grid/config so rebuilding category DOM does not require a fresh image sample and Floyd solve for every card.
 
 ## 6. Header-driven layout and breakpoints
 
-The header is allowed to drive content bounding continuously. The horizontal content-width proxy follows the visual logo at fine increments instead of the previous coarse 4 px width bucket. The vertical header-height proxy remains under `performance-prelude.js` ownership so its synthetic geometry cache stays internally consistent; that vertical proxy does not define the binary media grid.
+The header is allowed to drive content bounding continuously. The horizontal content-width proxy follows the visual logo at fine increments instead of the previous coarse width bucket. The vertical header-height proxy remains under `performance-prelude.js` ownership so its synthetic geometry cache stays internally consistent; that vertical proxy does not define the binary media grid.
 
 Continuous card-width changes must not wake the binary solver. During scroll, the existing logical surface simply scales with the card. `ResizeObserver` only schedules a binary render when the logical columns or rows actually change.
 
@@ -81,6 +83,7 @@ This rule is identical on desktop, tablet, phone, portrait, and landscape breakp
 - Offscreen work stays in idle slices.
 - Do not create a resize-snow state when old and new bit fields are identical.
 - Motion overlays use logical-resolution canvases, not DPR-sized canvases.
+- Hover return captures the visible `static + boundary` composite before hover, then hands off directly to the current `static + boundary` composite after hover.
 
 ## 8. Debug invariants
 
@@ -91,5 +94,6 @@ For any filtered card in generated binary mode:
 - `data-dither-surface-version === "1"`
 - motion overlays use the same columns and rows
 - scrolling without an aspect-ratio change must increase `skippedCssResize`, not `logicalResizeRenders`, in `window.__RED_DITHER_PUBLIC_RUNTIME__.perf`
+- an edge-card hover return must never expose the static canvas without its current boundary field
 
-If a visible pop occurs, first check whether a handoff exposed two canvases with different backing dimensions or different render signatures. Do not hide that mismatch with opacity; fix ownership or grid identity.
+If a visible pop occurs, first check whether a handoff exposed two canvases with different backing dimensions, different render signatures, or different viewport-boundary ownership. Do not hide that mismatch with opacity; fix ownership or grid identity.

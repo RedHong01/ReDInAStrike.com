@@ -1,17 +1,33 @@
-import {
-  refreshViewportDitherReveals,
-  trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-breath2"
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 
-const OWNER = "breath2"
+const OWNER = "breath3"
 const IDLE_FRAME_MS = 1000 / 30
 const RETRY_DELAYS = [0, 80, 220, 520, 1000, 1800]
 
 const trackedSignatures = new WeakMap()
+const legacyCancelledCards = new WeakSet()
 let breathFrame = 0
 let syncFrame = 0
 let lastBreathDraw = 0
+let revealModulePromise = null
+let revealApi = null
+let legacyRevealApi = null
+
+function ensureRevealApi() {
+  if (!revealModulePromise) {
+    // Capture the scheduler's currently loaded reveal instance first. The new
+    // cache-busted module will replace window.__RED_REVEAL_MOTION__ afterwards.
+    legacyRevealApi = window.__RED_REVEAL_MOTION__ || null
+    revealModulePromise = import("./reveal-motion.js?v=20260830-breath3").then((module) => {
+      revealApi = {
+        refresh: module.refreshViewportDitherReveals,
+        track: module.trackViewportDitherReveal,
+      }
+      return revealApi
+    })
+  }
+  return revealModulePromise
+}
 
 function currentConfig() {
   const base = sanitizeMotionConfig(
@@ -19,8 +35,8 @@ function currentConfig() {
   )
   return {
     ...base,
-    // Keep the motion slow, but make the breathing visible enough to read
-    // while the page itself is completely still.
+    // Frequency remains slow; this only increases how legible the breathing is
+    // while the scroll position itself is perfectly still.
     revealNoiseFlicker: Math.max(base.revealNoiseFlicker, 0.82),
   }
 }
@@ -49,7 +65,7 @@ function cardSignature(card, finalCanvas) {
   ].join("|")
 }
 
-function migrateCard(card, catalog) {
+async function migrateCard(card, catalog) {
   if (!isMutedCard(card, catalog)) return false
   const finalCanvas = card.querySelector('.dither-preview-canvas[data-active="true"]')
   if (!finalCanvas || finalCanvas.width < 2 || finalCanvas.height < 2) return false
@@ -63,11 +79,17 @@ function migrateCard(card, catalog) {
     return true
   }
 
-  const tracked = trackViewportDitherReveal(
-    card,
-    finalCanvas,
-    currentConfig(),
-  )
+  const api = await ensureRevealApi()
+
+  // Retire the old cached module's state before the new overlay is created.
+  // Otherwise its next RAF can see its old canvas detached and accidentally
+  // remove the newly-created canvas while cleaning itself up.
+  if (!legacyCancelledCards.has(card) && legacyRevealApi?.cancel) {
+    legacyRevealApi.cancel(card, { remove: true })
+    legacyCancelledCards.add(card)
+  }
+
+  const tracked = api.track(card, finalCanvas, currentConfig())
   if (!tracked) return false
 
   const overlay = card.querySelector(".dither-reveal-canvas")
@@ -76,13 +98,13 @@ function migrateCard(card, catalog) {
   return true
 }
 
-function syncTrackedCards() {
+async function syncTrackedCards() {
   const catalog = activeCatalog()
   if (!catalog) return false
 
   let hasTrackedCard = false
   for (const card of catalog.querySelectorAll(".project-card")) {
-    if (migrateCard(card, catalog)) hasTrackedCard = true
+    if (await migrateCard(card, catalog)) hasTrackedCard = true
   }
   return hasTrackedCard
 }
@@ -112,12 +134,12 @@ function hasVisibleBreathingField() {
 
 function breathLoop(now) {
   breathFrame = 0
-  if (document.hidden) return
+  if (document.hidden || !revealApi) return
 
   if (!lastBreathDraw || now - lastBreathDraw >= IDLE_FRAME_MS) {
-    // Scroll defines WHERE the snow boundary sits. This refresh supplies the
-    // independent time axis, so the same boundary keeps breathing at rest.
-    refreshViewportDitherReveals({ linger: false })
+    // Scroll determines WHERE the boundary is. This call advances only TIME,
+    // so a stationary boundary keeps breathing instead of freezing.
+    revealApi.refresh({ linger: false })
     lastBreathDraw = now
   }
 
@@ -126,10 +148,11 @@ function breathLoop(now) {
   }
 }
 
-function wakeBreathing({ sync = true } = {}) {
+async function wakeBreathing({ sync = true } = {}) {
   if (document.hidden) return
-  if (sync) syncTrackedCards()
-  refreshViewportDitherReveals({ linger: false })
+  await ensureRevealApi()
+  if (sync) await syncTrackedCards()
+  revealApi.refresh({ linger: false })
   if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
 }
 
@@ -137,7 +160,7 @@ function scheduleSync() {
   if (syncFrame) return
   syncFrame = requestAnimationFrame(() => {
     syncFrame = 0
-    wakeBreathing({ sync: true })
+    void wakeBreathing({ sync: true })
   })
 }
 
@@ -165,14 +188,14 @@ function start() {
   })
 
   for (const delay of RETRY_DELAYS) {
-    window.setTimeout(() => wakeBreathing({ sync: true }), delay)
+    window.setTimeout(() => void wakeBreathing({ sync: true }), delay)
   }
 
-  window.addEventListener("scroll", () => wakeBreathing({ sync: true }), { passive: true })
-  window.addEventListener("resize", () => wakeBreathing({ sync: true }), { passive: true })
+  window.addEventListener("scroll", () => void wakeBreathing({ sync: true }), { passive: true })
+  window.addEventListener("resize", () => void wakeBreathing({ sync: true }), { passive: true })
   window.addEventListener("red:motion-config", () => scheduleSync())
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) wakeBreathing({ sync: true })
+    if (!document.hidden) void wakeBreathing({ sync: true })
   })
 }
 

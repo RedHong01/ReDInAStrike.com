@@ -17,12 +17,12 @@ const activeStates = new Set()
 const paletteCache = new Map()
 const prewarmQueued = new Set()
 const prewarmImageBound = new WeakSet()
+const hoverCardsBound = new WeakSet()
 
 let animationFrame = 0
 let catalogObserver = null
 let appObserver = null
 let catalog = null
-let previousFilter = null
 let lastPhase = ""
 let hubLoadPromise = null
 let panelWatchObserver = null
@@ -563,7 +563,7 @@ function cardNearViewport(card) {
   )
 }
 
-function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig) {
+function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig, options = {}) {
   const config = sanitizeActiveColorConfig(inputConfig)
   cancelCard(card)
 
@@ -613,6 +613,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       grid,
       config: localConfig,
       direction,
+      reason: options.reason || "transition",
       paper: readPaperColor(),
       framePixels,
       imageData,
@@ -674,9 +675,11 @@ function playCatalog(targetCatalog, direction, { force = false } = {}) {
     return
   }
 
-  activeCards(targetCatalog).forEach((card, index) =>
-    playCard(card, direction, index, runtimeConfig),
-  )
+  let played = 0
+  activeCards(targetCatalog).forEach((card, index) => {
+    if (playCard(card, direction, index, runtimeConfig)) played += 1
+  })
+  return played
 }
 
 function stopCatalogStates(targetCatalog = catalog) {
@@ -750,6 +753,34 @@ function schedulePrewarm(targetCatalog = catalog) {
   }
 }
 
+function bindCardHoverSnow(targetCatalog = catalog) {
+  if (!targetCatalog) return
+
+  allCards(targetCatalog).forEach((card) => {
+    if (hoverCardsBound.has(card)) return
+    hoverCardsBound.add(card)
+
+    const playHoverSnow = (event) => {
+      if (event?.pointerType === "touch") return
+      const parentCatalog = card.closest(".catalog")
+      if (!parentCatalog || parentCatalog.dataset.filterPhase) return
+      playCard(card, "in", 0, runtimeConfig, { reason: "hover" })
+    }
+
+    const cancelHoverSnow = (event) => {
+      if (event?.pointerType === "touch") return
+      const state = cardStates.get(card)
+      if (state?.reason === "hover") cancelCard(card)
+    }
+
+    card.addEventListener("pointerenter", playHoverSnow, { passive: true })
+    card.addEventListener("pointerleave", cancelHoverSnow, { passive: true })
+    card.addEventListener("pointercancel", cancelHoverSnow, { passive: true })
+    card.addEventListener("focusin", playHoverSnow)
+    card.addEventListener("focusout", cancelHoverSnow)
+  })
+}
+
 function clearPaletteCache() {
   paletteCache.clear()
   prewarmQueued.clear()
@@ -762,14 +793,14 @@ function handleCatalogPhase(targetCatalog) {
   lastPhase = phase
 
   if (phase === "exiting") {
-    if (previousFilter) playCatalog(targetCatalog, "out", { force: true })
+    playCatalog(targetCatalog, "out", { force: true })
     return
   }
 
   if (phase === "entering") {
     stopCatalogStates(targetCatalog)
     schedulePrewarm(targetCatalog)
-    requestAnimationFrame(() => playCatalog(targetCatalog, "in"))
+    requestAnimationFrame(() => playCatalog(targetCatalog, "in", { force: true }))
     return
   }
 
@@ -788,26 +819,16 @@ function bindCatalog(nextCatalog) {
   catalogObserver?.disconnect()
   catalogObserver = null
   catalog = nextCatalog || null
-  previousFilter = catalog?.dataset.activeFilter || null
   lastPhase = catalog?.dataset.filterPhase || ""
 
   if (!catalog || !("MutationObserver" in window)) return
 
   catalogObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (
-        mutation.type === "attributes" &&
-        mutation.target === catalog &&
-        mutation.attributeName === "data-active-filter"
-      ) {
-        previousFilter = mutation.oldValue || null
-      }
-    }
-
     if (mutations.some((mutation) => mutation.type === "childList")) {
       schedulePrewarm(catalog)
+      bindCardHoverSnow(catalog)
       if (catalog.dataset.filterPhase === "entering") {
-        requestAnimationFrame(() => playCatalog(catalog, "in"))
+        requestAnimationFrame(() => playCatalog(catalog, "in", { force: true }))
       }
     }
 
@@ -818,11 +839,11 @@ function bindCatalog(nextCatalog) {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeOldValue: true,
-    attributeFilter: ["data-filter-phase", "data-active-filter"],
+    attributeFilter: ["data-filter-phase"],
   })
 
   schedulePrewarm(catalog)
+  bindCardHoverSnow(catalog)
   handleCatalogPhase(catalog)
 }
 
@@ -845,6 +866,7 @@ function replayActiveColorSnow(inputConfig = runtimeConfig) {
 
   clearPaletteCache()
   schedulePrewarm(catalog)
+  bindCardHoverSnow(catalog)
   if (!catalog?.dataset.activeFilter) return
   playCatalog(catalog, "in", { force: true })
 }
@@ -914,6 +936,7 @@ if (document.readyState !== "loading") {
 window.__RED_ACTIVE_COLOR_SNOW__ = {
   replay: replayActiveColorSnow,
   play: playCard,
+  playCatalog,
   stop: stopCatalogStates,
   prewarm: () => schedulePrewarm(catalog),
   getConfig: () => runtimeConfig,

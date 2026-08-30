@@ -37,14 +37,17 @@
     <link rel="stylesheet" href="../src/performance.css" />
     <link rel="stylesheet" href="../src/nav-state.css?v=20260830-navrestore1" />
   </head>
-  <body data-base="/ReDInAStrike.com/">
+  <body data-base="../">
     <div id="app"></div>
+    <script>
+      document.body.dataset.base = new URL(document.body.dataset.base || "./", window.location.href).href
+    </script>
     <script src="../src/performance-prelude.js"></script>
     <script src="../src/project-metadata-prelude.js"></script>
     <script type="module" src="../src/main.js"></script>
     <script type="module" src="../src/typewriter.js"></script>
     <script type="module" src="../src/project-lightbox.js"></script>
-    <script type="module" src="../src/dither-lab.js?v=20260830-finesignal3"></script>
+    <script type="module" src="../src/dither-lab.js?v=20260830-finesignal4"></script>
     <script type="module" src="../src/boundary-breath-runtime.js?v=20260830-breath5"></script>
   </body>
 </html>

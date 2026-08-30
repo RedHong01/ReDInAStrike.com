@@ -15,8 +15,9 @@ import {
   DITHER_RESIZE_SNOW_CLASS,
   cancelDitherResizeSnow,
   playPreparedDitherResizeSnow,
+  prepareDitherInitialSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-binarysurface1"
+} from "./dither-resize-snow.js?v=20260830-categorycover1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -242,7 +243,13 @@ function renderOne(card, catalog, generation, tier) {
   bindImageLoad(img)
   if (!img?.complete || img.naturalWidth <= 0) return false
 
-  const preparedResize = prepareDitherResizeSnow(card, PUBLISHED_DITHER_CONFIG)
+  const media = card.querySelector(".project-media")
+  const activeCanvas = media?.querySelector('.dither-preview-canvas[data-active="true"]')
+  const preparedSnow = activeCanvas
+    ? prepareDitherResizeSnow(card, PUBLISHED_DITHER_CONFIG)
+    : prepareDitherInitialSnow(card, PUBLISHED_DITHER_CONFIG, {
+        durationMs: tier === "priority" ? 560 : 460,
+      })
   const started = performance.now()
   renderCard(card, PUBLISHED_DITHER_CONFIG)
   const elapsed = performance.now() - started
@@ -260,7 +267,7 @@ function renderOne(card, catalog, generation, tier) {
   canvas.dataset.publishedMode = publishedMode()
   card.removeAttribute("data-dither-pending")
   state.pendingCards.delete(card)
-  playPreparedDitherResizeSnow(preparedResize)
+  playPreparedDitherResizeSnow(preparedSnow)
 
   if (viewportDistance(card) <= REVEAL_MARGIN) {
     if (armReveal(card, catalog)) refreshViewportDitherReveals({ linger: false })

@@ -11,11 +11,16 @@ const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const RETURN_ATTRIBUTE = "data-active-color-return"
 const MOTION_ATTRIBUTE = "data-active-color-motion"
 const BOUNDARY_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
+const EXIT_DURATION_ATTRIBUTE = "data-color-snow-exit-duration-ms"
+const ENTER_DURATION_ATTRIBUTE = "data-color-snow-enter-duration-ms"
+const ENTER_DEFER_ATTRIBUTE = "data-color-snow-enter-defer-ms"
 const BOUNDARY_COOLDOWN_MS = 520
 const MAX_GRID_CELLS = 42000
 const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
 const TARGET_FRAME_MS = 1000 / 60
+const CATEGORY_READY_DEFER_STEP_MS = 9
+const CATEGORY_READY_DEFER_MAX_MS = 150
 const RESTORE_SOURCE_SELECTOR =
   '.dither-preview-canvas[data-active="true"], .project-halftone'
 
@@ -706,6 +711,8 @@ function cancelCard(card, { remove = true } = {}) {
     activeStates.delete(state)
     if (state.handoffFrame) cancelAnimationFrame(state.handoffFrame)
     if (state.cleanupFrame) cancelAnimationFrame(state.cleanupFrame)
+    if (state.readyFrame) cancelAnimationFrame(state.readyFrame)
+    if (state.readyTimer) window.clearTimeout(state.readyTimer)
     clearRestoreSourceInline(state.hiddenSource)
   }
   cardStates.delete(card)
@@ -979,12 +986,12 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
   if (!media || !img) return false
 
   const startPlaceholder = () => {
-    if (options.placeholder === false) return false
+    if (options.placeholder === false) return null
     const grid = buildPlaceholderGrid(media, config)
-    if (!grid) return false
+    if (!grid) return null
     const canvas = ensureCanvas(card, grid.cols, grid.rows)
     const ctx = canvas?.getContext("2d", { alpha: true })
-    if (!canvas || !ctx) return false
+    if (!canvas || !ctx) return null
 
     holdMotion(card)
     ctx.imageSmoothingEnabled = false
@@ -1016,7 +1023,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     activeStates.add(state)
     drawState(state, state.startTime)
     scheduleAnimationLoop()
-    return true
+    return state
   }
 
   const run = () => {
@@ -1064,11 +1071,21 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     const imageData = new ImageData(framePixels, grid.cols, grid.rows)
     const previous = cardStates.get(card)
     if (previous) activeStates.delete(previous)
+    const durationOverride = Number(options.durationMs)
+    const hasDurationOverride =
+      Number.isFinite(durationOverride) && durationOverride > 0
     const localConfig = {
       ...config,
-      activeColorDurationMs: sourcePixels
-        ? config.activeColorDurationMs + config.activeColorSettleMs
-        : config.activeColorDurationMs,
+      activeColorExitDurationMs:
+        direction === "out" && hasDurationOverride
+          ? Math.max(1, durationOverride)
+          : config.activeColorExitDurationMs,
+      activeColorDurationMs:
+        direction !== "out" && hasDurationOverride
+          ? Math.max(1, durationOverride)
+          : sourcePixels
+            ? config.activeColorDurationMs + config.activeColorSettleMs
+            : config.activeColorDurationMs,
       activeColorDelayMs:
         config.activeColorDelayMs +
         Math.max(0, index) * config.activeColorStaggerMs,
@@ -1099,7 +1116,50 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     return true
   }
 
-  if (img.complete && img.naturalWidth) return run()
+  const scheduleDeferredRun = (placeholderState = null) => {
+    const baseDelay = Math.max(0, Number(options.deferBaseMs) || 0)
+    const stepDelay = Math.max(0, Number(options.deferStepMs) || 0)
+    const maxDelay = Math.max(0, Number(options.deferMaxMs) || 0)
+    const indexedDelay = baseDelay + Math.max(0, index) * stepDelay
+    const delay = maxDelay > 0 ? Math.min(indexedDelay, maxDelay) : indexedDelay
+    const targetState = placeholderState || cardStates.get(card)
+
+    const begin = () => {
+      const state = cardStates.get(card)
+      if (state) {
+        state.readyFrame = 0
+        state.readyTimer = 0
+      }
+      run()
+    }
+
+    const frame = requestAnimationFrame(() => {
+      const state = cardStates.get(card)
+      if (state) state.readyFrame = 0
+
+      if (delay > 0) {
+        const timer = window.setTimeout(begin, delay)
+        const latestState = cardStates.get(card)
+        if (latestState) latestState.readyTimer = timer
+        return
+      }
+
+      begin()
+    })
+
+    if (targetState) targetState.readyFrame = frame
+  }
+
+  if (img.complete && img.naturalWidth) {
+    if (options.deferReady) {
+      const placeholderState = startPlaceholder()
+      if (placeholderState) {
+        scheduleDeferredRun(placeholderState)
+        return true
+      }
+    }
+    return run()
+  }
 
   const placeholderStarted = startPlaceholder()
   if (!playImageBound.has(img)) {
@@ -1110,12 +1170,17 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
         playImageBound.delete(img)
         if (!card.isConnected) return
         schedulePrewarm(card.closest(".catalog"))
-        run()
+        const placeholderState = cardStates.get(card)
+        if (options.deferReady && placeholderState) {
+          scheduleDeferredRun(placeholderState)
+        } else {
+          run()
+        }
       },
       { once: true, passive: true },
     )
   }
-  return placeholderStarted
+  return Boolean(placeholderStarted)
 }
 
 function allCards(targetCatalog = catalog) {
@@ -1132,10 +1197,40 @@ function playableCards(targetCatalog = catalog, { includeMuted = false } = {}) {
       ]
 }
 
+function readDurationAttribute(targetCatalog, attribute) {
+  const value = Number(targetCatalog?.getAttribute?.(attribute))
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
+function catalogPlaybackOptions(targetCatalog, direction, options = {}) {
+  const durationMs = readDurationAttribute(
+    targetCatalog,
+    direction === "out" ? EXIT_DURATION_ATTRIBUTE : ENTER_DURATION_ATTRIBUTE,
+  )
+  if (direction !== "in") return { ...options, durationMs }
+
+  return {
+    ...options,
+    durationMs,
+    deferReady: options.deferReady ?? durationMs !== null,
+    deferBaseMs:
+      readDurationAttribute(targetCatalog, ENTER_DEFER_ATTRIBUTE) ??
+      options.deferBaseMs ??
+      0,
+    deferStepMs: options.deferStepMs ?? CATEGORY_READY_DEFER_STEP_MS,
+    deferMaxMs: options.deferMaxMs ?? CATEGORY_READY_DEFER_MAX_MS,
+  }
+}
+
 function playCatalog(
   targetCatalog,
   direction,
-  { force = false, includeMuted = false, includeOffscreen = false } = {},
+  {
+    force = false,
+    includeMuted = false,
+    includeOffscreen = false,
+    ...options
+  } = {},
 ) {
   if (
     !targetCatalog ||
@@ -1153,8 +1248,12 @@ function playCatalog(
   }
 
   let played = 0
+  const playbackOptions = catalogPlaybackOptions(targetCatalog, direction, {
+    ...options,
+    includeOffscreen,
+  })
   playableCards(targetCatalog, { includeMuted }).forEach((card, index) => {
-    if (playCard(card, direction, index, runtimeConfig, { includeOffscreen })) {
+    if (playCard(card, direction, index, runtimeConfig, playbackOptions)) {
       played += 1
     }
   })
@@ -1291,6 +1390,7 @@ function handleCatalogPhase(targetCatalog) {
       force: true,
       includeMuted: true,
       includeOffscreen: true,
+      reason: "category-exit",
     })
     return
   }
@@ -1302,6 +1402,7 @@ function handleCatalogPhase(targetCatalog) {
       force: true,
       includeMuted: true,
       includeOffscreen: true,
+      reason: "category-enter",
     })
     return
   }

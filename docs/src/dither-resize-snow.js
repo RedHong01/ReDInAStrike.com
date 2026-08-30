@@ -18,6 +18,7 @@ export const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
 const TARGET_FRAME_MS = 1000 / 60
 const VIEWPORT_MARGIN = 180
 const RESIZE_DURATION_MS = BINARY_MOTION_DEFAULTS.durationMs
+const INITIAL_DURATION_MS = 560
 const RESIZE_SOFTNESS = BINARY_MOTION_DEFAULTS.softness
 
 const resizeStates = new WeakMap()
@@ -182,6 +183,54 @@ export function prepareDitherResizeSnow(card, config, options = {}) {
     framePixels,
     imageData,
     reason: options.reason || "resize",
+    durationMs: Number(options.durationMs) || RESIZE_DURATION_MS,
+  }
+}
+
+export function prepareDitherInitialSnow(card, config, options = {}) {
+  ensureStyles()
+  if (prefersReducedMotion() || !cardNearViewport(card)) return null
+  if (card?.getAttribute?.("data-active-color-motion") === "true") return null
+  if (card?.classList?.contains("is-muted-restore-intent")) return null
+
+  const media = card?.querySelector(".project-media")
+  const img = media?.querySelector("img")
+  const sourceCanvas = media?.querySelector('.dither-preview-canvas[data-active="true"]')
+  if (!media || !img?.complete || !img.naturalWidth) return null
+  if (sourceCanvas && options.force !== true) return null
+
+  const grid = gridForMedia(media, config)
+  const { paper, ink } = readBinaryColors()
+  const oldBits = new Uint8Array(grid.cols * grid.rows)
+
+  cancelState(card)
+  const canvas = ensureCanvas(card, grid.cols, grid.rows)
+  const ctx = canvas?.getContext("2d", { alpha: true })
+  if (!canvas || !ctx) return null
+
+  ctx.imageSmoothingEnabled = false
+  canvas.style.transition = "none"
+  canvas.style.opacity = "1"
+  canvas.style.visibility = "visible"
+  card.setAttribute(DITHER_RESIZE_MOTION_ATTRIBUTE, "true")
+
+  const framePixels = new Uint8ClampedArray(oldBits.length * 4)
+  const imageData = new ImageData(framePixels, grid.cols, grid.rows)
+  drawBinaryBits(ctx, imageData, framePixels, oldBits, paper, ink)
+
+  return {
+    card,
+    canvas,
+    ctx,
+    cols: grid.cols,
+    rows: grid.rows,
+    oldBits,
+    paper,
+    ink,
+    framePixels,
+    imageData,
+    reason: options.reason || "initial",
+    durationMs: Number(options.durationMs) || INITIAL_DURATION_MS,
   }
 }
 
@@ -209,7 +258,7 @@ function drawState(state, now) {
   if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS) return
   state.lastDraw = now
 
-  const raw = clamp((now - startTime) / RESIZE_DURATION_MS)
+  const raw = clamp((now - startTime) / Math.max(1, state.durationMs || RESIZE_DURATION_MS))
   const progress = smooth01(raw)
   const frameTick = Math.floor(now / 46)
   const data = framePixels
@@ -310,6 +359,7 @@ ensureStyles()
 
 window.__RED_DITHER_RESIZE_SNOW__ = {
   cancel: cancelDitherResizeSnow,
+  prepareInitial: prepareDitherInitialSnow,
   prepare: prepareDitherResizeSnow,
   playPrepared: playPreparedDitherResizeSnow,
 }

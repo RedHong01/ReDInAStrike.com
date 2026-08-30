@@ -410,6 +410,10 @@ export function renderCard(card, config) {
 
   const sample = sampleImage(img, cssWidth, cssHeight, config)
   if (!sample) return
+  canvas.dataset.ditherColumns = String(sample.cols)
+  canvas.dataset.ditherRows = String(sample.rows)
+  canvas.dataset.ditherMode = config.mode || "native"
+
   const inkValues = buildInk(sample, config)
   const ctx = canvas.getContext("2d")
   if (!ctx) return

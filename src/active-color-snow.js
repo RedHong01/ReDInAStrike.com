@@ -3,10 +3,12 @@ import {
   decodeActiveColorConfig,
   sanitizeActiveColorConfig,
 } from "./active-color-default.js"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 
 const STYLE_ID = "red-active-color-snow-style"
 const CANVAS_CLASS = "active-color-snow-canvas"
 const ROOT_ATTRIBUTE = "data-red-active-color-snow"
+const RETURN_ATTRIBUTE = "data-active-color-return"
 const MAX_GRID_CELLS = 42000
 const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
@@ -117,6 +119,13 @@ function ensureStyles() {
     html[${ROOT_ATTRIBUTE}="true"] .catalog[data-filter-phase="entering"]
       .project-media:has(.${CANVAS_CLASS})::after {
       opacity: 0;
+    }
+    html[${ROOT_ATTRIBUTE}="true"] .project-card[${RETURN_ATTRIBUTE}="true"]
+      .dither-preview-canvas[data-active="true"],
+    html[${ROOT_ATTRIBUTE}="true"] .project-card[${RETURN_ATTRIBUTE}="true"]
+      .project-halftone {
+      opacity: 0 !important;
+      visibility: hidden !important;
     }
     .${CANVAS_CLASS} {
       position: absolute;
@@ -243,16 +252,9 @@ function getImageRect(img, width, height, style = getComputedStyle(img)) {
   }
 }
 
-function logicalGridSize(media, config) {
-  const rect = media.getBoundingClientRect()
-  let cols = Math.max(
-    1,
-    Math.ceil(Math.max(1, rect.width) / Math.max(1, config.activeColorCellPx)),
-  )
-  let rows = Math.max(
-    1,
-    Math.ceil(Math.max(1, rect.height) / Math.max(1, config.activeColorCellPx)),
-  )
+function constrainGridSize(cols, rows) {
+  cols = Math.max(1, Math.round(cols))
+  rows = Math.max(1, Math.round(rows))
 
   const count = cols * rows
   if (count > MAX_GRID_CELLS) {
@@ -261,6 +263,51 @@ function logicalGridSize(media, config) {
     rows = Math.max(1, Math.floor(rows / scale))
   }
   return { cols, rows }
+}
+
+function renderedDitherGridSize(media) {
+  const source = media?.querySelector?.('.dither-preview-canvas[data-active="true"]')
+  const cols = Number(source?.dataset.ditherColumns)
+  const rows = Number(source?.dataset.ditherRows)
+  if (
+    Number.isFinite(cols) &&
+    cols > 0 &&
+    Number.isFinite(rows) &&
+    rows > 0
+  ) {
+    return constrainGridSize(cols, rows)
+  }
+  return null
+}
+
+function publishedDitherGridSize(media) {
+  if (!PUBLISHED_DITHER_CONFIG?.mode || PUBLISHED_DITHER_CONFIG.mode === "native") {
+    return null
+  }
+
+  const rect = media.getBoundingClientRect()
+  const cols = Number(PUBLISHED_DITHER_CONFIG.columns)
+  if (!Number.isFinite(cols) || cols <= 0) return null
+
+  const width = Math.max(1, rect.width)
+  const height = Math.max(1, rect.height)
+  return constrainGridSize(cols, cols * height / width)
+}
+
+function configuredSnowGridSize(media, config) {
+  const rect = media.getBoundingClientRect()
+  return constrainGridSize(
+    Math.ceil(Math.max(1, rect.width) / Math.max(1, config.activeColorCellPx)),
+    Math.ceil(Math.max(1, rect.height) / Math.max(1, config.activeColorCellPx)),
+  )
+}
+
+function logicalGridSize(media, config) {
+  return (
+    renderedDitherGridSize(media) ||
+    publishedDitherGridSize(media) ||
+    configuredSnowGridSize(media, config)
+  )
 }
 
 function signalOrder(config, col, row) {
@@ -527,7 +574,7 @@ function buildRestoreSourcePixels(card, grid, paper = readPaperColor()) {
   const ctx = sample.getContext("2d", { willReadFrequently: true })
   if (!ctx) return null
 
-  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingEnabled = false
   ctx.fillStyle = rgbaCss(paper)
   ctx.fillRect(0, 0, grid.cols, grid.rows)
 
@@ -544,7 +591,13 @@ function drawPlaceholderState(state, frameTick, now) {
   const data = state.framePixels
   const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
   const clusterMix = clamp(config.activeColorClusterMix)
-  const density = clamp(0.22 + config.activeColorNoiseDensity * 0.5)
+  const ditherThreshold = Number(PUBLISHED_DITHER_CONFIG?.threshold)
+  const density = clamp(
+    (1 - (Number.isFinite(ditherThreshold) ? ditherThreshold : 0.5)) * 0.78 +
+      config.activeColorNoiseDensity * 0.22,
+    0.2,
+    0.62,
+  )
   const timeSeconds = now / 1000
 
   for (let index = 0; index < grid.count; index += 1) {
@@ -561,16 +614,12 @@ function drawPlaceholderState(state, frameTick, now) {
     )
     const wave = 0.5 + Math.sin(timeSeconds * 6.4 + grid.order[index] * Math.PI * 2) * 0.5
     const signal = local * (1 - clusterMix) + cluster * clusterMix
-    const active = signal < density
-    const inkMix = active
-      ? 0.24 + hash01(config.activeColorSeed, row, col, 5000 + frameTick) * 0.5
-      : 0.035 + wave * 0.055
+    const boundary = Math.abs(signal - density) < 0.055
+    const active = signal < density || (boundary && wave > 0.78)
     const offset = index * 4
+    const color = active ? ink : paper
 
-    data[offset] = paper[0] * (1 - inkMix) + ink[0] * inkMix
-    data[offset + 1] = paper[1] * (1 - inkMix) + ink[1] * inkMix
-    data[offset + 2] = paper[2] * (1 - inkMix) + ink[2] * inkMix
-    data[offset + 3] = 255
+    writePixel(data, offset, color)
   }
 
   ctx.putImageData(state.imageData, 0, 0)
@@ -578,14 +627,87 @@ function drawPlaceholderState(state, frameTick, now) {
 
 function cancelCard(card, { remove = true } = {}) {
   const state = cardStates.get(card)
-  if (state) activeStates.delete(state)
+  if (state) {
+    activeStates.delete(state)
+    if (state.handoffFrame) cancelAnimationFrame(state.handoffFrame)
+    if (state.cleanupFrame) cancelAnimationFrame(state.cleanupFrame)
+    clearRestoreSourceInline(state.hiddenSource)
+  }
   cardStates.delete(card)
+  card?.removeAttribute(RETURN_ATTRIBUTE)
   const canvas = card?.querySelector(`.${CANVAS_CLASS}`)
   if (canvas && remove) canvas.remove()
 }
 
+function exposeRestoreSource(card) {
+  const source = card?.querySelector(RESTORE_SOURCE_SELECTOR)
+  if (!source) return null
+
+  source.style.setProperty("transition", "none", "important")
+  source.style.setProperty("opacity", "1", "important")
+  source.style.setProperty("visibility", "visible", "important")
+  return source
+}
+
+function hideRestoreSource(card) {
+  const source = card?.querySelector(RESTORE_SOURCE_SELECTOR)
+  if (!source) return null
+
+  source.style.setProperty("transition", "none", "important")
+  source.style.setProperty("opacity", "0", "important")
+  source.style.setProperty("visibility", "hidden", "important")
+  return source
+}
+
+function clearRestoreSourceInline(source) {
+  source?.style.removeProperty("transition")
+  source?.style.removeProperty("opacity")
+  source?.style.removeProperty("visibility")
+}
+
+function rawFromCurvedProgress(progress, curve) {
+  return 1 - Math.pow(1 - clamp(progress), 1 / Math.max(0.05, curve))
+}
+
+function reverseHoverState(card, state) {
+  if (
+    !state ||
+    state.reason !== "hover" ||
+    state.mode !== "restore" ||
+    !state.sourcePixels
+  ) {
+    return false
+  }
+
+  const now = performance.now()
+  const duration = Math.max(1, state.config.activeColorDurationMs)
+  const reverseProgress = 1 - clamp(state.restoreProgress ?? 1)
+  const raw = rawFromCurvedProgress(reverseProgress, state.config.activeColorCurve)
+  state.mode = "restore-reverse"
+  state.reason = "hover-return"
+  state.startTime = now - state.config.activeColorDelayMs - raw * duration
+  state.lastDraw = 0
+  state.hiddenSource = hideRestoreSource(card)
+  card.setAttribute(RETURN_ATTRIBUTE, "true")
+  activeStates.add(state)
+  drawState(state, now)
+  scheduleAnimationLoop()
+  return true
+}
+
 function finishState(state) {
   activeStates.delete(state)
+
+  if (state.mode === "restore-reverse") {
+    const source = exposeRestoreSource(state.card)
+    state.card.removeAttribute(RETURN_ATTRIBUTE)
+    state.handoffFrame = requestAnimationFrame(() => {
+      if (state.canvas.isConnected) state.canvas.remove()
+      cardStates.delete(state.card)
+      state.cleanupFrame = requestAnimationFrame(() => clearRestoreSourceInline(source))
+    })
+    return
+  }
 
   if (state.direction === "out") {
     state.finished = true
@@ -629,15 +751,22 @@ function drawState(state, now) {
     return
   }
 
-  if (state.mode === "restore" && state.sourcePixels) {
-    if (progress <= 0.001) {
+  if (
+    (state.mode === "restore" || state.mode === "restore-reverse") &&
+    state.sourcePixels
+  ) {
+    if (state.mode === "restore" && progress <= 0.001) {
       data.set(state.sourcePixels)
       ctx.putImageData(state.imageData, 0, 0)
       return
     }
 
-    const decodeProgress = smooth01(progress / 0.62)
-    const rebuildProgress = progress <= 0.42 ? 0 : smooth01((progress - 0.42) / 0.58)
+    const restoring = state.mode === "restore"
+    const restoreProgress = restoring ? progress : 1 - progress
+    state.restoreProgress = restoreProgress
+    const decodeProgress = smooth01(restoreProgress / 0.62)
+    const rebuildProgress =
+      restoreProgress <= 0.42 ? 0 : smooth01((restoreProgress - 0.42) / 0.58)
     const decodeSoftness = 0.085
     const rebuildSoftness = 0.1
 
@@ -832,8 +961,15 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
           : "snow"
       )
     const sourcePixels =
-      mode === "restore"
+      mode === "restore" || mode === "restore-reverse"
         ? buildRestoreSourcePixels(card, grid, paper)
+        : null
+    if (mode === "restore-reverse" && sourcePixels) {
+      card.setAttribute(RETURN_ATTRIBUTE, "true")
+    }
+    const hiddenSource =
+      mode === "restore-reverse" && sourcePixels
+        ? hideRestoreSource(card)
         : null
 
     ctx.imageSmoothingEnabled = false
@@ -861,10 +997,11 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       grid,
       config: localConfig,
       direction,
-      mode: sourcePixels ? "restore" : "snow",
+      mode: sourcePixels ? mode : "snow",
       reason: options.reason || "transition",
       paper,
       sourcePixels,
+      hiddenSource,
       framePixels,
       imageData,
       startTime: performance.now(),
@@ -1028,7 +1165,22 @@ function bindCardHoverSnow(targetCatalog = catalog) {
 
     const cancelHoverSnow = (event) => {
       if (event?.pointerType === "touch") return
+      const parentCatalog = card.closest(".catalog")
       const state = cardStates.get(card)
+      if (
+        parentCatalog?.dataset.activeFilter &&
+        !parentCatalog.dataset.filterPhase &&
+        card.classList.contains("is-filter-muted")
+      ) {
+        if (state?.mode === "restore-reverse") return
+        if (reverseHoverState(card, state)) return
+        playCard(card, "in", 0, runtimeConfig, {
+          mode: "restore-reverse",
+          reason: "hover-return",
+        })
+        return
+      }
+
       if (state?.reason === "hover") cancelCard(card)
     }
 

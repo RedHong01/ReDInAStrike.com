@@ -1,5 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js"
+import { renderCard } from "./dither-engine.js?v=20260830-snowalign1"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   cancelReveal,

@@ -3095,9 +3095,19 @@ function catalogFilterDuration(duration) {
 }
 
 function catalogFineSignalSnowDuration(catalog, direction) {
+  const fallbackConfig = {
+    activeColorEnabled:
+      document.documentElement.getAttribute("data-red-active-color-snow") !== "false",
+    activeColorDurationMs: 660,
+    activeColorExitDurationMs: 350,
+    activeColorDelayMs: 10,
+    activeColorStaggerMs: 26,
+    activeColorSettleMs: 110,
+  }
   const config =
     window.__RED_ACTIVE_COLOR_SNOW__?.getConfig?.() ||
-    window.__RED_ACTIVE_COLOR_CONFIG__
+    window.__RED_ACTIVE_COLOR_CONFIG__ ||
+    fallbackConfig
   if (!catalog || !config?.activeColorEnabled || prefersReducedMotion()) return 0
 
   const cards = [...catalog.querySelectorAll(".project-card")]
@@ -3111,7 +3121,11 @@ function catalogFineSignalSnowDuration(catalog, direction) {
   const stagger = Number(config.activeColorStaggerMs) || 0
   const finalDelay = Math.max(0, cards.length - 1) * Math.max(0, stagger)
   const total = Math.max(0, baseDuration || 0) + startDelay + finalDelay
-  return catalogFilterDuration(total)
+  const fallbackTotal =
+    Math.max(0, fallbackConfig.activeColorExitDurationMs) +
+    fallbackConfig.activeColorDelayMs +
+    Math.max(0, cards.length - 1) * fallbackConfig.activeColorStaggerMs
+  return catalogFilterDuration(Math.max(total, fallbackTotal))
 }
 
 function setCatalogCardTimingVars(catalog, property, step = CATALOG_FILTER_STAGGER_MS, maxDelay = 196) {

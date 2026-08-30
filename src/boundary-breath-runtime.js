@@ -1,6 +1,6 @@
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 
-const OWNER = "breath4"
+const OWNER = "breath5"
 const IDLE_FRAME_MS = 1000 / 30
 const RETRY_DELAYS = [0, 80, 220, 520, 1000, 1800]
 
@@ -18,7 +18,7 @@ function ensureRevealApi() {
     // Capture the scheduler's currently loaded reveal instance first. The new
     // cache-busted module will replace window.__RED_REVEAL_MOTION__ afterwards.
     legacyRevealApi = window.__RED_REVEAL_MOTION__ || null
-    revealModulePromise = import("./reveal-motion.js?v=20260830-breath4").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260830-breath5").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -37,8 +37,8 @@ function currentConfig() {
     ...base,
     // Frequency remains slow; this only increases how legible the breathing is
     // while the scroll position itself is perfectly still.
-    revealNoiseFlicker: Math.max(base.revealNoiseFlicker, 0.92),
-    revealNoisePeak: Math.max(base.revealNoisePeak, 0.28),
+    revealNoiseFlicker: Math.max(base.revealNoiseFlicker, 1),
+    revealNoisePeak: Math.max(base.revealNoisePeak, 0.52),
   }
 }
 

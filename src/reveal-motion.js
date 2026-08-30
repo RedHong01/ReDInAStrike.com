@@ -333,7 +333,7 @@ function breathingWave(timeSeconds, cellPhase, rate) {
 
 function transitionPresence(value) {
   const progress = clamp(value)
-  return smooth01(progress / 0.18) * (1 - smooth01((progress - 0.82) / 0.18))
+  return smooth01(progress / 0.12) * (1 - smooth01((progress - 0.88) / 0.12))
 }
 
 function renderProgress(state, rawProgress, now) {
@@ -474,7 +474,7 @@ function renderBoundaryField(state, now, bounds) {
 
   const metrics = boundaryMetrics(bounds)
   const softness = pixelSoftness(config, "pixel-snow")
-  const breathAmount = 0.045 + config.revealNoiseFlicker * 0.11
+  const breathAmount = 0.07 + config.revealNoiseFlicker * 0.16
   const timeSeconds = now / 1000
   const data = state.framePixels
   data.fill(0)
@@ -508,21 +508,22 @@ function renderBoundaryField(state, now, bounds) {
     for (let index = rowStart; index < rowEnd; index += 1) {
       const threshold = PIXEL_THRESHOLD_MIN + grid.pixelOrder[index] * PIXEL_THRESHOLD_SPAN
       const breath = breathingWave(timeSeconds, grid.flickerPhase[index], grid.breathRate[index])
-      const breathShift = (breath - 0.5) * 2 * breathAmount * transitionPresence(strength)
+      const presence = transitionPresence(strength)
+      const breathShift = (breath - 0.5) * 2 * breathAmount * presence
       let coverAlpha = smooth01((strength + breathShift - threshold + softness) / (softness * 2))
       if (coverAlpha <= 0.001) continue
 
       const transitionBand = 4 * coverAlpha * (1 - coverAlpha)
       coverAlpha = clamp(
-        coverAlpha + (breath - 0.5) * 2 * breathAmount * 0.42 * transitionBand,
+        coverAlpha + (breath - 0.5) * 2 * breathAmount * 0.58 * transitionBand,
       )
 
       const inkPulse = 0.25 + breath * 0.75
       const inkMix = transitionBand *
         inkPulse *
         config.revealNoisePeak *
-        0.26 *
-        (0.27 + grid.darkness[index] * 0.36)
+        0.34 *
+        (0.32 + grid.darkness[index] * 0.46)
 
       writeMixedPixel(
         data,

@@ -1,12 +1,17 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import { renderCard, resetSampleCache } from "./dither-engine.js"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
-import { playDitherReveal } from "./reveal-motion.js"
+import {
+  cancelReveal,
+  refreshViewportDitherReveals,
+  resetViewportDitherRevealSequence,
+  trackViewportDitherReveal,
+} from "./reveal-motion.js?v=20260829-viewport1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const RETRY_DELAYS = [0, 60, 160, 360, 800, 1600]
-const REVEAL_VIEWPORT_MARGIN = 520
+const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
 
 const state = {
   destroyed: false,
@@ -14,10 +19,13 @@ const state = {
   appObserver: null,
   catalogObserver: null,
   resizeObserver: null,
+  revealObserver: null,
   observedMedia: new Set(),
+  observedRevealCards: new Set(),
   boundImages: new WeakSet(),
   retryTimers: new Set(),
   revealSignatures: new WeakMap(),
+  revealSequenceKey: "",
 }
 
 function publishedMode() {
@@ -85,6 +93,29 @@ function activeCatalog() {
   return document.querySelector(".catalog")
 }
 
+function applyCategoryAliases(catalog) {
+  if (!catalog || catalog.dataset.activeFilter !== "game") return
+
+  const ongoingGameLink = [...catalog.querySelectorAll(".project-card a[href]")]
+    .find((link) => {
+      try {
+        const pathname = new URL(link.href, window.location.href).pathname.replace(/\/+$/, "")
+        return pathname.endsWith(ONGOING_GAME_PROJECT_PATH)
+      } catch {
+        return String(link.getAttribute("href") || "").includes("ongoing-game-project")
+      }
+    })
+  const card = ongoingGameLink?.closest(".project-card")
+  if (!card) return
+
+  card.dataset.categoryAlias = "game"
+  card.classList.remove(
+    "is-filter-muted",
+    "is-muted-restore-intent",
+    "is-muted-restore-return",
+  )
+}
+
 function isMutedByActiveFilter(card, catalog) {
   return Boolean(
     publishedIsGenerated() &&
@@ -93,16 +124,24 @@ function isMutedByActiveFilter(card, catalog) {
   )
 }
 
-function revealSignature(card, catalog) {
+function revealSignature(card, catalog, canvas) {
   const img = card.querySelector(".project-media img")
-  return `${catalog?.dataset.activeFilter || ""}|${publishedMode()}|${img?.currentSrc || img?.src || ""}`
+  const rect = canvas?.getBoundingClientRect?.()
+  const cssSize = rect ? `${Math.round(rect.width)}x${Math.round(rect.height)}` : "0x0"
+  return [
+    catalog?.dataset.activeFilter || "",
+    publishedMode(),
+    img?.currentSrc || img?.src || "",
+    `${canvas?.width || 0}x${canvas?.height || 0}`,
+    cssSize,
+  ].join("|")
 }
 
-function isNearRevealViewport(card) {
+function cardIntersectsViewport(card) {
   const rect = card?.getBoundingClientRect?.()
   if (!rect) return false
-  const height = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
-  return rect.bottom >= -REVEAL_VIEWPORT_MARGIN && rect.top <= height + REVEAL_VIEWPORT_MARGIN
+  const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+  return rect.bottom > 0 && rect.top < viewportHeight
 }
 
 function bindImageLoad(img) {
@@ -130,6 +169,70 @@ function syncResizeTargets(catalog) {
   }
 }
 
+function armViewportReveal(card, catalog) {
+  if (!isMutedByActiveFilter(card, catalog)) return false
+  const img = card.querySelector(".project-media img")
+  const canvas = card.querySelector('.dither-preview-canvas[data-active="true"]')
+  if (!img?.complete || img.naturalWidth <= 0 || !canvas || canvas.width <= 1 || canvas.height <= 1) {
+    return false
+  }
+
+  const signature = revealSignature(card, catalog, canvas)
+  const existingReveal = card.querySelector(".dither-reveal-canvas")
+  if (state.revealSignatures.get(card) === signature && existingReveal) return true
+
+  state.revealSignatures.set(card, signature)
+  return trackViewportDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG)
+}
+
+function releaseViewportReveal(card, { forgetSignature = true } = {}) {
+  cancelReveal(card, { remove: true })
+  if (forgetSignature) state.revealSignatures.delete(card)
+}
+
+function handleRevealIntersections(entries) {
+  if (state.destroyed) return
+  const catalog = activeCatalog()
+  if (!catalog) return
+
+  let changed = false
+  entries.forEach((entry) => {
+    const card = entry.target
+    if (!card?.isConnected || !isMutedByActiveFilter(card, catalog)) {
+      releaseViewportReveal(card)
+      return
+    }
+
+    if (entry.isIntersecting) {
+      changed = armViewportReveal(card, catalog) || changed
+    } else {
+      releaseViewportReveal(card)
+    }
+  })
+
+  if (changed) refreshViewportDitherReveals({ linger: false })
+}
+
+function syncRevealTargets(catalog) {
+  if (!state.revealObserver) return
+  const nextCards = new Set(catalog?.querySelectorAll(".project-card.is-filter-muted") || [])
+
+  for (const card of [...state.observedRevealCards]) {
+    if (nextCards.has(card)) continue
+    state.revealObserver.unobserve(card)
+    state.observedRevealCards.delete(card)
+    releaseViewportReveal(card)
+  }
+
+  for (const card of nextCards) {
+    if (!state.observedRevealCards.has(card)) {
+      state.observedRevealCards.add(card)
+      state.revealObserver.observe(card)
+    }
+    if (cardIntersectsViewport(card)) armViewportReveal(card, catalog)
+  }
+}
+
 function renderPublishedDither() {
   state.renderFrame = 0
   if (state.destroyed) return
@@ -138,10 +241,17 @@ function renderPublishedDither() {
 
   const catalog = activeCatalog()
   if (!catalog) return
+  applyCategoryAliases(catalog)
+  if (!publishedIsGenerated()) return
   syncResizeTargets(catalog)
 
+  const sequenceKey = `${catalog.dataset.activeFilter || ""}|${publishedMode()}`
+  if (sequenceKey !== state.revealSequenceKey) {
+    resetViewportDitherRevealSequence()
+    state.revealSequenceKey = sequenceKey
+  }
+
   const cards = [...catalog.querySelectorAll(".project-card")]
-  let visibleMutedIndex = 0
   cards.forEach((card) => {
     const img = card.querySelector(".project-media img")
     bindImageLoad(img)
@@ -149,8 +259,11 @@ function renderPublishedDither() {
     if (!isMutedByActiveFilter(card, catalog)) {
       const canvas = card.querySelector(".dither-preview-canvas")
       if (canvas) canvas.dataset.active = "false"
-      card.querySelector(".dither-reveal-canvas")?.remove()
-      state.revealSignatures.delete(card)
+      if (state.revealObserver && state.observedRevealCards.has(card)) {
+        state.revealObserver.unobserve(card)
+        state.observedRevealCards.delete(card)
+      }
+      releaseViewportReveal(card)
       return
     }
 
@@ -159,17 +272,10 @@ function renderPublishedDither() {
     if (!canvas) return
     canvas.dataset.active = "true"
     canvas.dataset.publishedMode = publishedMode()
-
-    const canReveal = img?.complete && img.naturalWidth > 0 && canvas.width > 1 && canvas.height > 1
-    const signature = revealSignature(card, catalog)
-    if (canReveal && state.revealSignatures.get(card) !== signature) {
-      state.revealSignatures.set(card, signature)
-      if (isNearRevealViewport(card)) {
-        playDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG, { index: visibleMutedIndex })
-        visibleMutedIndex += 1
-      }
-    }
   })
+
+  syncRevealTargets(catalog)
+  refreshViewportDitherReveals({ linger: false })
 }
 
 function requestRender() {
@@ -184,6 +290,14 @@ function mutedClassChanged(mutation) {
   return before.has("is-filter-muted") !== target.classList.contains("is-filter-muted")
 }
 
+function revealCanvasMutationOnly(mutation) {
+  if (mutation.type !== "childList") return false
+  const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
+  return nodes.length > 0 && nodes.every((node) =>
+    node instanceof Element && node.classList.contains("dither-reveal-canvas"),
+  )
+}
+
 function bindCatalogObserver() {
   state.catalogObserver?.disconnect()
   state.catalogObserver = null
@@ -192,8 +306,16 @@ function bindCatalogObserver() {
 
   state.catalogObserver = new MutationObserver((mutations) => {
     if (state.destroyed) return
+
+    if (mutations.some((mutation) =>
+      mutation.type === "childList" ||
+      (mutation.type === "attributes" && mutation.target === catalog && mutation.attributeName === "data-active-filter"),
+    )) {
+      applyCategoryAliases(catalog)
+    }
+
     const shouldRender = mutations.some((mutation) => {
-      if (mutation.type === "childList") return true
+      if (mutation.type === "childList") return !revealCanvasMutationOnly(mutation)
       if (mutation.type !== "attributes") return false
       if (mutation.target === catalog && mutation.attributeName === "data-active-filter") return true
       return mutation.attributeName === "class" && mutedClassChanged(mutation)
@@ -239,6 +361,11 @@ function scheduleRetries() {
 function boot() {
   applyPublishedModeState()
   ensurePublicStyles()
+  bindAppObserver()
+  bindCatalogObserver()
+  requestRender()
+  scheduleRetries()
+
   if (!publishedIsGenerated()) return
 
   if ("ResizeObserver" in window) {
@@ -250,10 +377,14 @@ function boot() {
     })
   }
 
-  bindAppObserver()
-  bindCatalogObserver()
-  requestRender()
-  scheduleRetries()
+  if ("IntersectionObserver" in window) {
+    state.revealObserver = new IntersectionObserver(handleRevealIntersections, {
+      root: null,
+      rootMargin: "0px",
+      threshold: 0,
+    })
+  }
+
   window.addEventListener("resize", requestRender, { passive: true })
 }
 
@@ -265,13 +396,16 @@ export function destroyPublicDitherRuntime() {
   state.appObserver?.disconnect()
   state.catalogObserver?.disconnect()
   state.resizeObserver?.disconnect()
+  state.revealObserver?.disconnect()
   state.appObserver = null
   state.catalogObserver = null
   state.resizeObserver = null
+  state.revealObserver = null
   state.observedMedia.clear()
+  state.observedRevealCards.clear()
   state.retryTimers.forEach((timer) => clearTimeout(timer))
   state.retryTimers.clear()
-  document.querySelectorAll(".dither-reveal-canvas").forEach((canvas) => canvas.remove())
+  document.querySelectorAll(".project-card").forEach((card) => releaseViewportReveal(card))
   window.removeEventListener("resize", requestRender)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
   document.getElementById(PUBLIC_STYLE_ID)?.remove()

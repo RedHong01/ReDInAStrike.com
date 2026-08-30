@@ -1,20 +1,25 @@
 const CONFIG = Object.freeze({
-  idleMs: 168,
-  recentInputMs: 1350,
+  idleMs: 205,
+  recentInputMs: 1220,
   suppressAfterUiMs: 760,
-  attractionRatio: 0.24,
-  minAttractionPx: 96,
-  maxAttractionPx: 240,
-  snapInsetRatio: 0.055,
-  minSnapInsetPx: 18,
-  maxSnapInsetPx: 58,
-  minDistancePx: 10,
-  durationMinMs: 360,
-  durationMaxMs: 720,
-  durationPerPx: 1.05,
-  reverseAllowancePx: 64,
-  velocityGatePxMs: 0.095,
-  velocityDecayMs: 92,
+  attractionRatio: 0.19,
+  minAttractionPx: 78,
+  maxAttractionPx: 188,
+  snapInsetRatio: 0.047,
+  minSnapInsetPx: 16,
+  maxSnapInsetPx: 48,
+  minDistancePx: 6,
+  reverseAllowancePx: 44,
+  velocityGatePxMs: 0.062,
+  velocityDecayMs: 128,
+  springStiffness: 118,
+  springDamping: 22.4,
+  springMaxSpeedPxS: 920,
+  springInitialVelocityLimitPxS: 180,
+  settleDistancePx: 0.42,
+  settleVelocityPxS: 7,
+  maxSpringMs: 1180,
+  postSnapSuppressMs: 210,
 })
 
 const STATION_SELECTORS = [
@@ -134,13 +139,22 @@ function restoreScrollBehavior(animation = currentAnimation) {
   if (currentAnimation === animation) currentAnimation = null
 }
 
+function syncScrollSample({ resetVelocity = false } = {}) {
+  lastScrollY = window.scrollY || 0
+  lastScrollAt = now()
+  if (resetVelocity) lastVelocity = 0
+}
+
 function cancelMagnet({ suppress = 0 } = {}) {
+  const wasAnimating = Boolean(animationFrame || currentAnimation)
   animationToken += 1
   if (animationFrame) cancelAnimationFrame(animationFrame)
   animationFrame = 0
+  delete document.documentElement.dataset.scrollMagnet
   restoreScrollBehavior()
   if (settleTimer) clearTimeout(settleTimer)
   settleTimer = 0
+  if (wasAnimating) syncScrollSample({ resetVelocity: true })
   if (suppress > 0) suppressUntil = Math.max(suppressUntil, now() + suppress)
 }
 
@@ -150,62 +164,106 @@ function markUserInput(direction = 0) {
   if (direction) lastDirection = Math.sign(direction)
 }
 
-function softMagnetStep(t) {
-  const x = clamp(t, 0, 1)
-  const x2 = x * x
-  const x4 = x2 * x2
-  return x4 * (35 + x * (-84 + x * (70 - 20 * x)))
-}
-
 function effectiveVelocity() {
   const age = Math.max(0, now() - lastScrollAt)
   return Math.abs(lastVelocity) * Math.exp(-age / CONFIG.velocityDecayMs)
 }
 
-function animateTo(targetY, station) {
+function stationTargetY(station) {
+  if (!station?.isConnected) return null
+  const currentY = window.scrollY || 0
+  const rect = station.getBoundingClientRect()
+  if (rect.height <= 28 || rect.width <= 8) return null
+  const documentTop = currentY + rect.top
+  return clamp(documentTop - snapLine(), 0, pageMaxScroll())
+}
+
+function animateTo(initialTargetY, station) {
   const startY = window.scrollY || 0
-  const distance = targetY - startY
-  if (Math.abs(distance) < CONFIG.minDistancePx) return
+  const initialDistance = initialTargetY - startY
+  if (Math.abs(initialDistance) < CONFIG.minDistancePx) return
+
+  const inheritedVelocity = clamp(
+    lastVelocity * 1000,
+    -CONFIG.springInitialVelocityLimitPxS,
+    CONFIG.springInitialVelocityLimitPxS,
+  )
 
   cancelMagnet()
   const token = ++animationToken
-  const duration = clamp(
-    CONFIG.durationMinMs + Math.abs(distance) * CONFIG.durationPerPx,
-    CONFIG.durationMinMs,
-    CONFIG.durationMaxMs,
-  )
   const startedAt = now()
   const previousScrollBehavior = document.documentElement.style.scrollBehavior
   document.documentElement.style.scrollBehavior = "auto"
-  currentAnimation = { token, previousScrollBehavior }
+
+  const animation = {
+    token,
+    previousScrollBehavior,
+    station,
+    position: startY,
+    velocity: inheritedVelocity,
+    lastTime: startedAt,
+    targetY: initialTargetY,
+  }
+  currentAnimation = animation
   document.documentElement.dataset.scrollMagnet = "moving"
 
-  const frame = (time) => {
-    if (token !== animationToken) {
-      delete document.documentElement.dataset.scrollMagnet
-      restoreScrollBehavior(currentAnimation)
-      return
-    }
-
-    const progress = clamp((time - startedAt) / duration, 0, 1)
-    const eased = softMagnetStep(progress)
-    window.scrollTo(0, startY + distance * eased)
-
-    if (progress < 1) {
-      animationFrame = requestAnimationFrame(frame)
-      return
-    }
-
+  const finish = (targetY) => {
     animationFrame = 0
-    window.scrollTo(0, targetY)
-    lastScrollY = targetY
+    const finalY = clamp(targetY, 0, pageMaxScroll())
+    window.scrollTo(0, finalY)
+    lastScrollY = finalY
     lastVelocity = 0
     lastScrollAt = now()
     lastSnappedElement = station
-    lastSnappedY = targetY
-    suppressUntil = Math.max(suppressUntil, now() + 230)
+    lastSnappedY = finalY
+    suppressUntil = Math.max(suppressUntil, now() + CONFIG.postSnapSuppressMs)
     delete document.documentElement.dataset.scrollMagnet
-    restoreScrollBehavior(currentAnimation)
+    restoreScrollBehavior(animation)
+  }
+
+  const frame = (time) => {
+    if (token !== animationToken || currentAnimation !== animation) {
+      delete document.documentElement.dataset.scrollMagnet
+      restoreScrollBehavior(animation)
+      return
+    }
+
+    const dynamicTarget = stationTargetY(station)
+    if (dynamicTarget == null) {
+      cancelMagnet({ suppress: 120 })
+      return
+    }
+    animation.targetY = dynamicTarget
+
+    const elapsed = time - startedAt
+    const dt = clamp((time - animation.lastTime) / 1000, 1 / 240, 1 / 30)
+    animation.lastTime = time
+
+    const displacement = animation.targetY - animation.position
+    const acceleration =
+      displacement * CONFIG.springStiffness -
+      animation.velocity * CONFIG.springDamping
+
+    animation.velocity += acceleration * dt
+    animation.velocity = clamp(
+      animation.velocity,
+      -CONFIG.springMaxSpeedPxS,
+      CONFIG.springMaxSpeedPxS,
+    )
+    animation.position += animation.velocity * dt
+
+    const remaining = animation.targetY - animation.position
+    const settled =
+      Math.abs(remaining) <= CONFIG.settleDistancePx &&
+      Math.abs(animation.velocity) <= CONFIG.settleVelocityPxS
+
+    if (settled || elapsed >= CONFIG.maxSpringMs) {
+      finish(animation.targetY)
+      return
+    }
+
+    window.scrollTo(0, clamp(animation.position, 0, pageMaxScroll()))
+    animationFrame = requestAnimationFrame(frame)
   }
 
   animationFrame = requestAnimationFrame(frame)
@@ -230,14 +288,15 @@ function candidateForCurrentPosition() {
     const oppositeDirection = lastDirection !== 0 && Math.sign(delta) !== lastDirection
     if (oppositeDirection && distance > CONFIG.reverseAllowancePx) continue
 
-    let score = distance
-    if (oppositeDirection) score += distance * 0.72
+    const normalizedDistance = distance / Math.max(1, attraction)
+    let score = distance * (0.78 + normalizedDistance * 0.22)
+    if (oppositeDirection) score += distance * 0.92
 
     if (
       station === lastSnappedElement &&
-      Math.abs(currentY - lastSnappedY) < Math.min(84, attraction * 0.38)
+      Math.abs(currentY - lastSnappedY) < Math.min(72, attraction * 0.42)
     ) {
-      score += attraction
+      score += attraction * 1.15
     }
 
     if (!best || score < best.score) best = { station, targetY, delta, score }
@@ -266,6 +325,7 @@ function attemptSnap() {
     }
     return
   }
+
   const candidate = candidateForCurrentPosition()
   if (!candidate) return
   animateTo(candidate.targetY, candidate.station)
@@ -286,7 +346,7 @@ function handleScroll() {
   if (Math.abs(delta) > 0.25) {
     lastDirection = Math.sign(delta)
     const instantaneous = delta / dt
-    lastVelocity = lastVelocity * 0.68 + instantaneous * 0.32
+    lastVelocity = lastVelocity * 0.74 + instantaneous * 0.26
   }
   lastScrollY = y
   lastScrollAt = time
@@ -383,7 +443,7 @@ function boot() {
   })
 
   window.__RED_SCROLL_MAGNET__ = {
-    version: 2,
+    version: 3,
     config: CONFIG,
     refresh: invalidateStations,
     snap: attemptSnap,

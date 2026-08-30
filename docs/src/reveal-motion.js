@@ -3,11 +3,20 @@ import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
 const TARGET_FRAME_MS = 1000 / 60
+const IDLE_FLICKER_FRAME_MS = 1000 / 30
 const MAX_GRID_CELLS = 52000
 const VIEWPORT_LINGER_MS = 220
 const VIEWPORT_PROGRESS_EPSILON = 0.0025
-const ROW_INTRO_OVERLAP = 0.58
 const MAX_GRID_CACHE_PER_CANVAS = 6
+
+const BOUNDARY_DEPTH_RATIO = 0.19
+const BOUNDARY_DEPTH_MIN_PX = 132
+const BOUNDARY_DEPTH_MAX_PX = 310
+const BOUNDARY_HOLD_RATIO = 0.012
+const BOUNDARY_HOLD_MIN_PX = 6
+const BOUNDARY_HOLD_MAX_PX = 18
+const PIXEL_THRESHOLD_MIN = 0.08
+const PIXEL_THRESHOLD_SPAN = 0.84
 
 const animationStates = new WeakMap()
 const activeStates = new Set()
@@ -17,8 +26,6 @@ const gridCache = new WeakMap()
 let animationFrame = 0
 let viewportFrame = 0
 let viewportActiveUntil = 0
-let rowIntroStarts = new WeakMap()
-let nextRowIntroStartAt = 0
 let replayFrame = 0
 let lastRevealConfigKey = ""
 
@@ -32,6 +39,10 @@ const REVEAL_KEYS = [
 ]
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value))
+const smooth01 = (value) => {
+  const t = clamp(value)
+  return t * t * (3 - 2 * t)
+}
 
 function hash32(value) {
   let x = value | 0
@@ -205,6 +216,7 @@ function buildGrid(finalCanvas, config) {
   const thresholdOrder = new Float32Array(count)
   const clusterOrder = new Float32Array(count)
   const scanOrder = new Float32Array(count)
+  const flickerPhase = new Float32Array(count)
 
   const centers = Array.from({ length: config.revealClusterCount }, (_, index) => ({
     x: hash01(config.revealSeed, index, 91, 7),
@@ -221,6 +233,8 @@ function buildGrid(finalCanvas, config) {
       const nx = (col + 0.5) / cols
       const ny = (row + 0.5) / rows
       const random = hash01(config.revealSeed, col, row, 1)
+      const randomB = hash01(config.revealSeed, row, col, 73)
+
       let scanPosition = ny
       if (config.revealDirection === "bottom") scanPosition = 1 - ny
       else if (config.revealDirection === "left") scanPosition = nx
@@ -228,10 +242,12 @@ function buildGrid(finalCanvas, config) {
       else if (config.revealDirection === "center") {
         scanPosition = Math.max(Math.abs(nx - 0.5) * 2, Math.abs(ny - 0.5) * 2)
       }
+
       let nearest = 1
       for (const center of centers) {
         nearest = Math.min(nearest, Math.hypot(nx - center.x, ny - center.y) / Math.SQRT2)
       }
+
       const clusterScale = 5.5 / Math.max(1, config.revealClusterSize)
       darkness[index] = dark
       pixelOrder[index] = random
@@ -244,10 +260,14 @@ function buildGrid(finalCanvas, config) {
         scanPosition * (1 - config.revealScanNoiseMix * 0.32) +
           random * config.revealScanNoiseMix * 0.32,
       )
+      flickerPhase[index] = random * 6.731 + randomB * 3.117
     }
   }
 
-  const grid = { cols, rows, count, darkness, pixelOrder, thresholdOrder, clusterOrder, scanOrder }
+  const grid = {
+    cols, rows, count,
+    darkness, pixelOrder, thresholdOrder, clusterOrder, scanOrder, flickerPhase,
+  }
   if (!perCanvas) {
     perCanvas = new Map()
     gridCache.set(finalCanvas, perCanvas)
@@ -267,19 +287,40 @@ function orderArray(grid, mode) {
   return grid.pixelOrder
 }
 
-function writePixel(data, offset, rgba) {
-  data[offset] = rgba[0]
-  data[offset + 1] = rgba[1]
-  data[offset + 2] = rgba[2]
-  data[offset + 3] = rgba[3]
+function writePaperPixel(data, offset, paper, alpha = 1) {
+  data[offset] = paper[0]
+  data[offset + 1] = paper[1]
+  data[offset + 2] = paper[2]
+  data[offset + 3] = Math.round(clamp(alpha) * paper[3])
+}
+
+function writeMixedPixel(data, offset, paper, ink, inkMix, alpha) {
+  const mix = clamp(inkMix)
+  data[offset] = Math.round(paper[0] + (ink[0] - paper[0]) * mix)
+  data[offset + 1] = Math.round(paper[1] + (ink[1] - paper[1]) * mix)
+  data[offset + 2] = Math.round(paper[2] + (ink[2] - paper[2]) * mix)
+  data[offset + 3] = Math.round(clamp(alpha) * 255)
 }
 
 function writePaperFrame(state) {
   const { grid, colors, framePixels, ctx } = state
   for (let index = 0; index < grid.count; index += 1) {
-    writePixel(framePixels, index * 4, colors.paper)
+    writePaperPixel(framePixels, index * 4, colors.paper, 1)
   }
   ctx.putImageData(state.imageData, 0, 0)
+}
+
+function pixelSoftness(config, mode = "pixel-snow") {
+  const base = 0.052 + config.revealNoisePersistence * 0.052
+  if (mode === "scan-lock") return Math.max(base, config.revealScanFeather * 0.72)
+  return base
+}
+
+function flickerWave(timePhase, cellPhase) {
+  const phase = timePhase + cellPhase
+  const cycle = phase - Math.floor(phase)
+  const triangle = 1 - Math.abs(cycle * 2 - 1)
+  return smooth01(triangle)
 }
 
 function renderProgress(state, rawProgress, now) {
@@ -305,48 +346,41 @@ function renderProgress(state, rawProgress, now) {
 
   const progress = 1 - Math.pow(1 - raw, Math.max(0.05, config.revealCurve))
   const scanProgress = clamp(progress * (1 + config.revealScanOvershoot))
-  const frameTick = Math.floor(now / Math.max(16, 78 - config.revealNoiseFlicker * 56))
-  const snowEnvelope = Math.sin(Math.PI * raw)
-  const baseNoise = clamp(config.revealNoisePeak * (0.18 + snowEnvelope * 0.82))
   const order = orderArray(grid, config.revealMode)
+  const softness = pixelSoftness(config, config.revealMode)
   const data = state.framePixels
+  const timePhase = now * (0.0035 + config.revealNoiseFlicker * 0.0105)
+  const flickerAmount = 0.055 + config.revealNoiseFlicker * 0.19
   data.fill(0)
 
   for (let index = 0; index < grid.count; index += 1) {
-    let resolved = progress >= order[index]
-    if (config.revealMode === "scan-lock") {
-      const feather = Math.max(0.01, config.revealScanFeather)
-      const edge = scanProgress - grid.scanOrder[index]
-      if (edge >= feather) resolved = true
-      else if (edge > -feather) {
-        const edgeProgress = clamp((edge + feather) / (feather * 2))
-        const col = index % grid.cols
-        const row = Math.floor(index / grid.cols)
-        resolved = hash01(config.revealSeed, col, row, 500 + frameTick) < edgeProgress
-      } else resolved = false
-    }
-    if (resolved) continue
+    const baseOrder = config.revealMode === "scan-lock" ? grid.scanOrder[index] : order[index]
+    const threshold = PIXEL_THRESHOLD_MIN + baseOrder * PIXEL_THRESHOLD_SPAN
+    const localProgress = config.revealMode === "scan-lock" ? scanProgress : progress
+    const revealT = smooth01((localProgress - threshold + softness) / (softness * 2))
+    let overlayAlpha = 1 - revealT
+    if (overlayAlpha <= 0.001) continue
 
-    const offset = index * 4
-    writePixel(data, offset, colors.paper)
-    let noiseDensity = baseNoise
-    if (config.revealMode === "threshold-sweep") noiseDensity *= 0.52
-    else if (config.revealMode === "cluster-bloom") noiseDensity *= 0.42
-    else if (config.revealMode === "scan-lock") {
-      const distance = Math.abs(scanProgress - grid.scanOrder[index])
-      noiseDensity *= distance < config.revealScanFeather * 1.7 ? 1.2 : 0.22
-    }
-    const col = index % grid.cols
-    const row = Math.floor(index / grid.cols)
-    if (hash01(config.revealSeed, col, row, 1000 + frameTick) >= noiseDensity) continue
-    const inkChance = clamp(
-      0.5 + config.revealThresholdBias * 0.26 + (grid.darkness[index] - 0.5) * 0.18,
-      0.08,
-      0.92,
+    const transitionBand = 4 * overlayAlpha * (1 - overlayAlpha)
+    const wave = flickerWave(timePhase, grid.flickerPhase[index])
+    overlayAlpha = clamp(
+      overlayAlpha + (wave - 0.5) * 2 * flickerAmount * transitionBand,
     )
-    if (hash01(config.revealSeed, row, col, 2000 + frameTick) < inkChance) {
-      writePixel(data, offset, colors.ink)
-    }
+
+    const sparkleGate = smooth01((wave - 0.58) / 0.42)
+    const inkMix = transitionBand *
+      sparkleGate *
+      config.revealNoisePeak *
+      (0.26 + grid.darkness[index] * 0.38)
+
+    writeMixedPixel(
+      data,
+      index * 4,
+      colors.paper,
+      colors.ink,
+      inkMix,
+      overlayAlpha,
+    )
   }
 
   state.ctx.putImageData(state.imageData, 0, 0)
@@ -395,72 +429,155 @@ function viewportBounds() {
   return { top: headerBottom, bottom: viewportBottom }
 }
 
-function viewportRevealProgress(card, bounds) {
-  const rect = card?.getBoundingClientRect?.()
-  if (!rect || rect.height <= 0 || bounds.bottom <= bounds.top) return 0
-  const visibleTop = Math.max(rect.top, bounds.top)
-  const visibleBottom = Math.min(rect.bottom, bounds.bottom)
-  const visibleHeight = Math.max(0, visibleBottom - visibleTop)
-  const availableHeight = Math.max(1, bounds.bottom - bounds.top)
-  const denominator = Math.max(1, Math.min(rect.height, availableHeight))
-  return clamp(visibleHeight / denominator)
-}
-
-function rowIntroProgress(state, now, viewportProgress) {
-  if (state.introDone) return 1
-  if (viewportProgress <= 0) return 0
-  const row = state.card.closest(".project-row") || state.card
-  let start = rowIntroStarts.get(row)
-  if (start == null) {
-    const duration = Math.max(1, state.config.revealDurationMs)
-    const rowSpacing = Math.max(90, duration * ROW_INTRO_OVERLAP)
-    start = Math.max(now + state.config.revealDelayMs, nextRowIntroStartAt)
-    rowIntroStarts.set(row, start)
-    nextRowIntroStartAt = start + rowSpacing
+function boundaryMetrics(bounds) {
+  const span = Math.max(1, bounds.bottom - bounds.top)
+  return {
+    depth: clamp(span * BOUNDARY_DEPTH_RATIO, BOUNDARY_DEPTH_MIN_PX, BOUNDARY_DEPTH_MAX_PX),
+    hold: clamp(span * BOUNDARY_HOLD_RATIO, BOUNDARY_HOLD_MIN_PX, BOUNDARY_HOLD_MAX_PX),
   }
-  const raw = clamp((now - start) / Math.max(1, state.config.revealDurationMs))
-  if (raw >= 1) state.introDone = true
-  return raw
 }
 
-function drawViewportState(state, now, bounds) {
-  const { card, finalCanvas, canvas } = state
+function boundaryStrength(y, bounds, metrics) {
+  const fromTop = y - bounds.top
+  const fromBottom = bounds.bottom - y
+  if (fromTop <= 0 || fromBottom <= 0) return 1
+
+  const nearest = Math.min(fromTop, fromBottom)
+  if (nearest <= metrics.hold) return 1
+  if (nearest >= metrics.hold + metrics.depth) return 0
+  return 1 - smooth01((nearest - metrics.hold) / metrics.depth)
+}
+
+function renderBoundaryField(state, now, bounds) {
+  const { card, finalCanvas, canvas, grid, config, colors } = state
   if (!card.isConnected || !finalCanvas.isConnected || !canvas.isConnected) {
     cancelReveal(card, { remove: true })
     return false
   }
-  const viewportProgress = viewportRevealProgress(card, bounds)
-  const introProgress = rowIntroProgress(state, now, viewportProgress)
-  const progress = Math.min(viewportProgress, introProgress)
-  const needsIntroFrame = viewportProgress > 0 && !state.introDone
-  if (
-    state.lastProgress >= 0 &&
-    Math.abs(progress - state.lastProgress) < VIEWPORT_PROGRESS_EPSILON &&
-    progress !== 0 && progress !== 1
-  ) return needsIntroFrame
-  renderProgress(state, progress, now)
-  return needsIntroFrame
+
+  const rect = canvas.getBoundingClientRect()
+  if (rect.height <= 0 || rect.width <= 0) return false
+
+  const metrics = boundaryMetrics(bounds)
+  const softness = pixelSoftness(config, "pixel-snow")
+  const flickerAmount = 0.065 + config.revealNoiseFlicker * 0.21
+  const timePhase = now * (0.0038 + config.revealNoiseFlicker * 0.0115)
+  const data = state.framePixels
+  data.fill(0)
+
+  let hasInfluence = false
+  let hasTransition = false
+  let maxStrength = 0
+  let minStrength = 1
+
+  for (let row = 0; row < grid.rows; row += 1) {
+    const viewportY = rect.top + ((row + 0.5) / grid.rows) * rect.height
+    const strength = boundaryStrength(viewportY, bounds, metrics)
+    maxStrength = Math.max(maxStrength, strength)
+    minStrength = Math.min(minStrength, strength)
+
+    if (strength <= 0.0005) continue
+    hasInfluence = true
+
+    const rowStart = row * grid.cols
+    const rowEnd = rowStart + grid.cols
+
+    if (strength >= 0.9995) {
+      for (let index = rowStart; index < rowEnd; index += 1) {
+        writePaperPixel(data, index * 4, colors.paper, 1)
+      }
+      continue
+    }
+
+    hasTransition = true
+
+    for (let index = rowStart; index < rowEnd; index += 1) {
+      const threshold = PIXEL_THRESHOLD_MIN + grid.pixelOrder[index] * PIXEL_THRESHOLD_SPAN
+      let coverAlpha = smooth01((strength - threshold + softness) / (softness * 2))
+      if (coverAlpha <= 0.001) continue
+
+      const transitionBand = 4 * coverAlpha * (1 - coverAlpha)
+      const wave = flickerWave(timePhase, grid.flickerPhase[index])
+      coverAlpha = clamp(
+        coverAlpha + (wave - 0.5) * 2 * flickerAmount * transitionBand,
+      )
+
+      const sparkleGate = smooth01((wave - 0.54) / 0.46)
+      const inkMix = transitionBand *
+        sparkleGate *
+        config.revealNoisePeak *
+        (0.3 + grid.darkness[index] * 0.42)
+
+      writeMixedPixel(
+        data,
+        index * 4,
+        colors.paper,
+        colors.ink,
+        inkMix,
+        coverAlpha,
+      )
+    }
+  }
+
+  if (!hasInfluence || maxStrength <= 0.0005) {
+    if (state.boundaryVisible !== false) {
+      state.ctx.clearRect(0, 0, canvas.width, canvas.height)
+      canvas.style.opacity = "0"
+      canvas.style.visibility = "hidden"
+    }
+    state.boundaryVisible = false
+    state.lastBoundaryStrength = 0
+    return false
+  }
+
+  canvas.style.transition = "none"
+  canvas.style.opacity = "1"
+  canvas.style.visibility = "visible"
+  state.ctx.putImageData(state.imageData, 0, 0)
+  state.boundaryVisible = true
+  state.lastBoundaryStrength = maxStrength
+
+  return hasTransition && minStrength < 0.9995
+}
+
+function drawViewportState(state, now, bounds, forceScrollFrame) {
+  if (!forceScrollFrame && state.lastViewportDraw && now - state.lastViewportDraw < IDLE_FLICKER_FRAME_MS) {
+    return state.hasBoundaryTransition === true
+  }
+  state.lastViewportDraw = now
+  state.hasBoundaryTransition = renderBoundaryField(state, now, bounds)
+  return state.hasBoundaryTransition
 }
 
 function viewportLoop(now) {
   viewportFrame = 0
   if (!viewportStates.size || document.hidden) return
+
   const bounds = viewportBounds()
-  let hasLiveIntro = false
+  const forceScrollFrame = now < viewportActiveUntil
+  let hasBoundaryTransition = false
+
   for (const state of [...viewportStates]) {
-    if (drawViewportState(state, now, bounds)) hasLiveIntro = true
+    if (drawViewportState(state, now, bounds, forceScrollFrame)) {
+      hasBoundaryTransition = true
+    }
   }
-  if (now < viewportActiveUntil || hasLiveIntro) viewportFrame = requestAnimationFrame(viewportLoop)
+
+  if (forceScrollFrame || hasBoundaryTransition) {
+    viewportFrame = requestAnimationFrame(viewportLoop)
+  }
 }
 
 export function resetViewportDitherRevealSequence() {
-  rowIntroStarts = new WeakMap()
-  nextRowIntroStartAt = 0
+  // Public reveal is spatial now: the viewport rules are the only origins.
+  // Keep this export for runtime compatibility; there is no row-timed sequence to reset.
 }
 
 export function refreshViewportDitherReveals({ linger = true } = {}) {
   if (!viewportStates.size || document.hidden) return
-  if (linger) viewportActiveUntil = Math.max(viewportActiveUntil, performance.now() + VIEWPORT_LINGER_MS)
+  if (linger) {
+    viewportActiveUntil = Math.max(viewportActiveUntil, performance.now() + VIEWPORT_LINGER_MS)
+  }
   if (!viewportFrame) viewportFrame = requestAnimationFrame(viewportLoop)
 }
 
@@ -469,8 +586,14 @@ function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
   const imageData = new ImageData(framePixels, grid.cols, grid.rows)
   return {
     mode, card, finalCanvas, canvas, ctx, grid, config,
-    colors: readColors(), lastProgress: -1, introDone: false,
-    framePixels, imageData, settleTimer: 0,
+    colors: readColors(),
+    lastProgress: -1,
+    framePixels,
+    imageData,
+    settleTimer: 0,
+    lastViewportDraw: 0,
+    hasBoundaryTransition: false,
+    boundaryVisible: null,
   }
 }
 

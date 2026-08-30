@@ -1,5 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { destroyPublicDitherRuntime } from "./dither-public-runtime.js?v=20260829-handoff2"
+import { destroyPublicDitherRuntime } from "./dither-public-runtime.js?v=20260829-boundary1"
 import "./scroll-magnet.js?v=20260829-magnet2"
 import "./active-color-snow.js?v=20260829-handoff2"
 import "./active-color-replay-dedupe.js?v=20260829-activecolor2"

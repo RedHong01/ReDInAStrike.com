@@ -6,7 +6,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260829-viewport2"
+} from "./reveal-motion.js?v=20260829-handoff2"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
@@ -378,7 +378,7 @@ function boot() {
   if ("IntersectionObserver" in window) {
     state.revealObserver = new IntersectionObserver(handleRevealIntersections, {
       root: null,
-      rootMargin: "0px",
+      rootMargin: "900px 0px",
       threshold: 0,
     })
   }

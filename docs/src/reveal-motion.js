@@ -7,10 +7,13 @@ const MAX_GRID_CELLS = 52000
 const VIEWPORT_LINGER_MS = 220
 const VIEWPORT_PROGRESS_EPSILON = 0.0025
 const ROW_INTRO_OVERLAP = 0.58
+const MAX_GRID_CACHE_PER_CANVAS = 6
+
 const animationStates = new WeakMap()
 const activeStates = new Set()
 const viewportStates = new Set()
 const gridCache = new WeakMap()
+
 let animationFrame = 0
 let viewportFrame = 0
 let viewportActiveUntil = 0
@@ -102,11 +105,18 @@ function parseColor(css) {
   return [...ctx.getImageData(0, 0, 1, 1).data]
 }
 
+let colorCacheKey = ""
+let colorCacheValue = null
+
 function readColors() {
   const styles = getComputedStyle(document.documentElement)
   const paper = styles.getPropertyValue("--paper").trim() || "#fff"
   const ink = styles.getPropertyValue("--ink").trim() || "#111"
-  return { paper: parseColor(paper), ink: parseColor(ink) }
+  const key = `${paper}|${ink}`
+  if (key === colorCacheKey && colorCacheValue) return colorCacheValue
+  colorCacheKey = key
+  colorCacheValue = { paper: parseColor(paper), ink: parseColor(ink) }
+  return colorCacheValue
 }
 
 export function cancelReveal(card, { remove = false } = {}) {
@@ -137,7 +147,7 @@ function logicalGridSize(finalCanvas, config) {
     cols = Math.max(1, Math.floor(cols / scale))
     rows = Math.max(1, Math.floor(rows / scale))
   }
-  return { cols, rows, cssWidth, cssHeight }
+  return { cols, rows }
 }
 
 function ensureRevealCanvas(card, cols, rows) {
@@ -155,19 +165,30 @@ function ensureRevealCanvas(card, cols, rows) {
   return canvas
 }
 
-function buildGrid(finalCanvas, config) {
-  const { cols, rows, cssWidth, cssHeight } = logicalGridSize(finalCanvas, config)
-  const cacheKey = [
-    finalCanvas.width, finalCanvas.height,
-    Math.round(cssWidth), Math.round(cssHeight),
-    cols, rows,
-    config.revealSeed, config.revealDirection,
-    config.revealThresholdBias, config.revealClusterSize,
-    config.revealClusterCount, config.revealClusterSpread,
-    config.revealClusterJitter, config.revealScanNoiseMix,
+function gridCacheKey(finalCanvas, config, cols, rows) {
+  const card = finalCanvas.closest(".project-card")
+  const img = card?.querySelector(".project-media img")
+  return [
+    `${finalCanvas.width}x${finalCanvas.height}`,
+    `${cols}x${rows}`,
+    finalCanvas.dataset.publishedMode || "",
+    img?.currentSrc || img?.src || "",
+    config.revealSeed,
+    config.revealDirection,
+    config.revealThresholdBias,
+    config.revealClusterSize,
+    config.revealClusterCount,
+    config.revealClusterSpread,
+    config.revealClusterJitter,
+    config.revealScanNoiseMix,
   ].join("|")
-  const cached = gridCache.get(finalCanvas)
-  if (cached?.key === cacheKey) return cached.grid
+}
+
+function buildGrid(finalCanvas, config) {
+  const { cols, rows } = logicalGridSize(finalCanvas, config)
+  const cacheKey = gridCacheKey(finalCanvas, config, cols, rows)
+  let perCanvas = gridCache.get(finalCanvas)
+  if (perCanvas?.has(cacheKey)) return perCanvas.get(cacheKey)
 
   const sample = document.createElement("canvas")
   sample.width = cols
@@ -176,7 +197,8 @@ function buildGrid(finalCanvas, config) {
   if (!sampleCtx) return null
   sampleCtx.imageSmoothingEnabled = false
   sampleCtx.drawImage(finalCanvas, 0, 0, cols, rows)
-  const finalPixels = new Uint8ClampedArray(sampleCtx.getImageData(0, 0, cols, rows).data)
+  const sampled = sampleCtx.getImageData(0, 0, cols, rows).data
+
   const count = cols * rows
   const darkness = new Float32Array(count)
   const pixelOrder = new Float32Array(count)
@@ -194,7 +216,7 @@ function buildGrid(finalCanvas, config) {
       const index = row * cols + col
       const p = index * 4
       const dark = 1 - (
-        finalPixels[p] * 0.2126 + finalPixels[p + 1] * 0.7152 + finalPixels[p + 2] * 0.0722
+        sampled[p] * 0.2126 + sampled[p + 1] * 0.7152 + sampled[p + 2] * 0.0722
       ) / 255
       const nx = (col + 0.5) / cols
       const ny = (row + 0.5) / rows
@@ -216,17 +238,25 @@ function buildGrid(finalCanvas, config) {
       thresholdOrder[index] = clamp((1 - dark + config.revealThresholdBias) * 0.68 + random * 0.32)
       clusterOrder[index] = clamp(
         nearest * clusterScale * (1.25 - config.revealClusterSpread * 0.55) +
-        (random - 0.5) * config.revealClusterJitter * 0.38,
+          (random - 0.5) * config.revealClusterJitter * 0.38,
       )
       scanOrder[index] = clamp(
         scanPosition * (1 - config.revealScanNoiseMix * 0.32) +
-        random * config.revealScanNoiseMix * 0.32,
+          random * config.revealScanNoiseMix * 0.32,
       )
     }
   }
 
-  const grid = { cols, rows, count, finalPixels, darkness, pixelOrder, thresholdOrder, clusterOrder, scanOrder }
-  gridCache.set(finalCanvas, { key: cacheKey, grid })
+  const grid = { cols, rows, count, darkness, pixelOrder, thresholdOrder, clusterOrder, scanOrder }
+  if (!perCanvas) {
+    perCanvas = new Map()
+    gridCache.set(finalCanvas, perCanvas)
+  }
+  perCanvas.set(cacheKey, grid)
+  while (perCanvas.size > MAX_GRID_CACHE_PER_CANVAS) {
+    const oldestKey = perCanvas.keys().next().value
+    perCanvas.delete(oldestKey)
+  }
   return grid
 }
 
@@ -252,21 +282,17 @@ function writePaperFrame(state) {
   ctx.putImageData(state.imageData, 0, 0)
 }
 
-function writeTransparentFrame(state) {
-  state.framePixels.fill(0)
-  state.ctx.putImageData(state.imageData, 0, 0)
-}
-
 function renderProgress(state, rawProgress, now) {
   const { canvas, grid, config, colors } = state
   const raw = clamp(rawProgress)
-
   canvas.style.transition = "none"
   canvas.style.opacity = "1"
   canvas.style.visibility = "visible"
 
   if (raw >= 1 - VIEWPORT_PROGRESS_EPSILON) {
-    if (state.lastProgress !== 1) writeTransparentFrame(state)
+    state.ctx.clearRect(0, 0, canvas.width, canvas.height)
+    canvas.style.opacity = "0"
+    canvas.style.visibility = "hidden"
     state.lastProgress = 1
     return
   }
@@ -328,14 +354,14 @@ function renderProgress(state, rawProgress, now) {
 }
 
 function finishReveal(state) {
-  const { card, canvas } = state
   activeStates.delete(state)
-  writeTransparentFrame(state)
-  state.settleTimer = window.setTimeout(() => {
-    if (animationStates.get(card) !== state) return
-    animationStates.delete(card)
-    canvas.remove()
-  }, 24)
+  const { card, canvas } = state
+  state.ctx.clearRect(0, 0, canvas.width, canvas.height)
+  canvas.style.transition = "none"
+  canvas.style.opacity = "0"
+  canvas.style.visibility = "hidden"
+  if (animationStates.get(card) === state) animationStates.delete(card)
+  canvas.remove()
 }
 
 function drawState(state, now) {
@@ -346,7 +372,6 @@ function drawState(state, now) {
   }
   if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS) return
   state.lastDraw = now
-
   const elapsed = now - startTime
   const raw = clamp((elapsed - config.revealDelayMs) / Math.max(1, config.revealDurationMs))
   renderProgress(state, raw, now)
@@ -384,7 +409,6 @@ function viewportRevealProgress(card, bounds) {
 function rowIntroProgress(state, now, viewportProgress) {
   if (state.introDone) return 1
   if (viewportProgress <= 0) return 0
-
   const row = state.card.closest(".project-row") || state.card
   let start = rowIntroStarts.get(row)
   if (start == null) {
@@ -394,7 +418,6 @@ function rowIntroProgress(state, now, viewportProgress) {
     rowIntroStarts.set(row, start)
     nextRowIntroStartAt = start + rowSpacing
   }
-
   const raw = clamp((now - start) / Math.max(1, state.config.revealDurationMs))
   if (raw >= 1) state.introDone = true
   return raw
@@ -406,18 +429,15 @@ function drawViewportState(state, now, bounds) {
     cancelReveal(card, { remove: true })
     return false
   }
-
   const viewportProgress = viewportRevealProgress(card, bounds)
   const introProgress = rowIntroProgress(state, now, viewportProgress)
   const progress = Math.min(viewportProgress, introProgress)
   const needsIntroFrame = viewportProgress > 0 && !state.introDone
-
   if (
     state.lastProgress >= 0 &&
     Math.abs(progress - state.lastProgress) < VIEWPORT_PROGRESS_EPSILON &&
     progress !== 0 && progress !== 1
   ) return needsIntroFrame
-
   renderProgress(state, progress, now)
   return needsIntroFrame
 }
@@ -444,6 +464,16 @@ export function refreshViewportDitherReveals({ linger = true } = {}) {
   if (!viewportFrame) viewportFrame = requestAnimationFrame(viewportLoop)
 }
 
+function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
+  const framePixels = new Uint8ClampedArray(grid.count * 4)
+  const imageData = new ImageData(framePixels, grid.cols, grid.rows)
+  return {
+    mode, card, finalCanvas, canvas, ctx, grid, config,
+    colors: readColors(), lastProgress: -1, introDone: false,
+    framePixels, imageData, settleTimer: 0,
+  }
+}
+
 export function trackViewportDitherReveal(card, finalCanvas, inputConfig = null) {
   ensureStyles()
   const config = sanitizeMotionConfig(inputConfig || window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
@@ -459,18 +489,11 @@ export function trackViewportDitherReveal(card, finalCanvas, inputConfig = null)
   const ctx = canvas?.getContext("2d", { alpha: true })
   if (!canvas || !ctx) return false
   ctx.imageSmoothingEnabled = false
-
   canvas.style.transition = "none"
   canvas.style.opacity = "1"
   canvas.style.visibility = "visible"
-  const framePixels = new Uint8ClampedArray(grid.count * 4)
-  const imageData = new ImageData(framePixels, grid.cols, grid.rows)
-  const state = {
-    mode: "viewport",
-    card, finalCanvas, canvas, ctx, grid, config,
-    colors: readColors(), lastProgress: -1, introDone: false,
-    framePixels, imageData, settleTimer: 0,
-  }
+
+  const state = createState(card, finalCanvas, config, grid, canvas, ctx, "viewport")
   animationStates.set(card, state)
   viewportStates.add(state)
   refreshViewportDitherReveals({ linger: false })
@@ -496,20 +519,16 @@ export function playDitherReveal(card, finalCanvas, inputConfig = null, options 
   const ctx = canvas?.getContext("2d", { alpha: true })
   if (!canvas || !ctx) return false
   ctx.imageSmoothingEnabled = false
-
   canvas.style.transition = "none"
   canvas.style.opacity = "1"
   canvas.style.visibility = "visible"
-  const framePixels = new Uint8ClampedArray(grid.count * 4)
-  const imageData = new ImageData(framePixels, grid.cols, grid.rows)
-  const state = {
-    mode: "time",
-    card, finalCanvas, canvas, ctx, grid, config: runtimeConfig,
-    colors: readColors(), startTime: performance.now(), lastDraw: 0, lastProgress: -1,
-    framePixels, imageData, settleTimer: 0,
-  }
+
+  const state = createState(card, finalCanvas, runtimeConfig, grid, canvas, ctx, "time")
+  state.startTime = performance.now()
+  state.lastDraw = 0
   animationStates.set(card, state)
   activeStates.add(state)
+  renderProgress(state, 0, state.startTime)
   scheduleAnimationLoop()
   return true
 }
@@ -536,7 +555,6 @@ window.addEventListener("resize", () => refreshViewportDitherReveals(), { passiv
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) refreshViewportDitherReveals({ linger: false })
 })
-
 window.addEventListener("red:motion-config", (event) => {
   const config = sanitizeMotionConfig(event.detail || PUBLISHED_MOTION_CONFIG)
   const key = revealConfigKey(config)

@@ -10,8 +10,10 @@ const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const MAX_GRID_CELLS = 42000
 const VIEWPORT_MARGIN = 620
 const TARGET_FRAME_MS = 1000 / 60
+const MAX_PALETTE_CACHE = 48
 const cardStates = new WeakMap()
 const activeStates = new Set()
+const paletteCache = new Map()
 let animationFrame = 0
 let catalogObserver = null
 let appObserver = null
@@ -20,6 +22,10 @@ let previousFilter = null
 let lastPhase = ""
 let hubLoadPromise = null
 let panelWatchObserver = null
+let prewarmHandle = 0
+let prewarmToken = 0
+let cachedPaperCss = ""
+let cachedPaperRgba = null
 
 function configFromUrl() {
   const encoded = new URLSearchParams(location.search).get("activeColorConfig")
@@ -131,7 +137,10 @@ function parseColor(css, fallback = [248, 247, 245, 255]) {
 
 function readPaperColor() {
   const value = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim() || "#f8f7f5"
-  return parseColor(value)
+  if (value === cachedPaperCss && cachedPaperRgba) return cachedPaperRgba
+  cachedPaperCss = value
+  cachedPaperRgba = parseColor(value)
+  return cachedPaperRgba
 }
 
 function parseObjectPositionRatio(value) {
@@ -223,8 +232,34 @@ function saturateColor(r, g, b, amount) {
   ]
 }
 
-function buildLocalPalette(img, media, config) {
-  const { cols, rows } = logicalGridSize(media, config)
+function paletteKey(img, media, config, cols, rows) {
+  return [
+    img.currentSrc || img.src || "",
+    img.naturalWidth, img.naturalHeight,
+    cols, rows,
+    config.activeColorPaletteLevels,
+    config.activeColorNeighborRadius,
+    config.activeColorNeighborMix,
+    config.activeColorSaturation,
+    config.activeColorClusterSize,
+    config.activeColorClusterMix,
+    config.activeColorSeed,
+    getComputedStyle(img).objectFit,
+    getComputedStyle(img).objectPosition,
+  ].join("|")
+}
+
+function rememberPalette(key, grid) {
+  if (paletteCache.has(key)) paletteCache.delete(key)
+  paletteCache.set(key, grid)
+  while (paletteCache.size > MAX_PALETTE_CACHE) {
+    const oldest = paletteCache.keys().next().value
+    paletteCache.delete(oldest)
+  }
+  return grid
+}
+
+function sampleSource(img, media, cols, rows) {
   const sample = document.createElement("canvas")
   sample.width = cols
   sample.height = rows
@@ -247,51 +282,130 @@ function buildLocalPalette(img, media, config) {
     return null
   }
 
-  const source = new Uint8ClampedArray(ctx.getImageData(0, 0, cols, rows).data)
-  const palette = new Uint8ClampedArray(source.length)
+  return new Uint8ClampedArray(ctx.getImageData(0, 0, cols, rows).data)
+}
+
+function buildOrder(cols, rows, config) {
   const order = new Float32Array(cols * rows)
+  const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
+  const clusterMix = clamp(config.activeColorClusterMix)
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const index = row * cols + col
+      const localRandom = hash01(config.activeColorSeed, col, row, 1)
+      const clusterRandom = hash01(
+        config.activeColorSeed,
+        Math.floor(col / clusterSize),
+        Math.floor(row / clusterSize),
+        9,
+      )
+      order[index] = localRandom * (1 - clusterMix) + clusterRandom * clusterMix
+    }
+  }
+  return order
+}
+
+function buildFastPalette(img, media, config) {
+  const { cols, rows } = logicalGridSize(media, config)
+  const key = paletteKey(img, media, config, cols, rows)
+  const cached = paletteCache.get(key)
+  if (cached) {
+    paletteCache.delete(key)
+    paletteCache.set(key, cached)
+    return cached
+  }
+  const source = sampleSource(img, media, cols, rows)
+  if (!source) return null
+  const palette = new Uint8ClampedArray(source.length)
+  const levels = config.activeColorPaletteLevels
+  const saturation = config.activeColorSaturation
+  for (let index = 0; index < cols * rows; index += 1) {
+    const offset = index * 4
+    const [r, g, b] = saturateColor(source[offset], source[offset + 1], source[offset + 2], saturation)
+    palette[offset] = quantize(r, levels)
+    palette[offset + 1] = quantize(g, levels)
+    palette[offset + 2] = quantize(b, levels)
+    palette[offset + 3] = 255
+  }
+  return { cols, rows, count: cols * rows, palette, order: buildOrder(cols, rows, config), cacheKey: key, refined: false }
+}
+
+function buildLocalPalette(img, media, config) {
+  const { cols, rows } = logicalGridSize(media, config)
+  const key = paletteKey(img, media, config, cols, rows)
+  const cached = paletteCache.get(key)
+  if (cached?.refined) {
+    paletteCache.delete(key)
+    paletteCache.set(key, cached)
+    return cached
+  }
+
+  const source = sampleSource(img, media, cols, rows)
+  if (!source) return null
+  const palette = new Uint8ClampedArray(source.length)
+  const order = buildOrder(cols, rows, config)
   const radius = Math.max(0, Math.round(config.activeColorNeighborRadius))
   const mix = clamp(config.activeColorNeighborMix)
   const levels = config.activeColorPaletteLevels
   const saturation = config.activeColorSaturation
-  const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
-  const clusterMix = clamp(config.activeColorClusterMix)
+
+  if (radius <= 0) {
+    for (let index = 0; index < cols * rows; index += 1) {
+      const offset = index * 4
+      const [r, g, b] = saturateColor(source[offset], source[offset + 1], source[offset + 2], saturation)
+      palette[offset] = quantize(r, levels)
+      palette[offset + 1] = quantize(g, levels)
+      palette[offset + 2] = quantize(b, levels)
+      palette[offset + 3] = 255
+    }
+    return rememberPalette(key, { cols, rows, count: cols * rows, palette, order, cacheKey: key, refined: true })
+  }
+
+  const stride = cols + 1
+  const integralR = new Float64Array((cols + 1) * (rows + 1))
+  const integralG = new Float64Array((cols + 1) * (rows + 1))
+  const integralB = new Float64Array((cols + 1) * (rows + 1))
+  for (let y = 1; y <= rows; y += 1) {
+    let rowR = 0
+    let rowG = 0
+    let rowB = 0
+    for (let x = 1; x <= cols; x += 1) {
+      const sourceOffset = ((y - 1) * cols + (x - 1)) * 4
+      rowR += source[sourceOffset]
+      rowG += source[sourceOffset + 1]
+      rowB += source[sourceOffset + 2]
+      const i = y * stride + x
+      integralR[i] = integralR[i - stride] + rowR
+      integralG[i] = integralG[i - stride] + rowG
+      integralB[i] = integralB[i - stride] + rowB
+    }
+  }
+
+  const areaSum = (integral, x0, y0, x1, y1) => {
+    const a = y0 * stride + x0
+    const b = y0 * stride + x1
+    const c = y1 * stride + x0
+    const d = y1 * stride + x1
+    return integral[d] - integral[b] - integral[c] + integral[a]
+  }
 
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       const index = row * cols + col
       const offset = index * 4
-      let avgR = 0
-      let avgG = 0
-      let avgB = 0
-      let samples = 0
-
-      for (let dy = -radius; dy <= radius; dy += 1) {
-        const y = row + dy
-        if (y < 0 || y >= rows) continue
-        for (let dx = -radius; dx <= radius; dx += 1) {
-          const x = col + dx
-          if (x < 0 || x >= cols) continue
-          const p = (y * cols + x) * 4
-          avgR += source[p]
-          avgG += source[p + 1]
-          avgB += source[p + 2]
-          samples += 1
-        }
-      }
-
-      avgR /= Math.max(1, samples)
-      avgG /= Math.max(1, samples)
-      avgB /= Math.max(1, samples)
+      const x0 = Math.max(0, col - radius)
+      const y0 = Math.max(0, row - radius)
+      const x1 = Math.min(cols, col + radius + 1)
+      const y1 = Math.min(rows, row + radius + 1)
+      const samples = Math.max(1, (x1 - x0) * (y1 - y0))
+      const avgR = areaSum(integralR, x0, y0, x1, y1) / samples
+      const avgG = areaSum(integralG, x0, y0, x1, y1) / samples
+      const avgB = areaSum(integralB, x0, y0, x1, y1) / samples
 
       let nearestOffset = offset
       let nearestDistance = Number.POSITIVE_INFINITY
-      for (let dy = -radius; dy <= radius; dy += 1) {
-        const y = row + dy
-        if (y < 0 || y >= rows) continue
-        for (let dx = -radius; dx <= radius; dx += 1) {
-          const x = col + dx
-          if (x < 0 || x >= cols) continue
+      for (let y = y0; y < y1; y += 1) {
+        for (let x = x0; x < x1; x += 1) {
           const p = (y * cols + x) * 4
           const dr = source[p] - avgR
           const dg = source[p + 1] - avgG
@@ -312,19 +426,48 @@ function buildLocalPalette(img, media, config) {
       palette[offset + 1] = quantize(satG, levels)
       palette[offset + 2] = quantize(satB, levels)
       palette[offset + 3] = 255
-
-      const localRandom = hash01(config.activeColorSeed, col, row, 1)
-      const clusterRandom = hash01(
-        config.activeColorSeed,
-        Math.floor(col / clusterSize),
-        Math.floor(row / clusterSize),
-        9,
-      )
-      order[index] = localRandom * (1 - clusterMix) + clusterRandom * clusterMix
     }
   }
 
-  return { cols, rows, count: cols * rows, palette, order }
+  return rememberPalette(key, { cols, rows, count: cols * rows, palette, order, cacheKey: key, refined: true })
+}
+
+function schedulePalettePrewarm(targetCatalog = catalog) {
+  const token = ++prewarmToken
+  if (prewarmHandle) {
+    if ("cancelIdleCallback" in window) cancelIdleCallback(prewarmHandle)
+    else clearTimeout(prewarmHandle)
+    prewarmHandle = 0
+  }
+  if (!targetCatalog || !runtimeConfig.activeColorEnabled || prefersReducedMotion()) return
+
+  const cards = [...targetCatalog.querySelectorAll(".project-card")]
+  let index = 0
+  const run = (deadline) => {
+    if (token !== prewarmToken || !targetCatalog.isConnected) return
+    let worked = 0
+    while (index < cards.length) {
+      const card = cards[index++]
+      const media = card.querySelector(".project-media")
+      const img = media?.querySelector("img")
+      if (media && img?.complete && img.naturalWidth > 0) buildLocalPalette(img, media, runtimeConfig)
+      else if (img && !img.complete) img.addEventListener("load", () => schedulePalettePrewarm(targetCatalog), { once: true, passive: true })
+      worked += 1
+      if (worked >= 1 && deadline?.timeRemaining && deadline.timeRemaining() < 5) break
+      if (worked >= 2 && !deadline?.timeRemaining) break
+    }
+    if (index < cards.length) {
+      prewarmHandle = "requestIdleCallback" in window
+        ? requestIdleCallback(run, { timeout: 700 })
+        : window.setTimeout(() => run(null), 32)
+    } else {
+      prewarmHandle = 0
+    }
+  }
+
+  prewarmHandle = "requestIdleCallback" in window
+    ? requestIdleCallback(run, { timeout: 900 })
+    : window.setTimeout(() => run(null), 80)
 }
 
 function writePixel(data, offset, rgba) {
@@ -349,16 +492,14 @@ function finishState(state) {
     return
   }
 
-  const { canvas, card, config } = state
-  canvas.style.transition = config.activeColorSettleMs > 0
-    ? `opacity ${config.activeColorSettleMs}ms cubic-bezier(0.22, 1, 0.36, 1)`
-    : "none"
-  requestAnimationFrame(() => { canvas.style.opacity = "0" })
+  const { canvas, card } = state
+  state.framePixels.fill(0)
+  state.ctx.putImageData(state.imageData, 0, 0)
   window.setTimeout(() => {
     if (cardStates.get(card) !== state) return
     cardStates.delete(card)
     canvas.remove()
-  }, config.activeColorSettleMs + 70)
+  }, 24)
 }
 
 function drawState(state, now) {
@@ -434,7 +575,15 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
 
   const run = () => {
     if (!card.isConnected || !img.complete || !img.naturalWidth) return false
-    const grid = buildLocalPalette(img, media, config)
+    const { cols, rows } = logicalGridSize(media, config)
+    const key = paletteKey(img, media, config, cols, rows)
+    let grid = paletteCache.get(key)
+    if (!grid) {
+      grid = buildFastPalette(img, media, config)
+      if (grid) window.setTimeout(() => {
+        if (card.isConnected && img.complete && img.naturalWidth > 0) buildLocalPalette(img, media, config)
+      }, 0)
+    }
     if (!grid) return false
     const canvas = ensureCanvas(card, grid.cols, grid.rows)
     const ctx = canvas?.getContext("2d", { alpha: true })
@@ -500,13 +649,11 @@ function handleCatalogPhase(targetCatalog) {
   if (phase === "entering") {
     stopCatalogStates(targetCatalog)
     requestAnimationFrame(() => playCatalog(targetCatalog, "in"))
+    schedulePalettePrewarm(targetCatalog)
     return
   }
 
   if (phase === "settling") {
-    // The original transition schedules a hidden native-dot printing pass here.
-    // Replace that phase immediately so the old ruler/drop + native printing language
-    // cannot continue underneath the color-snow / Floyd system.
     targetCatalog.dataset.filterPhase = "color-snow"
     delete targetCatalog.dataset.halftonePhase
   }
@@ -536,6 +683,7 @@ function bindCatalog(nextCatalog) {
       if (catalog.dataset.filterPhase === "entering") {
         requestAnimationFrame(() => playCatalog(catalog, "in"))
       }
+      schedulePalettePrewarm(catalog)
     }
     handleCatalogPhase(catalog)
   })
@@ -548,6 +696,7 @@ function bindCatalog(nextCatalog) {
     attributeFilter: ["data-filter-phase", "data-active-filter"],
   })
   handleCatalogPhase(catalog)
+  schedulePalettePrewarm(catalog)
 }
 
 function bindApp() {
@@ -563,6 +712,7 @@ function replayActiveColorSnow(inputConfig = runtimeConfig) {
   runtimeConfig = sanitizeActiveColorConfig(inputConfig)
   window.__RED_ACTIVE_COLOR_CONFIG__ = runtimeConfig
   applyEnabledState()
+  schedulePalettePrewarm(catalog)
   if (!catalog?.dataset.activeFilter) return
   playCatalog(catalog, "in", { force: true })
 }
@@ -583,6 +733,7 @@ window.addEventListener("red:active-color-config", (event) => {
   runtimeConfig = sanitizeActiveColorConfig(event.detail || PUBLISHED_ACTIVE_COLOR_CONFIG)
   window.__RED_ACTIVE_COLOR_CONFIG__ = runtimeConfig
   applyEnabledState()
+  schedulePalettePrewarm(catalog)
   if (document.querySelector(".dither-lab")?.dataset.open === "true") replayActiveColorSnow(runtimeConfig)
 })
 

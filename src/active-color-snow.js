@@ -6,7 +6,7 @@ import {
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import {
   logicalGridForMedia,
-} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
+} from "./binary-surface-core.js?v=20260830-perfaudit1"
 
 const STYLE_ID = "red-active-color-snow-style"
 const STYLE_VERSION = "4"

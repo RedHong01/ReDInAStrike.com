@@ -193,6 +193,7 @@ const HALFTONE_PROGRESS_STEPS = 260
 const HALFTONE_LOGICAL_COLUMNS = 132
 const HALFTONE_RENDER_FRAME_BUDGET_MS = 4.5
 const HALFTONE_SOURCE_CACHE_LIMIT = 64
+const PROJECT_RULE_UPDATE_MARGIN = 280
 const HEADER_SCROLL_EDGE_EPSILON = 0.006
 const HEADER_SCROLL_ANCHOR_JITTER_PX = 1.5
 const HEADER_SCROLL_DIRECT_INPUT_MS = 260
@@ -427,6 +428,8 @@ const siteState = {
   hasProjectRuleTargets: false,
   ruleFadeFrame: 0,
   ruleFadeUpdates: [],
+  ruleGeometryCache: new WeakMap(),
+  ruleGeometryGeneration: 0,
   catalogFilterTarget: null,
   catalogFilterCurrent: null,
   catalogFilterLocked: null,
@@ -507,10 +510,13 @@ const siteState = {
   halftoneColors: null,
   halftoneColorsKey: "",
   reducedMotionQuery: null,
+  hoverEmbedMediaBound: new WeakSet(),
 }
 
 function refreshDomCache() {
-  disconnectCatalogHalftoneObservers()
+  const ditherOwnsMuted = publicDitherOwnsMutedCards()
+  if (ditherOwnsMuted) stopLegacyCatalogHalftoneWork()
+  else disconnectCatalogHalftoneObservers()
   const catalog = document.querySelector(".catalog")
   const gallery = document.querySelector(".footer-gallery")
   const galleryViewport = gallery?.querySelector(".footer-gallery-viewport") || null
@@ -522,12 +528,7 @@ function refreshDomCache() {
     catalog,
     projectRows: [...document.querySelectorAll(".project-row")],
     cardRuleTargets: [...document.querySelectorAll(".project-card + .project-card")],
-    catalogContentNodes: catalog
-      ? [...catalog.querySelectorAll(".project-media, .project-meta")].filter((node) => {
-          const style = window.getComputedStyle(node)
-          return style.display !== "none" && style.visibility !== "hidden"
-        })
-      : [],
+    catalogContentNodes: catalog ? [...catalog.querySelectorAll(".project-media, .project-meta")] : [],
     mutedCards: catalog ? [...catalog.querySelectorAll(".project-card.is-filter-muted")] : [],
     gallery,
     galleryViewport,
@@ -552,7 +553,8 @@ function refreshDomCache() {
   siteState.hasProjectRuleTargets = Boolean(
     siteState.dom.projectRows.length || siteState.dom.cardRuleTargets.length,
   )
-  setupCatalogHalftoneObservers(catalog)
+  invalidateRuleGeometry()
+  if (!ditherOwnsMuted) setupCatalogHalftoneObservers(catalog)
 }
 
 function getReducedMotionQuery() {
@@ -2438,7 +2440,16 @@ function render() {
   setupNavHoverInteraction()
   setupFooterGallery()
   if (document.fonts) {
-    document.fonts.ready.then(() => setupNavHoverSpacing({ force: true })).catch(() => {})
+    document.fonts.ready
+      .then(() => {
+        setupNavHoverSpacing({ force: true })
+        invalidateRuleGeometry()
+        requestLayoutEffectsUpdate({
+          rules: siteState.hasProjectRuleTargets,
+          footer: siteState.hasFooterGallery,
+        })
+      })
+      .catch(() => {})
   }
   setupHoverEmbeds()
 }
@@ -2504,10 +2515,52 @@ function setElementStyleProperty(element, name, value) {
   element.style.setProperty(name, value)
 }
 
+function cachedRuleRect(record) {
+  const scrollX = window.scrollX || window.pageXOffset || 0
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  const headerDelta = siteState.headerVisualBottom - record.headerHeight
+  const left = record.documentLeft - scrollX
+  const top = record.documentTop + headerDelta - scrollY
+  return {
+    top,
+    left,
+    width: record.width,
+    height: record.height,
+    right: left + record.width,
+    bottom: top + record.height,
+  }
+}
+
+function readCachedRuleRect(element) {
+  const cached = siteState.ruleGeometryCache.get(element)
+  if (cached?.generation === siteState.ruleGeometryGeneration) {
+    return cachedRuleRect(cached)
+  }
+
+  const rect = element.getBoundingClientRect()
+  const scrollX = window.scrollX || window.pageXOffset || 0
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  siteState.ruleGeometryCache.set(element, {
+    generation: siteState.ruleGeometryGeneration,
+    documentTop: rect.top + scrollY,
+    documentLeft: rect.left + scrollX,
+    width: rect.width,
+    height: rect.height,
+    headerHeight: siteState.headerVisualBottom,
+  })
+  return rect
+}
+
 function invalidateCatalogContentBottom() {
   siteState.catalogContentBottomDocument = null
   siteState.catalogContentBottomHeaderHeight = null
   siteState.catalogContentBottomDirty = true
+  invalidateRuleGeometry()
+}
+
+function invalidateRuleGeometry() {
+  siteState.ruleGeometryCache = new WeakMap()
+  siteState.ruleGeometryGeneration += 1
 }
 
 function requestLayoutEffectsUpdate(options = {}) {
@@ -2605,20 +2658,24 @@ function updateProjectRuleReveal() {
   const visibleHeight = Math.max(1, visibleBottom - visibleTop)
   const edgeHoldDistance = clamp(visibleHeight * 0.035, 18, 42)
   const edgeFadeDistance = clamp(visibleHeight * 0.13, 68, 168)
+  const updateMargin = Math.max(PROJECT_RULE_UPDATE_MARGIN, edgeFadeDistance * 1.6)
   const ruleRevealFromY = (y) => {
     const edgeDistance = Math.min(y - visibleTop, visibleBottom - y)
     return smoothstep((edgeDistance - edgeHoldDistance) / edgeFadeDistance).toFixed(3)
   }
+  const ruleYNeedsUpdate = (y) => y >= visibleTop - updateMargin && y <= visibleBottom + updateMargin
 
   const ruleUpdates = siteState.ruleFadeUpdates
   ruleUpdates.length = 0
   projectRows.forEach((row) => {
-    const rect = row.getBoundingClientRect()
+    const rect = readCachedRuleRect(row)
+    if (!ruleYNeedsUpdate(rect.bottom)) return
     ruleUpdates.push(row, "--project-rule-weight", ruleRevealFromY(rect.bottom))
   })
 
   cardRuleTargets.forEach((card) => {
-    const rect = card.getBoundingClientRect()
+    const rect = readCachedRuleRect(card)
+    if (!ruleYNeedsUpdate(rect.top)) return
     ruleUpdates.push(card, "--card-rule-weight", ruleRevealFromY(rect.top))
   })
 
@@ -4873,6 +4930,8 @@ function setupHeader() {
 function setupHoverEmbeds() {
   document.querySelectorAll("[data-hover-youtube]").forEach((media) => {
     const id = media.dataset.hoverYoutube
+    if (siteState.hoverEmbedMediaBound.has(media)) return
+    siteState.hoverEmbedMediaBound.add(media)
     let iframe = null
 
     const isFilteredOut = () => media.closest(".project-card")?.classList.contains("is-filter-muted")

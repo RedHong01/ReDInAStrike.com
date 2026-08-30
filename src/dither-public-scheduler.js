@@ -1,15 +1,15 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260830-adaptivegrid1"
+import { renderCard } from "./dither-engine.js?v=20260830-perfaudit1"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   binaryGridNeedsUpdate,
-} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
+} from "./binary-surface-core.js?v=20260830-perfaudit1"
 import {
   cancelReveal,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-adaptivegrid1"
+} from "./reveal-motion.js?v=20260830-perfaudit1"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -17,7 +17,7 @@ import {
   playPreparedDitherResizeSnow,
   prepareDitherInitialSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-adaptivegrid1"
+} from "./dither-resize-snow.js?v=20260830-perfaudit1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const PUBLIC_STYLE_VERSION = "7"

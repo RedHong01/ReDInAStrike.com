@@ -2,7 +2,7 @@ import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.
 import {
   constrainBinaryGridSize,
   logicalGridFromCanvas,
-} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
+} from "./binary-surface-core.js?v=20260830-perfaudit1"
 
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"

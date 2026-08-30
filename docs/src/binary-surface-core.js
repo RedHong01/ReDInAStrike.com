@@ -25,6 +25,9 @@ export const BINARY_MOTION_DEFAULTS = Object.freeze({
   clusterMix: 0.16,
 })
 
+const BINARY_ORDER_CACHE_LIMIT = 24
+const binaryOrderCache = new Map()
+
 let paperCacheKey = ""
 let paperCacheValue = [248, 247, 245, 255]
 let inkCacheKey = ""
@@ -296,26 +299,43 @@ export function hash01(seed, a = 0, b = 0, c = 0) {
 }
 
 export function buildBinaryOrder(cols, rows, seed = BINARY_MOTION_DEFAULTS.seed) {
-  const order = new Float32Array(cols * rows)
+  const safeCols = Math.max(1, Math.round(cols))
+  const safeRows = Math.max(1, Math.round(rows))
+  const safeSeed = Math.round(seed) | 0
   const clusterSize = Math.max(1, Math.round(BINARY_MOTION_DEFAULTS.clusterSize))
   const clusterMix = clamp01(BINARY_MOTION_DEFAULTS.clusterMix)
-  for (let row = 0; row < rows; row += 1) {
-    for (let col = 0; col < cols; col += 1) {
-      const local = hash01(seed, col, row, 17)
+  const cacheKey = `${safeCols}x${safeRows}:${safeSeed}:${clusterSize}:${clusterMix}`
+  const cached = binaryOrderCache.get(cacheKey)
+  if (cached) {
+    binaryOrderCache.delete(cacheKey)
+    binaryOrderCache.set(cacheKey, cached)
+    return cached
+  }
+
+  const order = new Float32Array(safeCols * safeRows)
+  for (let row = 0; row < safeRows; row += 1) {
+    for (let col = 0; col < safeCols; col += 1) {
+      const local = hash01(safeSeed, col, row, 17)
       const cluster = hash01(
-        seed,
+        safeSeed,
         Math.floor(col / clusterSize),
         Math.floor(row / clusterSize),
         31,
       )
-      order[row * cols + col] = local * (1 - clusterMix) + cluster * clusterMix
+      order[row * safeCols + col] = local * (1 - clusterMix) + cluster * clusterMix
     }
   }
+
+  binaryOrderCache.set(cacheKey, order)
+  while (binaryOrderCache.size > BINARY_ORDER_CACHE_LIMIT) {
+    binaryOrderCache.delete(binaryOrderCache.keys().next().value)
+  }
+
   return order
 }
 
 window.__RED_BINARY_SURFACE__ = Object.freeze({
-  version: 2,
+  version: 3,
   defaults: BINARY_SURFACE_GRID_DEFAULTS,
   resolveGrid: resolveBinarySurfaceGrid,
   constrainGrid: constrainBinaryGridSize,
@@ -323,4 +343,7 @@ window.__RED_BINARY_SURFACE__ = Object.freeze({
   gridFromCanvas: logicalGridFromCanvas,
   gridNeedsUpdate: binaryGridNeedsUpdate,
   motionDefaults: BINARY_MOTION_DEFAULTS,
+  get orderCacheSize() {
+    return binaryOrderCache.size
+  },
 })

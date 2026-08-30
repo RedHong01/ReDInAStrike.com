@@ -3,7 +3,7 @@ import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260830-adaptive
 import {
   logicalGridForMedia,
   logicalGridFromCanvas,
-} from "./binary-surface-core.js?v=20260830-adaptivegrid1"
+} from "./binary-surface-core.js?v=20260830-perfaudit1"
 
 const STYLE_ID = "red-binary-pixel-handoff-style"
 const STYLE_VERSION = "2"

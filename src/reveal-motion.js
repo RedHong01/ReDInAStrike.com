@@ -4,9 +4,17 @@ const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
 const TARGET_FRAME_MS = 1000 / 60
 const MAX_GRID_CELLS = 52000
+const VIEWPORT_LINGER_MS = 220
+const VIEWPORT_PROGRESS_EPSILON = 0.0025
+const ROW_INTRO_OVERLAP = 0.58
 const animationStates = new WeakMap()
 const activeStates = new Set()
+const viewportStates = new Set()
 let animationFrame = 0
+let viewportFrame = 0
+let viewportActiveUntil = 0
+let rowIntroStarts = new WeakMap()
+let nextRowIntroStartAt = 0
 let replayFrame = 0
 let lastRevealConfigKey = ""
 
@@ -100,15 +108,19 @@ function readColors() {
   return { paper: parseColor(paper), ink: parseColor(ink) }
 }
 
-function cancelReveal(card, { remove = false } = {}) {
+export function cancelReveal(card, { remove = false } = {}) {
   const current = animationStates.get(card)
   if (current?.settleTimer) clearTimeout(current.settleTimer)
-  if (current) activeStates.delete(current)
+  if (current) {
+    activeStates.delete(current)
+    viewportStates.delete(current)
+  }
   animationStates.delete(card)
   const canvas = card?.querySelector(`.${CANVAS_CLASS}`)
   if (!canvas) return
   canvas.style.transition = "none"
   canvas.style.opacity = "1"
+  canvas.style.visibility = "visible"
   if (remove) canvas.remove()
 }
 
@@ -217,37 +229,40 @@ function writePixel(data, offset, rgba) {
   data[offset + 3] = rgba[3]
 }
 
-function finishReveal(state) {
-  const { card, canvas, config } = state
-  activeStates.delete(state)
-  canvas.style.transition = config.revealSettleMs > 0
-    ? `opacity ${config.revealSettleMs}ms cubic-bezier(0.22, 1, 0.36, 1)`
-    : "none"
-  requestAnimationFrame(() => { canvas.style.opacity = "0" })
-  state.settleTimer = window.setTimeout(() => {
-    if (animationStates.get(card) !== state) return
-    animationStates.delete(card)
-    canvas.remove()
-  }, config.revealSettleMs + 80)
+function writePaperFrame(state) {
+  const { grid, colors, framePixels, ctx } = state
+  for (let index = 0; index < grid.count; index += 1) {
+    writePixel(framePixels, index * 4, colors.paper)
+  }
+  ctx.putImageData(state.imageData, 0, 0)
 }
 
-function drawState(state, now) {
-  const { card, finalCanvas, canvas, ctx, grid, config, colors, startTime } = state
-  if (!card.isConnected || !finalCanvas.isConnected || !canvas.isConnected) {
-    cancelReveal(card, { remove: true })
+function renderProgress(state, rawProgress, now) {
+  const { canvas, grid, config, colors } = state
+  const raw = clamp(rawProgress)
+
+  if (raw >= 1 - VIEWPORT_PROGRESS_EPSILON) {
+    canvas.style.opacity = "0"
+    canvas.style.visibility = "hidden"
+    state.lastProgress = 1
     return
   }
-  if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS) return
-  state.lastDraw = now
 
-  const elapsed = now - startTime
-  const raw = clamp((elapsed - config.revealDelayMs) / Math.max(1, config.revealDurationMs))
+  canvas.style.transition = "none"
+  canvas.style.opacity = "1"
+  canvas.style.visibility = "visible"
+
+  if (raw <= VIEWPORT_PROGRESS_EPSILON) {
+    if (state.lastProgress !== 0) writePaperFrame(state)
+    state.lastProgress = 0
+    return
+  }
+
   const progress = 1 - Math.pow(1 - raw, Math.max(0.05, config.revealCurve))
   const scanProgress = clamp(progress * (1 + config.revealScanOvershoot))
-  const frameTick = Math.floor(Math.max(0, elapsed) / Math.max(16, 78 - config.revealNoiseFlicker * 56))
-  const snowEnvelope = Math.sin(Math.PI * clamp(raw * 1.05))
-  const remainingNoise = 1 - raw * (1 - config.revealNoisePersistence)
-  const baseNoise = clamp(config.revealNoisePeak * (0.25 + snowEnvelope * 0.75) * remainingNoise)
+  const frameTick = Math.floor(now / Math.max(16, 78 - config.revealNoiseFlicker * 56))
+  const snowEnvelope = Math.sin(Math.PI * raw)
+  const baseNoise = clamp(config.revealNoisePeak * (0.18 + snowEnvelope * 0.82))
   const order = orderArray(grid, config.revealMode)
   const data = state.framePixels
   data.set(grid.finalPixels)
@@ -289,7 +304,37 @@ function drawState(state, now) {
     }
   }
 
-  ctx.putImageData(state.imageData, 0, 0)
+  state.ctx.putImageData(state.imageData, 0, 0)
+  state.lastProgress = raw
+}
+
+function finishReveal(state) {
+  const { card, canvas, config } = state
+  activeStates.delete(state)
+  canvas.style.visibility = "visible"
+  canvas.style.transition = config.revealSettleMs > 0
+    ? `opacity ${config.revealSettleMs}ms cubic-bezier(0.22, 1, 0.36, 1)`
+    : "none"
+  requestAnimationFrame(() => { canvas.style.opacity = "0" })
+  state.settleTimer = window.setTimeout(() => {
+    if (animationStates.get(card) !== state) return
+    animationStates.delete(card)
+    canvas.remove()
+  }, config.revealSettleMs + 80)
+}
+
+function drawState(state, now) {
+  const { card, finalCanvas, canvas, config, startTime } = state
+  if (!card.isConnected || !finalCanvas.isConnected || !canvas.isConnected) {
+    cancelReveal(card, { remove: true })
+    return
+  }
+  if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS) return
+  state.lastDraw = now
+
+  const elapsed = now - startTime
+  const raw = clamp((elapsed - config.revealDelayMs) / Math.max(1, config.revealDurationMs))
+  renderProgress(state, raw, now)
   if (raw >= 1) finishReveal(state)
 }
 
@@ -301,6 +346,120 @@ function animationLoop(now) {
 
 function scheduleAnimationLoop() {
   if (!animationFrame && activeStates.size) animationFrame = requestAnimationFrame(animationLoop)
+}
+
+function viewportBounds() {
+  const viewportBottom = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+  const header = document.querySelector(".site-header")
+  const headerBottom = clamp(header?.getBoundingClientRect?.().bottom || 0, 0, viewportBottom)
+  return { top: headerBottom, bottom: viewportBottom }
+}
+
+function viewportRevealProgress(card, bounds) {
+  const rect = card?.getBoundingClientRect?.()
+  if (!rect || rect.height <= 0 || bounds.bottom <= bounds.top) return 0
+  const visibleTop = Math.max(rect.top, bounds.top)
+  const visibleBottom = Math.min(rect.bottom, bounds.bottom)
+  const visibleHeight = Math.max(0, visibleBottom - visibleTop)
+  const availableHeight = Math.max(1, bounds.bottom - bounds.top)
+  const denominator = Math.max(1, Math.min(rect.height, availableHeight))
+  return clamp(visibleHeight / denominator)
+}
+
+function rowIntroProgress(state, now, viewportProgress) {
+  if (state.introDone) return 1
+  if (viewportProgress <= 0) return 0
+
+  const row = state.card.closest(".project-row") || state.card
+  let start = rowIntroStarts.get(row)
+  if (start == null) {
+    const duration = Math.max(1, state.config.revealDurationMs)
+    const rowSpacing = Math.max(90, duration * ROW_INTRO_OVERLAP)
+    start = Math.max(now + state.config.revealDelayMs, nextRowIntroStartAt)
+    rowIntroStarts.set(row, start)
+    nextRowIntroStartAt = start + rowSpacing
+  }
+
+  const raw = clamp((now - start) / Math.max(1, state.config.revealDurationMs))
+  if (raw >= 1) state.introDone = true
+  return raw
+}
+
+function drawViewportState(state, now, bounds) {
+  const { card, finalCanvas, canvas } = state
+  if (!card.isConnected || !finalCanvas.isConnected || !canvas.isConnected) {
+    cancelReveal(card, { remove: true })
+    return false
+  }
+
+  const viewportProgress = viewportRevealProgress(card, bounds)
+  const introProgress = rowIntroProgress(state, now, viewportProgress)
+  const progress = Math.min(viewportProgress, introProgress)
+  const needsIntroFrame = viewportProgress > 0 && !state.introDone
+
+  if (
+    state.lastProgress >= 0 &&
+    Math.abs(progress - state.lastProgress) < VIEWPORT_PROGRESS_EPSILON &&
+    progress !== 0 && progress !== 1
+  ) return needsIntroFrame
+
+  renderProgress(state, progress, now)
+  return needsIntroFrame
+}
+
+function viewportLoop(now) {
+  viewportFrame = 0
+  if (!viewportStates.size || document.hidden) return
+  const bounds = viewportBounds()
+  let hasLiveIntro = false
+  for (const state of [...viewportStates]) {
+    if (drawViewportState(state, now, bounds)) hasLiveIntro = true
+  }
+  if (now < viewportActiveUntil || hasLiveIntro) viewportFrame = requestAnimationFrame(viewportLoop)
+}
+
+export function resetViewportDitherRevealSequence() {
+  rowIntroStarts = new WeakMap()
+  nextRowIntroStartAt = 0
+}
+
+export function refreshViewportDitherReveals({ linger = true } = {}) {
+  if (!viewportStates.size || document.hidden) return
+  if (linger) viewportActiveUntil = Math.max(viewportActiveUntil, performance.now() + VIEWPORT_LINGER_MS)
+  if (!viewportFrame) viewportFrame = requestAnimationFrame(viewportLoop)
+}
+
+export function trackViewportDitherReveal(card, finalCanvas, inputConfig = null) {
+  ensureStyles()
+  const config = sanitizeMotionConfig(inputConfig || window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
+  cancelReveal(card, { remove: true })
+  if (
+    !card || !finalCanvas || !config.revealEnabled || config.revealMode === "none" ||
+    prefersReducedMotion() || finalCanvas.width < 2 || finalCanvas.height < 2
+  ) return false
+
+  const grid = buildGrid(finalCanvas, config)
+  if (!grid) return false
+  const canvas = ensureRevealCanvas(card, grid.cols, grid.rows)
+  const ctx = canvas?.getContext("2d", { alpha: false })
+  if (!canvas || !ctx) return false
+  ctx.imageSmoothingEnabled = false
+
+  canvas.style.transition = "none"
+  canvas.style.opacity = "1"
+  canvas.style.visibility = "visible"
+  const framePixels = new Uint8ClampedArray(grid.finalPixels)
+  const imageData = new ImageData(framePixels, grid.cols, grid.rows)
+  const state = {
+    mode: "viewport",
+    card, finalCanvas, canvas, ctx, grid, config,
+    colors: readColors(), lastProgress: -1, introDone: false,
+    framePixels, imageData, settleTimer: 0,
+  }
+  animationStates.set(card, state)
+  viewportStates.add(state)
+  refreshViewportDitherReveals({ linger: false })
+  return true
 }
 
 export function playDitherReveal(card, finalCanvas, inputConfig = null, options = {}) {
@@ -325,11 +484,13 @@ export function playDitherReveal(card, finalCanvas, inputConfig = null, options 
 
   canvas.style.transition = "none"
   canvas.style.opacity = "1"
+  canvas.style.visibility = "visible"
   const framePixels = new Uint8ClampedArray(grid.finalPixels)
   const imageData = new ImageData(framePixels, grid.cols, grid.rows)
   const state = {
+    mode: "time",
     card, finalCanvas, canvas, ctx, grid, config: runtimeConfig,
-    colors: readColors(), startTime: performance.now(), lastDraw: 0,
+    colors: readColors(), startTime: performance.now(), lastDraw: 0, lastProgress: -1,
     framePixels, imageData, settleTimer: 0,
   }
   animationStates.set(card, state)
@@ -355,6 +516,12 @@ function requestHubReplay(config) {
   })
 }
 
+window.addEventListener("scroll", () => refreshViewportDitherReveals(), { passive: true })
+window.addEventListener("resize", () => refreshViewportDitherReveals(), { passive: true })
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshViewportDitherReveals({ linger: false })
+})
+
 window.addEventListener("red:motion-config", (event) => {
   const config = sanitizeMotionConfig(event.detail || PUBLISHED_MOTION_CONFIG)
   const key = revealConfigKey(config)
@@ -367,6 +534,9 @@ ensureStyles()
 lastRevealConfigKey = revealConfigKey(sanitizeMotionConfig(window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG))
 window.__RED_REVEAL_MOTION__ = {
   play: playDitherReveal,
+  trackViewport: trackViewportDitherReveal,
+  refreshViewport: refreshViewportDitherReveals,
+  resetViewportSequence: resetViewportDitherRevealSequence,
   replay: replayAllDitherReveals,
   cancel: cancelReveal,
 }

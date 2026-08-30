@@ -168,6 +168,10 @@ const CATALOG_HALFTONE_DELAY_MS = 120
 const CATALOG_HALFTONE_DRAW_MS = 1400
 const CATALOG_MUTED_HOVER_MS = 475
 const NAV_HOVER_SCROLL_DELAY_MS = 180
+const HOME_RETURN_COVER_MS = 620
+const HOME_RETURN_REVEAL_MS = 680
+const HOME_RETURN_FONT_READY_MS = 520
+const HOME_RETURN_READY_TIMEOUT_MS = 1100
 const HALFTONE_RENDER_MARGIN = 1100
 const HALFTONE_PROGRESS_STEPS = 260
 const HALFTONE_LOGICAL_COLUMNS = 132
@@ -376,6 +380,10 @@ const siteState = {
   layoutPendingRules: false,
   layoutPendingFooter: false,
   layoutTransitionTimer: 0,
+  homeReturnTransition: null,
+  homeReturnTransitionId: 0,
+  homeReturnScrollLocked: false,
+  homeReturnPreviousBodyOverflow: "",
   navMetricKey: "",
   navHoverSpacingKey: "",
   headerMetricsWidth: -1,
@@ -523,6 +531,54 @@ function prefersReducedMotion() {
   return getReducedMotionQuery().matches
 }
 
+function isHomeRoute() {
+  return routeFromLocation() === "/"
+}
+
+function isHomeReturnTransitionActive() {
+  return Boolean(siteState.homeReturnTransition)
+}
+
+function isCurrentHomeReturnTransition(id) {
+  return siteState.homeReturnTransition?.id === id
+}
+
+function notifyHomeReturnTransition(active, phase = "") {
+  window.dispatchEvent(
+    new CustomEvent("red:home-return-transition", {
+      detail: { active, phase },
+    }),
+  )
+}
+
+function setHomeReturnTransitionPhase(phase) {
+  if (!siteState.homeReturnTransition) return
+  siteState.homeReturnTransition.phase = phase
+  document.documentElement.dataset.homeReturnTransition = phase
+  document.body.dataset.homeReturnTransition = phase
+  notifyHomeReturnTransition(true, phase)
+}
+
+function clearHomeReturnTransitionPhase() {
+  delete document.documentElement.dataset.homeReturnTransition
+  delete document.body.dataset.homeReturnTransition
+  notifyHomeReturnTransition(false)
+}
+
+function lockHomeReturnScroll() {
+  if (siteState.homeReturnScrollLocked) return
+  siteState.homeReturnScrollLocked = true
+  siteState.homeReturnPreviousBodyOverflow = document.body.style.overflow
+  document.body.style.overflow = "hidden"
+}
+
+function unlockHomeReturnScroll() {
+  if (!siteState.homeReturnScrollLocked) return
+  siteState.homeReturnScrollLocked = false
+  document.body.style.overflow = siteState.homeReturnPreviousBodyOverflow
+  siteState.homeReturnPreviousBodyOverflow = ""
+}
+
 function asset(path) {
   return `${base}${path.replace(/^\/+/, "")}`
 }
@@ -553,6 +609,230 @@ function easeOutCubic(value) {
 function smoothstep(value) {
   const progress = clamp(value, 0, 1)
   return progress * progress * (3 - 2 * progress)
+}
+
+function waitForMs(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function waitForAnimationFrames(count = 1) {
+  return new Promise((resolve) => {
+    let remaining = Math.max(1, count)
+    const tick = () => {
+      remaining -= 1
+      if (remaining <= 0) {
+        resolve()
+        return
+      }
+      window.requestAnimationFrame(tick)
+    }
+    window.requestAnimationFrame(tick)
+  })
+}
+
+function waitForImageReady(image) {
+  if (!(image instanceof HTMLImageElement)) return Promise.resolve()
+  if (image.complete && image.naturalWidth > 0) {
+    return typeof image.decode === "function" ? image.decode().catch(() => {}) : Promise.resolve()
+  }
+  if (typeof image.decode === "function") {
+    return image.decode().catch(() => {})
+  }
+
+  return new Promise((resolve) => {
+    const done = () => {
+      image.removeEventListener("load", done)
+      image.removeEventListener("error", done)
+      resolve()
+    }
+    image.addEventListener("load", done, { once: true })
+    image.addEventListener("error", done, { once: true })
+  })
+}
+
+function applyHomeReturnTransitionVisual(transition = siteState.homeReturnTransition) {
+  if (!transition) return
+  const compactProgress = clamp(transition.compactProgress || 0, 0, 1)
+  const coverProgress = clamp(transition.coverProgress || 0, 0, 1)
+  siteState.visualProgress = compactProgress
+  siteState.targetProgress = compactProgress
+  applyHeaderProgress(compactProgress, { coverProgress })
+}
+
+function animateHomeReturnHeader({
+  id,
+  fromCover,
+  toCover,
+  fromCompact,
+  toCompact,
+  duration,
+}) {
+  return new Promise((resolve) => {
+    const transition = siteState.homeReturnTransition
+    if (!transition || transition.id !== id) {
+      resolve(false)
+      return
+    }
+
+    if (transition.frame) cancelAnimationFrame(transition.frame)
+    transition.frame = 0
+    transition.coverProgress = fromCover
+    transition.compactProgress = fromCompact
+    applyHomeReturnTransitionVisual(transition)
+
+    if (duration <= 1) {
+      transition.coverProgress = toCover
+      transition.compactProgress = toCompact
+      applyHomeReturnTransitionVisual(transition)
+      resolve(true)
+      return
+    }
+
+    let startTime = 0
+    const step = (time) => {
+      if (!isCurrentHomeReturnTransition(id)) {
+        resolve(false)
+        return
+      }
+
+      if (!startTime) startTime = time
+      const progress = clamp((time - startTime) / duration, 0, 1)
+      const eased = smoothstep(progress)
+      transition.coverProgress = fromCover + (toCover - fromCover) * eased
+      transition.compactProgress = fromCompact + (toCompact - fromCompact) * eased
+      applyHomeReturnTransitionVisual(transition)
+
+      if (progress >= 1) {
+        transition.frame = 0
+        resolve(true)
+        return
+      }
+
+      transition.frame = requestAnimationFrame(step)
+    }
+
+    transition.frame = requestAnimationFrame(step)
+  })
+}
+
+function homeUrl() {
+  const url = new URL(hrefFor("/"), window.location.href)
+  url.hash = ""
+  return url
+}
+
+function pushHomeRoute() {
+  const url = homeUrl()
+  if (window.location.href !== url.href) {
+    window.history.pushState(null, "", url.href)
+  }
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+}
+
+async function waitForHomeFirstPaint(id) {
+  await waitForAnimationFrames(2)
+  if (!isCurrentHomeReturnTransition(id)) return false
+
+  const fontReady = document.fonts?.ready?.catch?.(() => {}) || Promise.resolve()
+  await Promise.race([fontReady, waitForMs(HOME_RETURN_FONT_READY_MS)])
+  if (!isCurrentHomeReturnTransition(id)) return false
+
+  const firstRowImages = [
+    ...document.querySelectorAll('main[data-route="home"] .catalog .project-row:first-child img'),
+  ]
+  await Promise.race([
+    Promise.all(firstRowImages.map((image) => waitForImageReady(image))),
+    waitForMs(HOME_RETURN_READY_TIMEOUT_MS),
+  ])
+  await waitForAnimationFrames(1)
+  return isCurrentHomeReturnTransition(id) && isHomeRoute()
+}
+
+function cancelHomeReturnTransition(options = {}) {
+  const transition = siteState.homeReturnTransition
+  if (!transition) return
+  if (transition.frame) cancelAnimationFrame(transition.frame)
+  siteState.homeReturnTransition = null
+  clearHomeReturnTransitionPhase()
+  unlockHomeReturnScroll()
+  siteState.lastFrameTime = 0
+  if (options.syncHeaderToScroll !== false) {
+    const scrollY = window.scrollY || window.pageYOffset || 0
+    setHeaderTarget(clamp(scrollY / readHeaderMetrics().distance, 0, 1), true)
+  }
+}
+
+function finishHomeReturnTransition(id) {
+  if (!isCurrentHomeReturnTransition(id)) return
+  const transition = siteState.homeReturnTransition
+  if (transition?.frame) cancelAnimationFrame(transition.frame)
+  siteState.homeReturnTransition = null
+  clearHomeReturnTransitionPhase()
+  unlockHomeReturnScroll()
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  setHeaderTarget(0, true)
+  siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
+  setupNavHoverSpacing({ force: true })
+  requestLayoutEffectsUpdate({
+    rules: siteState.hasProjectRuleTargets,
+    footer: siteState.hasFooterGallery,
+  })
+}
+
+async function startHomeReturnTransition() {
+  if (isHomeReturnTransitionActive()) return
+
+  const id = siteState.homeReturnTransitionId + 1
+  siteState.homeReturnTransitionId = id
+  const startCompactProgress = clamp(siteState.visualProgress, 0, 1)
+  siteState.homeReturnTransition = {
+    id,
+    phase: "covering",
+    frame: 0,
+    coverProgress: 0,
+    compactProgress: startCompactProgress,
+  }
+
+  if (siteState.followFrame) cancelAnimationFrame(siteState.followFrame)
+  siteState.followFrame = 0
+  siteState.lastFrameTime = 0
+  lockHomeReturnScroll()
+  setHomeReturnTransitionPhase("covering")
+
+  const covered = await animateHomeReturnHeader({
+    id,
+    fromCover: 0,
+    toCover: 1,
+    fromCompact: startCompactProgress,
+    toCompact: 0,
+    duration: HOME_RETURN_COVER_MS,
+  })
+  if (!covered || !isCurrentHomeReturnTransition(id)) return
+
+  setHomeReturnTransitionPhase("covered")
+  pushHomeRoute()
+  render()
+
+  const ready = await waitForHomeFirstPaint(id)
+  if (!ready || !isCurrentHomeReturnTransition(id)) return
+
+  setHomeReturnTransitionPhase("revealing")
+  const revealed = await animateHomeReturnHeader({
+    id,
+    fromCover: 1,
+    toCover: 0,
+    fromCompact: 0,
+    toCompact: 0,
+    duration: HOME_RETURN_REVEAL_MS,
+  })
+  if (revealed) finishHomeReturnTransition(id)
+}
+
+function navigateHomeWithoutTransition() {
+  cancelHomeReturnTransition({ syncHeaderToScroll: false })
+  pushHomeRoute()
+  render()
+  setHeaderTarget(0, true)
 }
 
 function escapeHtml(value) {
@@ -1062,7 +1342,7 @@ function headerMarkup() {
   return `
     <header class="site-header" data-site-header>
       <div class="header-inner">
-        <a class="brand" href="${hrefFor("/")}" aria-label="ReDInAStrikE home">
+        <a class="brand" href="${hrefFor("/")}" aria-label="ReDInAStrikE home" data-home-logo>
           <span class="brand-square">
             <img class="brand-logo" src="${asset("assets/logo-vector.svg")}" alt="刹那繁红 ReDInAStrikE" />
           </span>
@@ -1750,14 +2030,21 @@ function requestLayoutEffectsUpdate(options = {}) {
   })
 }
 
-function applyHeaderProgress(progress) {
+function applyHeaderProgress(progress, options = {}) {
   const metrics = readHeaderMetrics()
-  const height = metrics.fullHeight + (metrics.compactHeight - metrics.fullHeight) * progress
+  const coverProgress = clamp(options.coverProgress || 0, 0, 1)
+  const viewportHeight = Math.max(
+    window.innerHeight || 0,
+    document.documentElement.clientHeight || 0,
+    metrics.fullHeight,
+  )
+  const baseHeight = metrics.fullHeight + (metrics.compactHeight - metrics.fullHeight) * progress
+  const height = baseHeight + (viewportHeight - baseHeight) * coverProgress
   const logo = metrics.fullLogo + (metrics.compactLogo - metrics.fullLogo) * progress
   const navScale = 1 + (0.88 - 1) * progress
   const detailOpacity = 1
-  const glassAlpha = 0.76
-  const glassBlur = 18
+  const glassAlpha = 0.76 + (0.96 - 0.76) * coverProgress
+  const glassBlur = 18 + (26 - 18) * coverProgress
   const glassShadowAlpha = 0
   const ruleAlpha = 0.82
 
@@ -3753,6 +4040,7 @@ function setHeaderTarget(nextProgress, immediate = false) {
 }
 
 function updateHeaderFromScroll(delta) {
+  if (isHomeReturnTransitionActive()) return
   const metrics = readHeaderMetrics()
   if (window.scrollY <= 2 && delta <= 0) {
     setHeaderTarget(0)
@@ -3763,6 +4051,7 @@ function updateHeaderFromScroll(delta) {
 }
 
 function requestScrollEffectsUpdate(delta) {
+  if (isHomeReturnTransitionActive()) return
   siteState.pendingScrollDelta += delta
   if (siteState.scrollFrame) return
 
@@ -3792,7 +4081,11 @@ function startResponsiveLayoutTransition() {
 function setupHeader() {
   siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
   siteState.galleryObservedScrollY = readFooterGalleryScrollY()
-  setHeaderTarget(clamp(siteState.lastScrollY / readHeaderMetrics().distance, 0, 1), true)
+  if (isHomeReturnTransitionActive()) {
+    applyHomeReturnTransitionVisual()
+  } else {
+    setHeaderTarget(clamp(siteState.lastScrollY / readHeaderMetrics().distance, 0, 1), true)
+  }
 
   if (siteState.headerInitialized) return
   siteState.headerInitialized = true
@@ -3844,7 +4137,11 @@ function setupHeader() {
       invalidateCatalogHalftoneGeometry()
       invalidateCatalogContentBottom()
       startResponsiveLayoutTransition()
-      applyHeaderProgress(siteState.visualProgress)
+      if (isHomeReturnTransitionActive()) {
+        applyHomeReturnTransitionVisual()
+      } else {
+        applyHeaderProgress(siteState.visualProgress)
+      }
       setupNavHoverSpacing({ force: true })
       requestLayoutEffectsUpdate({ rules: true, footer: true })
       requestVisibleCatalogHalftones()
@@ -3886,5 +4183,34 @@ function setupHoverEmbeds() {
   })
 }
 
-window.addEventListener("popstate", render)
+function handleHomeLogoClick(event) {
+  const logo = event.target?.closest?.("[data-home-logo]")
+  if (!logo) return
+  if (event.defaultPrevented) return
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  if (Number.isFinite(event.button) && event.button !== 0) return
+
+  if (isHomeReturnTransitionActive()) {
+    event.preventDefault()
+    return
+  }
+
+  if (isHomeRoute()) return
+
+  event.preventDefault()
+  if (prefersReducedMotion()) {
+    navigateHomeWithoutTransition()
+    return
+  }
+
+  startHomeReturnTransition()
+}
+
+function handlePopState() {
+  cancelHomeReturnTransition()
+  render()
+}
+
+document.addEventListener("click", handleHomeLogoClick, { capture: true })
+window.addEventListener("popstate", handlePopState)
 render()

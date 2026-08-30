@@ -1,8 +1,13 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import { destroyPublicDitherRuntime } from "./dither-public-runtime.js?v=20260829-runtime6"
+import "./active-color-snow.js?v=20260829-activecolor1"
 
 const params = new URLSearchParams(window.location.search)
-const autoOpen = params.get("ditherHub") === "1" || params.has("ditherConfig") || params.has("motionConfig")
+const autoOpen =
+  params.get("ditherHub") === "1" ||
+  params.has("ditherConfig") ||
+  params.has("motionConfig") ||
+  params.has("activeColorConfig")
 const publishedNeedsRuntime = PUBLISHED_DITHER_CONFIG?.mode && PUBLISHED_DITHER_CONFIG.mode !== "native"
 let corePromise = null
 let coreLoaded = false

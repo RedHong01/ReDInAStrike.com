@@ -171,6 +171,7 @@ const CATALOG_COLOR_SNOW_EXIT_COVER_MS = 140
 const CATALOG_COLOR_SNOW_ENTER_COVER_MS = 220
 const CATALOG_COLOR_SNOW_ENTER_DEFER_MS = 54
 const CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS = 128
+const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const HOME_RETURN_COVER_MS = 620
 const HOME_RETURN_REVEAL_MS = 680
@@ -4073,6 +4074,7 @@ function cancelCatalogMutedRestore(catalog = document.querySelector(".catalog"))
   catalog.querySelectorAll(".project-card.is-muted-restore-intent, .project-card.is-muted-restore-return").forEach((card) => {
     window.clearTimeout(card.__catalogMutedReturnTimer)
     card.__catalogMutedReturnTimer = 0
+    card.removeAttribute(ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE)
     card.classList.remove("is-muted-restore-intent")
     card.classList.remove("is-muted-restore-return")
   })
@@ -4086,6 +4088,7 @@ function setupFilteredCatalogRestore(catalog) {
       if (!card.classList.contains("is-muted-restore-intent")) return
 
       window.clearTimeout(card.__catalogMutedReturnTimer)
+      card.removeAttribute(ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE)
       card.classList.remove("is-muted-restore-intent")
       card.classList.add("is-muted-restore-return")
       card.__catalogMutedReturnTimer = window.setTimeout(() => {
@@ -4100,6 +4103,7 @@ function setupFilteredCatalogRestore(catalog) {
 
       window.clearTimeout(card.__catalogMutedReturnTimer)
       card.__catalogMutedReturnTimer = 0
+      card.removeAttribute(ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE)
       card.classList.remove("is-muted-restore-return")
       card.classList.add("is-muted-restore-intent")
     }

@@ -20,9 +20,11 @@ import {
 } from "./dither-resize-snow.js?v=20260830-perfstream1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
-const PUBLIC_STYLE_VERSION = "3"
+const PUBLIC_STYLE_VERSION = "6"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
+const ACTIVE_COLOR_RETURN_ATTRIBUTE = "data-active-color-return"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
+const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
 const HOVER_BINARY_RETURN_ATTRIBUTE = "data-hover-binary-return"
@@ -131,15 +133,42 @@ function ensurePublicStyles() {
       transition: opacity 90ms linear;
     }
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted .project-media > img {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent[${ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE}="true"]
+      .project-media > img {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter][data-filter-phase]
+      .project-card.is-filter-muted .project-media > img {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter]:not([data-filter-phase])
+      .project-card.is-filter-muted.is-muted-restore-return[${ACTIVE_COLOR_RETURN_ATTRIBUTE}="true"]
+      .project-media > img {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
       .catalog[data-active-filter] .project-card.is-filter-muted
       .project-media[data-dither-ready="true"]::before,
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
-      .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent
-      .project-media::before,
-    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
-      .catalog[data-active-filter] .project-card.is-filter-muted[${ACTIVE_COLOR_MOTION_ATTRIBUTE}="true"]
-      .project-media:has(.active-color-snow-canvas)::before {
+      .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent[${ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE}="true"]
+      .project-media::before {
       opacity: 0;
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter][data-filter-phase]
+      .project-card.is-filter-muted .project-media::before {
+      opacity: 1;
+      transition-duration: 0ms;
     }
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
       .catalog[data-active-filter] .project-card.is-filter-muted .project-halftone {
@@ -154,7 +183,7 @@ function ensurePublicStyles() {
       visibility: visible !important;
     }
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
-      .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent
+      .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent[${ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE}="true"]
       .dither-preview-canvas[data-active="true"] {
       opacity: 0 !important;
     }
@@ -206,7 +235,10 @@ function isMutedByActiveFilter(card, catalog) {
 function activeColorOwnsCard(card) {
   return (
     card?.getAttribute?.(ACTIVE_COLOR_MOTION_ATTRIBUTE) === "true" ||
-    card?.classList?.contains("is-muted-restore-intent")
+    (
+      card?.classList?.contains("is-muted-restore-intent") &&
+      card?.getAttribute?.(ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE) === "true"
+    )
   )
 }
 
@@ -609,6 +641,7 @@ function motionAttributeChanged(mutation) {
     mutation.target.classList.contains("project-card") &&
     (
       mutation.attributeName === ACTIVE_COLOR_MOTION_ATTRIBUTE ||
+      mutation.attributeName === ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE ||
       mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE ||
       mutation.attributeName === DITHER_RESIZE_MOTION_ATTRIBUTE
     )
@@ -675,6 +708,7 @@ function bindCatalogObserver() {
       "class",
       "data-active-filter",
       ACTIVE_COLOR_MOTION_ATTRIBUTE,
+      ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE,
       ACTIVE_COLOR_COOLDOWN_ATTRIBUTE,
       DITHER_RESIZE_MOTION_ATTRIBUTE,
     ],

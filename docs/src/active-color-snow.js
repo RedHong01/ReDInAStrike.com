@@ -6,16 +6,18 @@ import {
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 
 const STYLE_ID = "red-active-color-snow-style"
-const STYLE_VERSION = "1"
+const STYLE_VERSION = "2"
 const CANVAS_CLASS = "active-color-snow-canvas"
 const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const RETURN_ATTRIBUTE = "data-active-color-return"
 const MOTION_ATTRIBUTE = "data-active-color-motion"
+const RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const BOUNDARY_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const EXIT_DURATION_ATTRIBUTE = "data-color-snow-exit-duration-ms"
 const ENTER_DURATION_ATTRIBUTE = "data-color-snow-enter-duration-ms"
 const ENTER_DEFER_ATTRIBUTE = "data-color-snow-enter-defer-ms"
 const BOUNDARY_COOLDOWN_MS = 520
+const HOVER_RESTORE_SOURCE_WAIT_MS = 900
 const MAX_GRID_CELLS = 42000
 const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
@@ -44,6 +46,7 @@ const playImageBound = new WeakSet()
 const hoverCardsBound = new WeakSet()
 const motionReleaseFrames = new WeakMap()
 const boundaryCooldownTimers = new WeakMap()
+const hoverRestoreRetries = new WeakMap()
 
 let animationFrame = 0
 let catalogObserver = null
@@ -168,6 +171,12 @@ function ensureStyles() {
     html[${ROOT_ATTRIBUTE}="true"] .catalog[data-filter-phase="entering"]
       .project-media:has(.${CANVAS_CLASS})::after {
       opacity: 0;
+    }
+    html[${ROOT_ATTRIBUTE}="true"] .catalog[data-active-filter]:not([data-filter-phase])
+      .project-card.is-filter-muted.is-muted-restore-return[${RETURN_ATTRIBUTE}="true"]
+      .project-media > img {
+      opacity: 1 !important;
+      visibility: visible !important;
     }
     html[${ROOT_ATTRIBUTE}="true"] .project-card[${RETURN_ATTRIBUTE}="true"]
       .dither-preview-canvas[data-active="true"],
@@ -647,6 +656,76 @@ function buildRestoreSourcePixels(card, grid, paper = readPaperColor()) {
   }
 }
 
+function restoreSourceReady(card) {
+  const source = card?.querySelector?.(RESTORE_SOURCE_SELECTOR)
+  return Boolean(source && source.width > 0 && source.height > 0)
+}
+
+function clearRestoreReady(card) {
+  card?.removeAttribute?.(RESTORE_READY_ATTRIBUTE)
+}
+
+function markRestoreReady(card) {
+  card?.setAttribute?.(RESTORE_READY_ATTRIBUTE, "true")
+}
+
+function cancelHoverRestoreRetry(card) {
+  const retry = hoverRestoreRetries.get(card)
+  if (!retry) return false
+  if (retry.frame) cancelAnimationFrame(retry.frame)
+  hoverRestoreRetries.delete(card)
+  return true
+}
+
+function requestBinaryRestoreSource() {
+  window.__RED_DITHER_PUBLIC_RUNTIME__?.render?.()
+}
+
+function scheduleHoverRestoreRetry(card, direction, index, inputConfig, options = {}) {
+  if (!card?.isConnected) return false
+  if (hoverRestoreRetries.has(card)) return true
+
+  const retry = {
+    frame: 0,
+    startedAt: performance.now(),
+  }
+
+  const attempt = () => {
+    retry.frame = 0
+    if (
+      !card.isConnected ||
+      !card.classList.contains("is-filter-muted") ||
+      !card.classList.contains("is-muted-restore-intent") ||
+      card.closest(".catalog")?.dataset.filterPhase
+    ) {
+      hoverRestoreRetries.delete(card)
+      return
+    }
+
+    if (restoreSourceReady(card)) {
+      hoverRestoreRetries.delete(card)
+      playCard(card, direction, index, inputConfig, {
+        ...options,
+        restoreRetry: true,
+      })
+      return
+    }
+
+    requestBinaryRestoreSource()
+    if (performance.now() - retry.startedAt > HOVER_RESTORE_SOURCE_WAIT_MS) {
+      hoverRestoreRetries.delete(card)
+      return
+    }
+
+    retry.frame = requestAnimationFrame(attempt)
+  }
+
+  hoverRestoreRetries.set(card, retry)
+  requestBinaryRestoreSource()
+  retry.frame = requestAnimationFrame(attempt)
+  return true
+}
+
 function drawPlaceholderState(state, frameTick, now) {
   const { ctx, grid, config, paper, ink } = state
   const data = state.framePixels
@@ -745,6 +824,8 @@ function releaseMotionAfterFrames(card, frames = 1, { cooldown = false } = {}) {
 }
 
 function cancelCard(card, { remove = true } = {}) {
+  cancelHoverRestoreRetry(card)
+  clearRestoreReady(card)
   const state = cardStates.get(card)
   if (state) {
     activeStates.delete(state)
@@ -809,6 +890,7 @@ function reverseHoverState(card, state) {
   state.reason = "hover-return"
   state.startTime = now - state.config.activeColorDelayMs - raw * duration
   state.lastDraw = 0
+  clearRestoreReady(card)
   holdMotion(card)
   state.hiddenSource = hideRestoreSource(card)
   card.setAttribute(RETURN_ATTRIBUTE, "true")
@@ -822,11 +904,12 @@ function finishState(state) {
   activeStates.delete(state)
 
   if (state.mode === "restore-reverse") {
+    clearRestoreReady(state.card)
     const source = exposeRestoreSource(state.card)
-    state.card.removeAttribute(RETURN_ATTRIBUTE)
     state.handoffFrame = requestAnimationFrame(() => {
       if (state.canvas.isConnected) state.canvas.remove()
       cardStates.delete(state.card)
+      state.card.removeAttribute(RETURN_ATTRIBUTE)
       state.cleanupFrame = requestAnimationFrame(() => {
         clearRestoreSourceInline(source)
         releaseMotionAfterFrames(state.card, 2, { cooldown: true })
@@ -1068,19 +1151,6 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
   const run = () => {
     if (!card.isConnected || !img.complete || !img.naturalWidth) return false
 
-    const descriptor = paletteDescriptor(img, media, config)
-    if (!descriptor) return false
-    const grid =
-      paletteCache.get(descriptor.key) ||
-      buildLocalPalette(img, media, config, descriptor)
-    if (!grid) return false
-
-    const canvas = ensureCanvas(card, grid.cols, grid.rows)
-    const ctx = canvas?.getContext("2d", { alpha: true })
-    if (!canvas || !ctx) return false
-
-    holdMotion(card)
-    const paper = readPaperColor()
     const mode =
       options.mode ||
       (
@@ -1089,11 +1159,45 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
           ? "restore"
           : "snow"
       )
+    const requiresRestoreSource = mode === "restore" || mode === "restore-reverse"
+    const waitForHoverSource =
+      mode === "restore" &&
+      options.reason === "hover" &&
+      card.classList.contains("is-filter-muted")
+
+    if (requiresRestoreSource && !restoreSourceReady(card)) {
+      clearRestoreReady(card)
+      return waitForHoverSource
+        ? scheduleHoverRestoreRetry(card, direction, index, inputConfig, options)
+        : false
+    }
+
+    const descriptor = paletteDescriptor(img, media, config)
+    if (!descriptor) return false
+    const grid =
+      paletteCache.get(descriptor.key) ||
+      buildLocalPalette(img, media, config, descriptor)
+    if (!grid) return false
+
+    const paper = readPaperColor()
     const sourcePixels =
-      mode === "restore" || mode === "restore-reverse"
+      requiresRestoreSource
         ? buildRestoreSourcePixels(card, grid, paper)
         : null
+    if (requiresRestoreSource && !sourcePixels) {
+      clearRestoreReady(card)
+      return waitForHoverSource
+        ? scheduleHoverRestoreRetry(card, direction, index, inputConfig, options)
+        : false
+    }
+
+    const canvas = ensureCanvas(card, grid.cols, grid.rows)
+    const ctx = canvas?.getContext("2d", { alpha: true })
+    if (!canvas || !ctx) return false
+
+    holdMotion(card)
     if (mode === "restore-reverse" && sourcePixels) {
+      clearRestoreReady(card)
       card.setAttribute(RETURN_ATTRIBUTE, "true")
     }
     const hiddenSource =
@@ -1151,6 +1255,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     cardStates.set(card, state)
     activeStates.add(state)
     drawState(state, state.startTime)
+    if (mode === "restore" && sourcePixels) markRestoreReady(card)
     scheduleAnimationLoop()
     return true
   }
@@ -1411,16 +1516,23 @@ function bindCardHoverSnow(targetCatalog = catalog) {
       if (event?.pointerType === "touch") return
       if (pointerHoverSnowSuppressed(event)) {
         const state = cardStates.get(card)
+        cancelHoverRestoreRetry(card)
         if (state?.reason === "hover") cancelCard(card)
         return
       }
       const parentCatalog = card.closest(".catalog")
       const state = cardStates.get(card)
+      const canceledPendingRestore = cancelHoverRestoreRetry(card)
       if (
         parentCatalog?.dataset.activeFilter &&
         !parentCatalog.dataset.filterPhase &&
         card.classList.contains("is-filter-muted")
       ) {
+        if (canceledPendingRestore && !state) return
+        if (state?.mode === "placeholder" && state.reason === "hover") {
+          cancelCard(card)
+          return
+        }
         if (state?.mode === "restore-reverse") return
         if (reverseHoverState(card, state)) return
         playCard(card, "in", 0, runtimeConfig, {
@@ -1478,7 +1590,7 @@ function handleCatalogPhase(targetCatalog) {
     schedulePrewarm(targetCatalog)
     playCatalog(targetCatalog, "in", {
       force: true,
-      includeMuted: true,
+      includeMuted: false,
       includeOffscreen: true,
       reason: "category-enter",
     })

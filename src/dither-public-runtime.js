@@ -1,15 +1,17 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard, resetSampleCache } from "./dither-engine.js"
+import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260830-snowlock2"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   cancelReveal,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-breath5"
+} from "./reveal-motion.js?v=20260830-snowlock2"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
+const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
+const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const RETRY_DELAYS = [0, 60, 160, 360, 800, 1600]
 const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
 
@@ -124,6 +126,13 @@ function isMutedByActiveFilter(card, catalog) {
   )
 }
 
+function activeColorOwnsCard(card) {
+  return (
+    card?.getAttribute?.(ACTIVE_COLOR_MOTION_ATTRIBUTE) === "true" ||
+    card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true"
+  )
+}
+
 function revealSignature(card, catalog, canvas) {
   const img = card.querySelector(".project-media img")
   const rect = canvas?.getBoundingClientRect?.()
@@ -171,6 +180,10 @@ function syncResizeTargets(catalog) {
 
 function armViewportReveal(card, catalog) {
   if (!isMutedByActiveFilter(card, catalog)) return false
+  if (activeColorOwnsCard(card)) {
+    releaseViewportReveal(card, { forgetSignature: false })
+    return false
+  }
   const img = card.querySelector(".project-media img")
   const canvas = card.querySelector('.dither-preview-canvas[data-active="true"]')
   if (!img?.complete || img.naturalWidth <= 0 || !canvas || canvas.width <= 1 || canvas.height <= 1) {
@@ -200,6 +213,10 @@ function handleRevealIntersections(entries) {
     const card = entry.target
     if (!card?.isConnected || !isMutedByActiveFilter(card, catalog)) {
       releaseViewportReveal(card)
+      return
+    }
+    if (activeColorOwnsCard(card)) {
+      releaseViewportReveal(card, { forgetSignature: false })
       return
     }
 
@@ -290,6 +307,17 @@ function mutedClassChanged(mutation) {
   return before.has("is-filter-muted") !== target.classList.contains("is-filter-muted")
 }
 
+function activeColorMotionChanged(mutation) {
+  return (
+    mutation.target instanceof Element &&
+    mutation.target.classList.contains("project-card") &&
+    (
+      mutation.attributeName === ACTIVE_COLOR_MOTION_ATTRIBUTE ||
+      mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE
+    )
+  )
+}
+
 function revealCanvasMutationOnly(mutation) {
   if (mutation.type !== "childList") return false
   const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
@@ -306,6 +334,12 @@ function bindCatalogObserver() {
 
   state.catalogObserver = new MutationObserver((mutations) => {
     if (state.destroyed) return
+    mutations.forEach((mutation) => {
+      if (!activeColorMotionChanged(mutation)) return
+      if (activeColorOwnsCard(mutation.target)) {
+        releaseViewportReveal(mutation.target, { forgetSignature: false })
+      }
+    })
 
     if (mutations.some((mutation) =>
       mutation.type === "childList" ||
@@ -317,6 +351,7 @@ function bindCatalogObserver() {
     const shouldRender = mutations.some((mutation) => {
       if (mutation.type === "childList") return !revealCanvasMutationOnly(mutation)
       if (mutation.type !== "attributes") return false
+      if (activeColorMotionChanged(mutation)) return !activeColorOwnsCard(mutation.target)
       if (mutation.target === catalog && mutation.attributeName === "data-active-filter") return true
       return mutation.attributeName === "class" && mutedClassChanged(mutation)
     })
@@ -328,7 +363,12 @@ function bindCatalogObserver() {
     subtree: true,
     attributes: true,
     attributeOldValue: true,
-    attributeFilter: ["class", "data-active-filter"],
+    attributeFilter: [
+      "class",
+      "data-active-filter",
+      ACTIVE_COLOR_MOTION_ATTRIBUTE,
+      ACTIVE_COLOR_COOLDOWN_ATTRIBUTE,
+    ],
   })
 }
 

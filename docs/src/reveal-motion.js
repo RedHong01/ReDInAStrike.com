@@ -2,6 +2,8 @@ import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.
 
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
+const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
+const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const TARGET_FRAME_MS = 1000 / 60
 const IDLE_FLICKER_FRAME_MS = 1000 / 30
 const MAX_GRID_CELLS = 52000
@@ -99,6 +101,11 @@ function ensureStyles() {
       opacity: 0 !important;
       visibility: hidden !important;
     }
+    .project-card[${ACTIVE_COLOR_MOTION_ATTRIBUTE}="true"] .${CANVAS_CLASS},
+    .project-card[${ACTIVE_COLOR_COOLDOWN_ATTRIBUTE}="true"] .${CANVAS_CLASS} {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
     @media (prefers-reduced-motion: reduce) {
       .${CANVAS_CLASS} { display: none !important; }
     }
@@ -147,12 +154,16 @@ export function cancelReveal(card, { remove = false } = {}) {
   if (remove) canvas.remove()
 }
 
-function logicalGridSize(finalCanvas, config) {
-  const rect = finalCanvas.getBoundingClientRect()
-  const cssWidth = Math.max(1, rect.width)
-  const cssHeight = Math.max(1, rect.height)
-  let cols = Math.max(1, Math.ceil(cssWidth / Math.max(1, config.revealCellPx)))
-  let rows = Math.max(1, Math.ceil(cssHeight / Math.max(1, config.revealCellPx)))
+function activeColorOwnsCard(card) {
+  return (
+    card?.getAttribute?.(ACTIVE_COLOR_MOTION_ATTRIBUTE) === "true" ||
+    card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true"
+  )
+}
+
+function constrainGridSize(cols, rows) {
+  cols = Math.max(1, Math.round(cols))
+  rows = Math.max(1, Math.round(rows))
   const cellCount = cols * rows
   if (cellCount > MAX_GRID_CELLS) {
     const scale = Math.sqrt(cellCount / MAX_GRID_CELLS)
@@ -160,6 +171,27 @@ function logicalGridSize(finalCanvas, config) {
     rows = Math.max(1, Math.floor(rows / scale))
   }
   return { cols, rows }
+}
+
+function logicalGridSize(finalCanvas, config) {
+  const ditherCols = Number(finalCanvas?.dataset?.ditherColumns)
+  const ditherRows = Number(finalCanvas?.dataset?.ditherRows)
+  if (
+    Number.isFinite(ditherCols) &&
+    ditherCols > 0 &&
+    Number.isFinite(ditherRows) &&
+    ditherRows > 0
+  ) {
+    return constrainGridSize(ditherCols, ditherRows)
+  }
+
+  const rect = finalCanvas.getBoundingClientRect()
+  const cssWidth = Math.max(1, rect.width)
+  const cssHeight = Math.max(1, rect.height)
+  return constrainGridSize(
+    Math.ceil(cssWidth / Math.max(1, config.revealCellPx)),
+    Math.ceil(cssHeight / Math.max(1, config.revealCellPx)),
+  )
 }
 
 function ensureRevealCanvas(card, cols, rows) {
@@ -414,6 +446,10 @@ function finishReveal(state) {
 
 function drawState(state, now) {
   const { card, finalCanvas, canvas, config, startTime } = state
+  if (activeColorOwnsCard(card)) {
+    cancelReveal(card, { remove: true })
+    return
+  }
   if (!card.isConnected || !finalCanvas.isConnected || !canvas.isConnected) {
     cancelReveal(card, { remove: true })
     return
@@ -464,6 +500,16 @@ function boundaryStrength(y, bounds, metrics) {
 
 function renderBoundaryField(state, now, bounds) {
   const { card, finalCanvas, canvas, grid, config, colors } = state
+  if (activeColorOwnsCard(card)) {
+    if (state.boundaryVisible !== false) {
+      state.ctx.clearRect(0, 0, canvas.width, canvas.height)
+      canvas.style.opacity = "0"
+      canvas.style.visibility = "hidden"
+    }
+    state.boundaryVisible = false
+    state.lastBoundaryStrength = 0
+    return false
+  }
   if (!card.isConnected || !finalCanvas.isConnected || !canvas.isConnected) {
     cancelReveal(card, { remove: true })
     return false
@@ -617,6 +663,10 @@ function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
 export function trackViewportDitherReveal(card, finalCanvas, inputConfig = null) {
   ensureStyles()
   const config = sanitizeMotionConfig(inputConfig || window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
+  if (activeColorOwnsCard(card)) {
+    cancelReveal(card, { remove: true })
+    return false
+  }
   cancelReveal(card, { remove: true })
   if (
     !card || !finalCanvas || !config.revealEnabled || config.revealMode === "none" ||
@@ -643,6 +693,10 @@ export function trackViewportDitherReveal(card, finalCanvas, inputConfig = null)
 export function playDitherReveal(card, finalCanvas, inputConfig = null, options = {}) {
   ensureStyles()
   const config = sanitizeMotionConfig(inputConfig || window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
+  if (activeColorOwnsCard(card)) {
+    cancelReveal(card, { remove: true })
+    return false
+  }
   cancelReveal(card, { remove: true })
   if (
     !card || !finalCanvas || !config.revealEnabled || config.revealMode === "none" ||
@@ -677,6 +731,7 @@ export function replayAllDitherReveals(inputConfig = null) {
   const config = sanitizeMotionConfig(inputConfig || window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
   const cards = [...document.querySelectorAll(".catalog[data-active-filter] .project-card.is-filter-muted")]
   cards.forEach((card, index) => {
+    if (activeColorOwnsCard(card)) return
     const finalCanvas = card.querySelector('.dither-preview-canvas[data-active="true"]')
     if (finalCanvas) playDitherReveal(card, finalCanvas, config, { index })
   })

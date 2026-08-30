@@ -9,6 +9,9 @@ const STYLE_ID = "red-active-color-snow-style"
 const CANVAS_CLASS = "active-color-snow-canvas"
 const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const RETURN_ATTRIBUTE = "data-active-color-return"
+const MOTION_ATTRIBUTE = "data-active-color-motion"
+const BOUNDARY_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
+const BOUNDARY_COOLDOWN_MS = 520
 const MAX_GRID_CELLS = 42000
 const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
@@ -23,6 +26,8 @@ const prewarmQueued = new Set()
 const prewarmImageBound = new WeakSet()
 const playImageBound = new WeakSet()
 const hoverCardsBound = new WeakSet()
+const motionReleaseFrames = new WeakMap()
+const boundaryCooldownTimers = new WeakMap()
 
 let animationFrame = 0
 let catalogObserver = null
@@ -124,6 +129,13 @@ function ensureStyles() {
       .dither-preview-canvas[data-active="true"],
     html[${ROOT_ATTRIBUTE}="true"] .project-card[${RETURN_ATTRIBUTE}="true"]
       .project-halftone {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+    html[${ROOT_ATTRIBUTE}="true"] .project-card[${MOTION_ATTRIBUTE}="true"]
+      .dither-reveal-canvas,
+    html[${ROOT_ATTRIBUTE}="true"] .project-card[${BOUNDARY_COOLDOWN_ATTRIBUTE}="true"]
+      .dither-reveal-canvas {
       opacity: 0 !important;
       visibility: hidden !important;
     }
@@ -625,6 +637,63 @@ function drawPlaceholderState(state, frameTick, now) {
   ctx.putImageData(state.imageData, 0, 0)
 }
 
+function cancelMotionRelease(card) {
+  const frame = motionReleaseFrames.get(card)
+  if (frame) cancelAnimationFrame(frame)
+  motionReleaseFrames.delete(card)
+}
+
+function clearBoundaryCooldown(card) {
+  const timer = boundaryCooldownTimers.get(card)
+  if (timer) window.clearTimeout(timer)
+  boundaryCooldownTimers.delete(card)
+  card?.removeAttribute(BOUNDARY_COOLDOWN_ATTRIBUTE)
+}
+
+function startBoundaryCooldown(card) {
+  if (!card?.isConnected) return
+  clearBoundaryCooldown(card)
+  card.setAttribute(BOUNDARY_COOLDOWN_ATTRIBUTE, "true")
+  const timer = window.setTimeout(() => {
+    boundaryCooldownTimers.delete(card)
+    if (card.isConnected) card.removeAttribute(BOUNDARY_COOLDOWN_ATTRIBUTE)
+  }, BOUNDARY_COOLDOWN_MS)
+  boundaryCooldownTimers.set(card, timer)
+}
+
+function holdMotion(card) {
+  if (!card) return
+  cancelMotionRelease(card)
+  clearBoundaryCooldown(card)
+  card.setAttribute(MOTION_ATTRIBUTE, "true")
+}
+
+function releaseMotionAfterFrames(card, frames = 1, { cooldown = false } = {}) {
+  if (!card) return
+  cancelMotionRelease(card)
+
+  let remaining = Math.max(0, Math.round(frames))
+  const release = () => {
+    if (!card.isConnected) {
+      motionReleaseFrames.delete(card)
+      return
+    }
+    if (remaining > 0) {
+      remaining -= 1
+      motionReleaseFrames.set(card, requestAnimationFrame(release))
+      return
+    }
+
+    motionReleaseFrames.delete(card)
+    if (!cardStates.has(card)) {
+      if (cooldown) startBoundaryCooldown(card)
+      card.removeAttribute(MOTION_ATTRIBUTE)
+    }
+  }
+
+  motionReleaseFrames.set(card, requestAnimationFrame(release))
+}
+
 function cancelCard(card, { remove = true } = {}) {
   const state = cardStates.get(card)
   if (state) {
@@ -637,6 +706,7 @@ function cancelCard(card, { remove = true } = {}) {
   card?.removeAttribute(RETURN_ATTRIBUTE)
   const canvas = card?.querySelector(`.${CANVAS_CLASS}`)
   if (canvas && remove) canvas.remove()
+  releaseMotionAfterFrames(card, remove ? 1 : 0)
 }
 
 function exposeRestoreSource(card) {
@@ -687,6 +757,7 @@ function reverseHoverState(card, state) {
   state.reason = "hover-return"
   state.startTime = now - state.config.activeColorDelayMs - raw * duration
   state.lastDraw = 0
+  holdMotion(card)
   state.hiddenSource = hideRestoreSource(card)
   card.setAttribute(RETURN_ATTRIBUTE, "true")
   activeStates.add(state)
@@ -704,7 +775,10 @@ function finishState(state) {
     state.handoffFrame = requestAnimationFrame(() => {
       if (state.canvas.isConnected) state.canvas.remove()
       cardStates.delete(state.card)
-      state.cleanupFrame = requestAnimationFrame(() => clearRestoreSourceInline(source))
+      state.cleanupFrame = requestAnimationFrame(() => {
+        clearRestoreSourceInline(source)
+        releaseMotionAfterFrames(state.card, 2, { cooldown: true })
+      })
     })
     return
   }
@@ -718,6 +792,7 @@ function finishState(state) {
   state.canvas.style.opacity = "0"
   cardStates.delete(state.card)
   state.canvas.remove()
+  releaseMotionAfterFrames(state.card, 1)
 }
 
 function drawState(state, now) {
@@ -905,6 +980,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     const ctx = canvas?.getContext("2d", { alpha: true })
     if (!canvas || !ctx) return false
 
+    holdMotion(card)
     ctx.imageSmoothingEnabled = false
     canvas.style.transition = "none"
     canvas.style.opacity = "1"
@@ -951,6 +1027,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     const ctx = canvas?.getContext("2d", { alpha: true })
     if (!canvas || !ctx) return false
 
+    holdMotion(card)
     const paper = readPaperColor()
     const mode =
       options.mode ||

@@ -1,6 +1,8 @@
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 
 const OWNER = "breath6"
+const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
+const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const IDLE_FRAME_MS = 1000 / 30
 const RESIZE_SYNC_MS = 120
 const RETRY_DELAYS = [0, 80, 220, 520, 1000, 1800]
@@ -23,7 +25,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260830-breath5").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260830-snowlock2").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -57,7 +59,9 @@ function isMutedCard(card, targetCatalog) {
     card?.isConnected &&
     targetCatalog &&
     card.closest(".catalog") === targetCatalog &&
-    card.classList.contains("is-filter-muted"),
+    card.classList.contains("is-filter-muted") &&
+    card.getAttribute(ACTIVE_COLOR_MOTION_ATTRIBUTE) !== "true" &&
+    card.getAttribute(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) !== "true",
   )
 }
 
@@ -199,7 +203,10 @@ async function syncTrackedCards() {
     return false
   }
 
-  const mutedCards = new Set(targetCatalog.querySelectorAll(".project-card.is-filter-muted"))
+  const mutedCards = new Set(
+    [...targetCatalog.querySelectorAll(".project-card.is-filter-muted")]
+      .filter((card) => isMutedCard(card, targetCatalog)),
+  )
   if (trackedCards.size) {
     await ensureRevealApi()
     for (const card of [...trackedCards]) {
@@ -297,6 +304,14 @@ function catalogMutationNeedsSync(mutation, targetCatalog) {
   if (mutation.type === "childList") return structuralMutationNeedsSync(mutation)
   if (mutation.type !== "attributes") return false
   if (mutation.target === targetCatalog && mutation.attributeName === "data-active-filter") return true
+  if (
+    mutation.target instanceof Element &&
+    mutation.target.classList.contains("project-card") &&
+    (
+      mutation.attributeName === ACTIVE_COLOR_MOTION_ATTRIBUTE ||
+      mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE
+    )
+  ) return true
   if (mutation.attributeName === "data-active") {
     return mutation.target instanceof Element && mutation.target.classList.contains("dither-preview-canvas")
   }
@@ -327,7 +342,13 @@ function bindCatalog(nextCatalog) {
     subtree: true,
     attributes: true,
     attributeOldValue: true,
-    attributeFilter: ["class", "data-active", "data-active-filter"],
+    attributeFilter: [
+      "class",
+      "data-active",
+      "data-active-filter",
+      ACTIVE_COLOR_MOTION_ATTRIBUTE,
+      ACTIVE_COLOR_COOLDOWN_ATTRIBUTE,
+    ],
   })
   scheduleSync()
 }

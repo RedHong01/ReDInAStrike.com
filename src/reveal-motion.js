@@ -3,7 +3,7 @@ import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
 const TARGET_FRAME_MS = 1000 / 60
-const IDLE_FLICKER_FRAME_MS = 1000 / 30
+const IDLE_FLICKER_FRAME_MS = 1000 / 36
 const MAX_GRID_CELLS = 52000
 const VIEWPORT_LINGER_MS = 220
 const VIEWPORT_PROGRESS_EPSILON = 0.0025
@@ -17,6 +17,7 @@ const BOUNDARY_HOLD_MIN_PX = 6
 const BOUNDARY_HOLD_MAX_PX = 18
 const PIXEL_THRESHOLD_MIN = 0.08
 const PIXEL_THRESHOLD_SPAN = 0.84
+const TAU = Math.PI * 2
 
 const animationStates = new WeakMap()
 const activeStates = new Set()
@@ -217,6 +218,7 @@ function buildGrid(finalCanvas, config) {
   const clusterOrder = new Float32Array(count)
   const scanOrder = new Float32Array(count)
   const flickerPhase = new Float32Array(count)
+  const breathRate = new Float32Array(count)
 
   const centers = Array.from({ length: config.revealClusterCount }, (_, index) => ({
     x: hash01(config.revealSeed, index, 91, 7),
@@ -234,6 +236,10 @@ function buildGrid(finalCanvas, config) {
       const ny = (row + 0.5) / rows
       const random = hash01(config.revealSeed, col, row, 1)
       const randomB = hash01(config.revealSeed, row, col, 73)
+      const groupCol = Math.floor(col / 3)
+      const groupRow = Math.floor(row / 3)
+      const groupPhase = hash01(config.revealSeed, groupCol, groupRow, 211)
+      const groupRate = hash01(config.revealSeed, groupRow, groupCol, 313)
 
       let scanPosition = ny
       if (config.revealDirection === "bottom") scanPosition = 1 - ny
@@ -260,13 +266,15 @@ function buildGrid(finalCanvas, config) {
         scanPosition * (1 - config.revealScanNoiseMix * 0.32) +
           random * config.revealScanNoiseMix * 0.32,
       )
-      flickerPhase[index] = random * 6.731 + randomB * 3.117
+      flickerPhase[index] = groupPhase * TAU + (random - 0.5) * 0.72
+      breathRate[index] = 0.22 + groupRate * 0.24 + (randomB - 0.5) * 0.028
     }
   }
 
   const grid = {
     cols, rows, count,
-    darkness, pixelOrder, thresholdOrder, clusterOrder, scanOrder, flickerPhase,
+    darkness, pixelOrder, thresholdOrder, clusterOrder, scanOrder,
+    flickerPhase, breathRate,
   }
   if (!perCanvas) {
     perCanvas = new Map()
@@ -316,11 +324,11 @@ function pixelSoftness(config, mode = "pixel-snow") {
   return base
 }
 
-function flickerWave(timePhase, cellPhase) {
-  const phase = timePhase + cellPhase
-  const cycle = phase - Math.floor(phase)
-  const triangle = 1 - Math.abs(cycle * 2 - 1)
-  return smooth01(triangle)
+function breathingWave(timeSeconds, cellPhase, rate) {
+  const primary = Math.sin(timeSeconds * TAU * rate + cellPhase)
+  const drift = Math.sin(timeSeconds * TAU * rate * 0.37 + cellPhase * 0.61 + 1.13)
+  const secondary = Math.sin(timeSeconds * TAU * rate * 1.61 + cellPhase * 1.37 - 0.47)
+  return clamp(0.5 + primary * 0.26 + drift * 0.17 + secondary * 0.055)
 }
 
 function renderProgress(state, rawProgress, now) {
@@ -349,8 +357,8 @@ function renderProgress(state, rawProgress, now) {
   const order = orderArray(grid, config.revealMode)
   const softness = pixelSoftness(config, config.revealMode)
   const data = state.framePixels
-  const timePhase = now * (0.0035 + config.revealNoiseFlicker * 0.0105)
-  const flickerAmount = 0.055 + config.revealNoiseFlicker * 0.19
+  const timeSeconds = now / 1000
+  const breathAmount = 0.024 + config.revealNoiseFlicker * 0.058
   data.fill(0)
 
   for (let index = 0; index < grid.count; index += 1) {
@@ -362,16 +370,17 @@ function renderProgress(state, rawProgress, now) {
     if (overlayAlpha <= 0.001) continue
 
     const transitionBand = 4 * overlayAlpha * (1 - overlayAlpha)
-    const wave = flickerWave(timePhase, grid.flickerPhase[index])
+    const breath = breathingWave(timeSeconds, grid.flickerPhase[index], grid.breathRate[index])
     overlayAlpha = clamp(
-      overlayAlpha + (wave - 0.5) * 2 * flickerAmount * transitionBand,
+      overlayAlpha + (breath - 0.5) * 2 * breathAmount * transitionBand,
     )
 
-    const sparkleGate = smooth01((wave - 0.58) / 0.42)
+    const inkPulse = 0.28 + breath * 0.72
     const inkMix = transitionBand *
-      sparkleGate *
+      inkPulse *
       config.revealNoisePeak *
-      (0.26 + grid.darkness[index] * 0.38)
+      0.24 *
+      (0.24 + grid.darkness[index] * 0.34)
 
     writeMixedPixel(
       data,
@@ -460,8 +469,8 @@ function renderBoundaryField(state, now, bounds) {
 
   const metrics = boundaryMetrics(bounds)
   const softness = pixelSoftness(config, "pixel-snow")
-  const flickerAmount = 0.065 + config.revealNoiseFlicker * 0.21
-  const timePhase = now * (0.0038 + config.revealNoiseFlicker * 0.0115)
+  const breathAmount = 0.028 + config.revealNoiseFlicker * 0.068
+  const timeSeconds = now / 1000
   const data = state.framePixels
   data.fill(0)
 
@@ -497,16 +506,17 @@ function renderBoundaryField(state, now, bounds) {
       if (coverAlpha <= 0.001) continue
 
       const transitionBand = 4 * coverAlpha * (1 - coverAlpha)
-      const wave = flickerWave(timePhase, grid.flickerPhase[index])
+      const breath = breathingWave(timeSeconds, grid.flickerPhase[index], grid.breathRate[index])
       coverAlpha = clamp(
-        coverAlpha + (wave - 0.5) * 2 * flickerAmount * transitionBand,
+        coverAlpha + (breath - 0.5) * 2 * breathAmount * transitionBand,
       )
 
-      const sparkleGate = smooth01((wave - 0.54) / 0.46)
+      const inkPulse = 0.25 + breath * 0.75
       const inkMix = transitionBand *
-        sparkleGate *
+        inkPulse *
         config.revealNoisePeak *
-        (0.3 + grid.darkness[index] * 0.42)
+        0.26 *
+        (0.27 + grid.darkness[index] * 0.36)
 
       writeMixedPixel(
         data,

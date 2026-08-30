@@ -1,30 +1,37 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js"
+import { renderCard, resetSampleCache } from "./dither-engine.js"
 
-const DITHER_NEAR_MARGIN = 1000
-const INITIAL_PRIORITY_CARD_COUNT = 8
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
+const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
+const RETRY_DELAYS = [0, 60, 160, 360, 800, 1600]
 
 const state = {
-  renderFrame: 0,
-  syncFrame: 0,
-  catalog: null,
-  observer: null,
-  resizeObserver: null,
-  cardObserver: null,
-  appObserver: null,
-  observedMedia: new Set(),
-  observedCards: new Set(),
-  nearCards: new Set(),
-  dirtyCards: new Set(),
-  boundImages: new WeakSet(),
   destroyed: false,
+  renderFrame: 0,
+  appObserver: null,
+  catalogObserver: null,
+  resizeObserver: null,
+  observedMedia: new Set(),
+  boundImages: new WeakSet(),
+  retryTimers: new Set(),
+}
+
+function publishedMode() {
+  return PUBLISHED_DITHER_CONFIG?.mode || "native"
+}
+
+function publishedIsGenerated() {
+  return publishedMode() !== "native"
 }
 
 function ensurePublicStyles() {
-  if (document.getElementById(PUBLIC_STYLE_ID)) return
-  const style = document.createElement("style")
-  style.id = PUBLIC_STYLE_ID
+  let style = document.getElementById(PUBLIC_STYLE_ID)
+  if (!style) {
+    style = document.createElement("style")
+    style.id = PUBLIC_STYLE_ID
+    document.head.appendChild(style)
+  }
+
   style.textContent = `
     .project-media {
       overflow: hidden;
@@ -33,7 +40,7 @@ function ensurePublicStyles() {
     .dither-preview-canvas {
       position: absolute;
       inset: 0;
-      z-index: 4;
+      z-index: 6 !important;
       display: block;
       width: 100% !important;
       height: 100% !important;
@@ -41,272 +48,237 @@ function ensurePublicStyles() {
       max-height: none !important;
       background: var(--paper);
       opacity: 0;
+      visibility: hidden;
       pointer-events: none;
       transition: opacity var(--catalog-muted-hover-ms, 475ms) cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .catalog[data-active-filter]
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter]
       .project-card.is-filter-muted
-      .dither-preview-canvas[data-active="true"] {
-      opacity: 1;
-    }
-
-    .catalog[data-active-filter]
-      .project-card.is-filter-muted.is-muted-restore-intent
-      .dither-preview-canvas {
-      opacity: 0;
-    }
-
-    .catalog[data-active-filter]
-      .project-card.is-filter-muted.is-muted-restore-return
-      .dither-preview-canvas[data-active="true"] {
-      opacity: 1;
-    }
-
-    .catalog[data-active-filter]
-      .project-card.is-filter-muted:has(.dither-preview-canvas[data-active="true"])
       .project-halftone {
       opacity: 0 !important;
       visibility: hidden !important;
+      display: none !important;
+    }
+
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter]
+      .project-card.is-filter-muted
+      .dither-preview-canvas[data-active="true"] {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter]
+      .project-card.is-filter-muted.is-muted-restore-intent
+      .dither-preview-canvas[data-active="true"] {
+      opacity: 0 !important;
+    }
+
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter]
+      .project-card.is-filter-muted.is-muted-restore-return
+      .dither-preview-canvas[data-active="true"] {
+      opacity: 1 !important;
     }
   `
-  document.head.appendChild(style)
 }
 
-function isActiveCard(card) {
+function applyPublishedModeState() {
+  document.documentElement.setAttribute(ROOT_MODE_ATTRIBUTE, publishedMode())
+}
+
+function activeCatalog() {
+  return document.querySelector(".catalog")
+}
+
+function isMutedByActiveFilter(card, catalog) {
   return Boolean(
-    card?.isConnected &&
-    card.classList.contains("is-filter-muted") &&
-    card.closest(".catalog")?.dataset.activeFilter &&
-    PUBLISHED_DITHER_CONFIG.mode !== "native"
+    publishedIsGenerated() &&
+    catalog?.dataset.activeFilter &&
+    card?.classList.contains("is-filter-muted")
   )
-}
-
-function deactivateCard(card) {
-  const canvas = card?.querySelector(":scope .dither-preview-canvas")
-  if (canvas?.dataset.active !== "false") canvas.dataset.active = "false"
-}
-
-function markCardDirty(card) {
-  if (card?.isConnected) state.dirtyCards.add(card)
-}
-
-function markAllCardsDirty() {
-  state.catalog?.querySelectorAll(".project-card").forEach(markCardDirty)
-}
-
-function renderEligibleCards() {
-  state.renderFrame = 0
-  if (state.destroyed || !state.catalog?.isConnected) return
-
-  const cards = [...state.catalog.querySelectorAll(".project-card")]
-  const hasIntersectionObserver = Boolean(state.cardObserver)
-
-  cards.forEach((card, index) => {
-    if (!isActiveCard(card)) {
-      deactivateCard(card)
-      state.dirtyCards.delete(card)
-      return
-    }
-
-    const canvas = card.querySelector(":scope .dither-preview-canvas")
-    const needsRender = state.dirtyCards.has(card) || !canvas
-    if (!needsRender) return
-
-    const shouldRender =
-      !hasIntersectionObserver ||
-      state.nearCards.has(card) ||
-      index < INITIAL_PRIORITY_CARD_COUNT
-
-    if (!shouldRender) return
-    renderCard(card, PUBLISHED_DITHER_CONFIG)
-    state.dirtyCards.delete(card)
-  })
-}
-
-function requestRender() {
-  if (state.destroyed || state.renderFrame) return
-  state.renderFrame = requestAnimationFrame(renderEligibleCards)
 }
 
 function bindImageLoad(img) {
   if (!img || img.complete || state.boundImages.has(img)) return
   state.boundImages.add(img)
   img.addEventListener("load", () => {
-    markCardDirty(img.closest(".project-card"))
+    if (state.destroyed) return
+    resetSampleCache?.()
     requestRender()
   }, { once: true, passive: true })
 }
 
-function syncObservedTargets() {
-  state.syncFrame = 0
-  const catalog = state.catalog
-  if (state.destroyed || !catalog?.isConnected) return
+function syncResizeTargets(catalog) {
+  if (!state.resizeObserver) return
+  const nextMedia = new Set(catalog?.querySelectorAll(".project-media") || [])
 
-  const nextMedia = new Set(catalog.querySelectorAll(".project-media"))
   for (const media of [...state.observedMedia]) {
     if (nextMedia.has(media)) continue
-    state.resizeObserver?.unobserve(media)
+    state.resizeObserver.unobserve(media)
     state.observedMedia.delete(media)
   }
+
   for (const media of nextMedia) {
     if (state.observedMedia.has(media)) continue
     state.observedMedia.add(media)
-    state.resizeObserver?.observe(media)
-    markCardDirty(media.closest(".project-card"))
+    state.resizeObserver.observe(media)
   }
-
-  const nextCards = new Set(catalog.querySelectorAll(".project-card"))
-  for (const card of [...state.observedCards]) {
-    if (nextCards.has(card)) continue
-    state.cardObserver?.unobserve(card)
-    state.observedCards.delete(card)
-    state.nearCards.delete(card)
-    state.dirtyCards.delete(card)
-  }
-  for (const card of nextCards) {
-    if (state.observedCards.has(card)) continue
-    state.observedCards.add(card)
-    state.cardObserver?.observe(card)
-    markCardDirty(card)
-  }
-
-  catalog.querySelectorAll("img").forEach(bindImageLoad)
-  requestRender()
 }
 
-function requestSync() {
-  if (state.destroyed || state.syncFrame) return
-  state.syncFrame = requestAnimationFrame(syncObservedTargets)
-}
-
-function disconnectCatalogObservers() {
-  state.observer?.disconnect()
-  state.resizeObserver?.disconnect()
-  state.cardObserver?.disconnect()
-  state.observer = null
-  state.resizeObserver = null
-  state.cardObserver = null
-  state.observedMedia.clear()
-  state.observedCards.clear()
-  state.nearCards.clear()
-  state.dirtyCards.clear()
-}
-
-function classListContains(classValue, token) {
-  return String(classValue || "").split(/\s+/).includes(token)
-}
-
-function mutedStateChanged(mutation) {
-  if (mutation.type !== "attributes" || mutation.attributeName !== "class") return false
-  const hadMuted = classListContains(mutation.oldValue, "is-filter-muted")
-  const hasMuted = mutation.target?.classList?.contains("is-filter-muted") === true
-  return hadMuted !== hasMuted
-}
-
-function bindCatalog(nextCatalog = document.querySelector(".catalog")) {
+function renderPublishedDither() {
+  state.renderFrame = 0
   if (state.destroyed) return
-  if (state.catalog === nextCatalog && nextCatalog?.isConnected) {
-    requestSync()
-    return
-  }
 
-  disconnectCatalogObservers()
-  state.catalog = nextCatalog || null
-  if (!state.catalog) return
+  applyPublishedModeState()
+  ensurePublicStyles()
 
-  if ("MutationObserver" in window) {
-    state.observer = new MutationObserver((mutations) => {
-      let structureChanged = false
-      let filterChanged = false
-      let mutedChanged = false
+  const catalog = activeCatalog()
+  if (!catalog) return
 
-      mutations.forEach((mutation) => {
-        if (mutation.type === "childList") {
-          structureChanged = true
-          return
-        }
-        if (mutation.attributeName === "data-active-filter") {
-          filterChanged = true
-          return
-        }
-        if (mutedStateChanged(mutation)) {
-          mutedChanged = true
-          markCardDirty(mutation.target.closest?.(".project-card") || mutation.target)
-        }
-      })
+  syncResizeTargets(catalog)
 
-      if (structureChanged) requestSync()
-      if (filterChanged) markAllCardsDirty()
-      if (structureChanged || filterChanged || mutedChanged) requestRender()
-    })
-    state.observer.observe(state.catalog, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeOldValue: true,
-      attributeFilter: ["class", "data-active-filter"],
-    })
-  }
+  const cards = [...catalog.querySelectorAll(".project-card")]
+  cards.forEach((card) => {
+    const img = card.querySelector(".project-media img")
+    bindImageLoad(img)
+
+    if (!isMutedByActiveFilter(card, catalog)) {
+      const canvas = card.querySelector(".dither-preview-canvas")
+      if (canvas) canvas.dataset.active = "false"
+      return
+    }
+
+    renderCard(card, PUBLISHED_DITHER_CONFIG)
+
+    const canvas = card.querySelector(".dither-preview-canvas")
+    if (canvas) {
+      canvas.dataset.active = "true"
+      canvas.dataset.publishedMode = publishedMode()
+    }
+  })
+}
+
+function requestRender() {
+  if (state.destroyed || state.renderFrame) return
+  state.renderFrame = requestAnimationFrame(renderPublishedDither)
+}
+
+function bindCatalogObserver() {
+  state.catalogObserver?.disconnect()
+  state.catalogObserver = null
+
+  const catalog = activeCatalog()
+  if (!catalog || !("MutationObserver" in window)) return
+
+  state.catalogObserver = new MutationObserver((mutations) => {
+    if (state.destroyed) return
+    let shouldRender = false
+
+    for (const mutation of mutations) {
+      if (mutation.type === "childList") {
+        shouldRender = true
+        break
+      }
+      if (mutation.type === "attributes") {
+        shouldRender = true
+        break
+      }
+    }
+
+    if (shouldRender) requestRender()
+  })
+
+  state.catalogObserver.observe(catalog, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeOldValue: false,
+    attributeFilter: ["class", "data-active-filter"],
+  })
+}
+
+function bindAppObserver() {
+  if (!("MutationObserver" in window)) return
+  const app = document.querySelector("#app")
+  if (!app) return
+
+  state.appObserver = new MutationObserver(() => {
+    if (state.destroyed) return
+    bindCatalogObserver()
+    requestRender()
+  })
+
+  state.appObserver.observe(app, {
+    childList: true,
+    subtree: true,
+  })
+}
+
+function scheduleRetries() {
+  RETRY_DELAYS.forEach((delay) => {
+    const timer = window.setTimeout(() => {
+      state.retryTimers.delete(timer)
+      if (state.destroyed) return
+      bindCatalogObserver()
+      requestRender()
+    }, delay)
+    state.retryTimers.add(timer)
+  })
+}
+
+function boot() {
+  applyPublishedModeState()
+  ensurePublicStyles()
+
+  if (!publishedIsGenerated()) return
 
   if ("ResizeObserver" in window) {
-    state.resizeObserver = new ResizeObserver((entries) => {
-      entries.forEach((entry) => markCardDirty(entry.target.closest(".project-card")))
+    state.resizeObserver = new ResizeObserver(() => {
+      if (state.destroyed) return
+      resetSampleCache?.()
       requestRender()
     })
   }
 
-  if ("IntersectionObserver" in window) {
-    state.cardObserver = new IntersectionObserver((entries) => {
-      let shouldRender = false
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          state.nearCards.add(entry.target)
-          if (state.dirtyCards.has(entry.target)) shouldRender = true
-        } else {
-          state.nearCards.delete(entry.target)
-        }
-      })
-      if (shouldRender) requestRender()
-    }, {
-      root: null,
-      rootMargin: `${DITHER_NEAR_MARGIN}px 0px`,
-      threshold: 0,
-    })
-  }
+  bindAppObserver()
+  bindCatalogObserver()
+  requestRender()
+  scheduleRetries()
 
-  requestSync()
-}
-
-function boot() {
-  ensurePublicStyles()
-  bindCatalog()
-
-  if ("MutationObserver" in window) {
-    state.appObserver = new MutationObserver(() => {
-      if (state.destroyed) return
-      const nextCatalog = document.querySelector(".catalog")
-      if (nextCatalog !== state.catalog) bindCatalog(nextCatalog)
-    })
-    const app = document.querySelector("#app")
-    if (app) state.appObserver.observe(app, { childList: true })
-  }
+  window.addEventListener("resize", requestRender, { passive: true })
 }
 
 export function destroyPublicDitherRuntime() {
+  if (state.destroyed) return
   state.destroyed = true
+
   if (state.renderFrame) cancelAnimationFrame(state.renderFrame)
-  if (state.syncFrame) cancelAnimationFrame(state.syncFrame)
   state.renderFrame = 0
-  state.syncFrame = 0
-  disconnectCatalogObservers()
+
   state.appObserver?.disconnect()
+  state.catalogObserver?.disconnect()
+  state.resizeObserver?.disconnect()
   state.appObserver = null
-  state.catalog = null
+  state.catalogObserver = null
+  state.resizeObserver = null
+  state.observedMedia.clear()
+
+  state.retryTimers.forEach((timer) => clearTimeout(timer))
+  state.retryTimers.clear()
+
+  window.removeEventListener("resize", requestRender)
+  document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)
+  document.getElementById(PUBLIC_STYLE_ID)?.remove()
 }
 
 boot()
 
 window.__RED_DITHER_PUBLIC_RUNTIME__ = {
   destroy: destroyPublicDitherRuntime,
+  render: requestRender,
+  mode: publishedMode(),
 }

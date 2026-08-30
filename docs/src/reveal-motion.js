@@ -18,6 +18,7 @@ const BOUNDARY_DEPTH_MAX_PX = 310
 const BOUNDARY_HOLD_RATIO = 0.012
 const BOUNDARY_HOLD_MIN_PX = 6
 const BOUNDARY_HOLD_MAX_PX = 18
+const VIEWPORT_OBSERVER_MARGIN_PX = BOUNDARY_DEPTH_MAX_PX + BOUNDARY_HOLD_MAX_PX
 const PIXEL_THRESHOLD_MIN = 0.08
 const PIXEL_THRESHOLD_SPAN = 0.84
 const TAU = Math.PI * 2
@@ -25,11 +26,15 @@ const TAU = Math.PI * 2
 const animationStates = new WeakMap()
 const activeStates = new Set()
 const viewportStates = new Set()
+const viewportVisibleStates = new Set()
+const canvasViewportStates = new WeakMap()
 const gridCache = new WeakMap()
 
 let animationFrame = 0
 let viewportFrame = 0
 let viewportActiveUntil = 0
+let viewportTimer = 0
+let viewportObserver = null
 let replayFrame = 0
 let lastRevealConfigKey = ""
 
@@ -140,13 +145,97 @@ function readColors() {
   return colorCacheValue
 }
 
+function isRectNearViewport(rect) {
+  const viewportBottom = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+  return (
+    rect.width > 0 &&
+    rect.height > 0 &&
+    rect.bottom >= -VIEWPORT_OBSERVER_MARGIN_PX &&
+    rect.top <= viewportBottom + VIEWPORT_OBSERVER_MARGIN_PX
+  )
+}
+
+function hideViewportOverlay(state) {
+  if (!state?.canvas?.isConnected) return
+  if (state.boundaryVisible !== false) {
+    state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height)
+    state.canvas.style.opacity = "0"
+    state.canvas.style.visibility = "hidden"
+  }
+  state.dirtyRanges = null
+  state.viewportRect = null
+  state.boundaryVisible = false
+  state.hasBoundaryTransition = false
+  state.lastBoundaryStrength = 0
+}
+
+function handleViewportObserverEntries(entries) {
+  let shouldRefresh = false
+
+  for (const entry of entries) {
+    const state = canvasViewportStates.get(entry.target)
+    if (!state || !viewportStates.has(state) || !state.canvas?.isConnected) {
+      viewportObserver?.unobserve(entry.target)
+      continue
+    }
+
+    if (entry.isIntersecting) {
+      viewportVisibleStates.add(state)
+      shouldRefresh = true
+    } else {
+      viewportVisibleStates.delete(state)
+      hideViewportOverlay(state)
+    }
+  }
+
+  if (shouldRefresh) refreshViewportDitherReveals({ linger: false })
+}
+
+function ensureViewportObserver() {
+  if (viewportObserver || !("IntersectionObserver" in window)) return viewportObserver
+
+  viewportObserver = new IntersectionObserver(handleViewportObserverEntries, {
+    root: null,
+    rootMargin: `${VIEWPORT_OBSERVER_MARGIN_PX}px 0px`,
+    threshold: 0,
+  })
+  return viewportObserver
+}
+
+function trackViewportVisibility(state) {
+  const observer = ensureViewportObserver()
+  if (!observer) {
+    viewportVisibleStates.add(state)
+    return
+  }
+
+  canvasViewportStates.set(state.canvas, state)
+  observer.observe(state.canvas)
+  if (isRectNearViewport(state.canvas.getBoundingClientRect())) {
+    viewportVisibleStates.add(state)
+  }
+}
+
+function untrackViewportVisibility(state) {
+  if (!state) return
+  viewportVisibleStates.delete(state)
+  if (state.canvas) {
+    viewportObserver?.unobserve(state.canvas)
+    if (canvasViewportStates.get(state.canvas) === state) {
+      canvasViewportStates.delete(state.canvas)
+    }
+  }
+}
+
 export function cancelReveal(card, { remove = false } = {}) {
   const current = animationStates.get(card)
   if (current?.settleTimer) clearTimeout(current.settleTimer)
   if (current) {
     activeStates.delete(current)
     viewportStates.delete(current)
+    untrackViewportVisibility(current)
   }
+  if (!viewportStates.size) clearViewportTimer()
   animationStates.delete(card)
   const canvas = card?.querySelector(`.${CANVAS_CLASS}`)
   if (!canvas) return
@@ -475,6 +564,28 @@ function scheduleAnimationLoop() {
   if (!animationFrame && activeStates.size) animationFrame = requestAnimationFrame(animationLoop)
 }
 
+function clearViewportTimer() {
+  if (!viewportTimer) return
+  window.clearTimeout(viewportTimer)
+  viewportTimer = 0
+}
+
+function scheduleViewportLoop(delay = 0) {
+  if (viewportFrame || viewportTimer || !viewportStates.size || document.hidden) return
+
+  if (delay > 0) {
+    viewportTimer = window.setTimeout(() => {
+      viewportTimer = 0
+      if (!viewportFrame && viewportStates.size && !document.hidden) {
+        viewportFrame = requestAnimationFrame(viewportLoop)
+      }
+    }, delay)
+    return
+  }
+
+  viewportFrame = requestAnimationFrame(viewportLoop)
+}
+
 function viewportBounds() {
   const viewportBottom = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
   const header = document.querySelector(".site-header")
@@ -501,7 +612,59 @@ function boundaryStrength(y, bounds, metrics) {
   return 1 - smooth01((nearest - metrics.hold) / metrics.depth)
 }
 
-function renderBoundaryField(state, now, bounds) {
+function headerMotionActive() {
+  return (
+    document.documentElement.dataset.headerMotion === "moving" ||
+    Boolean(document.documentElement.dataset.homeReturnTransition)
+  )
+}
+
+function viewportRectForState(state, forceMeasure = false) {
+  if (!forceMeasure && !headerMotionActive() && state.viewportRect) return state.viewportRect
+
+  const rect = state.canvas.getBoundingClientRect()
+  state.viewportRect = {
+    top: rect.top,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+  }
+  return state.viewportRect
+}
+
+function clampRow(value, rows) {
+  return Math.min(rows, Math.max(0, Math.round(value)))
+}
+
+function influencedRowRanges(rect, bounds, metrics, rows) {
+  const topLimit = bounds.top + metrics.hold + metrics.depth
+  const bottomLimit = bounds.bottom - metrics.hold - metrics.depth
+  const ranges = []
+  const topEnd = clampRow(((topLimit - rect.top) / rect.height) * rows, rows)
+  const bottomStart = clampRow(((bottomLimit - rect.top) / rect.height) * rows, rows)
+
+  if (topEnd > 0) ranges.push([0, topEnd])
+  if (bottomStart < rows) ranges.push([bottomStart, rows])
+  if (ranges.length === 2 && ranges[0][1] >= ranges[1][0]) {
+    ranges[0][1] = ranges[1][1]
+    ranges.pop()
+  }
+
+  return ranges.filter(([from, to]) => to > from)
+}
+
+function clearDirtyRanges(state) {
+  const ranges = state.dirtyRanges
+  if (!ranges?.length) return
+  const { canvas, ctx, grid, framePixels } = state
+  for (const [from, to] of ranges) {
+    framePixels.fill(0, from * grid.cols * 4, to * grid.cols * 4)
+    ctx.clearRect(0, from, canvas.width, to - from)
+  }
+  state.dirtyRanges = null
+}
+
+function renderBoundaryField(state, now, bounds, forceMeasure = false) {
   const { card, finalCanvas, canvas, grid, config, colors } = state
   if (activeColorOwnsCard(card)) {
     if (state.boundaryVisible !== false) {
@@ -518,88 +681,102 @@ function renderBoundaryField(state, now, bounds) {
     return false
   }
 
-  const rect = canvas.getBoundingClientRect()
+  const rect = viewportRectForState(state, forceMeasure)
   if (rect.height <= 0 || rect.width <= 0) return false
 
   const metrics = boundaryMetrics(bounds)
+  const topInfluenceBottom = bounds.top + metrics.hold + metrics.depth
+  const bottomInfluenceTop = bounds.bottom - metrics.hold - metrics.depth
+  if (rect.top >= topInfluenceBottom && rect.bottom <= bottomInfluenceTop) {
+    hideViewportOverlay(state)
+    return false
+  }
+
   const softness = pixelSoftness(config, "pixel-snow")
   const breathAmount = 0.07 + config.revealNoiseFlicker * 0.16
   const timeSeconds = now / 1000
   const data = state.framePixels
-  data.fill(0)
+  const ranges = influencedRowRanges(rect, bounds, metrics, grid.rows)
+  if (!ranges.length) {
+    hideViewportOverlay(state)
+    return false
+  }
+  clearDirtyRanges(state)
+  for (const [from, to] of ranges) {
+    data.fill(0, from * grid.cols * 4, to * grid.cols * 4)
+  }
 
   let hasInfluence = false
   let hasTransition = false
   let maxStrength = 0
   let minStrength = 1
 
-  for (let row = 0; row < grid.rows; row += 1) {
-    const viewportY = rect.top + ((row + 0.5) / grid.rows) * rect.height
-    const strength = boundaryStrength(viewportY, bounds, metrics)
-    maxStrength = Math.max(maxStrength, strength)
-    minStrength = Math.min(minStrength, strength)
+  for (const [fromRow, toRow] of ranges) {
+    for (let row = fromRow; row < toRow; row += 1) {
+      const viewportY = rect.top + ((row + 0.5) / grid.rows) * rect.height
+      const strength = boundaryStrength(viewportY, bounds, metrics)
+      maxStrength = Math.max(maxStrength, strength)
+      minStrength = Math.min(minStrength, strength)
 
-    if (strength <= 0.0005) continue
-    hasInfluence = true
+      if (strength <= 0.0005) continue
+      hasInfluence = true
 
-    const rowStart = row * grid.cols
-    const rowEnd = rowStart + grid.cols
+      const rowStart = row * grid.cols
+      const rowEnd = rowStart + grid.cols
 
-    if (strength >= 0.9995) {
-      for (let index = rowStart; index < rowEnd; index += 1) {
-        writePaperPixel(data, index * 4, colors.paper, 1)
+      if (strength >= 0.9995) {
+        for (let index = rowStart; index < rowEnd; index += 1) {
+          writePaperPixel(data, index * 4, colors.paper, 1)
+        }
+        continue
       }
-      continue
-    }
 
-    hasTransition = true
+      hasTransition = true
 
-    for (let index = rowStart; index < rowEnd; index += 1) {
-      const threshold = PIXEL_THRESHOLD_MIN + grid.pixelOrder[index] * PIXEL_THRESHOLD_SPAN
-      const breath = breathingWave(timeSeconds, grid.flickerPhase[index], grid.breathRate[index])
-      const presence = transitionPresence(strength)
-      const breathShift = (breath - 0.5) * 2 * breathAmount * presence
-      let coverAlpha = smooth01((strength + breathShift - threshold + softness) / (softness * 2))
-      if (coverAlpha <= 0.001) continue
+      for (let index = rowStart; index < rowEnd; index += 1) {
+        const threshold = PIXEL_THRESHOLD_MIN + grid.pixelOrder[index] * PIXEL_THRESHOLD_SPAN
+        const breath = breathingWave(timeSeconds, grid.flickerPhase[index], grid.breathRate[index])
+        const presence = transitionPresence(strength)
+        const breathShift = (breath - 0.5) * 2 * breathAmount * presence
+        let coverAlpha = smooth01((strength + breathShift - threshold + softness) / (softness * 2))
+        if (coverAlpha <= 0.001) continue
 
-      const transitionBand = 4 * coverAlpha * (1 - coverAlpha)
-      coverAlpha = clamp(
-        coverAlpha + (breath - 0.5) * 2 * breathAmount * 0.58 * transitionBand,
-      )
+        const transitionBand = 4 * coverAlpha * (1 - coverAlpha)
+        coverAlpha = clamp(
+          coverAlpha + (breath - 0.5) * 2 * breathAmount * 0.58 * transitionBand,
+        )
 
-      const inkPulse = 0.25 + breath * 0.75
-      const inkMix = transitionBand *
-        inkPulse *
-        config.revealNoisePeak *
-        0.34 *
-        (0.32 + grid.darkness[index] * 0.46)
+        const inkPulse = 0.25 + breath * 0.75
+        const inkMix = transitionBand *
+          inkPulse *
+          config.revealNoisePeak *
+          0.34 *
+          (0.32 + grid.darkness[index] * 0.46)
 
-      writeMixedPixel(
-        data,
-        index * 4,
-        colors.paper,
-        colors.ink,
-        inkMix,
-        coverAlpha,
-      )
+        writeMixedPixel(
+          data,
+          index * 4,
+          colors.paper,
+          colors.ink,
+          inkMix,
+          coverAlpha,
+        )
+      }
     }
   }
 
   if (!hasInfluence || maxStrength <= 0.0005) {
-    if (state.boundaryVisible !== false) {
-      state.ctx.clearRect(0, 0, canvas.width, canvas.height)
-      canvas.style.opacity = "0"
-      canvas.style.visibility = "hidden"
-    }
-    state.boundaryVisible = false
-    state.lastBoundaryStrength = 0
+    hideViewportOverlay(state)
     return false
   }
 
   canvas.style.transition = "none"
   canvas.style.opacity = "1"
   canvas.style.visibility = "visible"
-  state.ctx.putImageData(state.imageData, 0, 0)
+  for (const [from, to] of ranges) {
+    state.ctx.putImageData(state.imageData, 0, 0, 0, from, grid.cols, to - from)
+  }
+  state.dirtyRanges = ranges
   state.boundaryVisible = true
   state.lastBoundaryStrength = maxStrength
 
@@ -611,7 +788,7 @@ function drawViewportState(state, now, bounds, forceScrollFrame) {
     return state.hasBoundaryTransition === true
   }
   state.lastViewportDraw = now
-  state.hasBoundaryTransition = renderBoundaryField(state, now, bounds)
+  state.hasBoundaryTransition = renderBoundaryField(state, now, bounds, forceScrollFrame)
   return state.hasBoundaryTransition
 }
 
@@ -622,15 +799,20 @@ function viewportLoop(now) {
   const bounds = viewportBounds()
   const forceScrollFrame = now < viewportActiveUntil
   let hasBoundaryTransition = false
+  const states = viewportObserver ? viewportVisibleStates : viewportStates
 
-  for (const state of [...viewportStates]) {
+  for (const state of [...states]) {
+    if (!viewportStates.has(state)) {
+      viewportVisibleStates.delete(state)
+      continue
+    }
     if (drawViewportState(state, now, bounds, forceScrollFrame)) {
       hasBoundaryTransition = true
     }
   }
 
   if (forceScrollFrame || hasBoundaryTransition) {
-    viewportFrame = requestAnimationFrame(viewportLoop)
+    scheduleViewportLoop(forceScrollFrame ? 0 : IDLE_FLICKER_FRAME_MS)
   }
 }
 
@@ -643,8 +825,9 @@ export function refreshViewportDitherReveals({ linger = true } = {}) {
   if (!viewportStates.size || document.hidden) return
   if (linger) {
     viewportActiveUntil = Math.max(viewportActiveUntil, performance.now() + VIEWPORT_LINGER_MS)
+    clearViewportTimer()
   }
-  if (!viewportFrame) viewportFrame = requestAnimationFrame(viewportLoop)
+  scheduleViewportLoop(0)
 }
 
 function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
@@ -689,6 +872,7 @@ export function trackViewportDitherReveal(card, finalCanvas, inputConfig = null)
   const state = createState(card, finalCanvas, config, grid, canvas, ctx, "viewport")
   animationStates.set(card, state)
   viewportStates.add(state)
+  trackViewportVisibility(state)
   refreshViewportDitherReveals({ linger: false })
   return true
 }
@@ -751,7 +935,13 @@ function requestHubReplay(config) {
 window.addEventListener("scroll", () => refreshViewportDitherReveals(), { passive: true })
 window.addEventListener("resize", () => refreshViewportDitherReveals(), { passive: true })
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) refreshViewportDitherReveals({ linger: false })
+  if (document.hidden) {
+    clearViewportTimer()
+    if (viewportFrame) cancelAnimationFrame(viewportFrame)
+    viewportFrame = 0
+    return
+  }
+  refreshViewportDitherReveals({ linger: false })
 })
 window.addEventListener("red:motion-config", (event) => {
   const config = sanitizeMotionConfig(event.detail || PUBLISHED_MOTION_CONFIG)
@@ -770,4 +960,6 @@ window.__RED_REVEAL_MOTION__ = {
   resetViewportSequence: resetViewportDitherRevealSequence,
   replay: replayAllDitherReveals,
   cancel: cancelReveal,
+  get viewportStates() { return viewportStates.size },
+  get visibleViewportStates() { return viewportVisibleStates.size },
 }

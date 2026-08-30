@@ -20,6 +20,7 @@ const MAX_GRID_CELLS = 42000
 const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
 const TARGET_FRAME_MS = 1000 / 60
+const HOVER_SCROLL_SUPPRESS_MS = 260
 const CATEGORY_READY_DEFER_STEP_MS = 9
 const CATEGORY_READY_DEFER_MAX_MS = 150
 const RESTORE_SOURCE_SELECTOR =
@@ -52,6 +53,8 @@ let lastPhase = ""
 let hubLoadPromise = null
 let panelWatchObserver = null
 let prewarmHandle = 0
+let hoverScrollSuppressUntil = 0
+let lastHoverScrollCancelAt = 0
 let paperCacheKey = ""
 let paperCacheValue = [248, 247, 245, 255]
 let inkCacheKey = ""
@@ -96,6 +99,26 @@ function prefersReducedMotion() {
 
 function pageIsVisible() {
   return document.visibilityState !== "hidden"
+}
+
+function suppressHoverSnowDuringScroll() {
+  const time = performance.now()
+  hoverScrollSuppressUntil = Math.max(
+    hoverScrollSuppressUntil,
+    time + HOVER_SCROLL_SUPPRESS_MS,
+  )
+  if (!activeStates.size || time - lastHoverScrollCancelAt < 80) return
+  lastHoverScrollCancelAt = time
+  for (const state of [...activeStates]) {
+    if (state.reason === "hover") cancelCard(state.card)
+  }
+}
+
+function pointerHoverSnowSuppressed(event) {
+  return (
+    event?.type?.startsWith?.("pointer") &&
+    performance.now() < hoverScrollSuppressUntil
+  )
 }
 
 function ensureStyles() {
@@ -1372,6 +1395,7 @@ function bindCardHoverSnow(targetCatalog = catalog) {
 
     const playHoverSnow = (event) => {
       if (event?.pointerType === "touch") return
+      if (pointerHoverSnowSuppressed(event)) return
       const parentCatalog = card.closest(".catalog")
       if (!parentCatalog || parentCatalog.dataset.filterPhase) return
       if (
@@ -1385,6 +1409,11 @@ function bindCardHoverSnow(targetCatalog = catalog) {
 
     const cancelHoverSnow = (event) => {
       if (event?.pointerType === "touch") return
+      if (pointerHoverSnowSuppressed(event)) {
+        const state = cardStates.get(card)
+        if (state?.reason === "hover") cancelCard(card)
+        return
+      }
       const parentCatalog = card.closest(".catalog")
       const state = cardStates.get(card)
       if (
@@ -1566,6 +1595,8 @@ window.addEventListener(
   },
   { passive: true },
 )
+window.addEventListener("scroll", suppressHoverSnowDuringScroll, { passive: true, capture: true })
+window.addEventListener("wheel", suppressHoverSnowDuringScroll, { passive: true, capture: true })
 document.addEventListener("visibilitychange", handleVisibilityChange)
 
 document.addEventListener(

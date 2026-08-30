@@ -5,6 +5,7 @@ const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
 const IDLE_FRAME_MS = 1000 / 30
+const WATCHDOG_FRAME_MS = 240
 const RESIZE_SYNC_MS = 120
 const RETRY_DELAYS = [0, 80, 220, 520, 1000, 1800]
 
@@ -14,6 +15,7 @@ const ownedOverlays = new Set()
 const visibleOverlays = new Set()
 
 let breathFrame = 0
+let breathTimer = 0
 let syncFrame = 0
 let lastBreathDraw = 0
 let resizeTimer = 0
@@ -26,7 +28,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260830-binaryowner1").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260830-perfevents1").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -246,6 +248,26 @@ function hasVisibleBreathingField() {
   return false
 }
 
+function clearBreathTimer() {
+  if (!breathTimer) return
+  window.clearTimeout(breathTimer)
+  breathTimer = 0
+}
+
+function scheduleBreathLoop(delay = 0) {
+  if (breathFrame || breathTimer || document.hidden) return
+
+  if (delay > 0) {
+    breathTimer = window.setTimeout(() => {
+      breathTimer = 0
+      if (!breathFrame && !document.hidden) breathFrame = requestAnimationFrame(breathLoop)
+    }, delay)
+    return
+  }
+
+  breathFrame = requestAnimationFrame(breathLoop)
+}
+
 function breathLoop(now) {
   breathFrame = 0
   if (document.hidden || !revealApi) return
@@ -257,7 +279,7 @@ function breathLoop(now) {
     lastBreathDraw = now
   }
 
-  if (hasVisibleBreathingField()) breathFrame = requestAnimationFrame(breathLoop)
+  if (hasVisibleBreathingField()) scheduleBreathLoop(WATCHDOG_FRAME_MS)
 }
 
 function wakeLoopOnly() {
@@ -265,7 +287,8 @@ function wakeLoopOnly() {
   void ensureRevealApi().then(() => {
     // Always allow one frame after input. It refreshes visibility, then stops
     // immediately if no owned reveal canvas is on screen.
-    if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
+    clearBreathTimer()
+    scheduleBreathLoop()
   })
 }
 
@@ -274,7 +297,7 @@ async function wakeBreathing({ sync = false, refresh = true } = {}) {
   await ensureRevealApi()
   if (sync) await syncTrackedCards()
   if (refresh) revealApi.refresh({ linger: false })
-  if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
+  scheduleBreathLoop()
 }
 
 function scheduleSync() {
@@ -290,7 +313,7 @@ async function syncNow({ refresh = true } = {}) {
   await ensureRevealApi()
   const hasTrackedCard = await syncTrackedCards()
   if (refresh) revealApi.refresh({ linger: false })
-  if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
+  scheduleBreathLoop()
   return hasTrackedCard
 }
 
@@ -305,7 +328,7 @@ async function syncCardNow(card, { refresh = true } = {}) {
   const tracked = await migrateCard(card, targetCatalog)
   pruneOverlays()
   if (refresh) revealApi.refresh({ linger: false })
-  if (!breathFrame) breathFrame = requestAnimationFrame(breathLoop)
+  scheduleBreathLoop()
   return tracked
 }
 
@@ -424,11 +447,17 @@ function start() {
     if (!event.detail?.active) scheduleSync()
   })
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) scheduleSync()
+    if (document.hidden) {
+      clearBreathTimer()
+      if (breathFrame) cancelAnimationFrame(breathFrame)
+      breathFrame = 0
+      return
+    }
+    scheduleSync()
   })
 
   window.__RED_BOUNDARY_BREATH__ = {
-    version: 7,
+    version: 8,
     sync: scheduleSync,
     syncNow,
     syncCardNow,

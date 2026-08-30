@@ -1,14 +1,28 @@
-const ACTIVE_WINDOW_MS = 900
+const HEADER_WINDOW_MS = 360
+const HOME_RETURN_WINDOW_MS = 920
+const IDLE_TAIL_MS = 90
 
 let frame = 0
 let activeUntil = 0
 let lastLogo = ""
+
+function headerMotionActive() {
+  if (document.documentElement.dataset.homeReturnTransition) return true
+  const api = window.__RED_HEADER_MOTION__
+  if (api && typeof api.snapshot === "function") {
+    try {
+      if (api.snapshot()?.moving) return true
+    } catch {}
+  }
+  return document.documentElement.dataset.headerMotion === "moving"
+}
 
 function syncLayoutSurface() {
   frame = 0
   const header = document.querySelector(".site-header")
   if (!header) return
 
+  const now = performance.now()
   const root = document.documentElement
   const logo = header.style.getPropertyValue("--logo-size").trim()
 
@@ -20,16 +34,29 @@ function syncLayoutSurface() {
     root.style.setProperty("--perf-layout-logo-size", logo)
   }
 
-  if (performance.now() < activeUntil) frame = requestAnimationFrame(syncLayoutSurface)
+  if (headerMotionActive()) activeUntil = Math.max(activeUntil, now + IDLE_TAIL_MS)
+  if (now < activeUntil) frame = requestAnimationFrame(syncLayoutSurface)
 }
 
-function wakeLayoutSurface() {
-  activeUntil = Math.max(activeUntil, performance.now() + ACTIVE_WINDOW_MS)
+function wakeLayoutSurface(event) {
+  const detail = event?.detail || null
+  const duration = detail?.active
+    ? HOME_RETURN_WINDOW_MS
+    : detail?.moving || headerMotionActive()
+      ? HEADER_WINDOW_MS
+      : IDLE_TAIL_MS
+  activeUntil = Math.max(activeUntil, performance.now() + duration)
   if (!frame) frame = requestAnimationFrame(syncLayoutSurface)
 }
 
-window.addEventListener("scroll", wakeLayoutSurface, { passive: true })
+function wakeLayoutSurfaceFromScroll() {
+  if (!headerMotionActive()) return
+  wakeLayoutSurface()
+}
+
+window.addEventListener("scroll", wakeLayoutSurfaceFromScroll, { passive: true })
 window.addEventListener("resize", wakeLayoutSurface, { passive: true })
+window.addEventListener("red:header-motion", wakeLayoutSurface)
 window.addEventListener("red:home-return-transition", wakeLayoutSurface)
 window.addEventListener("hashchange", wakeLayoutSurface, { passive: true })
 

@@ -165,7 +165,7 @@ function getCatalogFilter() {
 }
 
 function getEffectiveNavCategory() {
-  return hoveredNavCategory || focusedNavCategory || getCatalogFilter()
+  return getCatalogFilter() || hoveredNavCategory || focusedNavCategory
 }
 
 function createNavState(detail) {

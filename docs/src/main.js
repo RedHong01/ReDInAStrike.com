@@ -4626,20 +4626,19 @@ function setupNavHoverInteraction() {
 
   const setVisualActive = (activeItem) => {
     const lockedItem = itemForCategory(siteState.catalogFilterLocked)
-    const suppressLockedDetail = Boolean(lockedItem && activeItem && activeItem !== lockedItem)
+    const visibleItem = lockedItem || activeItem
     const nextVisualStateKey = [
-      activeItem?.dataset.navCategory || "",
+      visibleItem?.dataset.navCategory || "",
       siteState.catalogFilterLocked || "",
-      suppressLockedDetail ? "suppressed" : "open",
     ].join(":")
 
     if (visualStateKey === nextVisualStateKey) return
     visualStateKey = nextVisualStateKey
 
     items.forEach((item) => {
-      item.classList.toggle("is-nav-active", item === activeItem && item !== lockedItem)
+      item.classList.toggle("is-nav-active", item === visibleItem && item !== lockedItem)
       item.classList.toggle("is-nav-locked", item === lockedItem)
-      item.classList.toggle("is-nav-lock-suppressed", item === lockedItem && suppressLockedDetail)
+      item.classList.remove("is-nav-lock-suppressed")
     })
   }
 

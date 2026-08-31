@@ -88,6 +88,12 @@ function ensureStyles() {
       transform: none !important;
     }
 
+    body[data-header-compact="true"] .nav-detail[data-typewriter-nav="true"] {
+      max-width: min(260px, calc(100vw - 32px)) !important;
+      max-height: 18px !important;
+      margin-top: 0;
+    }
+
     .nav-detail[data-typewriter-nav="true"].is-typewriter-editing::after,
     [data-typewriter-body="typing"]::after {
       content: "";

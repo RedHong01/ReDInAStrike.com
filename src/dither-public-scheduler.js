@@ -31,6 +31,12 @@ const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
 const HOVER_BINARY_RETURN_ATTRIBUTE = "data-hover-binary-return"
 const PRIORITY_MARGIN = 760
 const REVEAL_MARGIN = 920
+const TOUCH_PRIORITY_VIEWPORTS = 1.45
+const TOUCH_CATEGORY_PRIORITY_VIEWPORTS = 1.85
+const DESKTOP_PRIORITY_VIEWPORTS = 1.05
+const DESKTOP_CATEGORY_PRIORITY_VIEWPORTS = 1.35
+const TOUCH_REVEAL_VIEWPORTS = 1.7
+const DESKTOP_REVEAL_VIEWPORTS = 1.35
 const PRIORITY_FRAME_BUDGET_MS = 5.25
 const IDLE_TIMEOUT_MS = 650
 const RESIZE_SETTLE_MS = 90
@@ -249,6 +255,35 @@ function pageIsVisible() {
   return document.visibilityState !== "hidden"
 }
 
+function viewportHeight() {
+  return Math.max(
+    window.innerHeight || 0,
+    document.documentElement.clientHeight || 0,
+    window.visualViewport?.height || 0,
+    1,
+  )
+}
+
+function usesTouchViewport() {
+  return (
+    (navigator.maxTouchPoints || 0) > 0 ||
+    window.matchMedia?.("(pointer: coarse)")?.matches === true
+  )
+}
+
+function priorityMargin(catalog) {
+  const touch = usesTouchViewport()
+  const factor = catalogIsEnteringFilter(catalog)
+    ? touch ? TOUCH_CATEGORY_PRIORITY_VIEWPORTS : DESKTOP_CATEGORY_PRIORITY_VIEWPORTS
+    : touch ? TOUCH_PRIORITY_VIEWPORTS : DESKTOP_PRIORITY_VIEWPORTS
+  return Math.max(PRIORITY_MARGIN, Math.round(viewportHeight() * factor))
+}
+
+function revealMargin() {
+  const factor = usesTouchViewport() ? TOUCH_REVEAL_VIEWPORTS : DESKTOP_REVEAL_VIEWPORTS
+  return Math.max(REVEAL_MARGIN, Math.round(viewportHeight() * factor))
+}
+
 function applyCategoryAliases(catalog) {
   if (!catalog || catalog.dataset.activeFilter !== "game") return
   const ongoingGameLink = [...catalog.querySelectorAll("a.project-card[href]")]
@@ -299,9 +334,9 @@ function motionBlocksReveal(card) {
 function viewportDistance(card) {
   const rect = card?.getBoundingClientRect?.()
   if (!rect) return Number.POSITIVE_INFINITY
-  const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
-  if (rect.bottom >= 0 && rect.top <= viewportHeight) return 0
-  if (rect.top > viewportHeight) return rect.top - viewportHeight
+  const height = viewportHeight()
+  if (rect.bottom >= 0 && rect.top <= height) return 0
+  if (rect.top > height) return rect.top - height
   return Math.max(0, -rect.bottom)
 }
 
@@ -432,7 +467,7 @@ function renderOne(card, catalog, generation, tier) {
   state.pendingCards.delete(card)
   playPreparedDitherResizeSnow(preparedSnow)
 
-  if (viewportDistance(card) <= REVEAL_MARGIN) {
+  if (viewportDistance(card) <= revealMargin()) {
     if (armReveal(card, catalog)) requestRevealRefresh()
   }
   return true
@@ -620,7 +655,7 @@ function queueMutedCards(catalog, cards, { restart = false } = {}) {
       state.pendingCards.delete(card)
       card.querySelector(".project-media")?.setAttribute("data-dither-ready", "true")
       state.perf.skippedUpToDate += 1
-      if (viewportDistance(card) <= REVEAL_MARGIN && armReveal(card, catalog)) {
+      if (viewportDistance(card) <= revealMargin() && armReveal(card, catalog)) {
         shouldRefreshReveal = true
       }
       continue
@@ -632,7 +667,7 @@ function queueMutedCards(catalog, cards, { restart = false } = {}) {
 
   ranked.sort((a, b) => a.distance - b.distance)
   for (const { card, distance } of ranked) {
-    const tier = distance <= PRIORITY_MARGIN ? "priority" : "idle"
+    const tier = distance <= priorityMargin(catalog) ? "priority" : "idle"
     const pending = state.pendingCards.get(card)
     if (pending?.generation === generation) {
       if (pending.tier !== "priority" && tier === "priority") {
@@ -898,7 +933,7 @@ function boot() {
   if ("IntersectionObserver" in window) {
     state.cardObserver = new IntersectionObserver(handleCardIntersections, {
       root: null,
-      rootMargin: `${REVEAL_MARGIN}px 0px`,
+      rootMargin: `${revealMargin()}px 0px`,
       threshold: 0,
     })
   }

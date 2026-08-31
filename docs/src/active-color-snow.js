@@ -9,7 +9,7 @@ import {
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
 
 const STYLE_ID = "red-active-color-snow-style"
-const STYLE_VERSION = "4"
+const STYLE_VERSION = "5"
 const CANVAS_CLASS = "active-color-snow-canvas"
 const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const RETURN_ATTRIBUTE = "data-active-color-return"
@@ -162,7 +162,8 @@ function ensureStyles() {
       opacity: 1;
       transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1) 50ms !important;
     }
-    html[${ROOT_ATTRIBUTE}="true"] .catalog[data-filter-phase="entering"] .project-media::after {
+    html[${ROOT_ATTRIBUTE}="true"] .catalog[data-filter-phase="entering"]
+      .project-card:not(.is-filter-muted) .project-media::after {
       content: "";
       position: absolute;
       inset: 0;
@@ -172,7 +173,7 @@ function ensureStyles() {
       pointer-events: none;
     }
     html[${ROOT_ATTRIBUTE}="true"] .catalog[data-filter-phase="entering"]
-      .project-media:has(.${CANVAS_CLASS})::after {
+      .project-card:not(.is-filter-muted) .project-media:has(.${CANVAS_CLASS})::after {
       opacity: 0;
     }
     html[${ROOT_ATTRIBUTE}="true"] .catalog[data-active-filter]:not([data-filter-phase])

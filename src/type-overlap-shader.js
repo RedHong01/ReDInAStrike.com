@@ -3,6 +3,7 @@
   const LAYER_CLASS = "type-overlap-shader-layer"
   const SLICE_CLASS = "type-overlap-shader-slice"
   const COPY_CLASS = "type-overlap-shader-copy"
+  const CANVAS_CLASS = "type-overlap-shader-canvas"
   const LEGACY_ATTRIBUTE = "data-type-overlap-shader"
   const MIN_OVERLAP_PX = 1.2
   const MASK_MAX_DPR = 2
@@ -81,6 +82,14 @@
         .site-header .${COPY_CLASS}.brand .brand-logo,
         .site-header .${COPY_CLASS} .brand-logo {
           filter: invert(1);
+        }
+
+        .site-header .${CANVAS_CLASS} {
+          position: fixed;
+          display: block;
+          pointer-events: none;
+          mix-blend-mode: difference;
+          image-rendering: auto;
         }
       }
     `
@@ -350,7 +359,32 @@
     }
   }
 
-  function makeBlockerMaskUrl(clipRect, blockers) {
+  function normalizeMaskAlpha(ctx, width, height) {
+    try {
+      const imageData = ctx.getImageData(0, 0, width, height)
+      const data = imageData.data
+      for (let index = 0; index < data.length; index += 4) {
+        const alpha = data[index + 3]
+        if (alpha <= MASK_ALPHA_THRESHOLD) {
+          data[index] = 0
+          data[index + 1] = 0
+          data[index + 2] = 0
+          data[index + 3] = 0
+          continue
+        }
+        data[index] = 255
+        data[index + 1] = 255
+        data[index + 2] = 255
+        data[index + 3] = alpha
+      }
+      ctx.putImageData(imageData, 0, 0)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  function makeBlockerMaskCanvas(clipRect, blockers) {
     if (!clipRect || !blockers.length) return null
 
     const dpr = Math.max(1, Math.min(MASK_MAX_DPR, window.devicePixelRatio || 1))
@@ -370,13 +404,50 @@
       return drawBlockerMask(ctx, blocker, clipRect) && allReady
     }, true)
 
-    if (!ready || !maskHasVisiblePixels(ctx, width, height)) return null
+    if (!ready) return null
+    normalizeMaskAlpha(ctx, width, height)
+    if (!maskHasVisiblePixels(ctx, width, height)) return null
 
-    try {
-      return canvas.toDataURL("image/png")
-    } catch {
-      return null
+    return { canvas, width, height, dpr }
+  }
+
+  function drawElementMask(ctx, item, clipRect) {
+    const images = [...item.element.querySelectorAll("img")]
+    if (item.element.matches?.("img")) images.unshift(item.element)
+
+    if (images.length) {
+      return images.reduce((ready, image) => {
+        return drawImageMask(ctx, image, clipRect) && ready
+      }, true)
     }
+
+    return drawTextMask(ctx, item.element, item.rect)
+  }
+
+  function makeOverlapCanvas(clipRect, target, blockers) {
+    const blockerMask = makeBlockerMaskCanvas(clipRect, blockers)
+    if (!blockerMask) return null
+
+    const { width, height, dpr } = blockerMask
+    const canvas = document.createElement("canvas")
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })
+    if (!ctx) return null
+
+    ctx.setTransform(dpr, 0, 0, dpr, -clipRect.left * dpr, -clipRect.top * dpr)
+    const ready = drawElementMask(ctx, target, clipRect)
+    if (!ready) return null
+
+    normalizeMaskAlpha(ctx, width, height)
+    ctx.save()
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.globalCompositeOperation = "destination-in"
+    ctx.drawImage(blockerMask.canvas, 0, 0)
+    ctx.restore()
+
+    if (!maskHasVisiblePixels(ctx, width, height)) return null
+    return canvas
   }
 
   function applyTextMetrics(copy, source, sourceRect, clipRect) {
@@ -415,32 +486,17 @@
   }
 
   function makeSlice(layer, source, sourceRect, clipRect, blockers) {
-    const maskUrl = makeBlockerMaskUrl(clipRect, blockers)
-    if (!maskUrl) return
+    const target = { element: source, rect: sourceRect }
+    const overlapCanvas = makeOverlapCanvas(clipRect, target, blockers)
+    if (!overlapCanvas) return
 
-    const slice = document.createElement("div")
-    slice.className = SLICE_CLASS
-    slice.style.left = px(clipRect.left)
-    slice.style.top = px(clipRect.top)
-    slice.style.width = px(clipRect.width)
-    slice.style.height = px(clipRect.height)
-    slice.style.webkitMaskImage = `url("${maskUrl}")`
-    slice.style.maskImage = `url("${maskUrl}")`
-
-    const copy = source.cloneNode(true)
-    copy.classList.add(COPY_CLASS)
-    copy.removeAttribute("id")
-    copy.removeAttribute(LEGACY_ATTRIBUTE)
-    copy.setAttribute("aria-hidden", "true")
-    applyTextMetrics(copy, source, sourceRect, clipRect)
-
-    copy.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"))
-    copy.querySelectorAll(`[${LEGACY_ATTRIBUTE}]`).forEach((node) => {
-      node.removeAttribute(LEGACY_ATTRIBUTE)
-    })
-
-    slice.appendChild(copy)
-    layer.appendChild(slice)
+    overlapCanvas.className = CANVAS_CLASS
+    overlapCanvas.setAttribute("aria-hidden", "true")
+    overlapCanvas.style.left = px(clipRect.left)
+    overlapCanvas.style.top = px(clipRect.top)
+    overlapCanvas.style.width = px(clipRect.width)
+    overlapCanvas.style.height = px(clipRect.height)
+    layer.appendChild(overlapCanvas)
   }
 
   function clearLegacyAttributes(header) {

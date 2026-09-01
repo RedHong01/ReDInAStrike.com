@@ -1,5 +1,6 @@
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 import {
+  BINARY_MOTION_DEFAULTS,
   constrainBinaryGridSize,
   logicalGridFromCanvas,
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
@@ -14,6 +15,11 @@ const IDLE_FLICKER_FRAME_MS = 1000 / 30
 const VIEWPORT_LINGER_MS = 220
 const VIEWPORT_PROGRESS_EPSILON = 0.0025
 const MAX_GRID_CACHE_PER_CANVAS = 6
+const BOUNDARY_FIELD_REVEAL_RATIO = 0.76
+const BOUNDARY_FIELD_MIN_MS = 240
+const BOUNDARY_FIELD_MAX_MS = 760
+const BOUNDARY_STRENGTH_EPSILON = 0.0005
+const BOUNDARY_FIELD_SETTLE_EPSILON = 0.0025
 
 const BOUNDARY_DEPTH_RATIO = 0.19
 const BOUNDARY_DEPTH_MIN_PX = 132
@@ -158,13 +164,21 @@ function isRectNearViewport(rect) {
   )
 }
 
-function hideViewportOverlay(state) {
+function resetBoundaryField(state, { initialized = false } = {}) {
+  state.boundaryStrengths?.fill(0)
+  state.boundaryTargetStrengths?.fill(0)
+  state.boundaryRowsInitialized = initialized
+  state.lastBoundaryFieldAt = 0
+}
+
+function hideViewportOverlay(state, { resetField = true } = {}) {
   if (!state?.canvas?.isConnected) return
   if (state.boundaryVisible !== false) {
     state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height)
     state.canvas.style.opacity = "0"
     state.canvas.style.visibility = "hidden"
   }
+  if (resetField) resetBoundaryField(state)
   state.dirtyRanges = null
   state.viewportRect = null
   state.boundaryVisible = false
@@ -272,16 +286,35 @@ function finalCanvasSignature(finalCanvas) {
   ].join("|")
 }
 
-function viewportStateMatches(state, finalCanvas) {
+function viewportStateMatches(state, finalCanvas, config = null) {
   return Boolean(
     state?.mode === "viewport" &&
     state.finalCanvas === finalCanvas &&
-    state.sourceSignature === finalCanvasSignature(finalCanvas),
+    state.sourceSignature === finalCanvasSignature(finalCanvas) &&
+    (!config || state.configKey === revealConfigKey(config)),
   )
+}
+
+function copyBoundaryRows(source, target) {
+  if (!source?.length || !target?.length) return
+  if (source.length === target.length) {
+    target.set(source)
+    return
+  }
+  for (let row = 0; row < target.length; row += 1) {
+    const sourceRow = Math.min(
+      source.length - 1,
+      Math.max(0, Math.round(((row + 0.5) / target.length) * source.length - 0.5)),
+    )
+    target[row] = source[sourceRow]
+  }
 }
 
 function retargetViewportState(state, finalCanvas, config) {
   if (!state || state.mode !== "viewport") return false
+  const previousStrengths = state.boundaryStrengths
+  const previousTargetStrengths = state.boundaryTargetStrengths
+  const previousRowsInitialized = state.boundaryRowsInitialized === true
   const grid = buildGrid(finalCanvas, config)
   if (!grid) return false
   const canvas = ensureRevealCanvas(state.card, grid.cols, grid.rows)
@@ -307,12 +340,19 @@ function retargetViewportState(state, finalCanvas, config) {
   state.framePixels = new Uint8ClampedArray(grid.count * 4)
   state.imageData = new ImageData(state.framePixels, grid.cols, grid.rows)
   state.sourceSignature = finalCanvasSignature(finalCanvas)
+  state.configKey = revealConfigKey(config)
   state.viewportRect = null
   state.dirtyRanges = null
   state.boundaryVisible = null
   state.hasBoundaryTransition = false
   state.lastBoundaryStrength = 0
   state.lastViewportDraw = 0
+  state.boundaryStrengths = new Float32Array(grid.rows)
+  state.boundaryTargetStrengths = new Float32Array(grid.rows)
+  copyBoundaryRows(previousStrengths, state.boundaryStrengths)
+  copyBoundaryRows(previousTargetStrengths, state.boundaryTargetStrengths)
+  state.boundaryRowsInitialized = previousRowsInitialized
+  state.lastBoundaryFieldAt = performance.now()
   return true
 }
 
@@ -711,16 +751,126 @@ function clearDirtyRanges(state) {
   state.dirtyRanges = null
 }
 
-function renderBoundaryField(state, now, bounds, forceMeasure = false) {
+function boundaryFieldDuration(config) {
+  const revealDuration = Number(config?.revealDurationMs)
+  const base = Number.isFinite(revealDuration) && revealDuration > 0
+    ? revealDuration * BOUNDARY_FIELD_REVEAL_RATIO
+    : BINARY_MOTION_DEFAULTS.durationMs
+  return clamp(base, BOUNDARY_FIELD_MIN_MS, BOUNDARY_FIELD_MAX_MS)
+}
+
+function ensureBoundaryBuffers(state) {
+  const rows = state.grid.rows
+  if (state.boundaryStrengths?.length === rows && state.boundaryTargetStrengths?.length === rows) {
+    return
+  }
+  state.boundaryStrengths = new Float32Array(rows)
+  state.boundaryTargetStrengths = new Float32Array(rows)
+  state.boundaryRowsInitialized = false
+  state.lastBoundaryFieldAt = 0
+}
+
+function fillBoundaryTargets(state, rect, bounds, metrics) {
+  const { grid, boundaryTargetStrengths: target } = state
+  target.fill(0)
+
+  let hasTarget = false
+  let maxTarget = 0
+  const topInfluenceBottom = bounds.top + metrics.hold + metrics.depth
+  const bottomInfluenceTop = bounds.bottom - metrics.hold - metrics.depth
+  if (rect.top >= topInfluenceBottom && rect.bottom <= bottomInfluenceTop) {
+    return { hasTarget, maxTarget }
+  }
+
+  for (let row = 0; row < grid.rows; row += 1) {
+    const viewportY = rect.top + ((row + 0.5) / grid.rows) * rect.height
+    const strength = boundaryStrength(viewportY, bounds, metrics)
+    if (strength <= BOUNDARY_STRENGTH_EPSILON) continue
+    target[row] = strength
+    hasTarget = true
+    maxTarget = Math.max(maxTarget, strength)
+  }
+
+  return { hasTarget, maxTarget }
+}
+
+function advanceBoundaryField(state, now, immediate = false) {
+  const { boundaryStrengths: current, boundaryTargetStrengths: target, config } = state
+  if (!current || !target) return { moving: false, maxStrength: 0, minActiveStrength: 1 }
+
+  if (!state.boundaryRowsInitialized || immediate || prefersReducedMotion()) {
+    current.set(target)
+    state.boundaryRowsInitialized = true
+    state.lastBoundaryFieldAt = now
+    let maxStrength = 0
+    let minActiveStrength = 1
+    for (let row = 0; row < current.length; row += 1) {
+      const value = current[row]
+      if (value <= BOUNDARY_STRENGTH_EPSILON) continue
+      maxStrength = Math.max(maxStrength, value)
+      minActiveStrength = Math.min(minActiveStrength, value)
+    }
+    return { moving: false, maxStrength, minActiveStrength }
+  }
+
+  const elapsed = Math.min(
+    IDLE_FLICKER_FRAME_MS,
+    Math.max(0, now - (state.lastBoundaryFieldAt || now)),
+  )
+  state.lastBoundaryFieldAt = now
+  const duration = boundaryFieldDuration(config)
+  const amount = elapsed <= 0 ? 0 : 1 - Math.pow(0.04, elapsed / duration)
+  let moving = false
+  let maxStrength = 0
+  let minActiveStrength = 1
+
+  for (let row = 0; row < current.length; row += 1) {
+    const next = target[row]
+    const before = current[row]
+    const delta = next - before
+    let value = before
+
+    if (Math.abs(delta) <= BOUNDARY_FIELD_SETTLE_EPSILON) {
+      value = next
+    } else {
+      value = clamp(before + delta * amount)
+      if (Math.abs(next - value) > BOUNDARY_FIELD_SETTLE_EPSILON) moving = true
+    }
+
+    current[row] = value
+    if (value <= BOUNDARY_STRENGTH_EPSILON && next <= BOUNDARY_STRENGTH_EPSILON) continue
+    maxStrength = Math.max(maxStrength, value)
+    minActiveStrength = Math.min(minActiveStrength, value)
+  }
+
+  return { moving, maxStrength, minActiveStrength }
+}
+
+function boundaryRowRangesFromField(state) {
+  const current = state.boundaryStrengths
+  const target = state.boundaryTargetStrengths
+  const ranges = []
+  let start = -1
+
+  for (let row = 0; row < state.grid.rows; row += 1) {
+    const active =
+      current[row] > BOUNDARY_STRENGTH_EPSILON ||
+      target[row] > BOUNDARY_STRENGTH_EPSILON
+    if (active && start < 0) {
+      start = row
+    } else if (!active && start >= 0) {
+      ranges.push([start, row])
+      start = -1
+    }
+  }
+  if (start >= 0) ranges.push([start, state.grid.rows])
+  return ranges
+}
+
+function renderBoundaryField(state, now, bounds, forceMeasure = false, options = {}) {
   const { card, finalCanvas, canvas, grid, config, colors } = state
   if (activeColorOwnsCard(card)) {
-    if (state.boundaryVisible !== false) {
-      state.ctx.clearRect(0, 0, canvas.width, canvas.height)
-      canvas.style.opacity = "0"
-      canvas.style.visibility = "hidden"
-    }
-    state.boundaryVisible = false
-    state.lastBoundaryStrength = 0
+    hideViewportOverlay(state)
     return false
   }
   if (!card.isConnected || !finalCanvas.isConnected || !canvas.isConnected) {
@@ -731,24 +881,21 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false) {
   const rect = viewportRectForState(state, forceMeasure)
   if (rect.height <= 0 || rect.width <= 0) return false
 
+  ensureBoundaryBuffers(state)
   const metrics = boundaryMetrics(bounds)
-  const topInfluenceBottom = bounds.top + metrics.hold + metrics.depth
-  const bottomInfluenceTop = bounds.bottom - metrics.hold - metrics.depth
-  if (rect.top >= topInfluenceBottom && rect.bottom <= bottomInfluenceTop) {
-    hideViewportOverlay(state)
-    return false
-  }
-
+  fillBoundaryTargets(state, rect, bounds, metrics)
+  const field = advanceBoundaryField(state, now, options.immediate === true)
   const softness = pixelSoftness(config, "pixel-snow")
   const breathAmount = 0.07 + config.revealNoiseFlicker * 0.16
   const timeSeconds = now / 1000
   const data = state.framePixels
-  const ranges = influencedRowRanges(rect, bounds, metrics, grid.rows)
+  const ranges = boundaryRowRangesFromField(state)
+
+  clearDirtyRanges(state)
   if (!ranges.length) {
-    hideViewportOverlay(state)
+    hideViewportOverlay(state, { resetField: false })
     return false
   }
-  clearDirtyRanges(state)
   for (const [from, to] of ranges) {
     data.fill(0, from * grid.cols * 4, to * grid.cols * 4)
   }
@@ -760,12 +907,11 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false) {
 
   for (const [fromRow, toRow] of ranges) {
     for (let row = fromRow; row < toRow; row += 1) {
-      const viewportY = rect.top + ((row + 0.5) / grid.rows) * rect.height
-      const strength = boundaryStrength(viewportY, bounds, metrics)
+      const strength = state.boundaryStrengths[row]
       maxStrength = Math.max(maxStrength, strength)
       minStrength = Math.min(minStrength, strength)
 
-      if (strength <= 0.0005) continue
+      if (strength <= BOUNDARY_STRENGTH_EPSILON) continue
       hasInfluence = true
 
       const rowStart = row * grid.cols
@@ -812,8 +958,8 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false) {
     }
   }
 
-  if (!hasInfluence || maxStrength <= 0.0005) {
-    hideViewportOverlay(state)
+  if (!hasInfluence || maxStrength <= BOUNDARY_STRENGTH_EPSILON) {
+    hideViewportOverlay(state, { resetField: false })
     return false
   }
 
@@ -827,7 +973,7 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false) {
   state.boundaryVisible = true
   state.lastBoundaryStrength = maxStrength
 
-  return hasTransition && minStrength < 0.9995
+  return field.moving || (hasTransition && minStrength < 0.9995)
 }
 
 function drawViewportState(state, now, bounds, forceScrollFrame) {
@@ -910,12 +1056,12 @@ export function paintViewportDitherRevealNow(card, finalCanvas = null, inputConf
   if (
     state?.mode === "viewport" &&
     state.canvas?.isConnected &&
-    !viewportStateMatches(state, targetCanvas)
+    !viewportStateMatches(state, targetCanvas, config)
   ) {
     if (!retargetViewportState(state, targetCanvas, config)) {
       return { ...fallback, reason: "retarget-failed" }
     }
-  } else if (!viewportStateMatches(state, targetCanvas)) {
+  } else if (!viewportStateMatches(state, targetCanvas, config)) {
     if (!trackViewportDitherReveal(card, targetCanvas, config)) {
       return { ...fallback, reason: "track-failed" }
     }
@@ -926,7 +1072,9 @@ export function paintViewportDitherRevealNow(card, finalCanvas = null, inputConf
   }
 
   const now = performance.now()
-  const hasTransition = renderBoundaryField(state, now, viewportBounds(), true)
+  const hasTransition = renderBoundaryField(state, now, viewportBounds(), true, {
+    immediate: true,
+  })
   if (animationStates.get(card) !== state) {
     return { ...fallback, reason: "state-cancelled" }
   }
@@ -949,6 +1097,7 @@ function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
   return {
     mode, card, finalCanvas, canvas, ctx, grid, config,
     sourceSignature: finalCanvasSignature(finalCanvas),
+    configKey: revealConfigKey(config),
     colors: readColors(),
     lastProgress: -1,
     framePixels,
@@ -957,6 +1106,10 @@ function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
     lastViewportDraw: 0,
     hasBoundaryTransition: false,
     boundaryVisible: null,
+    boundaryStrengths: new Float32Array(grid.rows),
+    boundaryTargetStrengths: new Float32Array(grid.rows),
+    boundaryRowsInitialized: false,
+    lastBoundaryFieldAt: 0,
   }
 }
 
@@ -967,11 +1120,26 @@ export function trackViewportDitherReveal(card, finalCanvas, inputConfig = null)
     cancelReveal(card, { remove: true })
     return false
   }
-  cancelReveal(card, { remove: true })
   if (
     !card || !finalCanvas || !config.revealEnabled || config.revealMode === "none" ||
     prefersReducedMotion() || finalCanvas.width < 2 || finalCanvas.height < 2
   ) return false
+
+  const existing = animationStates.get(card)
+  if (existing?.mode === "viewport" && existing.canvas?.isConnected) {
+    if (
+      viewportStateMatches(existing, finalCanvas, config) ||
+      retargetViewportState(existing, finalCanvas, config)
+    ) {
+      activeStates.delete(existing)
+      viewportStates.add(existing)
+      trackViewportVisibility(existing)
+      refreshViewportDitherReveals({ linger: false })
+      return true
+    }
+  }
+
+  cancelReveal(card, { remove: true })
 
   const grid = buildGrid(finalCanvas, config)
   if (!grid) return false

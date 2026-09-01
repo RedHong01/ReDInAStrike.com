@@ -21,6 +21,8 @@
   let observedHeader = null
   let observedElements = new WeakSet()
   let pendingMaskImages = new WeakSet()
+  let lastRenderSignature = ""
+  let forceNextMeasure = false
 
   function ensureStyle() {
     let style = document.getElementById(STYLE_ID)
@@ -96,7 +98,9 @@
     document.head.appendChild(style)
   }
 
-  function schedule() {
+  function schedule(force = false) {
+    if (force === true) forceNextMeasure = true
+    if (document.hidden) return
     if (frame) return
     frame = requestAnimationFrame(measure)
   }
@@ -105,9 +109,8 @@
     return element.closest(".nav-item") || element.closest(".brand") || element
   }
 
-  function isVisible(element, rect) {
+  function isVisible(element, rect, style = getComputedStyle(element)) {
     if (!element?.isConnected || !rect || rect.width <= 1 || rect.height <= 1) return false
-    const style = getComputedStyle(element)
     return (
       style.display !== "none" &&
       style.visibility !== "hidden" &&
@@ -135,19 +138,78 @@
     return { left, top, right, bottom, width: right - left, height: bottom - top }
   }
 
+  function styleSignature(element, style) {
+    return [
+      style.display,
+      style.visibility,
+      style.opacity,
+      style.fontFamily,
+      style.fontSize,
+      style.fontStyle,
+      style.fontWeight,
+      style.lineHeight,
+      style.letterSpacing,
+      style.textAlign,
+      style.textTransform,
+      style.whiteSpace,
+      style.direction,
+      element.getAttribute("class") || "",
+    ].join(";")
+  }
+
+  function imageSignature(element) {
+    const images = [...element.querySelectorAll("img")]
+    if (element.matches?.("img")) images.unshift(element)
+    return images
+      .map((image) => [
+        image.currentSrc || image.src || "",
+        image.complete ? "1" : "0",
+        image.naturalWidth || 0,
+        image.naturalHeight || 0,
+      ].join(":"))
+      .join(",")
+  }
+
   function collectTargets(header) {
     return [...header.querySelectorAll(TARGET_SELECTOR)]
       .filter((element) => !element.closest(`.${LAYER_CLASS}`))
       .map((element) => {
         const rect = element.getBoundingClientRect()
+        const style = getComputedStyle(element)
         return {
           element,
           owner: ownerFor(element),
           rect,
-          visible: isVisible(element, rect),
+          visible: isVisible(element, rect, style),
+          signature: [
+            styleSignature(element, style),
+            element.textContent || "",
+            imageSignature(element),
+          ].join("|"),
         }
       })
       .filter((item) => item.visible)
+  }
+
+  function rectSignature(rect) {
+    return [rect.left, rect.top, rect.width, rect.height]
+      .map((value) => Math.round(value * 4) / 4)
+      .join(",")
+  }
+
+  function renderSignature(header, targets) {
+    const headerRect = header.getBoundingClientRect()
+    return [
+      Math.round((window.devicePixelRatio || 1) * 100) / 100,
+      window.innerWidth || 0,
+      window.innerHeight || 0,
+      rectSignature(headerRect),
+      targets.map((item) => [
+        rectSignature(item.rect),
+        priorityFor(item.element),
+        item.signature,
+      ].join("@")).join("||"),
+    ].join("|")
   }
 
   function priorityFor(element) {
@@ -546,13 +608,21 @@
 
   function measure() {
     frame = 0
+    const force = forceNextMeasure
+    forceNextMeasure = false
     const header = document.querySelector(".site-header")
-    if (!header) return
+    if (!header) {
+      lastRenderSignature = ""
+      return
+    }
     bindHeader(header)
     clearLegacyAttributes(header)
 
     const targets = collectTargets(header)
     targets.forEach((item) => observeElement(item.element))
+    const signature = renderSignature(header, targets)
+    if (!force && signature === lastRenderSignature) return
+    lastRenderSignature = signature
     renderSlices(header, targets)
   }
 
@@ -583,8 +653,11 @@
     window.addEventListener("scroll", schedule, { passive: true })
     window.addEventListener("red:header-motion", schedule)
     window.addEventListener("red:route-change", schedule)
-    document.fonts?.ready?.then(schedule).catch?.(() => {})
-    schedule()
+    document.fonts?.ready?.then(() => schedule(true)).catch?.(() => {})
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) schedule(true)
+    })
+    schedule(true)
   }
 
   if (document.readyState === "loading") {

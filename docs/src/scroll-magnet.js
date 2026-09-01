@@ -70,6 +70,10 @@ function homeReturnTransitionActive() {
   return Boolean(document.documentElement.dataset.homeReturnTransition)
 }
 
+function sectionScrollActive() {
+  return document.documentElement.dataset.sectionScroll === "moving"
+}
+
 function headerMotionState() {
   const api = window.__RED_HEADER_MOTION__
   if (api && typeof api.snapshot === "function") {
@@ -343,6 +347,7 @@ function shouldAttemptSnap() {
   if (reducedMotion()) return false
   if (document.hidden) return false
   if (homeReturnTransitionActive()) return false
+  if (sectionScrollActive()) return false
   if (time < suppressUntil) return false
   if (time - lastInputAt > CONFIG.recentInputMs) return false
   if (effectiveVelocity() > CONFIG.velocityGatePxMs) return false
@@ -377,6 +382,11 @@ function scheduleSettle() {
 
 function handleScroll() {
   if (homeReturnTransitionActive()) {
+    cancelMagnet({ suppress: CONFIG.suppressAfterUiMs })
+    syncScrollSample({ resetVelocity: true })
+    return
+  }
+  if (sectionScrollActive()) {
     cancelMagnet({ suppress: CONFIG.suppressAfterUiMs })
     syncScrollSample({ resetVelocity: true })
     return

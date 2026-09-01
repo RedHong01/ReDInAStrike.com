@@ -10,7 +10,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260901-motionpipe1"
+} from "./reveal-motion.js?v=20260901-motionpipe2"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -615,7 +615,7 @@ function syncCardTargets(catalog) {
 
 function syncResizeTargets(catalog) {
   if (!state.resizeObserver) return
-  const next = new Set(catalog?.querySelectorAll(".project-media") || [])
+  const next = new Set(catalog?.querySelectorAll(".project-card.is-filter-muted .project-media") || [])
   for (const media of [...state.observedMedia]) {
     if (next.has(media)) continue
     state.resizeObserver.unobserve(media)

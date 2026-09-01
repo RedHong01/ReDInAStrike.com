@@ -33,6 +33,10 @@ const HOVER_SCROLL_SUPPRESS_MS = 260
 const HOVER_SCROLL_RETURN_CLASS_MS = 920
 const CATEGORY_READY_DEFER_STEP_MS = 9
 const CATEGORY_READY_DEFER_MAX_MS = 150
+const HOVER_MOTION_DURATION_SCALE = 0.75
+const RESTORE_IMAGE_HANDOFF_MIN_MS = 110
+const RESTORE_IMAGE_HANDOFF_MAX_MS = 190
+const RESTORE_IMAGE_HANDOFF_SOFTNESS = 0.12
 const RESTORE_SOURCE_SELECTOR =
   '.dither-preview-canvas[data-active="true"], .project-halftone'
 const RUNTIME_OVERLAY_CLASSES = [
@@ -215,6 +219,12 @@ function pointerHoverSnowSuppressed(event) {
     event?.type?.startsWith?.("pointer") &&
     hoverSnowSuppressedByScroll()
   )
+}
+
+function durationScaleForReason(reason) {
+  return String(reason || "").startsWith("hover")
+    ? HOVER_MOTION_DURATION_SCALE
+    : 1
 }
 
 function ensureStyles() {
@@ -1174,6 +1184,44 @@ function boundaryFillOrder(boundary, col, row, noiseOrder, seed, frameTick) {
   return clamp(noiseOrder * 0.82 + localCluster * 0.18)
 }
 
+function restoreImageHandoffProgress(state, restoreProgress) {
+  const duration = Math.max(1, Number(state.config?.activeColorDurationMs) || 1)
+  const settleMs = Math.max(0, Number(state.config?.activeColorImageHandoffMs) || 0)
+  const span = clamp(settleMs / duration, 0.12, 0.28)
+  return clamp((restoreProgress - (1 - span)) / span)
+}
+
+function restoreImageHandoffAlpha(state, index, col, row, handoffProgress, frameTick) {
+  if (handoffProgress <= 0.001) return 255
+  if (handoffProgress >= 0.999) return 0
+
+  const clusterSize = Math.max(1, Math.round(state.config.activeColorClusterSize))
+  const clusterMix = clamp(state.config.activeColorClusterMix)
+  const clusterOrder = hash01(
+    state.config.activeColorSeed,
+    Math.floor(col / clusterSize),
+    Math.floor(row / clusterSize),
+    2400,
+  )
+  const order = clamp(state.grid.order[index] * (1 - clusterMix) + clusterOrder * clusterMix)
+  const threshold = 0.025 + order * 0.76
+  const release = smooth01(
+    (handoffProgress - threshold + RESTORE_IMAGE_HANDOFF_SOFTNESS) /
+      (RESTORE_IMAGE_HANDOFF_SOFTNESS * 2),
+  )
+  if (release <= 0.001) return 255
+
+  const flicker = hash01(
+    state.config.activeColorSeed,
+    col,
+    row,
+    2450 + frameTick,
+  )
+  const sparkleClear = flicker < release * clamp(0.32 + state.config.activeColorFlicker * 0.46)
+  if (sparkleClear) return 0
+  return Math.round(255 * (1 - release))
+}
+
 function finishState(state) {
   activeStates.delete(state)
 
@@ -1198,12 +1246,12 @@ function finishState(state) {
   if (state.mode === "restore" && state.sourcePixels) {
     state.finished = true
     state.restoreProgress = 1
-    drawPaletteFrame(state)
     markRestoreReady(state.card)
     state.cleanupFrame = requestAnimationFrame(() => {
       state.cleanupFrame = 0
       if (cardStates.get(state.card) !== state || !state.canvas.isConnected) return
-      state.canvas.style.transition = "opacity 160ms cubic-bezier(0.22, 1, 0.36, 1)"
+      state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height)
+      state.canvas.style.transition = "none"
       state.canvas.style.opacity = "0"
       state.cleanupTimer = window.setTimeout(() => {
         state.cleanupTimer = 0
@@ -1211,7 +1259,7 @@ function finishState(state) {
         if (state.canvas.isConnected) state.canvas.remove()
         cardStates.delete(state.card)
         releaseMotionAfterFrames(state.card, 1)
-      }, 180)
+      }, 34)
     })
     return
   }
@@ -1329,6 +1377,11 @@ function drawState(state, now) {
       const colorSoftness = 0.085
       const colorDelay = hasBoundaryPatch ? 0.18 : 0.035
       const colorSpan = hasBoundaryPatch ? 0.78 : 0.93
+      const imageHandoff = restoreImageHandoffProgress(state, restoreProgress)
+      if (imageHandoff > 0.001 && !state.imageHandoffStarted) {
+        state.imageHandoffStarted = true
+        markRestoreReady(state.card)
+      }
       const fullPixels = state.fullPixels || state.sourcePixels
       const fullBits = state.fullBits
       const sourceBits = state.sourceBits
@@ -1399,7 +1452,14 @@ function drawState(state, now) {
           data[offset] = binaryR
           data[offset + 1] = binaryG
           data[offset + 2] = binaryB
-          data[offset + 3] = 255
+          data[offset + 3] = restoreImageHandoffAlpha(
+            state,
+            index,
+            col,
+            row,
+            imageHandoff,
+            frameTick,
+          )
           continue
         }
 
@@ -1435,7 +1495,14 @@ function drawState(state, now) {
         data[offset] = baseR * (1 - snowMix) + snow[0] * snowMix
         data[offset + 1] = baseG * (1 - snowMix) + snow[1] * snowMix
         data[offset + 2] = baseB * (1 - snowMix) + snow[2] * snowMix
-        data[offset + 3] = 255
+        data[offset + 3] = restoreImageHandoffAlpha(
+          state,
+          index,
+          col,
+          row,
+          imageHandoff,
+          frameTick,
+        )
       }
 
       ctx.putImageData(state.imageData, 0, 0)
@@ -1645,21 +1712,31 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     const durationOverride = Number(options.durationMs)
     const hasDurationOverride =
       Number.isFinite(durationOverride) && durationOverride > 0
+    const durationScale = durationScaleForReason(options.reason)
+    const scaledDuration = (duration) =>
+      Math.max(1, Math.round(Math.max(1, duration) * durationScale))
+    const baseEnterDuration = sourcePixels
+      ? config.activeColorDurationMs + config.activeColorSettleMs
+      : config.activeColorDurationMs
     const localConfig = {
       ...config,
       activeColorExitDurationMs:
         direction === "out" && hasDurationOverride
           ? Math.max(1, durationOverride)
-          : config.activeColorExitDurationMs,
+          : scaledDuration(config.activeColorExitDurationMs),
       activeColorDurationMs:
         direction !== "out" && hasDurationOverride
           ? Math.max(1, durationOverride)
-          : sourcePixels
-            ? config.activeColorDurationMs + config.activeColorSettleMs
-            : config.activeColorDurationMs,
+          : scaledDuration(baseEnterDuration),
       activeColorDelayMs:
         config.activeColorDelayMs +
         Math.max(0, index) * config.activeColorStaggerMs,
+      activeColorImageHandoffMs: Math.round(clamp(
+        Math.max(RESTORE_IMAGE_HANDOFF_MIN_MS, Number(config.activeColorSettleMs || 0) + 44) *
+          durationScale,
+        RESTORE_IMAGE_HANDOFF_MIN_MS,
+        RESTORE_IMAGE_HANDOFF_MAX_MS,
+      )),
     }
     const state = {
       card,

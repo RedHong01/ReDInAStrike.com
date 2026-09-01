@@ -2,7 +2,7 @@ import {
   PUBLISHED_MOTION_CONFIG,
   sanitizeMotionConfig,
 } from "./motion-default.js"
-import "./motion-hub.js?v=20260830-scrollstable1"
+import "./motion-hub.js?v=20260901-perf1"
 
 let motion = sanitizeMotionConfig(window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
 let bodyObserver = null
@@ -17,6 +17,7 @@ let currentNav = null
 let navPushMeasureFrame = 0
 let navPushFrame = 0
 let navPushLastTime = 0
+let navResizeObserver = null
 
 const bodyStates = new WeakMap()
 const navStates = new WeakMap()
@@ -26,8 +27,6 @@ const BODY_SELECTOR = [
   "#app main p",
   "#app main li",
   "#app main figcaption",
-  "#app .project-meta",
-  "#app .footer-gallery-meta",
   "#app .resume-project-body",
   "#app .resume-sidebar-body",
   "#app .resume-education-program",
@@ -48,8 +47,24 @@ const BODY_EXCLUDE_SELECTOR = [
   ".site-header",
   ".dither-lab",
   ".project-lightbox",
+  ".project-meta",
+  ".footer-gallery-meta",
   "[data-typewriter-skip]",
 ].join(",")
+
+const STATIC_META_TYPED_SELECTOR = [
+  "#app .project-meta[data-typewriter-body]",
+  "#app .footer-gallery-meta[data-typewriter-body]",
+].join(",")
+const RUNTIME_CANVAS_CLASSES = [
+  "active-color-snow-canvas",
+  "active-color-placeholder-canvas",
+  "dither-preview-canvas",
+  "dither-reveal-canvas",
+  "dither-resize-snow-canvas",
+  "dither-hover-return-snow-canvas",
+  "binary-pixel-handoff-canvas",
+]
 
 function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
@@ -124,30 +139,6 @@ function ensureStyles() {
     [data-typewriter-body="typing"],
     [data-typewriter-body="done"] {
       visibility: visible;
-    }
-
-    /*
-     * Generated dither must always cover the responsive media box while its expensive
-     * backing bitmap waits for the settled ResizeObserver redraw. The old bitmap is
-     * stretched by CSS for those few frames; the native dot layer underneath is hidden
-     * so stale circular halftone can never bleed around the edges.
-     */
-    .project-media {
-      overflow: hidden;
-    }
-
-    .dither-preview-canvas {
-      width: 100% !important;
-      height: 100% !important;
-      max-width: none !important;
-      max-height: none !important;
-    }
-
-    .catalog[data-active-filter]
-      .project-card.is-filter-muted:has(.dither-preview-canvas[data-active="true"])
-      .project-halftone {
-      opacity: 0 !important;
-      visibility: hidden !important;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -417,13 +408,15 @@ function bindNav() {
   if (!nav) return
 
   if (currentNav !== nav) {
+    navResizeObserver?.disconnect()
+    navResizeObserver = null
     currentNav = nav
     hoveredNavCategory = null
     focusedNavCategory = null
     navPushStates.clear()
   }
 
-  if (nav.dataset.typewriterBound === "true") {
+  if (nav.dataset.typewriterBound === "true" && navResizeObserver) {
     refreshNavTargets()
     return
   }
@@ -455,8 +448,8 @@ function bindNav() {
   })
 
   if ("ResizeObserver" in window) {
-    const observer = new ResizeObserver(scheduleNavPushMeasure)
-    observer.observe(nav)
+    navResizeObserver = new ResizeObserver(scheduleNavPushMeasure)
+    navResizeObserver.observe(nav)
   }
 
   refreshNavTargets()
@@ -723,7 +716,23 @@ function shouldTypeBodyBlock(block, candidateSet) {
   return text.length >= 2
 }
 
+function releaseStaticMetaBlocks() {
+  document.querySelectorAll(STATIC_META_TYPED_SELECTOR).forEach((block) => {
+    const state = bodyStates.get(block)
+    if (state) {
+      if (state.frame) cancelAnimationFrame(state.frame)
+      setVisibleCharacterCount(state, state.total)
+      bodyStates.delete(block)
+    }
+    block.removeAttribute("data-typewriter-body")
+    block.removeAttribute("aria-busy")
+    block.style.removeProperty("min-height")
+    bodyObserver?.unobserve(block)
+  })
+}
+
 function scanBodyBlocks() {
+  releaseStaticMetaBlocks()
   if (prefersReducedMotion()) return
   if (!bodyObserver) configureBodyObserver()
   if (!bodyObserver) return
@@ -747,12 +756,24 @@ function scheduleScan() {
   })
 }
 
+function runtimeCanvasMutationOnly(mutation) {
+  if (mutation.type !== "childList") return false
+  const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
+  if (!nodes.length) return false
+  return nodes.every((node) =>
+    node instanceof Element &&
+      RUNTIME_CANVAS_CLASSES.some((className) => node.classList.contains(className)),
+  )
+}
+
 function bindAppObserver() {
   appObserver?.disconnect()
   const app = document.querySelector("#app")
   if (!app || !("MutationObserver" in window)) return
   appObserver = new MutationObserver((mutations) => {
-    if (mutations.some((mutation) => mutation.type === "childList")) scheduleScan()
+    if (mutations.some((mutation) => (
+      mutation.type === "childList" && !runtimeCanvasMutationOnly(mutation)
+    ))) scheduleScan()
   })
   appObserver.observe(app, { childList: true, subtree: true })
 }

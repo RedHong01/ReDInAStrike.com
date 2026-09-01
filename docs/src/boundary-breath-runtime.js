@@ -28,7 +28,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260831-handoff2").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260901-motionpipe2").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -57,15 +57,33 @@ function activeCatalog() {
   return document.querySelector(".catalog[data-active-filter]")
 }
 
-function isMutedCard(card, targetCatalog) {
+function cardHasRuntimeOwner(card, attribute) {
+  return card?.getAttribute?.(attribute) === "true"
+}
+
+function isMutedCardBase(card, targetCatalog) {
   return Boolean(
     card?.isConnected &&
     targetCatalog &&
     card.closest(".catalog") === targetCatalog &&
-    card.classList.contains("is-filter-muted") &&
-    card.getAttribute(ACTIVE_COLOR_MOTION_ATTRIBUTE) !== "true" &&
-    card.getAttribute(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) !== "true" &&
-    card.getAttribute(DITHER_RESIZE_MOTION_ATTRIBUTE) !== "true",
+    card.classList.contains("is-filter-muted"),
+  )
+}
+
+function isMutedCard(card, targetCatalog) {
+  return Boolean(
+    isMutedCardBase(card, targetCatalog) &&
+    !cardHasRuntimeOwner(card, ACTIVE_COLOR_MOTION_ATTRIBUTE) &&
+    !cardHasRuntimeOwner(card, ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) &&
+    !cardHasRuntimeOwner(card, DITHER_RESIZE_MOTION_ATTRIBUTE),
+  )
+}
+
+function shouldKeepTrackedCard(card, targetCatalog) {
+  return Boolean(
+    isMutedCardBase(card, targetCatalog) &&
+    !cardHasRuntimeOwner(card, ACTIVE_COLOR_MOTION_ATTRIBUTE) &&
+    !cardHasRuntimeOwner(card, ACTIVE_COLOR_COOLDOWN_ATTRIBUTE),
   )
 }
 
@@ -207,6 +225,10 @@ async function syncTrackedCards() {
     return false
   }
 
+  const keepableCards = new Set(
+    [...targetCatalog.querySelectorAll(".project-card.is-filter-muted")]
+      .filter((card) => shouldKeepTrackedCard(card, targetCatalog)),
+  )
   const mutedCards = new Set(
     [...targetCatalog.querySelectorAll(".project-card.is-filter-muted")]
       .filter((card) => isMutedCard(card, targetCatalog)),
@@ -214,7 +236,7 @@ async function syncTrackedCards() {
   if (trackedCards.size) {
     await ensureRevealApi()
     for (const card of [...trackedCards]) {
-      if (!mutedCards.has(card) || !card.isConnected) cancelTrackedCard(card)
+      if (!keepableCards.has(card) || !card.isConnected) cancelTrackedCard(card)
     }
   }
 

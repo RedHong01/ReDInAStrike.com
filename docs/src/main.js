@@ -1,4 +1,6 @@
 import {
+  BINARY_MOTION_DEFAULTS,
+  buildBinaryOrder,
   constrainBinaryGridSize,
   readBinaryColors,
   smooth01,
@@ -173,14 +175,20 @@ const CATALOG_FILTER_ENTER_MS = 560
 const CATALOG_FILTER_STAGGER_MS = 28
 const CATALOG_HALFTONE_DELAY_MS = 120
 const CATALOG_HALFTONE_DRAW_MS = 1400
-const CATALOG_MUTED_HOVER_MS = 475
+const CATALOG_MUTED_HOVER_MS = 356
 const CATALOG_COLOR_SNOW_EXIT_COVER_MS = 140
 const CATALOG_COLOR_SNOW_ENTER_COVER_MS = 220
 const CATALOG_COLOR_SNOW_ENTER_DEFER_MS = 54
 const CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS = 128
 const CATALOG_COLOR_SNOW_VIEWPORT_MARGIN = 620
+const CATALOG_ENTER_DITHER_READY_MAX_WAIT_MS = 320
 const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const NAV_HOVER_SCROLL_DELAY_MS = 180
+const SECTION_SCROLL_MIN_MS = 620
+const SECTION_SCROLL_MAX_MS = 1380
+const SECTION_SCROLL_DISTANCE_RATIO = 0.28
+const SECTION_SCROLL_INPUT_GRACE_MS = 90
+const SECTION_SCROLL_MAGNET_SUPPRESS_MS = 780
 const HOME_RETURN_COVER_MS = 620
 const HOME_RETURN_REVEAL_MS = 680
 const HOME_RETURN_FONT_READY_MS = 520
@@ -408,6 +416,11 @@ const siteState = {
   lastScrollY: 0,
   scrollFrame: 0,
   pendingScrollDelta: 0,
+  sectionScrollFrame: 0,
+  sectionScrollToken: 0,
+  sectionScrollTimers: new Set(),
+  sectionScrollCleanup: null,
+  sectionScrollPreviousBehavior: null,
   resizeFrame: 0,
   layoutFrame: 0,
   layoutPendingRules: false,
@@ -583,6 +596,11 @@ function isCurrentHomeReturnTransition(id) {
 
 function isScrollMagnetMotionActive() {
   return document.documentElement.dataset.scrollMagnet === "moving"
+}
+
+function isSectionScrollMotionActive() {
+  return document.documentElement.dataset.sectionScroll === "moving" ||
+    Boolean(siteState.sectionScrollFrame)
 }
 
 function isHeaderMotionActive() {
@@ -868,15 +886,282 @@ function routeExitSnowGrid() {
   }
 }
 
-function drawRouteExitSnowFrame(context, imageData, orders, colors, progress, frameSeed) {
+function rgbaCss(rgba, alpha = 1) {
+  return `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, ${alpha})`
+}
+
+function rectOverlapsViewportBelowHeader(rect, headerBottom) {
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0
+  return Boolean(
+    rect &&
+      rect.width > 0.5 &&
+      rect.height > 0.5 &&
+      rect.right > 0 &&
+      rect.left < viewportWidth &&
+      rect.bottom > headerBottom &&
+      rect.top < viewportHeight
+  )
+}
+
+function drawRouteImageSample(ctx, image, rect) {
+  if (!image?.complete || !image.naturalWidth || !image.naturalHeight) return false
+
+  const style = window.getComputedStyle(image)
+  const imageRect = getHalftoneImageRect(image, rect.width, rect.height, style)
+  if (!imageRect) return false
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(rect.left, rect.top, rect.width, rect.height)
+  ctx.clip()
+  try {
+    ctx.drawImage(
+      image,
+      rect.left + imageRect.x,
+      rect.top + imageRect.y,
+      imageRect.width,
+      imageRect.height,
+    )
+  } catch {
+    ctx.restore()
+    return false
+  }
+  ctx.restore()
+  return true
+}
+
+function drawRouteCanvasSample(ctx, canvas, rect) {
+  if (!canvas || canvas.width <= 1 || canvas.height <= 1) return false
+
+  try {
+    ctx.drawImage(canvas, rect.left, rect.top, rect.width, rect.height)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function numericStylePixel(value, fallback = 0) {
+  const number = Number.parseFloat(value)
+  return Number.isFinite(number) ? number : fallback
+}
+
+function drawRouteBorderSamples(ctx, element, rect, colors) {
+  const style = window.getComputedStyle(element)
+  const ink = rgbaCss(colors.ink)
+  const topWidth = numericStylePixel(style.borderTopWidth)
+  const bottomWidth = numericStylePixel(style.borderBottomWidth)
+  const leftWidth = numericStylePixel(style.borderLeftWidth)
+  const rightWidth = numericStylePixel(style.borderRightWidth)
+
+  ctx.save()
+  ctx.fillStyle = ink
+  if (topWidth > 0.25 && style.borderTopStyle !== "none") {
+    ctx.fillRect(rect.left, rect.top, rect.width, topWidth)
+  }
+  if (bottomWidth > 0.25 && style.borderBottomStyle !== "none") {
+    ctx.fillRect(rect.left, rect.bottom - bottomWidth, rect.width, bottomWidth)
+  }
+  if (leftWidth > 0.25 && style.borderLeftStyle !== "none") {
+    ctx.fillRect(rect.left, rect.top, leftWidth, rect.height)
+  }
+  if (rightWidth > 0.25 && style.borderRightStyle !== "none") {
+    ctx.fillRect(rect.right - rightWidth, rect.top, rightWidth, rect.height)
+  }
+  ctx.restore()
+}
+
+function routeTextElementText(element) {
+  const ownText = [...element.childNodes]
+    .filter((node) => node.nodeType === Node.TEXT_NODE)
+    .map((node) => node.textContent || "")
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (ownText) return ownText
+  if (element.children.length) return ""
+  return (element.textContent || "").replace(/\s+/g, " ").trim()
+}
+
+function routeTextAlignX(rect, align) {
+  if (align === "right" || align === "end") return rect.right
+  if (align === "center") return rect.left + rect.width / 2
+  return rect.left
+}
+
+function drawRouteTextSample(ctx, element, rect, colors) {
+  const text = routeTextElementText(element)
+  if (!text) return false
+
+  const style = window.getComputedStyle(element)
+  if (style.visibility === "hidden" || style.display === "none") return false
+  const opacity = Number.parseFloat(style.opacity || "1")
+  if (Number.isFinite(opacity) && opacity <= 0.01) return false
+
+  const fontSize = numericStylePixel(style.fontSize, 16)
+  const lineHeight = numericStylePixel(style.lineHeight, fontSize * 1.15)
+  const align = style.textAlign === "start"
+    ? style.direction === "rtl" ? "right" : "left"
+    : style.textAlign === "end"
+      ? style.direction === "rtl" ? "left" : "right"
+      : style.textAlign
+  const y = rect.top + Math.max(fontSize, (rect.height - lineHeight) / 2 + fontSize * 0.82)
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(rect.left, rect.top, rect.width, rect.height)
+  ctx.clip()
+  ctx.globalAlpha = Number.isFinite(opacity) ? opacity : 1
+  ctx.fillStyle = rgbaCss(colors.ink)
+  ctx.font = [
+    style.fontStyle || "normal",
+    style.fontWeight || "400",
+    `${Math.max(1, fontSize)}px`,
+    style.fontFamily || "serif",
+  ].join(" ")
+  ctx.textAlign = align || "left"
+  ctx.textBaseline = "alphabetic"
+  ctx.fillText(text, routeTextAlignX(rect, align), y)
+  ctx.restore()
+  return true
+}
+
+function collectRouteTextSampleElements(root) {
+  const selector = [
+    "h1",
+    "h2",
+    "h3",
+    "p",
+    "li",
+    "a",
+    "span",
+    "time",
+    "figcaption",
+    ".project-title",
+    ".project-date",
+  ].join(",")
+  return [...root.querySelectorAll(selector)].filter((element) => {
+    if (element.closest(".site-header, .page-route-exit-snow, .type-overlap-shader-layer")) return false
+    return Boolean(routeTextElementText(element))
+  })
+}
+
+function sampleRouteExitSurface(grid, colors, headerBottom) {
+  const canvas = document.createElement("canvas")
+  canvas.width = grid.cols
+  canvas.height = grid.rows
+  const ctx = canvas.getContext("2d", { willReadFrequently: true, alpha: true })
+  if (!ctx) return null
+
+  const viewportWidth = Math.max(1, grid.viewportWidth)
+  const viewportHeight = Math.max(1, grid.viewportHeight)
+  const scaleX = grid.cols / viewportWidth
+  const scaleY = grid.rows / viewportHeight
+  ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0)
+  ctx.fillStyle = rgbaCss(colors.paper)
+  ctx.fillRect(0, 0, viewportWidth, viewportHeight)
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(0, headerBottom, viewportWidth, Math.max(0, viewportHeight - headerBottom))
+  ctx.clip()
+
+  const main = document.querySelector(".site-main")
+  const root = main || document.body
+  const visualElements = [
+    ...root.querySelectorAll("img, canvas, iframe, video"),
+  ].filter((element) => {
+    if (element.closest(".site-header, .page-route-exit-snow, .type-overlap-shader-layer")) return false
+    if (element.classList.contains("active-color-snow-canvas")) return false
+    if (element.classList.contains("dither-resize-snow-canvas")) return false
+    if (element.classList.contains("binary-pixel-handoff-canvas")) return false
+    const style = window.getComputedStyle(element)
+    const rect = element.getBoundingClientRect()
+    return (
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      Number.parseFloat(style.opacity || "1") > 0.01 &&
+      rectOverlapsViewportBelowHeader(rect, headerBottom)
+    )
+  })
+
+  visualElements.forEach((element) => {
+    const rect = element.getBoundingClientRect()
+    if (element instanceof HTMLImageElement) {
+      drawRouteImageSample(ctx, element, rect)
+    } else if (element instanceof HTMLCanvasElement) {
+      drawRouteCanvasSample(ctx, element, rect)
+    } else {
+      ctx.save()
+      ctx.fillStyle = rgbaCss(colors.ink, 0.92)
+      ctx.fillRect(rect.left, rect.top, rect.width, rect.height)
+      ctx.restore()
+    }
+  })
+
+  collectRouteTextSampleElements(root).forEach((element) => {
+    const rect = element.getBoundingClientRect()
+    if (!rectOverlapsViewportBelowHeader(rect, headerBottom)) return
+    drawRouteTextSample(ctx, element, rect, colors)
+  })
+
+  root.querySelectorAll("*").forEach((element) => {
+    const rect = element.getBoundingClientRect()
+    if (!rectOverlapsViewportBelowHeader(rect, headerBottom)) return
+    drawRouteBorderSamples(ctx, element, rect, colors)
+  })
+
+  ctx.restore()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+  try {
+    const data = ctx.getImageData(0, 0, grid.cols, grid.rows).data
+    const bits = new Uint8Array(grid.cols * grid.rows)
+    for (let index = 0; index < bits.length; index += 1) {
+      const offset = index * 4
+      const paperDistance =
+        (data[offset] - colors.paper[0]) ** 2 +
+        (data[offset + 1] - colors.paper[1]) ** 2 +
+        (data[offset + 2] - colors.paper[2]) ** 2
+      const inkDistance =
+        (data[offset] - colors.ink[0]) ** 2 +
+        (data[offset + 1] - colors.ink[1]) ** 2 +
+        (data[offset + 2] - colors.ink[2]) ** 2
+      bits[index] = inkDistance <= paperDistance ? 1 : 0
+    }
+    return bits
+  } catch {
+    return null
+  }
+}
+
+function drawRouteExitSnowFrame(
+  context,
+  imageData,
+  orders,
+  colors,
+  progress,
+  frameSeed,
+  sourceBits = null,
+  headerBottom = 0,
+) {
   const data = imageData.data
   const paper = colors.paper
   const ink = colors.ink
   const easedProgress = smooth01(progress)
   const softness = ROUTE_EXIT_SNOW_SOFTNESS
+  const cols = imageData.width
+  const rows = imageData.height
+  const headerRow = Math.max(0, Math.round(headerBottom / Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1) * rows))
 
   for (let index = 0; index < orders.length; index += 1) {
     const offset = index * 4
+    const row = Math.floor(index / cols)
+    if (row < headerRow) {
+      data[offset + 3] = 0
+      continue
+    }
+
     const order = orders[index]
     if (order > easedProgress) {
       data[offset + 3] = 0
@@ -886,9 +1171,12 @@ function drawRouteExitSnowFrame(context, imageData, orders, colors, progress, fr
     const edge = clamp((easedProgress - order) / softness, 0, 1)
     const isBoundary = edge < 1
     const flicker = routeSnowHash(index, frameSeed)
+    const sourceInk = sourceBits ? sourceBits[index] === 1 : flicker < 0.018
     const useInk = isBoundary
       ? flicker < ROUTE_EXIT_SNOW_INK_NOISE + (1 - edge) * 0.34
-      : flicker < 0.018
+        ? !sourceInk
+        : sourceInk
+      : sourceInk
     const color = useInk ? ink : paper
     const alpha = isBoundary ? Math.round(255 * (0.45 + edge * 0.55)) : 255
 
@@ -940,14 +1228,33 @@ function playRouteExitSnow(id, duration = HOME_RETURN_COVER_MS) {
   document.body.appendChild(canvas)
 
   const colors = readBinaryColors()
+  const headerBottom = clamp(currentHeaderHeight(), 0, grid.viewportHeight)
+  const sourceBits = sampleRouteExitSurface(grid, colors, headerBottom)
   const imageData = context.createImageData(grid.cols, grid.rows)
   const orders = new Float32Array(grid.cols * grid.rows)
   const seed = Math.round(performance.now()) ^ grid.cols ^ (grid.rows << 8)
+  const binaryOrder = buildBinaryOrder(
+    grid.cols,
+    grid.rows,
+    BINARY_MOTION_DEFAULTS.seed + grid.cols * 7 + grid.rows * 11,
+  )
+  const headerRow = clamp(headerBottom / Math.max(1, grid.viewportHeight), 0, 1)
+  const visibleSpan = Math.max(0.001, 1 - headerRow)
   for (let index = 0; index < orders.length; index += 1) {
     const x = index % grid.cols
     const y = Math.floor(index / grid.cols)
-    const diagonal = (x / Math.max(1, grid.cols - 1)) * 0.22 + (y / Math.max(1, grid.rows - 1)) * 0.16
-    orders[index] = clamp(routeSnowHash(index, seed) * 0.78 + diagonal, 0, 1)
+    const rowRatio = y / Math.max(1, grid.rows - 1)
+    const fromHeader = clamp((rowRatio - headerRow) / visibleSpan, 0, 1)
+    const edgeOrigin = Math.pow(fromHeader, 0.82)
+    const lateralDrift = (x / Math.max(1, grid.cols - 1)) * 0.045
+    orders[index] = clamp(
+      edgeOrigin * 0.66 +
+        binaryOrder[index] * 0.28 +
+        routeSnowHash(index, seed) * 0.05 +
+        lateralDrift,
+      0,
+      1,
+    )
   }
 
   let frame = 0
@@ -983,7 +1290,16 @@ function playRouteExitSnow(id, duration = HOME_RETURN_COVER_MS) {
 
       if (!startTime) startTime = time
       const progress = clamp((time - startTime) / Math.max(1, duration), 0, 1)
-      drawRouteExitSnowFrame(context, imageData, orders, colors, progress, seed + frameCount * 37)
+      drawRouteExitSnowFrame(
+        context,
+        imageData,
+        orders,
+        colors,
+        progress,
+        seed + frameCount * 37,
+        sourceBits,
+        headerBottom,
+      )
       frameCount += 1
 
       if (progress >= 1) {
@@ -1136,6 +1452,84 @@ function sectionScrollTop(hash) {
   return Math.max(0, target.getBoundingClientRect().top + currentY - headerOffset)
 }
 
+function pageMaxScrollY() {
+  return Math.max(
+    0,
+    document.documentElement.scrollHeight -
+      Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0),
+  )
+}
+
+function sectionScrollDuration(distance) {
+  if (prefersReducedMotion()) return 1
+  return clamp(
+    SECTION_SCROLL_MIN_MS + Math.abs(distance) * SECTION_SCROLL_DISTANCE_RATIO,
+    SECTION_SCROLL_MIN_MS,
+    SECTION_SCROLL_MAX_MS,
+  )
+}
+
+function syncScrollDrivenVisuals({
+  syncHeader = true,
+  syncFooter = true,
+  syncRules = true,
+  publishMoving = false,
+} = {}) {
+  const currentY = window.scrollY || window.pageYOffset || 0
+  siteState.lastScrollY = currentY
+  siteState.pendingScrollDelta = 0
+
+  if (syncHeader && !isHomeReturnTransitionActive()) {
+    const progress = clamp(currentY / readHeaderMetrics().distance, 0, 1)
+    if (publishMoving) {
+      if (siteState.followFrame) cancelAnimationFrame(siteState.followFrame)
+      siteState.followFrame = 0
+      siteState.lastFrameTime = 0
+      siteState.targetProgress = progress
+      siteState.visualProgress = progress
+      applyHeaderProgress(progress)
+      publishHeaderMotionState(true)
+    } else {
+      setHeaderTarget(progress, true)
+    }
+  }
+
+  if (syncFooter && siteState.hasFooterGallery) {
+    updateFooterGalleryReveal({ immediate: true })
+  }
+
+  if (syncRules && siteState.hasProjectRuleTargets) {
+    updateProjectRuleReveal()
+  }
+}
+
+function clearSectionScrollTimers() {
+  siteState.sectionScrollTimers.forEach((timer) => window.clearTimeout(timer))
+  siteState.sectionScrollTimers.clear()
+}
+
+function cleanupSectionScrollEnvironment() {
+  siteState.sectionScrollCleanup?.()
+  siteState.sectionScrollCleanup = null
+  if (siteState.sectionScrollPreviousBehavior !== null) {
+    document.documentElement.style.scrollBehavior = siteState.sectionScrollPreviousBehavior
+    siteState.sectionScrollPreviousBehavior = null
+  }
+  delete document.documentElement.dataset.sectionScroll
+}
+
+function cancelSectionScroll(options = {}) {
+  siteState.sectionScrollToken += 1
+  if (siteState.sectionScrollFrame) cancelAnimationFrame(siteState.sectionScrollFrame)
+  siteState.sectionScrollFrame = 0
+  clearSectionScrollTimers()
+  cleanupSectionScrollEnvironment()
+  if (options.sync) syncScrollDrivenVisuals()
+  if (options.suppressMagnet) {
+    window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: options.suppressMagnet })
+  }
+}
+
 async function settleRouteScrollPosition(id, target) {
   for (let attempt = 0; attempt < 18; attempt += 1) {
     if (!isCurrentHomeReturnTransition(id)) return false
@@ -1206,6 +1600,7 @@ async function startHomeReturnTransition(value = homeUrl(), options = {}) {
   if (!target) return
   if (isHomeReturnTransitionActive()) return
 
+  cancelSectionScroll({ suppressMagnet: HOME_RETURN_COVER_MS + HOME_RETURN_REVEAL_MS })
   window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: HOME_RETURN_COVER_MS + HOME_RETURN_REVEAL_MS })
   const id = siteState.homeReturnTransitionId + 1
   siteState.homeReturnTransitionId = id
@@ -1292,6 +1687,7 @@ async function startHomeReturnTransition(value = homeUrl(), options = {}) {
 function navigateRouteWithoutTransition(value = homeUrl(), options = {}) {
   const target = routeTargetFromUrl(value)
   if (!target) return
+  cancelSectionScroll({ suppressMagnet: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
   cancelHomeReturnTransition({ syncHeaderToScroll: false })
   if (options.updateHistory !== false) pushRouteUrl(target)
   if (target.scrollMode !== "section") window.scrollTo({ top: 0, left: 0, behavior: "auto" })
@@ -3941,6 +4337,80 @@ function isNearViewport(element, margin = HALFTONE_RENDER_MARGIN) {
   )
 }
 
+function catalogVisibleDitherIncompleteCount(catalog) {
+  if (!catalog?.dataset.activeFilter || !publicDitherOwnsMutedCards()) return 0
+
+  return [...catalog.querySelectorAll(".project-card.is-filter-muted")]
+    .filter((card) => isNearViewport(card, CATALOG_COLOR_SNOW_VIEWPORT_MARGIN))
+    .filter((card) => {
+      const media = card.querySelector(".project-media")
+      const canvas = media?.querySelector('.dither-preview-canvas[data-active="true"]')
+      return (
+        card.hasAttribute("data-dither-pending") ||
+        card.hasAttribute("data-dither-category-enter-reveal") ||
+        media?.getAttribute("data-dither-ready") !== "true" ||
+        !canvas ||
+        canvas.width <= 1 ||
+        canvas.height <= 1
+      )
+    })
+    .length
+}
+
+function settleCatalogFilterEnter(catalog, cycle, usesLegacyHalftone, motionEnterDelay) {
+  if (cycle !== siteState.catalogFilterCycle) return
+  if (!catalog.isConnected || catalog.dataset.filterPhase !== "entering") return
+
+  catalog.dataset.filterPhase = "settling"
+  if (usesLegacyHalftone) catalog.dataset.halftonePhase = "waiting"
+  else delete catalog.dataset.halftonePhase
+  requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
+
+  if (!usesLegacyHalftone) return
+  window.setTimeout(() => {
+    if (cycle !== siteState.catalogFilterCycle) return
+    if (!catalog.isConnected || catalog.dataset.filterPhase !== "settling") return
+    catalog.dataset.halftonePhase = "printing"
+    animateCatalogHalftoneDots(catalog, cycle, {
+      duration: CATALOG_HALFTONE_DRAW_MS,
+    })
+  }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + motionEnterDelay + CATALOG_HALFTONE_DELAY_MS))
+}
+
+function waitForCatalogEnterDitherReady(
+  catalog,
+  cycle,
+  usesLegacyHalftone,
+  motionEnterDelay,
+  startedAt = performance.now(),
+) {
+  if (cycle !== siteState.catalogFilterCycle) return
+  if (!catalog?.isConnected || catalog.dataset.filterPhase !== "entering") return
+
+  const elapsed = performance.now() - startedAt
+  const ready =
+    usesLegacyHalftone ||
+    catalogVisibleDitherIncompleteCount(catalog) <= 0 ||
+    elapsed >= catalogFilterDuration(CATALOG_ENTER_DITHER_READY_MAX_WAIT_MS)
+
+  if (ready) {
+    requestAnimationFrame(() => {
+      settleCatalogFilterEnter(catalog, cycle, usesLegacyHalftone, motionEnterDelay)
+    })
+    return
+  }
+
+  requestAnimationFrame(() => {
+    waitForCatalogEnterDitherReady(
+      catalog,
+      cycle,
+      usesLegacyHalftone,
+      motionEnterDelay,
+      startedAt,
+    )
+  })
+}
+
 function updateVisibleCatalogHalftoneCards(catalog = siteState.dom.catalog) {
   if (publicDitherOwnsMutedCards()) {
     siteState.visibleHalftoneCards = []
@@ -4344,13 +4814,88 @@ function scrollToPageSection(hash, options = {}) {
   const target = document.getElementById(hash)
   if (!target) return false
 
-  const currentY = window.scrollY || window.pageYOffset || 0
-  const headerOffset = readHeaderMetrics().compactHeight + 1
-  const top = Math.max(0, target.getBoundingClientRect().top + currentY - headerOffset)
-  window.scrollTo({
-    top,
-    behavior: options.immediate || catalogFilterDuration(240) <= 1 ? "auto" : "smooth",
-  })
+  const top = sectionScrollTop(hash)
+  if (top === null) return false
+
+  if (options.immediate || prefersReducedMotion()) {
+    cancelSectionScroll({ suppressMagnet: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+    window.scrollTo({ top, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: false })
+    publishHeaderMotionState(false)
+    return true
+  }
+
+  const startY = window.scrollY || window.pageYOffset || 0
+  const distance = top - startY
+  const duration = Number.isFinite(options.duration)
+    ? Math.max(1, options.duration)
+    : sectionScrollDuration(distance)
+  if (Math.abs(distance) <= 1.5 || duration <= 1) {
+    cancelSectionScroll({ suppressMagnet: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+    window.scrollTo({ top, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: false })
+    publishHeaderMotionState(false)
+    return true
+  }
+
+  cancelSectionScroll()
+  const token = siteState.sectionScrollToken + 1
+  siteState.sectionScrollToken = token
+  const startedAt = performance.now()
+  let targetY = top
+  const previousBehavior = document.documentElement.style.scrollBehavior
+  siteState.sectionScrollPreviousBehavior = previousBehavior
+  document.documentElement.style.scrollBehavior = "auto"
+  document.documentElement.dataset.sectionScroll = "moving"
+  window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: duration + SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+
+  const cancelByInput = () => {
+    if (performance.now() - startedAt < SECTION_SCROLL_INPUT_GRACE_MS) return
+    cancelSectionScroll({ sync: true, suppressMagnet: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+  }
+  window.addEventListener("wheel", cancelByInput, { passive: true, capture: true })
+  window.addEventListener("touchstart", cancelByInput, { passive: true, capture: true })
+  window.addEventListener("keydown", cancelByInput, { passive: true, capture: true })
+  siteState.sectionScrollCleanup = () => {
+    window.removeEventListener("wheel", cancelByInput, { capture: true })
+    window.removeEventListener("touchstart", cancelByInput, { capture: true })
+    window.removeEventListener("keydown", cancelByInput, { capture: true })
+  }
+
+  publishHeaderMotionState(true)
+  const finish = () => {
+    if (token !== siteState.sectionScrollToken) return
+    siteState.sectionScrollFrame = 0
+    const finalTop = sectionScrollTop(hash) ?? targetY
+    window.scrollTo({ top: clamp(finalTop, 0, pageMaxScrollY()), left: 0, behavior: "auto" })
+    cleanupSectionScrollEnvironment()
+    syncScrollDrivenVisuals({ publishMoving: false })
+    publishHeaderMotionState(false)
+    window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+  }
+
+  const frame = (time) => {
+    if (token !== siteState.sectionScrollToken) return
+    const raw = clamp((time - startedAt) / duration, 0, 1)
+    const nextTarget = sectionScrollTop(hash)
+    if (nextTarget !== null) {
+      targetY += (nextTarget - targetY) * 0.36
+    }
+
+    const eased = smoothstep(raw)
+    const nextY = clamp(startY + (targetY - startY) * eased, 0, pageMaxScrollY())
+    window.scrollTo({ top: nextY, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: true })
+
+    if (raw >= 1) {
+      finish()
+      return
+    }
+
+    siteState.sectionScrollFrame = requestAnimationFrame(frame)
+  }
+
+  siteState.sectionScrollFrame = requestAnimationFrame(frame)
   return true
 }
 
@@ -4361,10 +4906,12 @@ function updatePageHash(hash) {
 
 function scheduleScrollToPageSection(hash, options = {}) {
   const delay = Number.isFinite(options.delay) ? options.delay : 0
-  const attempts = Math.max(1, options.attempts || 2)
+  const attempts = options.immediate ? Math.max(1, options.attempts || 2) : 1
   let count = 0
+  clearSectionScrollTimers()
 
   const run = () => {
+    siteState.sectionScrollTimers.delete(timer)
     const scroll = () => scrollToPageSection(hash, options)
     if (typeof window.requestAnimationFrame === "function") {
       window.requestAnimationFrame(scroll)
@@ -4374,11 +4921,13 @@ function scheduleScrollToPageSection(hash, options = {}) {
 
     count += 1
     if (count < attempts) {
-      window.setTimeout(run, catalogFilterDuration(180))
+      timer = window.setTimeout(run, catalogFilterDuration(180))
+      siteState.sectionScrollTimers.add(timer)
     }
   }
 
-  window.setTimeout(run, delay)
+  let timer = window.setTimeout(run, delay)
+  siteState.sectionScrollTimers.add(timer)
 }
 
 function replaceCatalogFilterImmediately(category) {
@@ -4445,20 +4994,7 @@ function commitCatalogFilterTransition(cycle) {
   catalog.getBoundingClientRect()
   window.setTimeout(() => requestAnimationFrame(() => {
     if (cycle !== siteState.catalogFilterCycle) return
-    catalog.dataset.filterPhase = "settling"
-    if (usesLegacyHalftone) catalog.dataset.halftonePhase = "waiting"
-    else delete catalog.dataset.halftonePhase
-    requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
-    if (usesLegacyHalftone) {
-      window.setTimeout(() => {
-        if (cycle !== siteState.catalogFilterCycle) return
-        if (!catalog.isConnected || catalog.dataset.filterPhase !== "settling") return
-        catalog.dataset.halftonePhase = "printing"
-        animateCatalogHalftoneDots(catalog, cycle, {
-          duration: CATALOG_HALFTONE_DRAW_MS,
-        })
-      }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + motionEnterDelay + CATALOG_HALFTONE_DELAY_MS))
-    }
+    waitForCatalogEnterDitherReady(catalog, cycle, usesLegacyHalftone, motionEnterDelay)
   }), catalogFilterDuration(CATALOG_COLOR_SNOW_ENTER_DEFER_MS + 34))
 
   siteState.catalogFilterEnterTimer = window.setTimeout(() => {
@@ -4854,6 +5390,7 @@ function setHeaderTarget(nextProgress, immediate = false) {
 }
 
 function shouldSuppressHeaderScrollDelta(delta) {
+  if (isSectionScrollMotionActive()) return true
   if (isScrollMagnetMotionActive()) return true
   if (performance.now() < siteState.headerDirectScrollInputUntil) return true
   if (!isHeaderMotionActive()) return false
@@ -4943,6 +5480,7 @@ function setupHeader() {
       if (!handledGalleryWheel || hasVerticalScroll) {
         holdFooterGalleryDuringScroll(time)
       }
+      if (hasVerticalScroll && isSectionScrollMotionActive()) return
       if (hasVerticalScroll) {
         markHeaderDirectScrollInput()
         updateHeaderFromScroll(verticalDelta)

@@ -10,7 +10,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260831-handoff2"
+} from "./reveal-motion.js?v=20260901-motionpipe2"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -330,11 +330,15 @@ function hoverBinaryReturnOwnsCard(card) {
   return card?.getAttribute?.(HOVER_BINARY_RETURN_ATTRIBUTE) === "true"
 }
 
+function ditherResizeMotionActive(card) {
+  return card?.getAttribute?.(DITHER_RESIZE_MOTION_ATTRIBUTE) === "true"
+}
+
 function motionBlocksReveal(card) {
   return (
     activeColorOwnsCard(card) ||
     card?.getAttribute?.(ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) === "true" ||
-    card?.getAttribute?.(DITHER_RESIZE_MOTION_ATTRIBUTE) === "true"
+    ditherResizeMotionActive(card)
   )
 }
 
@@ -361,7 +365,7 @@ function revealSignature(card, catalog, canvas) {
 function armReveal(card, catalog) {
   if (!isMutedByActiveFilter(card, catalog)) return false
   if (motionBlocksReveal(card)) {
-    releaseReveal(card, { forgetSignature: false })
+    if (!ditherResizeMotionActive(card)) releaseReveal(card, { forgetSignature: false })
     return false
   }
   const img = card.querySelector(".project-media img")
@@ -580,7 +584,7 @@ function handleCardIntersections(entries) {
       continue
     }
     if (motionBlocksReveal(card)) {
-      releaseReveal(card, { forgetSignature: false })
+      if (!ditherResizeMotionActive(card)) releaseReveal(card, { forgetSignature: false })
       continue
     }
     if (hoverBinaryReturnOwnsCard(card)) continue
@@ -611,7 +615,7 @@ function syncCardTargets(catalog) {
 
 function syncResizeTargets(catalog) {
   if (!state.resizeObserver) return
-  const next = new Set(catalog?.querySelectorAll(".project-media") || [])
+  const next = new Set(catalog?.querySelectorAll(".project-card.is-filter-muted .project-media") || [])
   for (const media of [...state.observedMedia]) {
     if (next.has(media)) continue
     state.resizeObserver.unobserve(media)
@@ -859,7 +863,9 @@ function bindCatalogObserver() {
     mutations.forEach((mutation) => {
       if (!motionAttributeChanged(mutation)) return
       if (motionBlocksReveal(mutation.target)) {
-        releaseReveal(mutation.target, { forgetSignature: false })
+        if (!ditherResizeMotionActive(mutation.target)) {
+          releaseReveal(mutation.target, { forgetSignature: false })
+        }
       }
     })
     if (mutations.some((mutation) =>

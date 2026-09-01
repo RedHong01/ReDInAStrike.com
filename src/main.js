@@ -184,6 +184,11 @@ const CATALOG_COLOR_SNOW_VIEWPORT_MARGIN = 620
 const CATALOG_ENTER_DITHER_READY_MAX_WAIT_MS = 320
 const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const NAV_HOVER_SCROLL_DELAY_MS = 180
+const SECTION_SCROLL_MIN_MS = 620
+const SECTION_SCROLL_MAX_MS = 1380
+const SECTION_SCROLL_DISTANCE_RATIO = 0.28
+const SECTION_SCROLL_INPUT_GRACE_MS = 90
+const SECTION_SCROLL_MAGNET_SUPPRESS_MS = 780
 const HOME_RETURN_COVER_MS = 620
 const HOME_RETURN_REVEAL_MS = 680
 const HOME_RETURN_FONT_READY_MS = 520
@@ -411,6 +416,11 @@ const siteState = {
   lastScrollY: 0,
   scrollFrame: 0,
   pendingScrollDelta: 0,
+  sectionScrollFrame: 0,
+  sectionScrollToken: 0,
+  sectionScrollTimers: new Set(),
+  sectionScrollCleanup: null,
+  sectionScrollPreviousBehavior: null,
   resizeFrame: 0,
   layoutFrame: 0,
   layoutPendingRules: false,
@@ -586,6 +596,11 @@ function isCurrentHomeReturnTransition(id) {
 
 function isScrollMagnetMotionActive() {
   return document.documentElement.dataset.scrollMagnet === "moving"
+}
+
+function isSectionScrollMotionActive() {
+  return document.documentElement.dataset.sectionScroll === "moving" ||
+    Boolean(siteState.sectionScrollFrame)
 }
 
 function isHeaderMotionActive() {
@@ -1437,6 +1452,84 @@ function sectionScrollTop(hash) {
   return Math.max(0, target.getBoundingClientRect().top + currentY - headerOffset)
 }
 
+function pageMaxScrollY() {
+  return Math.max(
+    0,
+    document.documentElement.scrollHeight -
+      Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0),
+  )
+}
+
+function sectionScrollDuration(distance) {
+  if (prefersReducedMotion()) return 1
+  return clamp(
+    SECTION_SCROLL_MIN_MS + Math.abs(distance) * SECTION_SCROLL_DISTANCE_RATIO,
+    SECTION_SCROLL_MIN_MS,
+    SECTION_SCROLL_MAX_MS,
+  )
+}
+
+function syncScrollDrivenVisuals({
+  syncHeader = true,
+  syncFooter = true,
+  syncRules = true,
+  publishMoving = false,
+} = {}) {
+  const currentY = window.scrollY || window.pageYOffset || 0
+  siteState.lastScrollY = currentY
+  siteState.pendingScrollDelta = 0
+
+  if (syncHeader && !isHomeReturnTransitionActive()) {
+    const progress = clamp(currentY / readHeaderMetrics().distance, 0, 1)
+    if (publishMoving) {
+      if (siteState.followFrame) cancelAnimationFrame(siteState.followFrame)
+      siteState.followFrame = 0
+      siteState.lastFrameTime = 0
+      siteState.targetProgress = progress
+      siteState.visualProgress = progress
+      applyHeaderProgress(progress)
+      publishHeaderMotionState(true)
+    } else {
+      setHeaderTarget(progress, true)
+    }
+  }
+
+  if (syncFooter && siteState.hasFooterGallery) {
+    updateFooterGalleryReveal({ immediate: true })
+  }
+
+  if (syncRules && siteState.hasProjectRuleTargets) {
+    updateProjectRuleReveal()
+  }
+}
+
+function clearSectionScrollTimers() {
+  siteState.sectionScrollTimers.forEach((timer) => window.clearTimeout(timer))
+  siteState.sectionScrollTimers.clear()
+}
+
+function cleanupSectionScrollEnvironment() {
+  siteState.sectionScrollCleanup?.()
+  siteState.sectionScrollCleanup = null
+  if (siteState.sectionScrollPreviousBehavior !== null) {
+    document.documentElement.style.scrollBehavior = siteState.sectionScrollPreviousBehavior
+    siteState.sectionScrollPreviousBehavior = null
+  }
+  delete document.documentElement.dataset.sectionScroll
+}
+
+function cancelSectionScroll(options = {}) {
+  siteState.sectionScrollToken += 1
+  if (siteState.sectionScrollFrame) cancelAnimationFrame(siteState.sectionScrollFrame)
+  siteState.sectionScrollFrame = 0
+  clearSectionScrollTimers()
+  cleanupSectionScrollEnvironment()
+  if (options.sync) syncScrollDrivenVisuals()
+  if (options.suppressMagnet) {
+    window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: options.suppressMagnet })
+  }
+}
+
 async function settleRouteScrollPosition(id, target) {
   for (let attempt = 0; attempt < 18; attempt += 1) {
     if (!isCurrentHomeReturnTransition(id)) return false
@@ -1507,6 +1600,7 @@ async function startHomeReturnTransition(value = homeUrl(), options = {}) {
   if (!target) return
   if (isHomeReturnTransitionActive()) return
 
+  cancelSectionScroll({ suppressMagnet: HOME_RETURN_COVER_MS + HOME_RETURN_REVEAL_MS })
   window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: HOME_RETURN_COVER_MS + HOME_RETURN_REVEAL_MS })
   const id = siteState.homeReturnTransitionId + 1
   siteState.homeReturnTransitionId = id
@@ -1593,6 +1687,7 @@ async function startHomeReturnTransition(value = homeUrl(), options = {}) {
 function navigateRouteWithoutTransition(value = homeUrl(), options = {}) {
   const target = routeTargetFromUrl(value)
   if (!target) return
+  cancelSectionScroll({ suppressMagnet: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
   cancelHomeReturnTransition({ syncHeaderToScroll: false })
   if (options.updateHistory !== false) pushRouteUrl(target)
   if (target.scrollMode !== "section") window.scrollTo({ top: 0, left: 0, behavior: "auto" })
@@ -4719,13 +4814,88 @@ function scrollToPageSection(hash, options = {}) {
   const target = document.getElementById(hash)
   if (!target) return false
 
-  const currentY = window.scrollY || window.pageYOffset || 0
-  const headerOffset = readHeaderMetrics().compactHeight + 1
-  const top = Math.max(0, target.getBoundingClientRect().top + currentY - headerOffset)
-  window.scrollTo({
-    top,
-    behavior: options.immediate || catalogFilterDuration(240) <= 1 ? "auto" : "smooth",
-  })
+  const top = sectionScrollTop(hash)
+  if (top === null) return false
+
+  if (options.immediate || prefersReducedMotion()) {
+    cancelSectionScroll({ suppressMagnet: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+    window.scrollTo({ top, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: false })
+    publishHeaderMotionState(false)
+    return true
+  }
+
+  const startY = window.scrollY || window.pageYOffset || 0
+  const distance = top - startY
+  const duration = Number.isFinite(options.duration)
+    ? Math.max(1, options.duration)
+    : sectionScrollDuration(distance)
+  if (Math.abs(distance) <= 1.5 || duration <= 1) {
+    cancelSectionScroll({ suppressMagnet: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+    window.scrollTo({ top, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: false })
+    publishHeaderMotionState(false)
+    return true
+  }
+
+  cancelSectionScroll()
+  const token = siteState.sectionScrollToken + 1
+  siteState.sectionScrollToken = token
+  const startedAt = performance.now()
+  let targetY = top
+  const previousBehavior = document.documentElement.style.scrollBehavior
+  siteState.sectionScrollPreviousBehavior = previousBehavior
+  document.documentElement.style.scrollBehavior = "auto"
+  document.documentElement.dataset.sectionScroll = "moving"
+  window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: duration + SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+
+  const cancelByInput = () => {
+    if (performance.now() - startedAt < SECTION_SCROLL_INPUT_GRACE_MS) return
+    cancelSectionScroll({ sync: true, suppressMagnet: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+  }
+  window.addEventListener("wheel", cancelByInput, { passive: true, capture: true })
+  window.addEventListener("touchstart", cancelByInput, { passive: true, capture: true })
+  window.addEventListener("keydown", cancelByInput, { passive: true, capture: true })
+  siteState.sectionScrollCleanup = () => {
+    window.removeEventListener("wheel", cancelByInput, { capture: true })
+    window.removeEventListener("touchstart", cancelByInput, { capture: true })
+    window.removeEventListener("keydown", cancelByInput, { capture: true })
+  }
+
+  publishHeaderMotionState(true)
+  const finish = () => {
+    if (token !== siteState.sectionScrollToken) return
+    siteState.sectionScrollFrame = 0
+    const finalTop = sectionScrollTop(hash) ?? targetY
+    window.scrollTo({ top: clamp(finalTop, 0, pageMaxScrollY()), left: 0, behavior: "auto" })
+    cleanupSectionScrollEnvironment()
+    syncScrollDrivenVisuals({ publishMoving: false })
+    publishHeaderMotionState(false)
+    window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: SECTION_SCROLL_MAGNET_SUPPRESS_MS })
+  }
+
+  const frame = (time) => {
+    if (token !== siteState.sectionScrollToken) return
+    const raw = clamp((time - startedAt) / duration, 0, 1)
+    const nextTarget = sectionScrollTop(hash)
+    if (nextTarget !== null) {
+      targetY += (nextTarget - targetY) * 0.36
+    }
+
+    const eased = smoothstep(raw)
+    const nextY = clamp(startY + (targetY - startY) * eased, 0, pageMaxScrollY())
+    window.scrollTo({ top: nextY, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: true })
+
+    if (raw >= 1) {
+      finish()
+      return
+    }
+
+    siteState.sectionScrollFrame = requestAnimationFrame(frame)
+  }
+
+  siteState.sectionScrollFrame = requestAnimationFrame(frame)
   return true
 }
 
@@ -4736,10 +4906,12 @@ function updatePageHash(hash) {
 
 function scheduleScrollToPageSection(hash, options = {}) {
   const delay = Number.isFinite(options.delay) ? options.delay : 0
-  const attempts = Math.max(1, options.attempts || 2)
+  const attempts = options.immediate ? Math.max(1, options.attempts || 2) : 1
   let count = 0
+  clearSectionScrollTimers()
 
   const run = () => {
+    siteState.sectionScrollTimers.delete(timer)
     const scroll = () => scrollToPageSection(hash, options)
     if (typeof window.requestAnimationFrame === "function") {
       window.requestAnimationFrame(scroll)
@@ -4749,11 +4921,13 @@ function scheduleScrollToPageSection(hash, options = {}) {
 
     count += 1
     if (count < attempts) {
-      window.setTimeout(run, catalogFilterDuration(180))
+      timer = window.setTimeout(run, catalogFilterDuration(180))
+      siteState.sectionScrollTimers.add(timer)
     }
   }
 
-  window.setTimeout(run, delay)
+  let timer = window.setTimeout(run, delay)
+  siteState.sectionScrollTimers.add(timer)
 }
 
 function replaceCatalogFilterImmediately(category) {
@@ -5216,6 +5390,7 @@ function setHeaderTarget(nextProgress, immediate = false) {
 }
 
 function shouldSuppressHeaderScrollDelta(delta) {
+  if (isSectionScrollMotionActive()) return true
   if (isScrollMagnetMotionActive()) return true
   if (performance.now() < siteState.headerDirectScrollInputUntil) return true
   if (!isHeaderMotionActive()) return false
@@ -5305,6 +5480,7 @@ function setupHeader() {
       if (!handledGalleryWheel || hasVerticalScroll) {
         holdFooterGalleryDuringScroll(time)
       }
+      if (hasVerticalScroll && isSectionScrollMotionActive()) return
       if (hasVerticalScroll) {
         markHeaderDirectScrollInput()
         updateHeaderFromScroll(verticalDelta)

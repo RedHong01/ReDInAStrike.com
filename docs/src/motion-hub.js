@@ -1,4 +1,4 @@
-import "./scroll-magnet.js?v=20260830-scrolllock1"
+import "./scroll-magnet.js?v=20260901-motionpipe2"
 
 let corePromise = null
 

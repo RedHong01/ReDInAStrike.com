@@ -904,14 +904,17 @@ function finishState(state) {
 
   if (state.mode === "restore-reverse") {
     clearRestoreReady(state.card)
-    const source = exposeRestoreSource(state.card)
+    const handoffStarted = window.__RED_HOVER_BINARY_RETURN__?.play?.(state.card) === true
+    const source = handoffStarted ? state.hiddenSource : exposeRestoreSource(state.card)
     state.handoffFrame = requestAnimationFrame(() => {
       if (state.canvas.isConnected) state.canvas.remove()
       cardStates.delete(state.card)
       state.card.removeAttribute(RETURN_ATTRIBUTE)
       state.cleanupFrame = requestAnimationFrame(() => {
         clearRestoreSourceInline(source)
-        releaseMotionAfterFrames(state.card, 2, { cooldown: true })
+        releaseMotionAfterFrames(state.card, handoffStarted ? 0 : 2, {
+          cooldown: !handoffStarted,
+        })
       })
     })
     return

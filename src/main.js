@@ -2239,10 +2239,20 @@ function framerProjectDetailMarkup(project, detail) {
     </main>`
 }
 
+const SERIAL_DEMINER_ASSET_VERSION = "20260831-rgb1"
+
+function caseImagePath(path) {
+  if (path.includes("?")) return path
+  if (path.startsWith("assets/serial-deminer/")) {
+    return `${path}?v=${SERIAL_DEMINER_ASSET_VERSION}`
+  }
+  return path
+}
+
 function caseImage(path, alt, className = "") {
   return `
     <figure class="framer-case-image ${className}">
-      <img src="${asset(path)}" alt="${escapeHtml(alt)}" loading="lazy" />
+      <img src="${asset(caseImagePath(path))}" alt="${escapeHtml(alt)}" loading="lazy" />
     </figure>`
 }
 

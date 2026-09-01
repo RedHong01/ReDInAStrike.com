@@ -91,6 +91,8 @@
       return
     }
 
+    // getBoundingClientRect already contains the previous correction. Remove it
+    // mathematically so the next correction is always derived from native layout.
     const baseTop = navRect.top - currentShift
     const baseBottom = navRect.bottom - currentShift
     const inset = safeInset(headerRect)
@@ -98,6 +100,10 @@
     const safeBottom = headerRect.bottom - inset
 
     let nextShift = Math.min(0, safeBottom - baseBottom)
+
+    // Do not trade a bottom overflow for a top overflow when there is enough room.
+    // In the impossible case where the nav itself is taller than the safe header box,
+    // bottom containment wins so the final category can never cross the header rule.
     const safeHeight = Math.max(0, safeBottom - safeTop)
     if (navRect.height <= safeHeight + 0.5) {
       nextShift = Math.max(nextShift, safeTop - baseTop)

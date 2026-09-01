@@ -6,10 +6,11 @@ import {
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
 import {
   cancelReveal,
+  paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-perfaudit1"
+} from "./reveal-motion.js?v=20260831-handoff2"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -20,7 +21,7 @@ import {
 } from "./dither-resize-snow.js?v=20260830-perfaudit1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
-const PUBLIC_STYLE_VERSION = "7"
+const PUBLIC_STYLE_VERSION = "8"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const ACTIVE_COLOR_RETURN_ATTRIBUTE = "data-active-color-return"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
@@ -234,6 +235,12 @@ function ensurePublicStyles() {
       .dither-preview-canvas[data-active="true"] {
       opacity: 1 !important;
     }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted[${HOVER_BINARY_RETURN_ATTRIBUTE}="true"]
+      .dither-preview-canvas[data-active="true"] {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
   `
 }
 
@@ -364,6 +371,10 @@ function armReveal(card, catalog) {
   const existing = card.querySelector(".dither-reveal-canvas")
   if (state.revealSignatures.get(card) === signature && existing) return true
   state.revealSignatures.set(card, signature)
+  if (existing) {
+    const painted = paintViewportDitherRevealNow(card, canvas, PUBLISHED_MOTION_CONFIG)
+    if (painted?.ready === true) return true
+  }
   return trackViewportDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG)
 }
 

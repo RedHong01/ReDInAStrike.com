@@ -106,6 +106,17 @@
     return max
   }
 
+  function navUsesHorizontalLayout(nav) {
+    if (!nav?.isConnected) return false
+    const density = document.body.dataset.navDensity || ""
+    const compact = document.body.dataset.headerCompact === "true"
+    if (density === "full") return false
+    if ((density === "mobile" || density === "tiny") && !compact) return false
+
+    const direction = getComputedStyle(nav).flexDirection
+    return direction !== "column" && direction !== "column-reverse"
+  }
+
   function measure() {
     frame = 0
     const nav = document.querySelector(".nav-list")
@@ -113,7 +124,7 @@
     bind(nav)
 
     const items = [...nav.querySelectorAll(".nav-item[data-nav-category]")]
-    if (items.length < 2 || document.body.dataset.navDensity === "full") {
+    if (items.length < 2 || !navUsesHorizontalLayout(nav)) {
       clearConstraints(items)
       return
     }

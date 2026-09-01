@@ -256,6 +256,66 @@ function activeColorOwnsCard(card) {
   )
 }
 
+function activeFinalCanvas(card) {
+  return card?.querySelector?.('.dither-preview-canvas[data-active="true"]') || null
+}
+
+function finalCanvasSignature(finalCanvas) {
+  if (!finalCanvas) return ""
+  return [
+    finalCanvas.width,
+    finalCanvas.height,
+    finalCanvas.dataset.ditherRenderSignature || "",
+    finalCanvas.dataset.ditherSource || "",
+    finalCanvas.dataset.ditherMode || "",
+    finalCanvas.dataset.publishedMode || "",
+  ].join("|")
+}
+
+function viewportStateMatches(state, finalCanvas) {
+  return Boolean(
+    state?.mode === "viewport" &&
+    state.finalCanvas === finalCanvas &&
+    state.sourceSignature === finalCanvasSignature(finalCanvas),
+  )
+}
+
+function retargetViewportState(state, finalCanvas, config) {
+  if (!state || state.mode !== "viewport") return false
+  const grid = buildGrid(finalCanvas, config)
+  if (!grid) return false
+  const canvas = ensureRevealCanvas(state.card, grid.cols, grid.rows)
+  const ctx = canvas?.getContext("2d", { alpha: true })
+  if (!canvas || !ctx) return false
+
+  if (state.canvas !== canvas) {
+    untrackViewportVisibility(state)
+    state.canvas = canvas
+    trackViewportVisibility(state)
+  }
+
+  ctx.imageSmoothingEnabled = false
+  canvas.style.transition = "none"
+  canvas.style.opacity = "1"
+  canvas.style.visibility = "visible"
+
+  state.ctx = ctx
+  state.finalCanvas = finalCanvas
+  state.grid = grid
+  state.config = config
+  state.colors = readColors()
+  state.framePixels = new Uint8ClampedArray(grid.count * 4)
+  state.imageData = new ImageData(state.framePixels, grid.cols, grid.rows)
+  state.sourceSignature = finalCanvasSignature(finalCanvas)
+  state.viewportRect = null
+  state.dirtyRanges = null
+  state.boundaryVisible = null
+  state.hasBoundaryTransition = false
+  state.lastBoundaryStrength = 0
+  state.lastViewportDraw = 0
+  return true
+}
+
 function constrainGridSize(cols, rows) {
   return constrainBinaryGridSize(cols, rows)
 }
@@ -817,11 +877,78 @@ export function refreshViewportDitherReveals({ linger = true } = {}) {
   scheduleViewportLoop(0)
 }
 
+export function paintViewportDitherRevealNow(card, finalCanvas = null, inputConfig = null) {
+  ensureStyles()
+  const targetCanvas = finalCanvas || activeFinalCanvas(card)
+  const config = sanitizeMotionConfig(inputConfig || window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
+  const fallback = {
+    tracked: false,
+    ready: false,
+    visible: false,
+    hasTransition: false,
+    strength: 0,
+  }
+
+  if (!card?.isConnected || !targetCanvas?.isConnected) {
+    return { ...fallback, reason: "missing-card-or-canvas" }
+  }
+  if (
+    !config.revealEnabled ||
+    config.revealMode === "none" ||
+    prefersReducedMotion() ||
+    targetCanvas.width < 2 ||
+    targetCanvas.height < 2
+  ) {
+    return { ...fallback, ready: true, reason: "disabled" }
+  }
+  if (activeColorOwnsCard(card)) {
+    cancelReveal(card, { remove: true })
+    return { ...fallback, reason: "active-color" }
+  }
+
+  let state = animationStates.get(card)
+  if (
+    state?.mode === "viewport" &&
+    state.canvas?.isConnected &&
+    !viewportStateMatches(state, targetCanvas)
+  ) {
+    if (!retargetViewportState(state, targetCanvas, config)) {
+      return { ...fallback, reason: "retarget-failed" }
+    }
+  } else if (!viewportStateMatches(state, targetCanvas)) {
+    if (!trackViewportDitherReveal(card, targetCanvas, config)) {
+      return { ...fallback, reason: "track-failed" }
+    }
+    state = animationStates.get(card)
+  }
+  if (!state || !viewportStates.has(state)) {
+    return { ...fallback, reason: "state-missing" }
+  }
+
+  const now = performance.now()
+  const hasTransition = renderBoundaryField(state, now, viewportBounds(), true)
+  if (animationStates.get(card) !== state) {
+    return { ...fallback, reason: "state-cancelled" }
+  }
+  state.lastViewportDraw = now
+  state.hasBoundaryTransition = hasTransition
+
+  return {
+    tracked: true,
+    ready: true,
+    visible: state.boundaryVisible === true,
+    hasTransition,
+    strength: state.lastBoundaryStrength || 0,
+    reason: state.boundaryVisible === true ? "painted" : "outside-boundary",
+  }
+}
+
 function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
   const framePixels = new Uint8ClampedArray(grid.count * 4)
   const imageData = new ImageData(framePixels, grid.cols, grid.rows)
   return {
     mode, card, finalCanvas, canvas, ctx, grid, config,
+    sourceSignature: finalCanvasSignature(finalCanvas),
     colors: readColors(),
     lastProgress: -1,
     framePixels,
@@ -944,6 +1071,7 @@ window.__RED_REVEAL_MOTION__ = {
   play: playDitherReveal,
   trackViewport: trackViewportDitherReveal,
   refreshViewport: refreshViewportDitherReveals,
+  paintViewportNow: paintViewportDitherRevealNow,
   resetViewportSequence: resetViewportDitherRevealSequence,
   replay: replayAllDitherReveals,
   cancel: cancelReveal,

@@ -279,6 +279,30 @@ function requestNavPushFrame() {
   navPushFrame = requestAnimationFrame(animateNavPush)
 }
 
+function navUsesHorizontalPush(nav) {
+  if (!nav?.isConnected) return false
+  const density = document.body.dataset.navDensity || ""
+  const compact = document.body.dataset.headerCompact === "true"
+  if (density === "full") return false
+  if ((density === "mobile" || density === "tiny") && !compact) return false
+
+  const direction = getComputedStyle(nav).flexDirection
+  return direction !== "column" && direction !== "column-reverse"
+}
+
+function clearAllPushOffsets(items = []) {
+  if (navPushFrame) cancelAnimationFrame(navPushFrame)
+  navPushFrame = 0
+  navPushLastTime = 0
+  items.forEach((item) => {
+    const state = getPushState(item)
+    state.x = 0
+    state.velocity = 0
+    state.target = 0
+    item.style.setProperty("--nav-typewriter-push-x", "0px")
+  })
+}
+
 function setAllPushTargetsToZero(items = []) {
   items.forEach((item) => {
     getPushState(item).target = 0
@@ -297,10 +321,10 @@ function measureNavPushTargets() {
 
   if (
     prefersReducedMotion() ||
-    document.body.dataset.navDensity === "full" ||
+    !navUsesHorizontalPush(nav) ||
     items.length < 2
   ) {
-    setAllPushTargetsToZero(items)
+    clearAllPushOffsets(items)
     return
   }
 

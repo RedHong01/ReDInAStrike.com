@@ -3,10 +3,11 @@ import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260830-perf
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   cancelReveal,
+  paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260830-perfaudit1"
+} from "./reveal-motion.js?v=20260831-handoff2"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -19,6 +20,7 @@ const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
+const HOVER_BINARY_RETURN_ATTRIBUTE = "data-hover-binary-return"
 const RETRY_DELAYS = [0, 60, 160, 360, 800, 1600]
 const ONGOING_GAME_PROJECT_PATH = "/ongoing-game-project"
 const RESIZE_SETTLE_MS = 120
@@ -92,6 +94,12 @@ function ensurePublicStyles() {
       .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-return
       .dither-preview-canvas[data-active="true"] {
       opacity: 1 !important;
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted[${HOVER_BINARY_RETURN_ATTRIBUTE}="true"]
+      .dither-preview-canvas[data-active="true"] {
+      opacity: 0 !important;
+      visibility: hidden !important;
     }
   `
 }
@@ -212,6 +220,10 @@ function armViewportReveal(card, catalog) {
   if (state.revealSignatures.get(card) === signature && existingReveal) return true
 
   state.revealSignatures.set(card, signature)
+  if (existingReveal) {
+    const painted = paintViewportDitherRevealNow(card, canvas, PUBLISHED_MOTION_CONFIG)
+    if (painted?.ready === true) return true
+  }
   return trackViewportDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG)
 }
 
@@ -368,8 +380,11 @@ function revealCanvasMutationOnly(mutation) {
   const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
   return nodes.length > 0 && nodes.every((node) =>
     node instanceof Element && (
+      node.classList.contains("dither-preview-canvas") ||
       node.classList.contains("dither-reveal-canvas") ||
-      node.classList.contains(DITHER_RESIZE_SNOW_CLASS)
+      node.classList.contains("active-color-snow-canvas") ||
+      node.classList.contains(DITHER_RESIZE_SNOW_CLASS) ||
+      node.classList.contains("dither-hover-return-snow-canvas")
     ),
   )
 }

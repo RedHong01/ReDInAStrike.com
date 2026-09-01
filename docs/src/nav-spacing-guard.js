@@ -106,6 +106,17 @@
     return max
   }
 
+  function navUsesHorizontalLayout(nav) {
+    if (!nav?.isConnected) return false
+    const density = document.body.dataset.navDensity || ""
+    const compact = document.body.dataset.headerCompact === "true"
+    if (density === "full") return false
+    if ((density === "mobile" || density === "tiny") && !compact) return false
+
+    const direction = getComputedStyle(nav).flexDirection
+    return direction !== "column" && direction !== "column-reverse"
+  }
+
   function measure() {
     frame = 0
     const nav = document.querySelector(".nav-list")
@@ -113,7 +124,7 @@
     bind(nav)
 
     const items = [...nav.querySelectorAll(".nav-item[data-nav-category]")]
-    if (items.length < 2 || document.body.dataset.navDensity === "full") {
+    if (items.length < 2 || !navUsesHorizontalLayout(nav)) {
       clearConstraints(items)
       return
     }
@@ -163,6 +174,10 @@
       return
     }
 
+    // Compute how much title footprint lives on either side of the active category.
+    // The subtitle may slide horizontally around its active anchor, but the active title
+    // itself never moves. This lets pressure be shared by both sides instead of forcing
+    // every preceding category into the same left clamp.
     const leftWidths = nativeRects
       .slice(0, activeIndex)
       .filter(Boolean)
@@ -179,6 +194,9 @@
     const minDetailShift = navRect.left + leftSpan + (leftCount ? gap : 0) - detailNative.left
     const maxDetailShift = navRect.right - rightSpan - (rightCount ? gap : 0) - detailNative.right
 
+    // If the current viewport has a feasible one-line solution, choose the smallest
+    // subtitle displacement needed. In extremely narrow impossible states, choose the
+    // midpoint so overflow pressure is shared instead of collapsing all titles together.
     const detailShiftRendered = minDetailShift <= maxDetailShift
       ? nearestZero(minDetailShift, maxDetailShift)
       : (minDetailShift + maxDetailShift) * 0.5
@@ -189,6 +207,8 @@
     const exclusionRight = detailNative.right + detailShiftRendered + gap
     const desiredRenderedShifts = new Array(items.length).fill(0)
 
+    // Left side: walk outward from the active category. Every title must stay left of
+    // the subtitle projection and preserve the same minimum rhythm to its neighbour.
     let leftBoundary = exclusionLeft
     for (let index = activeIndex - 1; index >= 0; index -= 1) {
       const rect = nativeRects[index]
@@ -198,6 +218,8 @@
       leftBoundary = rect.left + shift - gap
     }
 
+    // Right side mirrors the same rule. This is the piece the original typewriter push
+    // did not have: subtitle pressure can now be distributed instead of being one-sided.
     let rightBoundary = exclusionRight
     for (let index = activeIndex + 1; index < items.length; index += 1) {
       const rect = nativeRects[index]
@@ -222,6 +244,8 @@
       }
     })
 
+    // Typewriter spring and per-character width changes can continue after one measure.
+    // Re-check until the hard geometry constraints and the soft motion both settle.
     const editing = activeDetail.classList.contains("is-typewriter-editing")
     if (changed || editing || document.documentElement.dataset.headerMotion === "moving") schedule()
   }

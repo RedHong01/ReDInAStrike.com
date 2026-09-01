@@ -4571,6 +4571,13 @@ function cancelCatalogMutedRestore(catalog = document.querySelector(".catalog"))
   })
 }
 
+function catalogMutedHoverSuppressed(event) {
+  return Boolean(
+    event?.type?.startsWith?.("pointer") &&
+      window.__RED_ACTIVE_COLOR_SNOW__?.hoverSuppressed?.(),
+  )
+}
+
 function setupFilteredCatalogRestore(catalog) {
   if (!catalog) return
 
@@ -4590,6 +4597,7 @@ function setupFilteredCatalogRestore(catalog) {
 
     const scheduleIntent = (event) => {
       if (event?.pointerType === "touch") return
+      if (catalogMutedHoverSuppressed(event)) return
       if (!card.isConnected || !card.classList.contains("is-filter-muted")) return
 
       window.clearTimeout(card.__catalogMutedReturnTimer)

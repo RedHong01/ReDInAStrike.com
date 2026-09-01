@@ -30,6 +30,7 @@ const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
 const TARGET_FRAME_MS = 1000 / 60
 const HOVER_SCROLL_SUPPRESS_MS = 260
+const HOVER_SCROLL_RETURN_CLASS_MS = 920
 const CATEGORY_READY_DEFER_STEP_MS = 9
 const CATEGORY_READY_DEFER_MAX_MS = 150
 const RESTORE_SOURCE_SELECTOR =
@@ -117,17 +118,102 @@ function suppressHoverSnowDuringScroll() {
     hoverScrollSuppressUntil,
     time + HOVER_SCROLL_SUPPRESS_MS,
   )
-  if (!activeStates.size || time - lastHoverScrollCancelAt < 80) return
+  if (time - lastHoverScrollCancelAt < 80) return
   lastHoverScrollCancelAt = time
+
   for (const state of [...activeStates]) {
-    if (state.reason === "hover") cancelCard(state.card)
+    if (state.reason === "hover") returnMutedHoverFromScroll(state.card, state)
   }
+
+  const activeCatalog = document.querySelector(".catalog[data-active-filter]:not([data-filter-phase])")
+  activeCatalog
+    ?.querySelectorAll(
+      ".project-card.is-filter-muted.is-muted-restore-intent, " +
+        `.project-card.is-filter-muted[${RESTORE_READY_ATTRIBUTE}="true"]`,
+    )
+    .forEach((card) => {
+      if (cardStates.has(card)) return
+      returnMutedHoverFromScroll(card)
+    })
+}
+
+function hoverSnowSuppressedByScroll() {
+  return performance.now() < hoverScrollSuppressUntil
+}
+
+function scheduleMutedReturnClassClear(card, delay = HOVER_SCROLL_RETURN_CLASS_MS) {
+  if (!card?.isConnected) return
+  window.clearTimeout(card.__catalogMutedReturnTimer)
+  card.__catalogMutedReturnTimer = window.setTimeout(() => {
+    if (
+      card.isConnected &&
+      !card.hasAttribute(RETURN_ATTRIBUTE) &&
+      !card.matches(":hover") &&
+      !card.matches(":focus-within")
+    ) {
+      card.classList.remove("is-muted-restore-return")
+    }
+    card.__catalogMutedReturnTimer = 0
+  }, delay)
+}
+
+function markMutedHoverReturning(card) {
+  if (!card?.isConnected) return
+  window.clearTimeout(card.__catalogMutedReturnTimer)
+  card.__catalogMutedReturnTimer = 0
+  clearRestoreReady(card)
+  card.classList.remove("is-muted-restore-intent")
+  card.classList.add("is-muted-restore-return")
+  scheduleMutedReturnClassClear(card)
+}
+
+function clearMutedHoverIntent(card) {
+  if (!card?.isConnected) return
+  window.clearTimeout(card.__catalogMutedReturnTimer)
+  card.__catalogMutedReturnTimer = 0
+  clearRestoreReady(card)
+  card.classList.remove("is-muted-restore-intent")
+  card.classList.remove("is-muted-restore-return")
+}
+
+function returnMutedHoverFromScroll(card, state = cardStates.get(card)) {
+  if (
+    !card?.isConnected ||
+    !card.classList.contains("is-filter-muted") ||
+    card.closest(".catalog")?.dataset.filterPhase
+  ) {
+    return false
+  }
+
+  cancelHoverRestoreRetry(card)
+  markMutedHoverReturning(card)
+
+  if (state?.mode === "restore" && state.reason === "hover") {
+    return reverseHoverState(card, state)
+  }
+
+  if (state?.reason === "hover") {
+    cancelCard(card)
+    markMutedHoverReturning(card)
+    return false
+  }
+
+  if (restoreSourceReady(card)) {
+    return playCard(card, "in", 0, runtimeConfig, {
+      mode: "restore-reverse",
+      reason: "hover-scroll-return",
+    })
+  }
+
+  card.removeAttribute(RETURN_ATTRIBUTE)
+  releaseMotionAfterFrames(card, 1, { cooldown: true })
+  return false
 }
 
 function pointerHoverSnowSuppressed(event) {
   return (
     event?.type?.startsWith?.("pointer") &&
-    performance.now() < hoverScrollSuppressUntil
+    hoverSnowSuppressedByScroll()
   )
 }
 
@@ -2085,5 +2171,6 @@ window.__RED_ACTIVE_COLOR_SNOW__ = {
   playCatalog,
   stop: stopCatalogStates,
   prewarm: () => schedulePrewarm(catalog),
+  hoverSuppressed: hoverSnowSuppressedByScroll,
   getConfig: () => runtimeConfig,
 }

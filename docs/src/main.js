@@ -1153,6 +1153,7 @@ function drawRouteExitSnowFrame(
   const cols = imageData.width
   const rows = imageData.height
   const headerRow = Math.max(0, Math.round(headerBottom / Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1) * rows))
+  const hasSourceBits = Boolean(sourceBits && sourceBits.length === orders.length)
 
   for (let index = 0; index < orders.length; index += 1) {
     const offset = index * 4
@@ -1171,14 +1172,23 @@ function drawRouteExitSnowFrame(
     const edge = clamp((easedProgress - order) / softness, 0, 1)
     const isBoundary = edge < 1
     const flicker = routeSnowHash(index, frameSeed)
-    const sourceInk = sourceBits ? sourceBits[index] === 1 : flicker < 0.018
+    const sourceInk = hasSourceBits ? sourceBits[index] === 1 : flicker < 0.018
+    const alpha = isBoundary ? Math.round(255 * (0.45 + edge * 0.55)) : 255
+
+    if (hasSourceBits && !sourceInk) {
+      data[offset] = paper[0]
+      data[offset + 1] = paper[1]
+      data[offset + 2] = paper[2]
+      data[offset + 3] = alpha
+      continue
+    }
+
     const useInk = isBoundary
       ? flicker < ROUTE_EXIT_SNOW_INK_NOISE + (1 - edge) * 0.34
         ? !sourceInk
         : sourceInk
       : sourceInk
     const color = useInk ? ink : paper
-    const alpha = isBoundary ? Math.round(255 * (0.45 + edge * 0.55)) : 255
 
     data[offset] = color[0]
     data[offset + 1] = color[1]

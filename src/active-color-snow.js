@@ -33,6 +33,7 @@ const HOVER_SCROLL_SUPPRESS_MS = 260
 const HOVER_SCROLL_RETURN_CLASS_MS = 920
 const CATEGORY_READY_DEFER_STEP_MS = 9
 const CATEGORY_READY_DEFER_MAX_MS = 150
+const HOVER_MOTION_DURATION_SCALE = 0.75
 const RESTORE_SOURCE_SELECTOR =
   '.dither-preview-canvas[data-active="true"], .project-halftone'
 const RUNTIME_OVERLAY_CLASSES = [
@@ -215,6 +216,12 @@ function pointerHoverSnowSuppressed(event) {
     event?.type?.startsWith?.("pointer") &&
     hoverSnowSuppressedByScroll()
   )
+}
+
+function durationScaleForReason(reason) {
+  return String(reason || "").startsWith("hover")
+    ? HOVER_MOTION_DURATION_SCALE
+    : 1
 }
 
 function ensureStyles() {
@@ -1645,18 +1652,22 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     const durationOverride = Number(options.durationMs)
     const hasDurationOverride =
       Number.isFinite(durationOverride) && durationOverride > 0
+    const durationScale = durationScaleForReason(options.reason)
+    const scaledDuration = (duration) =>
+      Math.max(1, Math.round(Math.max(1, duration) * durationScale))
+    const baseEnterDuration = sourcePixels
+      ? config.activeColorDurationMs + config.activeColorSettleMs
+      : config.activeColorDurationMs
     const localConfig = {
       ...config,
       activeColorExitDurationMs:
         direction === "out" && hasDurationOverride
           ? Math.max(1, durationOverride)
-          : config.activeColorExitDurationMs,
+          : scaledDuration(config.activeColorExitDurationMs),
       activeColorDurationMs:
         direction !== "out" && hasDurationOverride
           ? Math.max(1, durationOverride)
-          : sourcePixels
-            ? config.activeColorDurationMs + config.activeColorSettleMs
-            : config.activeColorDurationMs,
+          : scaledDuration(baseEnterDuration),
       activeColorDelayMs:
         config.activeColorDelayMs +
         Math.max(0, index) * config.activeColorStaggerMs,

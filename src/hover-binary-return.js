@@ -4,7 +4,7 @@ import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260831-handoff2"
+} from "./reveal-motion.js?v=20260901-boundaryfield1"
 import {
   BINARY_MOTION_DEFAULTS,
   binaryBitsEqual,

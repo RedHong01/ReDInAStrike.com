@@ -94,6 +94,11 @@ function ensureStyles() {
       visibility: hidden !important;
     }
 
+    .project-card.is-muted-restore-intent[${HANDOFF_ATTRIBUTE}="true"] .${CANVAS_CLASS} {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .${CANVAS_CLASS} { display: none !important; }
     }
@@ -534,8 +539,22 @@ function finishState(state) {
   })
 }
 
+function canStartReturnHandoff(card) {
+  const returning =
+    card?.classList?.contains("is-muted-restore-return") ||
+    card?.getAttribute?.(RETURN_ATTRIBUTE) === "true"
+  return Boolean(
+    card?.isConnected &&
+      card.classList.contains("is-filter-muted") &&
+      returning &&
+      !card.classList.contains("is-muted-restore-intent") &&
+      !card.matches(":hover") &&
+      !card.matches(":focus-within"),
+  )
+}
+
 function startHoverReturnHandoff(card) {
-  if (prefersReducedMotion() || !card?.isConnected || !card.classList.contains("is-filter-muted")) {
+  if (prefersReducedMotion() || !canStartReturnHandoff(card)) {
     snapshots.delete(card)
     return false
   }
@@ -601,7 +620,13 @@ function handleReturnMutation(mutation) {
     if (!snapshots.has(card)) captureSnapshot(card)
     return
   }
-  if (mutation.oldValue === "true" && !states.has(card)) startHoverReturnHandoff(card)
+  if (
+    mutation.oldValue === "true" &&
+    !states.has(card) &&
+    canStartReturnHandoff(card)
+  ) {
+    startHoverReturnHandoff(card)
+  }
 }
 
 function bindCatalog(nextCatalog) {

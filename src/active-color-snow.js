@@ -992,6 +992,70 @@ function reverseHoverState(card, state) {
   return true
 }
 
+function keepRunningHoverRestore(state) {
+  return Boolean(
+    state &&
+      state.reason === "hover" &&
+      (state.mode === "restore" || state.mode === "placeholder"),
+  )
+}
+
+function retargetHoverReturnToRestore(card, state) {
+  if (
+    !state ||
+    state.mode !== "restore-reverse" ||
+    !state.sourcePixels ||
+    !state.canvas?.isConnected
+  ) {
+    return false
+  }
+
+  const now = performance.now()
+  if (state.handoffFrame) {
+    cancelAnimationFrame(state.handoffFrame)
+    state.handoffFrame = 0
+  }
+  if (state.cleanupFrame) {
+    cancelAnimationFrame(state.cleanupFrame)
+    state.cleanupFrame = 0
+  }
+  if (state.readyFrame) {
+    cancelAnimationFrame(state.readyFrame)
+    state.readyFrame = 0
+  }
+  if (state.readyTimer) {
+    window.clearTimeout(state.readyTimer)
+    state.readyTimer = 0
+  }
+  if (state.cleanupTimer) {
+    window.clearTimeout(state.cleanupTimer)
+    state.cleanupTimer = 0
+  }
+
+  const restoreProgress = clamp(state.restoreProgress ?? 0)
+  const duration = Math.max(1, state.config.activeColorDurationMs)
+  const raw = rawFromCurvedProgress(restoreProgress, state.config.activeColorCurve)
+  state.mode = "restore"
+  state.reason = "hover"
+  state.startTime = now - state.config.activeColorDelayMs - raw * duration
+  state.lastDraw = 0
+  state.finished = false
+  clearRestoreReady(card)
+  clearRestoreSourceInline(state.hiddenSource)
+  state.hiddenSource = null
+  card.classList.remove("is-muted-restore-return")
+  card.classList.add("is-muted-restore-intent")
+  card.removeAttribute(RETURN_ATTRIBUTE)
+  holdMotion(card)
+  state.canvas.style.transition = "none"
+  state.canvas.style.opacity = "1"
+  state.canvas.style.visibility = "visible"
+  activeStates.add(state)
+  drawState(state, now)
+  scheduleAnimationLoop()
+  return true
+}
+
 function drawPaletteFrame(state) {
   const { ctx, grid } = state
   const data = state.framePixels
@@ -1356,15 +1420,31 @@ function cardNearViewport(card) {
 
 function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig, options = {}) {
   const config = sanitizeActiveColorConfig(inputConfig)
-  cancelCard(card)
 
   if (
     !config.activeColorEnabled ||
     prefersReducedMotion() ||
     (!options.includeOffscreen && !cardNearViewport(card))
   ) {
+    cancelCard(card)
     return false
   }
+
+  const existingState = cardStates.get(card)
+  const hoverRestore =
+    direction !== "out" &&
+    options.reason === "hover" &&
+    card?.classList?.contains("is-filter-muted")
+  if (hoverRestore) {
+    if (keepRunningHoverRestore(existingState) || hoverRestoreRetries.has(card)) {
+      return true
+    }
+    if (retargetHoverReturnToRestore(card, existingState)) {
+      return true
+    }
+  }
+
+  cancelCard(card)
 
   const media = card.querySelector(".project-media")
   const img = media?.querySelector("img")

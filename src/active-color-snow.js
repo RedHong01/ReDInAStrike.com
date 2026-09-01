@@ -7,9 +7,13 @@ import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import {
   logicalGridForMedia,
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
+import {
+  pixelsFromBinaryBits,
+  sampleCurrentBinarySurface,
+} from "./binary-visible-surface.js?v=20260901-visualpipe2"
 
 const STYLE_ID = "red-active-color-snow-style"
-const STYLE_VERSION = "5"
+const STYLE_VERSION = "6"
 const CANVAS_CLASS = "active-color-snow-canvas"
 const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const RETURN_ATTRIBUTE = "data-active-color-return"
@@ -633,7 +637,77 @@ function rgbaCss(rgba) {
   return `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, ${rgba[3] / 255})`
 }
 
-function buildRestoreSourcePixels(card, grid, paper = readPaperColor()) {
+function analyzeRestoreBoundary(sourceBits, fullBits, cols, rows) {
+  if (!sourceBits || !fullBits || sourceBits.length !== fullBits.length) {
+    return { total: 0 }
+  }
+
+  let total = 0
+  let minRow = rows
+  let maxRow = -1
+  let minCol = cols
+  let maxCol = -1
+  for (let index = 0; index < fullBits.length; index += 1) {
+    if (sourceBits[index] === fullBits[index]) continue
+    total += 1
+    const row = Math.floor(index / cols)
+    const col = index % cols
+    minRow = Math.min(minRow, row)
+    maxRow = Math.max(maxRow, row)
+    minCol = Math.min(minCol, col)
+    maxCol = Math.max(maxCol, col)
+  }
+
+  return {
+    total,
+    minRow,
+    maxRow,
+    minCol,
+    maxCol,
+  }
+}
+
+function buildRestoreSurface(card, grid, paper = readPaperColor(), ink = readInkColor()) {
+  const currentSurface = sampleCurrentBinarySurface(card, {
+    cols: grid.cols,
+    rows: grid.rows,
+    paper,
+    ink,
+    ditherConfig: PUBLISHED_DITHER_CONFIG,
+  })
+  const fullSurface = currentSurface?.baseCanvas
+    ? sampleCurrentBinarySurface(card, {
+        baseCanvas: currentSurface.baseCanvas,
+        overlayCanvas: null,
+        cols: grid.cols,
+        rows: grid.rows,
+        paper,
+        ink,
+        ditherConfig: PUBLISHED_DITHER_CONFIG,
+        applyViewportBoundary: false,
+      })
+    : null
+  const currentPixels = currentSurface
+    ? pixelsFromBinaryBits(currentSurface.bits, grid.cols, grid.rows, currentSurface.paper, currentSurface.ink)
+    : null
+  const fullPixels = fullSurface
+    ? pixelsFromBinaryBits(fullSurface.bits, grid.cols, grid.rows, fullSurface.paper, fullSurface.ink)
+    : null
+  if (currentPixels) {
+    return {
+      sourcePixels: currentPixels,
+      fullPixels: fullPixels || currentPixels,
+      sourceBits: currentSurface.bits,
+      fullBits: fullSurface?.bits || currentSurface.bits,
+      boundary: analyzeRestoreBoundary(
+        currentSurface.bits,
+        fullSurface?.bits || currentSurface.bits,
+        grid.cols,
+        grid.rows,
+      ),
+    }
+  }
+
   const source = card?.querySelector(RESTORE_SOURCE_SELECTOR)
   if (!source || source.width < 1 || source.height < 1) return null
 
@@ -649,7 +723,14 @@ function buildRestoreSourcePixels(card, grid, paper = readPaperColor()) {
 
   try {
     ctx.drawImage(source, 0, 0, grid.cols, grid.rows)
-    return new Uint8ClampedArray(ctx.getImageData(0, 0, grid.cols, grid.rows).data)
+    const pixels = new Uint8ClampedArray(ctx.getImageData(0, 0, grid.cols, grid.rows).data)
+    return {
+      sourcePixels: pixels,
+      fullPixels: pixels,
+      sourceBits: null,
+      fullBits: null,
+      boundary: { total: 0, top: false, bottom: false },
+    }
   } catch {
     return null
   }
@@ -832,6 +913,7 @@ function cancelCard(card, { remove = true } = {}) {
     if (state.cleanupFrame) cancelAnimationFrame(state.cleanupFrame)
     if (state.readyFrame) cancelAnimationFrame(state.readyFrame)
     if (state.readyTimer) window.clearTimeout(state.readyTimer)
+    if (state.cleanupTimer) window.clearTimeout(state.cleanupTimer)
     clearRestoreSourceInline(state.hiddenSource)
   }
   cardStates.delete(card)
@@ -882,6 +964,14 @@ function reverseHoverState(card, state) {
   }
 
   const now = performance.now()
+  if (state.cleanupFrame) {
+    cancelAnimationFrame(state.cleanupFrame)
+    state.cleanupFrame = 0
+  }
+  if (state.cleanupTimer) {
+    window.clearTimeout(state.cleanupTimer)
+    state.cleanupTimer = 0
+  }
   const duration = Math.max(1, state.config.activeColorDurationMs)
   const reverseProgress = 1 - clamp(state.restoreProgress ?? 1)
   const raw = rawFromCurvedProgress(reverseProgress, state.config.activeColorCurve)
@@ -892,11 +982,46 @@ function reverseHoverState(card, state) {
   clearRestoreReady(card)
   holdMotion(card)
   state.hiddenSource = hideRestoreSource(card)
+  state.canvas.style.transition = "none"
+  state.canvas.style.opacity = "1"
+  state.canvas.style.visibility = "visible"
   activeStates.add(state)
   drawState(state, now)
   card.setAttribute(RETURN_ATTRIBUTE, "true")
   scheduleAnimationLoop()
   return true
+}
+
+function drawPaletteFrame(state) {
+  const { ctx, grid } = state
+  const data = state.framePixels
+  for (let index = 0; index < grid.count; index += 1) {
+    const offset = index * 4
+    data[offset] = grid.palette[offset]
+    data[offset + 1] = grid.palette[offset + 1]
+    data[offset + 2] = grid.palette[offset + 2]
+    data[offset + 3] = 255
+  }
+  ctx.putImageData(state.imageData, 0, 0)
+}
+
+function binaryPixelColor(bit, paper, ink) {
+  return bit ? ink : paper
+}
+
+function boundaryFillOrder(boundary, col, row, noiseOrder, seed, frameTick) {
+  if (!boundary?.total) return noiseOrder
+  const patchWidth = Math.max(1, boundary.maxCol - boundary.minCol + 1)
+  const patchHeight = Math.max(1, boundary.maxRow - boundary.minRow + 1)
+  const nx = (col - boundary.minCol + 0.5) / patchWidth
+  const ny = (row - boundary.minRow + 0.5) / patchHeight
+  const localCluster = hash01(
+    seed,
+    Math.floor(nx * 9),
+    Math.floor(ny * 9),
+    1800 + Math.floor(frameTick * 0.28),
+  )
+  return clamp(noiseOrder * 0.82 + localCluster * 0.18)
 }
 
 function finishState(state) {
@@ -920,6 +1045,27 @@ function finishState(state) {
     return
   }
 
+  if (state.mode === "restore" && state.sourcePixels) {
+    state.finished = true
+    state.restoreProgress = 1
+    drawPaletteFrame(state)
+    markRestoreReady(state.card)
+    state.cleanupFrame = requestAnimationFrame(() => {
+      state.cleanupFrame = 0
+      if (cardStates.get(state.card) !== state || !state.canvas.isConnected) return
+      state.canvas.style.transition = "opacity 160ms cubic-bezier(0.22, 1, 0.36, 1)"
+      state.canvas.style.opacity = "0"
+      state.cleanupTimer = window.setTimeout(() => {
+        state.cleanupTimer = 0
+        if (cardStates.get(state.card) !== state) return
+        if (state.canvas.isConnected) state.canvas.remove()
+        cardStates.delete(state.card)
+        releaseMotionAfterFrames(state.card, 1)
+      }, 180)
+    })
+    return
+  }
+
   if (state.direction === "out") {
     state.finished = true
     return
@@ -933,7 +1079,7 @@ function finishState(state) {
 }
 
 function drawState(state, now) {
-  const { card, canvas, ctx, grid, config, paper, startTime, direction } = state
+  const { card, canvas, ctx, grid, config, paper, ink, startTime, direction } = state
   if (!card.isConnected || !canvas.isConnected) {
     cancelCard(card)
     return
@@ -1025,62 +1171,128 @@ function drawState(state, now) {
 
     const restoreProgress = restoring ? progress : 1 - progress
     state.restoreProgress = restoreProgress
-    const decodeProgress = smooth01(restoreProgress / 0.62)
-    const rebuildProgress =
-      restoreProgress <= 0.42 ? 0 : smooth01((restoreProgress - 0.42) / 0.58)
-    const decodeSoftness = 0.085
-    const rebuildSoftness = 0.1
+    if (restoring) {
+      const boundary = state.restoreBoundary
+      const hasBoundaryPatch = Boolean(boundary?.total)
+      const binaryProgress = hasBoundaryPatch ? restoreProgress : 1
+      const fillSoftness = 0.13
+      const colorSoftness = 0.085
+      const colorDelay = hasBoundaryPatch ? 0.18 : 0.035
+      const colorSpan = hasBoundaryPatch ? 0.78 : 0.93
+      const fullPixels = state.fullPixels || state.sourcePixels
+      const fullBits = state.fullBits
+      const sourceBits = state.sourceBits
 
-    for (let index = 0; index < grid.count; index += 1) {
-      const decodeThreshold = 0.035 + grid.order[index] * 0.93
-      const decoded = smooth01(
-        (decodeProgress - decodeThreshold + decodeSoftness) /
-          (decodeSoftness * 2),
-      )
-      const rebuildThreshold = 0.035 + (1 - grid.order[index]) * 0.93
-      const rebuilt = smooth01(
-        (rebuildProgress - rebuildThreshold + rebuildSoftness) /
-          (rebuildSoftness * 2),
-      )
-      if (rebuilt >= 0.995) continue
+      for (let index = 0; index < grid.count; index += 1) {
+        const col = index % grid.cols
+        const row = Math.floor(index / grid.cols)
+        const offset = index * 4
+        let binaryR = state.sourcePixels[offset]
+        let binaryG = state.sourcePixels[offset + 1]
+        let binaryB = state.sourcePixels[offset + 2]
+        let fillThreshold = 0
+        let filled = 1
+        const boundaryPixel =
+          hasBoundaryPatch &&
+          fullBits &&
+          sourceBits &&
+          sourceBits[index] !== fullBits[index]
 
-      const col = index % grid.cols
-      const row = Math.floor(index / grid.cols)
-      const offset = index * 4
-      const decodeBand = 4 * decoded * (1 - decoded)
-      const rebuildBand = 4 * rebuilt * (1 - rebuilt)
-      const transitionBand = Math.max(decodeBand, rebuildBand)
-      const flicker = hash01(
-        config.activeColorSeed,
-        col,
-        row,
-        2000 + frameTick,
-      )
-      const colorChance = clamp(
-        density * (1 - config.activeColorPaperRatio * 0.48) +
-          transitionBand * 0.3,
-      )
-      const useColorSnow = flicker < colorChance
-      const snow = useColorSnow ? grid.palette : paper
-      const snowMix = clamp(transitionBand * (0.24 + density * 0.24))
-      const overlayAlpha = clamp(1 - rebuilt)
-      const baseR =
-        state.sourcePixels[offset] * (1 - decoded) + grid.palette[offset] * decoded
-      const baseG =
-        state.sourcePixels[offset + 1] * (1 - decoded) +
-        grid.palette[offset + 1] * decoded
-      const baseB =
-        state.sourcePixels[offset + 2] * (1 - decoded) +
-        grid.palette[offset + 2] * decoded
+        if (boundaryPixel) {
+          const fillOrder = boundaryFillOrder(
+            boundary,
+            col,
+            row,
+            grid.order[index],
+            config.activeColorSeed,
+            frameTick,
+          )
+          fillThreshold = 0.025 + fillOrder * 0.72
+          filled = smooth01(
+            (binaryProgress - fillThreshold + fillSoftness) /
+              (fillSoftness * 2),
+          )
+          const transitionBand = 4 * filled * (1 - filled)
+          const cellPulse = hash01(
+            config.activeColorSeed,
+            col,
+            row,
+            1900 + frameTick,
+          )
+          const sparkle = hash01(
+            config.activeColorSeed,
+            col,
+            row,
+            1950 + frameTick,
+          )
+          const bit = cellPulse < filled ? fullBits[index] : sourceBits[index]
+          const rgba = binaryPixelColor(bit, paper, ink)
+          binaryR = rgba[0]
+          binaryG = rgba[1]
+          binaryB = rgba[2]
+          const sparkleChance = transitionBand *
+            (0.16 + density * 0.28) *
+            (1 - config.activeColorPaperRatio * 0.3)
+          if (transitionBand > 0.001 && sparkle < sparkleChance) {
+            const snow = binaryPixelColor(hash01(config.activeColorSeed, row, col, 1970 + frameTick) > 0.5 ? 1 : 0, paper, ink)
+            binaryR = snow[0]
+            binaryG = snow[1]
+            binaryB = snow[2]
+          }
+        } else if (!hasBoundaryPatch || binaryProgress >= 0.999) {
+          binaryR = fullPixels[offset]
+          binaryG = fullPixels[offset + 1]
+          binaryB = fullPixels[offset + 2]
+        }
 
-      data[offset] = baseR * (1 - snowMix) + snow[0] * snowMix
-      data[offset + 1] = baseG * (1 - snowMix) + snow[1] * snowMix
-      data[offset + 2] = baseB * (1 - snowMix) + snow[2] * snowMix
-      data[offset + 3] = Math.round(state.sourcePixels[offset + 3] * overlayAlpha)
+        if (restoreProgress <= colorDelay - colorSoftness) {
+          data[offset] = binaryR
+          data[offset + 1] = binaryG
+          data[offset + 2] = binaryB
+          data[offset + 3] = 255
+          continue
+        }
+
+        const decodeThreshold = boundaryPixel
+          ? Math.max(colorDelay + grid.order[index] * colorSpan, fillThreshold + 0.08)
+          : colorDelay + grid.order[index] * colorSpan
+        const decoded = smooth01(
+          (restoreProgress - decodeThreshold + colorSoftness) /
+            (colorSoftness * 2),
+        )
+        const visibleDecoded = boundaryPixel ? decoded * filled : decoded
+        const transitionBand = 4 * visibleDecoded * (1 - visibleDecoded)
+        const flicker = hash01(
+          config.activeColorSeed,
+          col,
+          row,
+          2100 + frameTick,
+        )
+        const colorChance = clamp(
+          density * (1 - config.activeColorPaperRatio * 0.48) +
+            transitionBand * 0.3,
+        )
+        const useColorSnow = flicker < colorChance
+        const snow = useColorSnow ? grid.palette : paper
+        const snowMix = clamp(transitionBand * (0.24 + density * 0.24))
+        const baseR =
+          binaryR * (1 - visibleDecoded) + grid.palette[offset] * visibleDecoded
+        const baseG =
+          binaryG * (1 - visibleDecoded) + grid.palette[offset + 1] * visibleDecoded
+        const baseB =
+          binaryB * (1 - visibleDecoded) + grid.palette[offset + 2] * visibleDecoded
+
+        data[offset] = baseR * (1 - snowMix) + snow[0] * snowMix
+        data[offset + 1] = baseG * (1 - snowMix) + snow[1] * snowMix
+        data[offset + 2] = baseB * (1 - snowMix) + snow[2] * snowMix
+        data[offset + 3] = 255
+      }
+
+      ctx.putImageData(state.imageData, 0, 0)
+      if (raw >= 1) finishState(state)
+      return
     }
 
-    ctx.putImageData(state.imageData, 0, 0)
-    if (raw >= 1) finishState(state)
     return
   }
 
@@ -1231,10 +1443,12 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     if (!grid) return false
 
     const paper = readPaperColor()
-    const sourcePixels =
+    const ink = readInkColor()
+    const restoreSurface =
       requiresRestoreSource
-        ? buildRestoreSourcePixels(card, grid, paper)
+        ? buildRestoreSurface(card, grid, paper, ink)
         : null
+    const sourcePixels = restoreSurface?.sourcePixels || null
     if (requiresRestoreSource && !sourcePixels) {
       clearRestoreReady(card)
       return waitForHoverSource
@@ -1291,7 +1505,12 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       mode: sourcePixels ? mode : "snow",
       reason: options.reason || "transition",
       paper,
+      ink,
       sourcePixels,
+      fullPixels: restoreSurface?.fullPixels || null,
+      sourceBits: restoreSurface?.sourceBits || null,
+      fullBits: restoreSurface?.fullBits || null,
+      restoreBoundary: restoreSurface?.boundary || null,
       hiddenSource,
       framePixels,
       imageData,
@@ -1306,7 +1525,6 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     if (mode === "restore-reverse" && sourcePixels) {
       card.setAttribute(RETURN_ATTRIBUTE, "true")
     }
-    if (mode === "restore" && sourcePixels) markRestoreReady(card)
     scheduleAnimationLoop()
     return true
   }
@@ -1447,7 +1665,9 @@ function playCatalog(
     ...options,
     includeOffscreen,
   })
-  playableCards(targetCatalog, { includeMuted }).forEach((card, index) => {
+  const cards = playableCards(targetCatalog, { includeMuted })
+    .filter((card) => includeOffscreen || cardNearViewport(card))
+  cards.forEach((card, index) => {
     if (playCard(card, direction, index, runtimeConfig, playbackOptions)) {
       played += 1
     }
@@ -1630,7 +1850,7 @@ function handleCatalogPhase(targetCatalog) {
     playCatalog(targetCatalog, "out", {
       force: true,
       includeMuted: true,
-      includeOffscreen: true,
+      includeOffscreen: false,
       reason: "category-exit",
     })
     return
@@ -1642,7 +1862,7 @@ function handleCatalogPhase(targetCatalog) {
     playCatalog(targetCatalog, "in", {
       force: true,
       includeMuted: false,
-      includeOffscreen: true,
+      includeOffscreen: false,
       reason: "category-enter",
     })
     return

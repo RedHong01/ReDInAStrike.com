@@ -178,6 +178,7 @@ const CATALOG_COLOR_SNOW_EXIT_COVER_MS = 140
 const CATALOG_COLOR_SNOW_ENTER_COVER_MS = 220
 const CATALOG_COLOR_SNOW_ENTER_DEFER_MS = 54
 const CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS = 128
+const CATALOG_COLOR_SNOW_VIEWPORT_MARGIN = 620
 const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const HOME_RETURN_COVER_MS = 620
@@ -3677,7 +3678,7 @@ function catalogFineSignalSnowDuration(catalog, direction) {
   const config = catalogActiveColorConfig()
   if (!catalog || !config?.activeColorEnabled || prefersReducedMotion()) return 0
 
-  const cards = [...catalog.querySelectorAll(".project-card")]
+  const cards = catalogColorSnowMotionCards(catalog, direction)
   if (!cards.length) return 0
 
   const override = readCatalogSnowDuration(
@@ -3702,6 +3703,21 @@ function catalogFineSignalSnowDuration(catalog, direction) {
     fallbackConfig.activeColorDelayMs +
     Math.max(0, cards.length - 1) * fallbackConfig.activeColorStaggerMs
   return catalogFilterDuration(Math.max(total, fallbackTotal))
+}
+
+function catalogColorSnowMotionCards(catalog, direction) {
+  if (!catalog) return []
+
+  const cards = [...catalog.querySelectorAll(".project-card")]
+  const candidates = direction === "out"
+    ? cards
+    : cards.filter((card) => !card.classList.contains("is-filter-muted"))
+  return candidates.filter((card) => isNearViewport(card, CATALOG_COLOR_SNOW_VIEWPORT_MARGIN))
+}
+
+function catalogColorSnowMotionDelay(catalog, direction, step, maxDelay) {
+  const cards = catalogColorSnowMotionCards(catalog, direction)
+  return cards.length ? Math.min(Math.max(0, cards.length - 1) * step, maxDelay) : 0
 }
 
 function setCatalogCardTimingVars(catalog, property, step = CATALOG_FILTER_STAGGER_MS, maxDelay = 196) {
@@ -4411,9 +4427,15 @@ function commitCatalogFilterTransition(cycle) {
   siteState.catalogFilterPhase = "entering"
   updateCatalogFilterDataset(catalog, category)
   if (usesLegacyHalftone) primeCatalogHalftoneDots(catalog)
-  const enterDelay = setCatalogCardTimingVars(
+  setCatalogCardTimingVars(
     catalog,
     "--project-filter-enter-delay",
+    CATALOG_FILTER_STAGGER_MS,
+    224,
+  )
+  const motionEnterDelay = catalogColorSnowMotionDelay(
+    catalog,
+    "in",
     CATALOG_FILTER_STAGGER_MS,
     224,
   )
@@ -4435,7 +4457,7 @@ function commitCatalogFilterTransition(cycle) {
         animateCatalogHalftoneDots(catalog, cycle, {
           duration: CATALOG_HALFTONE_DRAW_MS,
         })
-      }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + enterDelay + CATALOG_HALFTONE_DELAY_MS))
+      }, catalogFilterDuration(CATALOG_FILTER_ENTER_MS + motionEnterDelay + CATALOG_HALFTONE_DELAY_MS))
     }
   }), catalogFilterDuration(CATALOG_COLOR_SNOW_ENTER_DEFER_MS + 34))
 
@@ -4460,11 +4482,11 @@ function commitCatalogFilterTransition(cycle) {
     siteState.catalogFilterEnterTimer = 0
     requestLayoutEffectsUpdate({ rules: true, footer: true })
   }, Math.max(
-    catalogFilterDuration(CATALOG_FILTER_ENTER_MS) + enterDelay + 80,
+    catalogFilterDuration(CATALOG_FILTER_ENTER_MS) + motionEnterDelay + 80,
     catalogFineSignalSnowDuration(catalog, "in") + 80,
     usesLegacyHalftone
       ? catalogFilterDuration(CATALOG_FILTER_ENTER_MS + CATALOG_HALFTONE_DELAY_MS + CATALOG_HALFTONE_DRAW_MS) +
-        enterDelay +
+        motionEnterDelay +
         160
       : 0,
   ))
@@ -4488,16 +4510,22 @@ function startCatalogFilterTransition() {
   catalog.style.setProperty("--catalog-filter-min-height", `${Math.max(0, height)}px`)
   updateCatalogFilterDataset(catalog, siteState.catalogFilterTarget)
   planCatalogExitSnowTiming(catalog)
-  const exitDelay = setCatalogCardTimingVars(
+  setCatalogCardTimingVars(
     catalog,
     "--project-filter-exit-delay",
+    Math.max(18, CATALOG_FILTER_STAGGER_MS - 6),
+    176,
+  )
+  const motionExitDelay = catalogColorSnowMotionDelay(
+    catalog,
+    "out",
     Math.max(18, CATALOG_FILTER_STAGGER_MS - 6),
     176,
   )
   catalog.dataset.filterPhase = "exiting"
 
   const snowExitDuration = catalogFineSignalSnowDuration(catalog, "out")
-  const cssExitDuration = catalogFilterDuration(CATALOG_FILTER_EXIT_MS) + exitDelay + 40
+  const cssExitDuration = catalogFilterDuration(CATALOG_FILTER_EXIT_MS) + motionExitDelay + 40
   const snowSwapDuration = Math.max(
     0,
     snowExitDuration - catalogFilterDuration(CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS),

@@ -17,6 +17,13 @@ import {
   smooth01,
   writeBinaryPixel,
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
+import {
+  activeBinarySurfaceCanvas,
+  activeBoundaryCanvas,
+  canvasHasPixels,
+  sampleCompositeBinaryBits,
+  sampleCurrentBinarySurface,
+} from "./binary-visible-surface.js?v=20260901-visualpipe2"
 
 const STYLE_ID = "red-hover-binary-return-style"
 const CANVAS_CLASS = "dither-hover-return-snow-canvas"
@@ -94,59 +101,17 @@ function ensureStyles() {
 }
 
 function sourceCanvas(card) {
-  return card?.querySelector?.('.dither-preview-canvas[data-active="true"]') || null
+  return activeBinarySurfaceCanvas(card)
 }
 
 function currentRevealCanvas(card) {
-  const canvas = card?.querySelector?.(".dither-reveal-canvas")
-  return canvas?.isConnected ? canvas : null
-}
-
-function canvasHasPixels(canvas) {
-  return Boolean(canvas && canvas.width > 1 && canvas.height > 1)
+  return activeBoundaryCanvas(card)
 }
 
 function sampleCompositeBinary(baseCanvas, overlayCanvas, cols, rows, paper, ink, { respectVisibility = true } = {}) {
-  if (!canvasHasPixels(baseCanvas)) return null
-  if (!canvasHasPixels(overlayCanvas)) {
-    return sampleBinaryCanvas(baseCanvas, cols, rows, paper, ink)
-  }
-
-  const sample = document.createElement("canvas")
-  sample.width = cols
-  sample.height = rows
-  const ctx = sample.getContext("2d", { willReadFrequently: true, alpha: true })
-  if (!ctx) return null
-  ctx.imageSmoothingEnabled = false
-  ctx.fillStyle = `rgba(${paper[0]}, ${paper[1]}, ${paper[2]}, 1)`
-  ctx.fillRect(0, 0, cols, rows)
-
-  try {
-    ctx.drawImage(baseCanvas, 0, 0, cols, rows)
-
-    let shouldComposite = true
-    let opacity = 1
-    if (respectVisibility) {
-      const style = getComputedStyle(overlayCanvas)
-      opacity = Number.parseFloat(style.opacity)
-      shouldComposite = (
-        style.display !== "none" &&
-        style.visibility !== "hidden" &&
-        (Number.isFinite(opacity) ? opacity : 1) > 0.001
-      )
-    }
-
-    if (shouldComposite) {
-      ctx.save()
-      ctx.globalAlpha = Number.isFinite(opacity) ? opacity : 1
-      ctx.drawImage(overlayCanvas, 0, 0, cols, rows)
-      ctx.restore()
-    }
-
-    return sampleBinaryCanvas(sample, cols, rows, paper, ink)
-  } catch {
-    return null
-  }
+  return sampleCompositeBinaryBits(baseCanvas, overlayCanvas, cols, rows, paper, ink, {
+    respectOverlayVisibility: respectVisibility,
+  })
 }
 
 function bitsCanvas(bits, cols, rows, paper, ink) {
@@ -169,12 +134,25 @@ function captureSnapshot(card) {
 
   const { cols, rows } = logicalGridForMedia(media, PUBLISHED_DITHER_CONFIG)
   const { paper, ink } = readBinaryColors()
-  const reveal = currentRevealCanvas(card)
-
   // Capture what the user actually sees, not the full static Floyd surface.
   // pointerover runs before the active-color hover takes ownership, so an
   // edge card keeps its current viewport-boundary mask in the snapshot.
-  const bits = sampleCompositeBinary(source, reveal, cols, rows, paper, ink)
+  const surface = sampleCurrentBinarySurface(card, {
+    baseCanvas: source,
+    cols,
+    rows,
+    paper,
+    ink,
+    ditherConfig: PUBLISHED_DITHER_CONFIG,
+  })
+  const bits = surface?.bits || sampleCompositeBinary(
+    source,
+    currentRevealCanvas(card),
+    cols,
+    rows,
+    paper,
+    ink,
+  )
   if (!bits) return null
   const canvas = bitsCanvas(bits, cols, rows, paper, ink)
   if (!canvas) return null
@@ -416,7 +394,14 @@ async function syncBoundarySurface(state, { paint = false } = {}) {
 function sampleCurrentTargetBits(state) {
   const currentFinal = sourceCanvas(state.card)
   if (!canvasHasPixels(currentFinal)) return null
-  return sampleCompositeBinary(
+  return sampleCurrentBinarySurface(state.card, {
+    baseCanvas: currentFinal,
+    cols: state.cols,
+    rows: state.rows,
+    paper: state.paper,
+    ink: state.ink,
+    ditherConfig: PUBLISHED_DITHER_CONFIG,
+  })?.bits || sampleCompositeBinary(
     currentFinal,
     currentRevealCanvas(state.card),
     state.cols,

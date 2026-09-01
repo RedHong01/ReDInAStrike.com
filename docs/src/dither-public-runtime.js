@@ -14,7 +14,7 @@ import {
   cancelDitherResizeSnow,
   playPreparedDitherResizeSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260830-perfaudit1"
+} from "./dither-resize-snow.js?v=20260901-visualpipe2"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"

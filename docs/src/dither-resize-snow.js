@@ -10,9 +10,18 @@ import {
   smooth01,
   writeBinaryPixel,
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
+import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
+import {
+  paintViewportDitherRevealNow,
+  refreshViewportDitherReveals,
+  trackViewportDitherReveal,
+} from "./reveal-motion.js?v=20260831-handoff2"
+import {
+  sampleCurrentBinarySurface,
+} from "./binary-visible-surface.js?v=20260901-visualpipe2"
 
 const STYLE_ID = "red-dither-resize-snow-style"
-const STYLE_VERSION = "1"
+const STYLE_VERSION = "2"
 export const DITHER_RESIZE_SNOW_CLASS = "dither-resize-snow-canvas"
 export const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
 
@@ -21,6 +30,7 @@ const VIEWPORT_MARGIN = 180
 const RESIZE_DURATION_MS = BINARY_MOTION_DEFAULTS.durationMs
 const INITIAL_DURATION_MS = 560
 const RESIZE_SOFTNESS = BINARY_MOTION_DEFAULTS.softness
+const REVEAL_HANDOFF_FRAMES = 2
 
 const resizeStates = new WeakMap()
 const activeStates = new Set()
@@ -138,6 +148,72 @@ function changedBinaryIndices(oldBits, newBits) {
   return indices
 }
 
+function waitFrames(count, callback) {
+  let remaining = Math.max(0, Math.round(count))
+  const step = () => {
+    if (remaining <= 0) {
+      callback()
+      return
+    }
+    remaining -= 1
+    requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
+
+function activeFinalCanvas(card) {
+  return card?.querySelector?.('.dither-preview-canvas[data-active="true"]') || null
+}
+
+function currentCompositeBits(card, baseCanvas, cols, rows, paper, ink, config) {
+  return sampleCurrentBinarySurface(card, {
+    baseCanvas,
+    cols,
+    rows,
+    paper,
+    ink,
+    ditherConfig: config,
+    motionConfig: window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG,
+  })?.bits || null
+}
+
+function syncRevealBeforeRemoving(state) {
+  const finalCanvas = activeFinalCanvas(state.card)
+  if (!finalCanvas || finalCanvas.width < 2 || finalCanvas.height < 2) return
+
+  trackViewportDitherReveal(
+    state.card,
+    finalCanvas,
+    window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG,
+  )
+  paintViewportDitherRevealNow(
+    state.card,
+    finalCanvas,
+    window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG,
+  )
+  refreshViewportDitherReveals({ linger: false })
+}
+
+function finishState(state) {
+  if (state.finishing) return
+  state.finishing = true
+  activeStates.delete(state)
+  drawBinaryBits(state.ctx, state.imageData, state.framePixels, state.newBits, state.paper, state.ink)
+
+  requestAnimationFrame(() => {
+    if (resizeStates.get(state.card) !== state || !state.card.isConnected) return
+    state.card.removeAttribute(DITHER_RESIZE_MOTION_ATTRIBUTE)
+    syncRevealBeforeRemoving(state)
+
+    waitFrames(REVEAL_HANDOFF_FRAMES, () => {
+      if (resizeStates.get(state.card) !== state) return
+      syncRevealBeforeRemoving(state)
+      if (state.canvas.isConnected) state.canvas.remove()
+      resizeStates.delete(state.card)
+    })
+  })
+}
+
 function cancelState(card, remove = true) {
   const state = resizeStates.get(card)
   if (state) activeStates.delete(state)
@@ -173,7 +249,9 @@ export function prepareDitherResizeSnow(card, config, options = {}) {
   )) return null
 
   const { paper, ink } = readBinaryColors()
-  const oldBits = sampleBinaryCanvas(sourceCanvas, grid.cols, grid.rows, paper, ink)
+  const oldBits =
+    currentCompositeBits(card, sourceCanvas, grid.cols, grid.rows, paper, ink, config) ||
+    sampleBinaryCanvas(sourceCanvas, grid.cols, grid.rows, paper, ink)
   if (!oldBits) return null
 
   cancelState(card)
@@ -200,6 +278,7 @@ export function prepareDitherResizeSnow(card, config, options = {}) {
     oldBits,
     paper,
     ink,
+    config,
     framePixels,
     imageData,
     reason: options.reason || "resize",
@@ -247,6 +326,7 @@ export function prepareDitherInitialSnow(card, config, options = {}) {
     oldBits,
     paper,
     ink,
+    config,
     framePixels,
     imageData,
     reason: options.reason || "initial",
@@ -310,13 +390,7 @@ function drawState(state, now) {
   ctx.putImageData(imageData, 0, 0)
 
   if (raw >= 1) {
-    drawBinaryBits(ctx, imageData, framePixels, newBits, paper, ink)
-    activeStates.delete(state)
-    resizeStates.delete(card)
-    requestAnimationFrame(() => {
-      if (canvas.isConnected) canvas.remove()
-      card.removeAttribute(DITHER_RESIZE_MOTION_ATTRIBUTE)
-    })
+    finishState(state)
   }
 }
 
@@ -338,39 +412,58 @@ export function playPreparedDitherResizeSnow(prepared) {
     return false
   }
 
-  const newBits = sampleBinaryCanvas(
-    finalCanvas,
-    prepared.cols,
-    prepared.rows,
-    prepared.paper,
-    prepared.ink,
-  )
+  const newBits =
+    currentCompositeBits(
+      prepared.card,
+      finalCanvas,
+      prepared.cols,
+      prepared.rows,
+      prepared.paper,
+      prepared.ink,
+      prepared.config,
+    ) ||
+    sampleBinaryCanvas(
+      finalCanvas,
+      prepared.cols,
+      prepared.rows,
+      prepared.paper,
+      prepared.ink,
+    )
   if (!newBits) {
     cancelState(prepared.card)
     return false
   }
 
+  const createState = (changedIndices) => ({
+    ...prepared,
+    newBits,
+    changedIndices,
+    order: buildBinaryOrder(
+      prepared.cols,
+      prepared.rows,
+      BINARY_MOTION_DEFAULTS.seed + prepared.cols * 3 + prepared.rows * 5,
+    ),
+    startTime: performance.now(),
+    lastDraw: 0,
+    seed: BINARY_MOTION_DEFAULTS.seed + prepared.cols * 3 + prepared.rows * 5,
+  })
+
   if (binaryBitsEqual(prepared.oldBits, newBits)) {
-    cancelState(prepared.card)
-    return false
+    const state = createState(new Uint32Array(0))
+    resizeStates.set(prepared.card, state)
+    finishState(state)
+    return true
   }
 
   const changedIndices = changedBinaryIndices(prepared.oldBits, newBits)
   if (!changedIndices.length) {
-    cancelState(prepared.card)
-    return false
+    const state = createState(changedIndices)
+    resizeStates.set(prepared.card, state)
+    finishState(state)
+    return true
   }
 
-  const seed = BINARY_MOTION_DEFAULTS.seed + prepared.cols * 3 + prepared.rows * 5
-  const state = {
-    ...prepared,
-    newBits,
-    changedIndices,
-    order: buildBinaryOrder(prepared.cols, prepared.rows, seed),
-    startTime: performance.now(),
-    lastDraw: 0,
-    seed,
-  }
+  const state = createState(changedIndices)
 
   resizeStates.set(prepared.card, state)
   activeStates.add(state)

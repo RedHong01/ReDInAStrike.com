@@ -284,6 +284,7 @@ function navUsesHorizontalPush(nav) {
   const density = document.body.dataset.navDensity || ""
   const compact = document.body.dataset.headerCompact === "true"
   if (density === "full") return false
+  if (compact && (density === "mobile" || density === "tiny" || density === "titles")) return false
   if ((density === "mobile" || density === "tiny") && !compact) return false
 
   const direction = getComputedStyle(nav).flexDirection

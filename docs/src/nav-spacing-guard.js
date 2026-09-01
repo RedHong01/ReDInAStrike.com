@@ -117,6 +117,13 @@
     return direction !== "column" && direction !== "column-reverse"
   }
 
+  function locksActiveDetailToTitle(nav) {
+    if (!nav?.isConnected) return false
+    const density = document.body.dataset.navDensity || ""
+    const compact = document.body.dataset.headerCompact === "true"
+    return compact && (density === "mobile" || density === "tiny" || density === "titles")
+  }
+
   function measure() {
     frame = 0
     const nav = document.querySelector(".nav-list")
@@ -197,9 +204,12 @@
     // If the current viewport has a feasible one-line solution, choose the smallest
     // subtitle displacement needed. In extremely narrow impossible states, choose the
     // midpoint so overflow pressure is shared instead of collapsing all titles together.
-    const detailShiftRendered = minDetailShift <= maxDetailShift
-      ? nearestZero(minDetailShift, maxDetailShift)
-      : (minDetailShift + maxDetailShift) * 0.5
+    const titleAnchorShift = nativeRects[activeIndex].right - detailNative.right
+    const detailShiftRendered = locksActiveDetailToTitle(nav)
+      ? titleAnchorShift
+      : minDetailShift <= maxDetailShift
+        ? nearestZero(minDetailShift, maxDetailShift)
+        : (minDetailShift + maxDetailShift) * 0.5
     const detailShiftCss = detailShiftRendered / scale
     let changed = setDetailOffset(activeDetail, detailShiftCss)
 

@@ -1,5 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260830-perfaudit1"
+import { renderCard } from "./dither-engine.js?v=20260901-perfpass2"
 import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
 import {
   binaryGridNeedsUpdate,
@@ -41,12 +41,19 @@ const DESKTOP_REVEAL_VIEWPORTS = 1.35
 const PRIORITY_FRAME_BUDGET_MS = 5.25
 const IDLE_TIMEOUT_MS = 650
 const RESIZE_SETTLE_MS = 90
+const TOUCH_CATEGORY_PRELOAD_VIEWPORTS = 4.2
+const DESKTOP_CATEGORY_PRELOAD_VIEWPORTS = 2.6
+const TOUCH_SCROLL_REFRESH_MS = 64
+const DESKTOP_SCROLL_REFRESH_MS = 96
 
 const state = {
   destroyed: false,
   renderFrame: 0,
   revealRefreshFrame: 0,
   priorityFrame: 0,
+  scrollFrame: 0,
+  scrollTimer: 0,
+  lastScrollRefreshAt: 0,
   idleHandle: 0,
   resizeTimer: 0,
   layoutSettleTimers: new Set(),
@@ -291,6 +298,15 @@ function revealMargin() {
   return Math.max(REVEAL_MARGIN, Math.round(viewportHeight() * factor))
 }
 
+function categoryPreloadMargin(catalog) {
+  const activeFilter = Boolean(catalog?.dataset?.activeFilter)
+  if (!activeFilter) return priorityMargin(catalog)
+  const factor = usesTouchViewport()
+    ? TOUCH_CATEGORY_PRELOAD_VIEWPORTS
+    : DESKTOP_CATEGORY_PRELOAD_VIEWPORTS
+  return Math.max(priorityMargin(catalog), Math.round(viewportHeight() * factor))
+}
+
 function applyCategoryAliases(catalog) {
   if (!catalog || catalog.dataset.activeFilter !== "game") return
   const ongoingGameLink = [...catalog.querySelectorAll("a.project-card[href]")]
@@ -423,13 +439,51 @@ function cancelScheduledWork() {
   state.idleHandle = 0
 }
 
-function bindImageLoad(img) {
+function visibleMutedCardsForWork(catalog) {
+  if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return []
+  const margin = categoryPreloadMargin(catalog)
+  return [...catalog.querySelectorAll(".project-card.is-filter-muted")]
+    .filter((card) => viewportDistance(card) <= margin)
+}
+
+function refreshViewportDitherWork() {
+  const catalog = activeCatalog()
+  if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return false
+  const cards = visibleMutedCardsForWork(catalog)
+  if (!cards.length) return false
+  queueMutedCards(catalog, cards)
+  return true
+}
+
+function clearPendingCard(card) {
+  if (!card) return
+  state.pendingCards.delete(card)
+  card.removeAttribute("data-dither-pending")
+}
+
+function bindImageLoad(img, card = null) {
   if (!img || img.complete || state.boundImages.has(img)) return
   state.boundImages.add(img)
-  img.addEventListener("load", () => {
+  const handleReady = () => {
     if (state.destroyed) return
-    requestRender()
-  }, { once: true, passive: true })
+    clearPendingCard(card)
+    const catalog = card?.closest?.(".catalog")
+    if (card?.isConnected && catalog) queueMutedCards(catalog, [card])
+    else requestRender()
+    requestRevealRefresh()
+  }
+  img.addEventListener("load", handleReady, { once: true, passive: true })
+  img.addEventListener("error", handleReady, { once: true, passive: true })
+}
+
+function primeImageForDither(img, distance, catalog) {
+  if (!img || !catalog?.dataset?.activeFilter) return
+  if (distance > categoryPreloadMargin(catalog)) return
+
+  img.loading = "eager"
+  if ("fetchPriority" in img) {
+    img.fetchPriority = distance <= priorityMargin(catalog) ? "high" : "auto"
+  }
 }
 
 function renderOne(card, catalog, generation, tier) {
@@ -442,8 +496,11 @@ function renderOne(card, catalog, generation, tier) {
   if (activeColorOwnsCard(card) || hoverBinaryReturnOwnsCard(card)) return false
 
   const img = card.querySelector(".project-media img")
-  bindImageLoad(img)
-  if (!img?.complete || img.naturalWidth <= 0) return false
+  bindImageLoad(img, card)
+  if (!img?.complete || img.naturalWidth <= 0) {
+    clearPendingCard(card)
+    return false
+  }
 
   const media = card.querySelector(".project-media")
   const activeCanvas = media?.querySelector('.dither-preview-canvas[data-active="true"]')
@@ -589,7 +646,11 @@ function handleCardIntersections(entries) {
     }
     if (hoverBinaryReturnOwnsCard(card)) continue
     if (!entry.isIntersecting) continue
-    promoteCard(card)
+    if (!state.pendingCards.has(card) && !ditherCanvasIsCurrent(card, catalog)) {
+      queueMutedCards(catalog, [card])
+    } else {
+      promoteCard(card)
+    }
     if (card.querySelector('.dither-preview-canvas[data-active="true"]')) {
       if (armReveal(card, catalog)) requestRevealRefresh()
     }
@@ -637,7 +698,6 @@ function queueMutedCards(catalog, cards, { restart = false } = {}) {
 
   for (const card of cards) {
     const img = card.querySelector(".project-media img")
-    bindImageLoad(img)
 
     if (!isMutedByActiveFilter(card, catalog)) {
       const canvas = card.querySelector(".dither-preview-canvas")
@@ -649,6 +709,10 @@ function queueMutedCards(catalog, cards, { restart = false } = {}) {
       releaseReveal(card)
       continue
     }
+
+    const distance = viewportDistance(card)
+    primeImageForDither(img, distance, catalog)
+    bindImageLoad(img, card)
 
     if (markCategoryEnterReveal && !card.querySelector('.dither-preview-canvas[data-active="true"]')) {
       card.setAttribute(CATEGORY_ENTER_DITHER_ATTRIBUTE, "true")
@@ -676,7 +740,6 @@ function queueMutedCards(catalog, cards, { restart = false } = {}) {
       continue
     }
 
-    const distance = viewportDistance(card)
     ranked.push({ card, distance })
   }
 
@@ -747,6 +810,36 @@ function handleVisibilityChange() {
   }
   requestRender()
   requestRevealRefresh()
+}
+
+function handleViewportScroll() {
+  if (state.destroyed || state.scrollFrame || state.scrollTimer || !pageIsVisible()) return
+  const catalog = activeCatalog()
+  if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return
+
+  const now = performance.now()
+  const wait = Math.max(
+    0,
+    (usesTouchViewport() ? TOUCH_SCROLL_REFRESH_MS : DESKTOP_SCROLL_REFRESH_MS) -
+      (now - state.lastScrollRefreshAt),
+  )
+
+  const run = () => {
+    state.scrollFrame = 0
+    state.lastScrollRefreshAt = performance.now()
+    refreshViewportDitherWork()
+    requestRevealRefresh()
+  }
+
+  if (wait > 0) {
+    state.scrollTimer = window.setTimeout(() => {
+      state.scrollTimer = 0
+      if (!state.scrollFrame) state.scrollFrame = requestAnimationFrame(run)
+    }, wait)
+    return
+  }
+
+  state.scrollFrame = requestAnimationFrame(run)
 }
 
 function handleHoverBinaryReturnComplete(event) {
@@ -935,6 +1028,9 @@ function boot() {
   applyPublishedModeState()
   ensurePublicStyles()
   document.addEventListener("visibilitychange", handleVisibilityChange)
+  window.addEventListener("scroll", handleViewportScroll, { passive: true })
+  window.visualViewport?.addEventListener?.("scroll", handleViewportScroll, { passive: true })
+  window.visualViewport?.addEventListener?.("resize", handleViewportScroll, { passive: true })
   window.addEventListener("red:hover-binary-return-complete", handleHoverBinaryReturnComplete)
   bindAppObserver()
   bindCatalogObserver()
@@ -967,6 +1063,10 @@ export function destroyPublicDitherRuntime() {
   state.renderFrame = 0
   if (state.revealRefreshFrame) cancelAnimationFrame(state.revealRefreshFrame)
   state.revealRefreshFrame = 0
+  if (state.scrollFrame) cancelAnimationFrame(state.scrollFrame)
+  state.scrollFrame = 0
+  clearTimeout(state.scrollTimer)
+  state.scrollTimer = 0
   clearTimeout(state.resizeTimer)
   state.resizeTimer = 0
   for (const timer of state.layoutSettleTimers) window.clearTimeout(timer)
@@ -979,6 +1079,9 @@ export function destroyPublicDitherRuntime() {
   state.observedCards.clear()
   document.querySelectorAll(".project-card").forEach((card) => releaseReveal(card))
   window.removeEventListener("resize", requestRender)
+  window.removeEventListener("scroll", handleViewportScroll)
+  window.visualViewport?.removeEventListener?.("scroll", handleViewportScroll)
+  window.visualViewport?.removeEventListener?.("resize", handleViewportScroll)
   window.removeEventListener("red:hover-binary-return-complete", handleHoverBinaryReturnComplete)
   document.removeEventListener("visibilitychange", handleVisibilityChange)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)

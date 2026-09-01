@@ -15,6 +15,9 @@ const navItems = [
   { label: "Resume", detail: "CV / Contact", hash: "resume" },
 ]
 
+const CATALOG_DEFAULT_EAGER_IMAGE_COUNT = 2
+const CATALOG_FILTER_EAGER_IMAGE_COUNT = 12
+
 const projects = [
   {
     pageTitle: "Serial Deminer",
@@ -251,6 +254,9 @@ function getCatalogProjectEntries(category = null) {
 function catalogRowsMarkup(category = null) {
   const entries = getCatalogProjectEntries(category)
   const rows = []
+  const eagerImageLimit = normalizeCatalogFilter(category)
+    ? CATALOG_FILTER_EAGER_IMAGE_COUNT
+    : CATALOG_DEFAULT_EAGER_IMAGE_COUNT
 
   for (let index = 0; index < entries.length; index += 2) {
     const first = entries[index]
@@ -267,8 +273,8 @@ function catalogRowsMarkup(category = null) {
 
     rows.push(`
       <section class="project-row" id="${rowHash}">
-        ${projectCard(first.project, first.originalIndex, index, { muted: first.muted })}
-        ${second ? projectCard(second.project, second.originalIndex, index + 1, { muted: second.muted }) : ""}
+        ${projectCard(first.project, first.originalIndex, index, { muted: first.muted, eagerImageLimit })}
+        ${second ? projectCard(second.project, second.originalIndex, index + 1, { muted: second.muted, eagerImageLimit }) : ""}
       </section>`)
   }
 
@@ -605,6 +611,23 @@ function isSectionScrollMotionActive() {
 
 function isHeaderMotionActive() {
   return Boolean(siteState.followFrame) || Math.abs(siteState.targetProgress - siteState.visualProgress) > 0.0015
+}
+
+function footerGalleryWorkActive(gallery = siteState.dom.gallery) {
+  if (!siteState.hasFooterGallery || !gallery) return false
+  const perfState = window.__RED_PERF_STATE__
+  if (!perfState) return true
+  return Boolean(
+    perfState.footerActive ||
+      siteState.galleryFrame ||
+      siteState.galleryLoopFrame ||
+      siteState.galleryReveal > 0.001 ||
+      siteState.galleryTargetReveal > 0.001 ||
+      siteState.aboutPull > 0.2 ||
+      siteState.aboutTargetPull > 0.2 ||
+      siteState.aboutCardOffset > 0.2 ||
+      siteState.resumeCardOffset > 0.2,
+  )
 }
 
 function headerMotionSnapshot() {
@@ -2243,6 +2266,11 @@ function mediaStyle(project) {
 }
 
 function projectCard(project, index, loadingIndex = index, options = {}) {
+  const eagerImageLimit = Number.isFinite(options.eagerImageLimit)
+    ? Math.max(0, options.eagerImageLimit)
+    : CATALOG_DEFAULT_EAGER_IMAGE_COUNT
+  const eagerImage = loadingIndex < eagerImageLimit
+  const fetchPriority = eagerImage && loadingIndex < 4 ? "high" : "auto"
   const videoAttributes = project.youtube && !options.muted
     ? ` data-hover-youtube="${escapeHtml(project.youtube)}"`
     : ""
@@ -2259,7 +2287,8 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
         <img
           src="${asset(project.image)}"
           alt="${escapeHtml(project.pageTitle)}"
-          loading="${loadingIndex < 2 ? "eager" : "lazy"}"
+          loading="${eagerImage ? "eager" : "lazy"}"
+          fetchpriority="${fetchPriority}"
           decoding="async"
         />
         ${halftoneCanvas}
@@ -3003,7 +3032,7 @@ function invalidateRuleGeometry() {
 
 function requestLayoutEffectsUpdate(options = {}) {
   if (options.rules) siteState.layoutPendingRules = true
-  if (options.footer) siteState.layoutPendingFooter = true
+  if (options.footer && footerGalleryWorkActive()) siteState.layoutPendingFooter = true
   if (!siteState.layoutPendingRules && !siteState.layoutPendingFooter) return
   if (isHomeReturnTransitionActive()) return
   if (siteState.layoutFrame) return
@@ -3011,7 +3040,7 @@ function requestLayoutEffectsUpdate(options = {}) {
   siteState.layoutFrame = requestAnimationFrame(() => {
     siteState.layoutFrame = 0
     const updateRules = siteState.layoutPendingRules
-    const updateFooter = siteState.layoutPendingFooter
+    const updateFooter = siteState.layoutPendingFooter && footerGalleryWorkActive()
     siteState.layoutPendingRules = false
     siteState.layoutPendingFooter = false
 
@@ -3881,6 +3910,7 @@ function nudgeFooterGallery() {
 
   const { gallery } = siteState.dom
   if (!gallery) return
+  if (!footerGalleryWorkActive(gallery)) return
 
   siteState.galleryObservedScrollY = readFooterGalleryScrollY()
   holdFooterGalleryDuringScroll()

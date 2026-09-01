@@ -1,5 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260830-perfaudit1"
+import { renderCard } from "./dither-engine.js?v=20260901-perfpass2"
 import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,

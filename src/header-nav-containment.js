@@ -120,14 +120,33 @@
     frame = requestAnimationFrame(measure)
   }
 
+  function headerMotionActive() {
+    return Boolean(
+      document.documentElement.dataset.headerMotion === "moving" ||
+        document.documentElement.dataset.homeReturnTransition ||
+        document.body?.dataset.layoutTransition === "true",
+    )
+  }
+
+  function scheduleDuringHeaderMotion() {
+    if (headerMotionActive()) scheduleMeasure()
+  }
+
+  function scheduleForHeaderMutations(mutations) {
+    const redundantStyleOnly = headerMotionActive() && mutations.every((mutation) => (
+      mutation.type === "attributes" && mutation.attributeName === "style"
+    ))
+    if (!redundantStyleOnly) scheduleMeasure()
+  }
+
   function start() {
     ensureStyle()
     bindNavObserver(navElement())
 
-    window.addEventListener("scroll", scheduleMeasure, { passive: true, capture: true })
+    window.addEventListener("scroll", scheduleDuringHeaderMotion, { passive: true, capture: true })
     window.addEventListener("resize", scheduleMeasure, { passive: true })
     window.visualViewport?.addEventListener("resize", scheduleMeasure, { passive: true })
-    window.visualViewport?.addEventListener("scroll", scheduleMeasure, { passive: true })
+    window.visualViewport?.addEventListener("scroll", scheduleDuringHeaderMotion, { passive: true })
     window.addEventListener("red:header-motion", scheduleMeasure)
     window.addEventListener("red:home-return-transition", scheduleMeasure)
 
@@ -145,7 +164,7 @@
 
       const header = headerElement()
       if (header) {
-        headerObserver = new MutationObserver(scheduleMeasure)
+        headerObserver = new MutationObserver(scheduleForHeaderMutations)
         headerObserver.observe(header, {
           attributes: true,
           attributeFilter: ["style", "class"],

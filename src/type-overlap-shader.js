@@ -9,6 +9,7 @@
   const MASK_MAX_DPR = 2
   const MASK_ALPHA_THRESHOLD = 10
   const MASK_MIN_PIXELS = 2
+  const VISUAL_VIEWPORT_SCROLL_MS = 80
   const TARGET_SELECTOR = [
     ".site-header .brand",
     ".site-header .nav-title",
@@ -23,6 +24,8 @@
   let pendingMaskImages = new WeakSet()
   let lastRenderSignature = ""
   let forceNextMeasure = false
+  let viewportScrollTimer = 0
+  let lastViewportScrollAt = 0
 
   function ensureStyle() {
     let style = document.getElementById(STYLE_ID)
@@ -103,6 +106,37 @@
     if (document.hidden) return
     if (frame) return
     frame = requestAnimationFrame(measure)
+  }
+
+  function headerMotionActive() {
+    const root = document.documentElement
+    return Boolean(
+      root.dataset.headerMotion === "moving" ||
+        root.dataset.homeReturnTransition ||
+        document.body?.dataset.layoutTransition === "true",
+    )
+  }
+
+  function scheduleFromWindowScroll() {
+    if (!headerMotionActive()) return
+    schedule()
+  }
+
+  function scheduleFromVisualViewportScroll() {
+    if (!headerMotionActive()) return
+    if (document.hidden || frame || viewportScrollTimer) return
+    const now = performance.now()
+    const wait = Math.max(0, VISUAL_VIEWPORT_SCROLL_MS - (now - lastViewportScrollAt))
+    const run = () => {
+      viewportScrollTimer = 0
+      lastViewportScrollAt = performance.now()
+      schedule()
+    }
+    if (wait > 0) {
+      viewportScrollTimer = window.setTimeout(run, wait)
+      return
+    }
+    run()
   }
 
   function ownerFor(element) {
@@ -606,6 +640,38 @@
     if (resizeObserver && header) observeElement(header)
   }
 
+  function elementFromMutationTarget(target) {
+    if (target instanceof Element) return target
+    return target?.parentElement || null
+  }
+
+  function nodeContainsHeader(node) {
+    if (!(node instanceof Element)) return false
+    return node.matches?.(".site-header") || Boolean(node.querySelector?.(".site-header"))
+  }
+
+  function mutationTouchesHeaderLayout(mutation) {
+    const target = elementFromMutationTarget(mutation.target)
+    if (!target) return false
+    if (target.closest?.(`.${LAYER_CLASS}`)) return false
+    if (target === document.body && mutation.attributeName === "data-layout-transition") return true
+    if (target.matches?.(".site-header") || target.closest?.(".site-header")) return true
+    if (mutation.type !== "childList") return false
+    return [...mutation.addedNodes, ...mutation.removedNodes].some(nodeContainsHeader)
+  }
+
+  function redundantHeaderMotionStyleMutations(mutations) {
+    if (!headerMotionActive()) return false
+    return mutations.every((mutation) => {
+      const target = elementFromMutationTarget(mutation.target)
+      return (
+        mutation.type === "attributes" &&
+        mutation.attributeName === "style" &&
+        (target?.matches?.(".site-header") || target?.closest?.(".site-header"))
+      )
+    })
+  }
+
   function measure() {
     frame = 0
     const force = forceNextMeasure
@@ -629,8 +695,8 @@
   function start() {
     ensureStyle()
     observer = new MutationObserver((mutations) => {
-      if (mutations.some((mutation) => mutation.target?.closest?.(`.${LAYER_CLASS}`))) return
-      schedule()
+      if (redundantHeaderMotionStyleMutations(mutations)) return
+      if (mutations.some(mutationTouchesHeaderLayout)) schedule()
     })
     observer.observe(document.body, {
       subtree: true,
@@ -649,8 +715,8 @@
 
     window.addEventListener("resize", schedule, { passive: true })
     window.visualViewport?.addEventListener("resize", schedule, { passive: true })
-    window.visualViewport?.addEventListener("scroll", schedule, { passive: true })
-    window.addEventListener("scroll", schedule, { passive: true })
+    window.visualViewport?.addEventListener("scroll", scheduleFromVisualViewportScroll, { passive: true })
+    window.addEventListener("scroll", scheduleFromWindowScroll, { passive: true })
     window.addEventListener("red:header-motion", schedule)
     window.addEventListener("red:route-change", schedule)
     document.fonts?.ready?.then(() => schedule(true)).catch?.(() => {})

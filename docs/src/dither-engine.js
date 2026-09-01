@@ -486,7 +486,7 @@ export function renderCard(card, config) {
     img.naturalWidth,
     img.naturalHeight,
     sample.key,
-    binaryMode ? `${surfaceGrid.cols}x${surfaceGrid.rows}|${surfaceGrid.widthBucket}` : "",
+    binaryMode ? `${surfaceGrid.cols}x${surfaceGrid.rows}` : "",
     binaryMode ? "" : `${cssWidth}x${cssHeight}@${dpr}`,
   ].join("|")
 

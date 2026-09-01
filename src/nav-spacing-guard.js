@@ -265,6 +265,18 @@
     frame = requestAnimationFrame(measure)
   }
 
+  function headerMotionActive() {
+    return Boolean(
+      document.documentElement.dataset.headerMotion === "moving" ||
+        document.documentElement.dataset.homeReturnTransition ||
+        document.body?.dataset.layoutTransition === "true",
+    )
+  }
+
+  function scheduleDuringHeaderMotion() {
+    if (headerMotionActive()) schedule()
+  }
+
   function bind(nav) {
     if (currentNav === nav) return
     observer?.disconnect()
@@ -286,7 +298,7 @@
     bind(document.querySelector(".nav-list"))
     window.addEventListener("resize", schedule, { passive: true })
     window.visualViewport?.addEventListener("resize", schedule, { passive: true })
-    window.visualViewport?.addEventListener("scroll", schedule, { passive: true })
+    window.visualViewport?.addEventListener("scroll", scheduleDuringHeaderMotion, { passive: true })
     window.addEventListener("red:header-motion", schedule)
 
     if ("MutationObserver" in window) {

@@ -3993,6 +3993,9 @@ function catalogActiveColorConfig() {
     activeColorDelayMs: 10,
     activeColorStaggerMs: 26,
     activeColorSettleMs: 110,
+    activeColorBreathHoldMs: 220,
+    activeColorBreathAmount: 0.56,
+    activeColorBreathRate: 0.42,
   }
 
   return (
@@ -4000,6 +4003,19 @@ function catalogActiveColorConfig() {
     window.__RED_ACTIVE_COLOR_CONFIG__ ||
     fallbackConfig
   )
+}
+
+function catalogColorSnowBreathHoldMs(config) {
+  const value = Math.max(0, Number(config?.activeColorBreathHoldMs) || 0)
+  return catalogFilterDuration(Math.min(520, value))
+}
+
+function catalogColorSnowSwapOverlapMs(config) {
+  if (prefersReducedMotion()) return 0
+  const defaultOverlap = catalogFilterDuration(CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS)
+  const breathHold = catalogColorSnowBreathHoldMs(config)
+  if (!breathHold) return defaultOverlap
+  return Math.min(defaultOverlap, Math.max(48, breathHold * 0.35))
 }
 
 function readCatalogSnowDuration(catalog, key) {
@@ -4028,7 +4044,9 @@ function planCatalogExitSnowTiming(catalog) {
 
   const base = Math.max(1, Number(config.activeColorExitDurationMs) || 350)
   catalog.dataset.colorSnowExitDurationMs = String(Math.round(
-    base + catalogFilterDuration(CATALOG_COLOR_SNOW_EXIT_COVER_MS),
+    base +
+      catalogFilterDuration(CATALOG_COLOR_SNOW_EXIT_COVER_MS) +
+      catalogColorSnowBreathHoldMs(config),
   ))
   delete catalog.dataset.colorSnowEnterDurationMs
   delete catalog.dataset.colorSnowEnterDeferMs
@@ -4055,6 +4073,7 @@ function planCatalogEnterSnowTiming(catalog, commitCostMs = 0) {
   catalog.dataset.colorSnowEnterDurationMs = String(Math.round(
     base +
       catalogFilterDuration(CATALOG_COLOR_SNOW_ENTER_COVER_MS) +
+      catalogColorSnowBreathHoldMs(config) +
       rebuildCover +
       cardCover,
   ))
@@ -4070,6 +4089,7 @@ function catalogFineSignalSnowDuration(catalog, direction) {
     activeColorExitDurationMs: 350,
     activeColorDelayMs: 10,
     activeColorStaggerMs: 26,
+    activeColorBreathHoldMs: 220,
   }
   const config = catalogActiveColorConfig()
   if (!catalog || !config?.activeColorEnabled || prefersReducedMotion()) return 0
@@ -4083,13 +4103,13 @@ function catalogFineSignalSnowDuration(catalog, direction) {
       ? "colorSnowExitDurationMs"
       : "colorSnowEnterDurationMs",
   )
-  const baseDuration =
-    override ??
+  const baseDuration = override ?? (
     (
       direction === "out"
         ? Number(config.activeColorExitDurationMs)
         : Number(config.activeColorDurationMs) + Number(config.activeColorSettleMs || 0)
-    )
+    ) + catalogColorSnowBreathHoldMs(config)
+  )
   const startDelay = Number(config.activeColorDelayMs) || 0
   const stagger = Number(config.activeColorStaggerMs) || 0
   const finalDelay = Math.max(0, cards.length - 1) * Math.max(0, stagger)
@@ -4097,7 +4117,8 @@ function catalogFineSignalSnowDuration(catalog, direction) {
   const fallbackTotal =
     Math.max(0, fallbackConfig.activeColorExitDurationMs) +
     fallbackConfig.activeColorDelayMs +
-    Math.max(0, cards.length - 1) * fallbackConfig.activeColorStaggerMs
+    Math.max(0, cards.length - 1) * fallbackConfig.activeColorStaggerMs +
+    catalogFilterDuration(fallbackConfig.activeColorBreathHoldMs)
   return catalogFilterDuration(Math.max(total, fallbackTotal))
 }
 
@@ -5060,11 +5081,12 @@ function startCatalogFilterTransition() {
   )
   catalog.dataset.filterPhase = "exiting"
 
+  const activeColorConfig = catalogActiveColorConfig()
   const snowExitDuration = catalogFineSignalSnowDuration(catalog, "out")
   const cssExitDuration = catalogFilterDuration(CATALOG_FILTER_EXIT_MS) + motionExitDelay + 40
   const snowSwapDuration = Math.max(
     0,
-    snowExitDuration - catalogFilterDuration(CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS),
+    snowExitDuration - catalogColorSnowSwapOverlapMs(activeColorConfig),
   )
   siteState.catalogFilterTimer = window.setTimeout(() => {
     commitCatalogFilterTransition(cycle)

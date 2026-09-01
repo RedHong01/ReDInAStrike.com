@@ -33,6 +33,7 @@ const HOVER_SCROLL_SUPPRESS_MS = 260
 const HOVER_SCROLL_RETURN_CLASS_MS = 920
 const CATEGORY_READY_DEFER_STEP_MS = 9
 const CATEGORY_READY_DEFER_MAX_MS = 150
+const CATEGORY_BREATH_HOLD_MAX_RATIO = 0.36
 const HOVER_MOTION_DURATION_SCALE = 0.75
 const RESTORE_IMAGE_HANDOFF_MIN_MS = 110
 const RESTORE_IMAGE_HANDOFF_MAX_MS = 190
@@ -74,6 +75,7 @@ let paperCacheKey = ""
 let paperCacheValue = [248, 247, 245, 255]
 let inkCacheKey = ""
 let inkCacheValue = [69, 69, 69, 255]
+const TAU = Math.PI * 2
 
 function configFromUrl() {
   const encoded = new URLSearchParams(location.search).get("activeColorConfig")
@@ -1184,6 +1186,75 @@ function boundaryFillOrder(boundary, col, row, noiseOrder, seed, frameTick) {
   return clamp(noiseOrder * 0.82 + localCluster * 0.18)
 }
 
+function curvedActiveColorProgress(raw, config) {
+  return 1 - Math.pow(1 - clamp(raw), Math.max(0.05, config.activeColorCurve))
+}
+
+function categorySnowState(state) {
+  return state.reason === "category-exit" || state.reason === "category-enter"
+}
+
+function categoryBreathAmount(config) {
+  return clamp(Number(config?.activeColorBreathAmount) || 0)
+}
+
+function categoryBreathHoldRatio(state, duration) {
+  if (!categorySnowState(state)) return 0
+  const holdMs = Math.max(0, Number(state.config?.activeColorBreathHoldMs) || 0)
+  if (!holdMs) return 0
+  return clamp(holdMs / Math.max(1, duration), 0, CATEGORY_BREATH_HOLD_MAX_RATIO)
+}
+
+function categorySnowProgress(state, raw, duration) {
+  const holdRatio = categoryBreathHoldRatio(state, duration)
+  if (!holdRatio) return { progress: curvedActiveColorProgress(raw, state.config), holdRatio }
+
+  const scanSpan = Math.max(0.08, 1 - holdRatio)
+  const scanRaw = state.direction === "out"
+    ? raw / scanSpan
+    : (raw - holdRatio) / scanSpan
+  return {
+    progress: curvedActiveColorProgress(scanRaw, state.config),
+    holdRatio,
+  }
+}
+
+function categoryHoldPresence(state, raw, holdRatio) {
+  if (!holdRatio) return 0
+  const fade = Math.max(0.001, holdRatio * 0.34)
+  if (state.direction === "out") {
+    return smooth01((raw - (1 - holdRatio)) / fade)
+  }
+
+  const fadeIn = smooth01(raw / fade)
+  const fadeOut = 1 - smooth01((raw - holdRatio * 0.72) / Math.max(0.001, holdRatio * 0.28))
+  return clamp(fadeIn * fadeOut)
+}
+
+function categoryFrontPresence(progress, order, config) {
+  if (progress <= 0.012 || progress >= 0.988) return 0
+  const softness = 0.07 + clamp(config.activeColorFlicker) * 0.105
+  return smooth01((softness - Math.abs(order - progress)) / softness)
+}
+
+function categoryBreathingWave(state, index, col, row, now) {
+  const { config, grid } = state
+  const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
+  const clusterCol = Math.floor(col / clusterSize)
+  const clusterRow = Math.floor(row / clusterSize)
+  const groupPhase = hash01(config.activeColorSeed, clusterCol, clusterRow, 3001)
+  const cellPhase = hash01(config.activeColorSeed, col, row, 3002)
+  const groupRate = hash01(config.activeColorSeed, clusterCol, clusterRow, 3003)
+  const rate = Math.max(0.08, Number(config.activeColorBreathRate) || 0.42) *
+    (0.86 + groupRate * 0.28)
+  const phase = groupPhase * TAU + cellPhase * 0.76 + grid.order[index] * TAU * 0.19
+  const timeSeconds = now / 1000
+  const primary = Math.sin(timeSeconds * TAU * rate + phase)
+  const drift = Math.sin(timeSeconds * TAU * rate * 0.37 + phase * 0.61 + 1.13)
+  const secondary = Math.sin(timeSeconds * TAU * rate * 1.61 + phase * 1.37 - 0.47)
+  return clamp(0.5 + primary * 0.26 + drift * 0.17 + secondary * 0.055)
+}
+
 function restoreImageHandoffProgress(state, restoreProgress) {
   const duration = Math.max(1, Number(state.config?.activeColorDurationMs) || 1)
   const settleMs = Math.max(0, Number(state.config?.activeColorImageHandoffMs) || 0)
@@ -1293,7 +1364,17 @@ function drawState(state, now) {
   const raw = clamp(
     (elapsed - config.activeColorDelayMs) / Math.max(1, duration),
   )
-  const progress = 1 - Math.pow(1 - raw, Math.max(0.05, config.activeColorCurve))
+  const isCategorySnow = categorySnowState(state)
+  const categoryProgress = isCategorySnow
+    ? categorySnowProgress(state, raw, duration)
+    : null
+  const progress = categoryProgress
+    ? categoryProgress.progress
+    : curvedActiveColorProgress(raw, config)
+  const categoryHold = categoryProgress
+    ? categoryHoldPresence(state, raw, categoryProgress.holdRatio)
+    : 0
+  const categoryAmount = isCategorySnow ? categoryBreathAmount(config) : 0
   const frameTick = Math.floor(
     now / Math.max(16, 92 - config.activeColorFlicker * 68),
   )
@@ -1514,14 +1595,31 @@ function drawState(state, now) {
   }
 
   for (let index = 0; index < grid.count; index += 1) {
-    const covered =
-      direction === "out"
-        ? grid.order[index] <= progress
-        : grid.order[index] > progress
-    if (!covered) continue
-
     const col = index % grid.cols
     const row = Math.floor(index / grid.cols)
+    const order = grid.order[index]
+    let effectiveOrder = order
+    let categoryPulse = 0
+    let breath = 0.5
+
+    if (isCategorySnow && categoryAmount > 0.001) {
+      const frontPulse = categoryFrontPresence(progress, order, config)
+      categoryPulse = Math.max(categoryHold, frontPulse)
+      if (categoryPulse > 0.001) {
+        breath = categoryBreathingWave(state, index, col, row, now)
+        const breathShift = (breath - 0.5) * 2 * categoryAmount
+        effectiveOrder = clamp(
+          order + breathShift * (categoryHold * 0.036 + frontPulse * 0.065),
+        )
+      }
+    }
+
+    const covered =
+      direction === "out"
+        ? effectiveOrder <= progress
+        : effectiveOrder > progress
+    if (!covered) continue
+
     const offset = index * 4
     const flicker = hash01(
       config.activeColorSeed,
@@ -1531,6 +1629,14 @@ function drawState(state, now) {
     )
     let colorChance = density * (1 - config.activeColorPaperRatio * 0.72)
     if (direction === "out") colorChance *= 1 - progress * 0.34
+    if (categoryPulse > 0.001) {
+      const pulse = (breath - 0.5) * 2
+      colorChance = clamp(
+        colorChance +
+          pulse * categoryAmount * categoryPulse * 0.18 +
+          categoryPulse * categoryAmount * 0.07,
+      )
+    }
 
     if (flicker < colorChance) {
       data[offset] = grid.palette[offset]
@@ -2180,7 +2286,7 @@ function replayActiveColorSnow(inputConfig = runtimeConfig) {
 function ensureHubExtension() {
   if (!document.querySelector(".dither-lab")) return
   if (!hubLoadPromise) {
-    hubLoadPromise = import("./active-color-hub.js?v=20260829-activecolor1")
+    hubLoadPromise = import("./active-color-hub.js?v=20260901-categorybreath1")
   }
 }
 

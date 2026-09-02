@@ -1,4 +1,3 @@
-const DOCUMENT_POSITION_FOLLOWING = 4
 const PIN_EPSILON_PX = 1.5
 
 export const BOUNDARY_DEPTH_RATIO = 0.19
@@ -27,9 +26,15 @@ function headerBottom(viewportBottom) {
 function followingRow(expandedRow, targetCard) {
   const targetRow = targetCard?.closest?.(".project-row")
   if (!expandedRow || !targetRow || expandedRow === targetRow) return false
-  return Boolean(
-    expandedRow.compareDocumentPosition?.(targetRow) & DOCUMENT_POSITION_FOLLOWING,
-  )
+
+  // Some embedded WebKit/page-evaluation contexts do not expose
+  // compareDocumentPosition. The catalog rows are sibling sections, so walk
+  // the same sibling chain instead of relying on that optional DOM API.
+  if (expandedRow.parentElement !== targetRow.parentElement) return false
+  for (let row = expandedRow.nextElementSibling; row; row = row.nextElementSibling) {
+    if (row === targetRow) return true
+  }
+  return false
 }
 
 function pinnedPreviewBoundary(expandedCard, expandedRow, headerEdge, viewportBottom) {

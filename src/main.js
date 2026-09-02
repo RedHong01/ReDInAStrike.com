@@ -3500,7 +3500,7 @@ function applyHeaderProgress(progress, options = {}) {
 }
 
 function updateProjectRuleReveal() {
-  const { header, projectRows, cardRuleTargets } = siteState.dom
+  const { projectRows, cardRuleTargets } = siteState.dom
   const boundaryContext = readViewportBoundaryContext()
   if (!boundaryContext.bottom) return
 

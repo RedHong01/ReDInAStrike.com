@@ -1,4 +1,3 @@
-const DOCUMENT_POSITION_FOLLOWING = 4
 const PIN_EPSILON_PX = 1.5
 
 export const BOUNDARY_DEPTH_RATIO = 0.19
@@ -27,9 +26,15 @@ function headerBottom(viewportBottom) {
 function followingRow(expandedRow, targetCard) {
   const targetRow = targetCard?.closest?.(".project-row")
   if (!expandedRow || !targetRow || expandedRow === targetRow) return false
-  return Boolean(
-    expandedRow.compareDocumentPosition?.(targetRow) & DOCUMENT_POSITION_FOLLOWING,
-  )
+
+  // Some embedded WebKit/page-evaluation contexts do not expose
+  // compareDocumentPosition. The catalog rows are sibling sections, so walk
+  // the same sibling chain instead of relying on that optional DOM API.
+  if (expandedRow.parentElement !== targetRow.parentElement) return false
+  for (let row = expandedRow.nextElementSibling; row; row = row.nextElementSibling) {
+    if (row === targetRow) return true
+  }
+  return false
 }
 
 function pinnedPreviewBoundary(expandedCard, expandedRow, headerEdge, viewportBottom) {
@@ -58,19 +63,32 @@ function pinnedPreviewBoundary(expandedCard, expandedRow, headerEdge, viewportBo
  * Later cards use the pinned expanded preview's lower edge as their upper
  * occlusion line, so every binary surface agrees on what is physically hidden.
  */
-export function viewportBoundsForCard(card = null) {
+export function readViewportBoundaryContext() {
   const bottom = viewportHeight()
   const headerEdge = headerBottom(bottom)
-  let top = headerEdge
-
   const expandedCard = document.querySelector(".project-card.is-project-preview")
   const expandedRow = expandedCard?.closest?.(".project-row")
-  if (expandedCard && followingRow(expandedRow, card)) {
-    const previewEdge = pinnedPreviewBoundary(expandedCard, expandedRow, headerEdge, bottom)
-    if (previewEdge !== null) top = previewEdge
+  const expandedBoundary = pinnedPreviewBoundary(
+    expandedCard,
+    expandedRow,
+    headerEdge,
+    bottom,
+  )
+
+  return { bottom, headerEdge, expandedRow, expandedBoundary }
+}
+
+export function viewportBoundsForCard(card = null, context = null) {
+  const boundaryContext = context || readViewportBoundaryContext()
+  let top = boundaryContext.headerEdge
+  if (
+    boundaryContext.expandedBoundary !== null &&
+    followingRow(boundaryContext.expandedRow, card)
+  ) {
+    top = boundaryContext.expandedBoundary
   }
 
-  return { top, bottom }
+  return { top, bottom: boundaryContext.bottom }
 }
 
 export function boundaryMetrics(bounds) {

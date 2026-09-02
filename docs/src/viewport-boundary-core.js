@@ -115,3 +115,7 @@ export function boundaryStrength(y, bounds, metrics, smooth = (value) => value) 
   if (nearest >= metrics.hold + metrics.depth) return 0
   return 1 - smooth((nearest - metrics.hold) / metrics.depth)
 }
+
+export function boundaryVisibility(y, bounds, metrics, smooth = (value) => value) {
+  return 1 - boundaryStrength(y, bounds, metrics, smooth)
+}

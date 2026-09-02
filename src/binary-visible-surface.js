@@ -10,7 +10,7 @@ import {
   boundaryMetrics,
   boundaryStrength,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260902-previewboundary1"
+} from "./viewport-boundary-core.js?v=20260902-previewboundary4"
 
 const BINARY_SOURCE_SELECTOR =
   '.dither-preview-canvas[data-active="true"], .project-halftone'

@@ -11,7 +11,7 @@ import {
   boundaryStrength,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260902-previewboundary1"
+} from "./viewport-boundary-core.js?v=20260902-previewboundary4"
 
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"

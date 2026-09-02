@@ -761,7 +761,6 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-row.has-project-preview {
-  --project-preview-rule-bleed: calc((100vw - 100%) / -2);
   grid-template-columns: minmax(0, 1fr);
   row-gap: 0;
   padding-top: 0;
@@ -779,8 +778,8 @@ body[data-layout-transition="true"] .about-section {
 .project-row.has-project-preview::before,
 .project-row.has-project-preview::after,
 .project-row.is-before-project-preview::after {
-  left: calc((100vw - 100%) / -2);
-  right: calc((100vw - 100%) / -2);
+  left: calc(-1 * var(--content-edge-pad));
+  right: calc(-1 * var(--content-edge-pad));
 }
 
 .project-row.has-project-preview::before {
@@ -800,7 +799,7 @@ body[data-layout-transition="true"] .about-section {
 
 .project-card.is-project-preview {
   width: 100vw;
-  min-height: clamp(360px, 28.55vw, 432px);
+  min-height: var(--project-preview-start-height, clamp(360px, 28.55vw, 432px));
   margin-left: calc((100vw - 100%) / -2);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

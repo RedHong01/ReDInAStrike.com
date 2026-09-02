@@ -6150,6 +6150,7 @@ function prepareProjectPreviewExpandMotion(card) {
 
   card.style.setProperty("--project-preview-start-left", `${startLeft}px`)
   card.style.setProperty("--project-preview-start-right", `${startRight}px`)
+  if (rect.height > 0) card.style.setProperty("--project-preview-start-height", `${rect.height.toFixed(2)}px`)
   card.setAttribute("data-project-preview-expanding", "true")
 }
 
@@ -6309,6 +6310,10 @@ function clearProjectPreviewExpandMotion(card) {
   card.style.removeProperty("--project-preview-start-right")
 }
 
+function clearProjectPreviewHeightLock(card) {
+  card?.style.removeProperty("--project-preview-start-height")
+}
+
 function commitProjectPreviewState(card, expanded) {
   const current = activeProjectPreview()
   const catalog = card.closest(".catalog")
@@ -6318,6 +6323,7 @@ function commitProjectPreviewState(card, expanded) {
     current.setAttribute("aria-expanded", "false")
     current.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "true")
     clearProjectPreviewExpandMotion(current)
+    clearProjectPreviewHeightLock(current)
   }
 
   bindDominantMediaBackground(card)
@@ -6350,6 +6356,7 @@ function setProjectPreview(card, expanded) {
   if (!expanded) {
     const exitMotion = createProjectPreviewExitGhost(card)
     clearProjectPreviewExpandMotion(card)
+    clearProjectPreviewHeightLock(card)
     document.documentElement.dataset.projectPreviewTransition = "exiting"
     commitProjectPreviewState(card, expanded)
     runProjectPreviewExitGhost(exitMotion, card, { clearTransition: true, motionId })

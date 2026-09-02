@@ -9,6 +9,7 @@ import {
   BOUNDARY_HOLD_MAX_PX,
   boundaryMetrics,
   boundaryStrength,
+  readViewportBoundaryContext,
   viewportBoundsForCard,
 } from "./viewport-boundary-core.js?v=20260902-previewboundary1"
 
@@ -955,7 +956,7 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
   return field.moving || (hasTransition && minStrength < 0.9995)
 }
 
-function drawViewportState(state, now, forceScrollFrame) {
+function drawViewportState(state, now, forceScrollFrame, boundaryContext) {
   if (!forceScrollFrame && state.lastViewportDraw && now - state.lastViewportDraw < IDLE_FLICKER_FRAME_MS) {
     return state.hasBoundaryTransition === true
   }
@@ -963,7 +964,7 @@ function drawViewportState(state, now, forceScrollFrame) {
   state.hasBoundaryTransition = renderBoundaryField(
     state,
     now,
-    viewportBoundsForCard(state.card),
+    viewportBoundsForCard(state.card, boundaryContext),
     forceScrollFrame,
   )
   return state.hasBoundaryTransition
@@ -973,6 +974,7 @@ function viewportLoop(now) {
   viewportFrame = 0
   if (!viewportStates.size || document.hidden) return
 
+  const boundaryContext = readViewportBoundaryContext()
   const forceScrollFrame = now < viewportActiveUntil
   let hasBoundaryTransition = false
   const states = forceScrollFrame || !viewportObserver ? viewportStates : viewportVisibleStates
@@ -982,7 +984,7 @@ function viewportLoop(now) {
       viewportVisibleStates.delete(state)
       continue
     }
-    if (drawViewportState(state, now, forceScrollFrame)) {
+    if (drawViewportState(state, now, forceScrollFrame, boundaryContext)) {
       hasBoundaryTransition = true
     }
   }
@@ -1055,9 +1057,15 @@ export function paintViewportDitherRevealNow(card, finalCanvas = null, inputConf
   }
 
   const now = performance.now()
-  const hasTransition = renderBoundaryField(state, now, viewportBoundsForCard(card), true, {
+  const hasTransition = renderBoundaryField(
+    state,
+    now,
+    viewportBoundsForCard(card, readViewportBoundaryContext()),
+    true,
+    {
     immediate: true,
-  })
+    },
+  )
   if (animationStates.get(card) !== state) {
     return { ...fallback, reason: "state-cancelled" }
   }

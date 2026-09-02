@@ -58,19 +58,32 @@ function pinnedPreviewBoundary(expandedCard, expandedRow, headerEdge, viewportBo
  * Later cards use the pinned expanded preview's lower edge as their upper
  * occlusion line, so every binary surface agrees on what is physically hidden.
  */
-export function viewportBoundsForCard(card = null) {
+export function readViewportBoundaryContext() {
   const bottom = viewportHeight()
   const headerEdge = headerBottom(bottom)
-  let top = headerEdge
-
   const expandedCard = document.querySelector(".project-card.is-project-preview")
   const expandedRow = expandedCard?.closest?.(".project-row")
-  if (expandedCard && followingRow(expandedRow, card)) {
-    const previewEdge = pinnedPreviewBoundary(expandedCard, expandedRow, headerEdge, bottom)
-    if (previewEdge !== null) top = previewEdge
+  const expandedBoundary = pinnedPreviewBoundary(
+    expandedCard,
+    expandedRow,
+    headerEdge,
+    bottom,
+  )
+
+  return { bottom, headerEdge, expandedRow, expandedBoundary }
+}
+
+export function viewportBoundsForCard(card = null, context = null) {
+  const boundaryContext = context || readViewportBoundaryContext()
+  let top = boundaryContext.headerEdge
+  if (
+    boundaryContext.expandedBoundary !== null &&
+    followingRow(boundaryContext.expandedRow, card)
+  ) {
+    top = boundaryContext.expandedBoundary
   }
 
-  return { top, bottom }
+  return { top, bottom: boundaryContext.bottom }
 }
 
 export function boundaryMetrics(bounds) {

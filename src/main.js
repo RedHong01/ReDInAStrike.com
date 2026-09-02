@@ -6,6 +6,10 @@ import {
   smooth01,
 } from "./binary-surface-core.js"
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+import {
+  readViewportBoundaryContext,
+  viewportBoundsForCard,
+} from "./viewport-boundary-core.js?v=20260902-previewboundary1"
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
@@ -3497,26 +3501,37 @@ function applyHeaderProgress(progress, options = {}) {
 
 function updateProjectRuleReveal() {
   const { header, projectRows, cardRuleTargets } = siteState.dom
-  const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
-  if (!viewportHeight) return
+  const boundaryContext = readViewportBoundaryContext()
+  if (!boundaryContext.bottom) return
 
-  const visibleTop = clamp(
-    siteState.headerVisualBottom > 0
-      ? siteState.headerVisualBottom
-      : header?.getBoundingClientRect().bottom || 0,
-    0,
-    viewportHeight - 1,
-  )
-  const visibleBottom = viewportHeight
-  const visibleHeight = Math.max(1, visibleBottom - visibleTop)
-  const edgeHoldDistance = clamp(visibleHeight * 0.035, 18, 42)
-  const edgeFadeDistance = clamp(visibleHeight * 0.13, 68, 168)
-  const updateMargin = Math.max(PROJECT_RULE_UPDATE_MARGIN, edgeFadeDistance * 1.6)
-  const ruleRevealFromY = (y) => {
-    const edgeDistance = Math.min(y - visibleTop, visibleBottom - y)
-    return smoothstep((edgeDistance - edgeHoldDistance) / edgeFadeDistance).toFixed(3)
+  const ruleBoundaryCache = new WeakMap()
+  const ruleBoundaryFor = (element) => {
+    const targetCard = element?.matches?.(".project-card")
+      ? element
+      : element?.querySelector?.(".project-card") || null
+    const cacheKey = targetCard || element
+    const cached = ruleBoundaryCache.get(cacheKey)
+    if (cached) return cached
+
+    const bounds = viewportBoundsForCard(targetCard, boundaryContext)
+    const visibleBottom = bounds.bottom
+    const visibleTop = clamp(bounds.top, 0, Math.max(0, visibleBottom - 1))
+    const visibleHeight = Math.max(1, visibleBottom - visibleTop)
+    const edgeHoldDistance = clamp(visibleHeight * 0.035, 18, 42)
+    const edgeFadeDistance = clamp(visibleHeight * 0.13, 68, 168)
+    const updateMargin = Math.max(PROJECT_RULE_UPDATE_MARGIN, edgeFadeDistance * 1.6)
+    const result = {
+      ruleRevealFromY(y) {
+        const edgeDistance = Math.min(y - visibleTop, visibleBottom - y)
+        return smoothstep((edgeDistance - edgeHoldDistance) / edgeFadeDistance).toFixed(3)
+      },
+      ruleYNeedsUpdate(y) {
+        return y >= visibleTop - updateMargin && y <= visibleBottom + updateMargin
+      },
+    }
+    ruleBoundaryCache.set(cacheKey, result)
+    return result
   }
-  const ruleYNeedsUpdate = (y) => y >= visibleTop - updateMargin && y <= visibleBottom + updateMargin
 
   const ruleUpdates = siteState.ruleFadeUpdates
   ruleUpdates.length = 0
@@ -3526,8 +3541,9 @@ function updateProjectRuleReveal() {
       return
     }
     const rect = readCachedRuleRect(row)
-    if (!ruleYNeedsUpdate(rect.bottom)) return
-    ruleUpdates.push(row, "--project-rule-weight", ruleRevealFromY(rect.bottom))
+    const boundary = ruleBoundaryFor(row)
+    if (!boundary.ruleYNeedsUpdate(rect.bottom)) return
+    ruleUpdates.push(row, "--project-rule-weight", boundary.ruleRevealFromY(rect.bottom))
   })
 
   cardRuleTargets.forEach((card) => {
@@ -3537,8 +3553,9 @@ function updateProjectRuleReveal() {
       return
     }
     const rect = readCachedRuleRect(card)
-    if (!ruleYNeedsUpdate(rect.top)) return
-    ruleUpdates.push(card, "--card-rule-weight", ruleRevealFromY(rect.top))
+    const boundary = ruleBoundaryFor(card)
+    if (!boundary.ruleYNeedsUpdate(rect.top)) return
+    ruleUpdates.push(card, "--card-rule-weight", boundary.ruleRevealFromY(rect.top))
   })
 
   for (let index = 0; index < ruleUpdates.length; index += 3) {

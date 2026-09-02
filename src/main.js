@@ -1214,10 +1214,7 @@ function drawRouteExitSnowFrame(
     const alpha = isBoundary ? Math.round(255 * (0.45 + edge * 0.55)) : 255
 
     if (hasSourceBits && !sourceInk) {
-      data[offset] = paper[0]
-      data[offset + 1] = paper[1]
-      data[offset + 2] = paper[2]
-      data[offset + 3] = alpha
+      data[offset + 3] = 0
       continue
     }
 
@@ -5186,6 +5183,7 @@ function scheduleScrollToPageSection(hash, options = {}) {
 }
 
 function replaceCatalogFilterImmediately(category) {
+  clearProjectPreviewExitGhosts()
   const catalog = document.querySelector(".catalog")
   if (!catalog) return
 
@@ -5288,6 +5286,7 @@ function commitCatalogFilterTransition(cycle) {
 }
 
 function startCatalogFilterTransition() {
+  clearProjectPreviewExitGhosts()
   const catalog = document.querySelector(".catalog")
   if (!catalog) {
     siteState.catalogFilterCurrent = siteState.catalogFilterTarget
@@ -5458,16 +5457,10 @@ function setupNavHoverInteraction() {
       .filter(([category]) => category),
   )
   let clearTimer = 0
-  let hoverScrollTimer = 0
   let hoveredItem = null
   let visualStateKey = ""
 
   const itemForCategory = (category) => itemsByCategory.get(category) || null
-
-  const clearHoverScroll = () => {
-    window.clearTimeout(hoverScrollTimer)
-    hoverScrollTimer = 0
-  }
 
   const setVisualActive = (activeItem) => {
     const lockedItem = itemForCategory(siteState.catalogFilterLocked)
@@ -5487,23 +5480,9 @@ function setupNavHoverInteraction() {
     })
   }
 
-  const scheduleHoverScroll = (activeItem, category) => {
-    clearHoverScroll()
-    if (!category || siteState.catalogFilterLocked) return
-
-    hoverScrollTimer = window.setTimeout(() => {
-      hoverScrollTimer = 0
-      if (siteState.catalogFilterLocked) return
-      if (hoveredItem !== activeItem) return
-      if (siteState.catalogFilterTarget !== category && siteState.catalogFilterCurrent !== category) return
-      scrollToCatalogFilterTop()
-    }, catalogFilterDuration(NAV_HOVER_SCROLL_DELAY_MS))
-  }
-
   const clearActive = () => {
     window.clearTimeout(clearTimer)
     clearTimer = 0
-    clearHoverScroll()
     hoveredItem = null
     setVisualActive(itemForCategory(siteState.catalogFilterLocked))
     if (!siteState.catalogFilterLocked) setCatalogFilter(null)
@@ -6211,6 +6190,7 @@ function setProjectPreview(card, expanded) {
 function dismissProjectPreview(event) {
   const current = activeProjectPreview()
   if (!current || current.contains(event.target)) return
+  if (event.target?.closest?.(".site-header")) return
   if (event.target?.closest?.("[data-project-card]")) return
   setProjectPreview(current, false)
 }
@@ -6260,6 +6240,8 @@ function handleRouteLinkClick(event) {
   }
 
   if (target.path === routeFromLocation()) {
+    const hashCategory = normalizeCatalogFilter(target.hash)
+    if (target.path === "/" && (hashCategory || target.hash === "resume")) return
     if (target.path !== "/" || !target.hash) event.preventDefault()
     return
   }

@@ -760,10 +760,22 @@ body[data-layout-transition="true"] .about-section {
   display: none;
 }
 
+.project-row.has-project-preview::before,
 .project-row.has-project-preview::after,
 .project-row.is-before-project-preview::after {
   left: calc((100vw - 100%) / -2);
   right: calc((100vw - 100%) / -2);
+}
+
+.project-row.has-project-preview::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  height: 1px;
+  background: var(--rule);
+  transform: scaleY(0.65);
+  transform-origin: center;
+  pointer-events: none;
 }
 
 .project-row.has-project-preview:last-child::after {
@@ -803,7 +815,7 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-card.project-preview-exit-ghost {
-  position: fixed;
+  position: absolute;
   left: var(--project-preview-ghost-left, 0);
   top: var(--project-preview-ghost-top, 0);
   z-index: 60;
@@ -819,6 +831,10 @@ body[data-layout-transition="true"] .about-section {
 
 .project-card.project-preview-exit-ghost .project-media {
   min-height: 0;
+}
+
+.project-card.project-preview-exit-ghost .project-preview-copy {
+  animation: none;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-exiting="true"] {
@@ -850,6 +866,10 @@ body[data-layout-transition="true"] .about-section {
   padding: clamp(38px, 4.65vw, 72px) clamp(32px, 6.6vw, 100px) clamp(30px, 3.5vw, 54px) clamp(28px, 3.2vw, 48px);
   cursor: pointer;
   animation: project-preview-copy-in var(--project-preview-duration) var(--project-preview-ease) both;
+}
+
+.project-card.is-project-preview.project-preview-exit-ghost .project-preview-copy {
+  animation: none;
 }
 
 .project-card.is-project-preview[data-card-side="right"] .project-preview-copy {

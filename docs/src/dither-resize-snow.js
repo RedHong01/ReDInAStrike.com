@@ -15,7 +15,7 @@ import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260902-previewexit1"
+} from "./reveal-motion.js?v=20260902-previewexit5"
 import {
   sampleCurrentBinarySurface,
 } from "./binary-visible-surface.js?v=20260901-visualpipe2"

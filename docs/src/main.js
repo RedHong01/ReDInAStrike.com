@@ -546,6 +546,7 @@ const siteState = {
   mediaBackgroundImageBound: new WeakSet(),
   mediaBackgroundCache: new Map(),
   projectPreviewMotionId: 0,
+  projectPreviewExitGhosts: new Set(),
 }
 
 function refreshDomCache() {
@@ -1213,10 +1214,7 @@ function drawRouteExitSnowFrame(
     const alpha = isBoundary ? Math.round(255 * (0.45 + edge * 0.55)) : 255
 
     if (hasSourceBits && !sourceInk) {
-      data[offset] = paper[0]
-      data[offset + 1] = paper[1]
-      data[offset + 2] = paper[2]
-      data[offset + 3] = alpha
+      data[offset + 3] = 0
       continue
     }
 
@@ -5185,6 +5183,7 @@ function scheduleScrollToPageSection(hash, options = {}) {
 }
 
 function replaceCatalogFilterImmediately(category) {
+  clearProjectPreviewExitGhosts()
   const catalog = document.querySelector(".catalog")
   if (!catalog) return
 
@@ -5287,6 +5286,7 @@ function commitCatalogFilterTransition(cycle) {
 }
 
 function startCatalogFilterTransition() {
+  clearProjectPreviewExitGhosts()
   const catalog = document.querySelector(".catalog")
   if (!catalog) {
     siteState.catalogFilterCurrent = siteState.catalogFilterTarget
@@ -6038,6 +6038,8 @@ function createProjectPreviewExitGhost(card) {
   ghost.removeAttribute("href")
   ghost.removeAttribute("id")
   ghost.removeAttribute("data-project-card")
+  ghost.removeAttribute("data-project-preview-expanding")
+  ghost.removeAttribute("data-project-preview-exiting")
   ghost.removeAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE)
   ghost.removeAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE)
   ghost.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
@@ -6047,12 +6049,13 @@ function createProjectPreviewExitGhost(card) {
     .forEach((element) => element.remove())
   ghost.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "false")
 
-  ghost.style.setProperty("--project-preview-ghost-left", `${sourceRect.left}px`)
-  ghost.style.setProperty("--project-preview-ghost-top", `${sourceRect.top}px`)
+  ghost.style.setProperty("--project-preview-ghost-left", `${sourceRect.left + window.scrollX}px`)
+  ghost.style.setProperty("--project-preview-ghost-top", `${sourceRect.top + window.scrollY}px`)
   ghost.style.setProperty("--project-preview-ghost-width", `${sourceRect.width}px`)
   ghost.style.setProperty("--project-preview-ghost-height", `${sourceRect.height}px`)
 
   document.body.appendChild(ghost)
+  siteState.projectPreviewExitGhosts.add(ghost)
   return {
     ghost,
     sourceRect,
@@ -6082,6 +6085,14 @@ function applyProjectPreviewExitTarget(exitMotion, targetCard) {
   ghost.setAttribute("data-project-preview-exiting", "true")
 }
 
+function clearProjectPreviewExitGhosts() {
+  if (!siteState.projectPreviewExitGhosts.size) return
+  for (const ghost of [...siteState.projectPreviewExitGhosts]) {
+    ghost?.remove()
+  }
+  siteState.projectPreviewExitGhosts.clear()
+}
+
 function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = false, motionId = 0 } = {}) {
   if (!exitMotion?.ghost?.isConnected) {
     if (clearTransition && motionId === siteState.projectPreviewMotionId) {
@@ -6098,6 +6109,7 @@ function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = 
     if (cleaned) return
     cleaned = true
     ghost.removeEventListener("animationend", handleAnimationEnd)
+    siteState.projectPreviewExitGhosts.delete(ghost)
     ghost.remove()
     if (clearTransition && motionId === siteState.projectPreviewMotionId) {
       delete document.documentElement.dataset.projectPreviewTransition
@@ -6198,6 +6210,7 @@ function setProjectPreview(card, expanded) {
 function dismissProjectPreview(event) {
   const current = activeProjectPreview()
   if (!current || current.contains(event.target)) return
+  if (event.target?.closest?.(".site-header")) return
   if (event.target?.closest?.("[data-project-card]")) return
   setProjectPreview(current, false)
 }
@@ -6233,34 +6246,41 @@ function handleRouteLinkClick(event) {
     return
   }
 
-  const projectCard = link.matches("[data-project-card]") ? link : null
+  const projectCard = link.closest?.("[data-project-card]") || null
   if (projectCard && document.documentElement.hasAttribute("data-project-preview-transition")) {
     event.preventDefault()
+    event.stopPropagation()
     return
   }
   if (projectCard && target.path !== routeFromLocation() && !projectCard.classList.contains("is-project-preview")) {
     event.preventDefault()
+    event.stopPropagation()
     setProjectPreview(projectCard, true)
     return
   }
 
   if (target.path === routeFromLocation()) {
+    const hashCategory = normalizeCatalogFilter(target.hash)
+    if (target.path === "/" && (hashCategory || target.hash === "resume")) return
     if (target.path !== "/" || !target.hash) event.preventDefault()
     return
   }
 
   event.preventDefault()
   if (prefersReducedMotion()) {
+    clearProjectPreviewExitGhosts()
     navigateRouteWithoutTransition(target.url)
     return
   }
 
+  clearProjectPreviewExitGhosts()
   startHomeReturnTransition(target.url)
 }
 
 function handlePopState() {
   const target = routeTargetFromUrl(new URL(window.location.href))
   if (!target) {
+    clearProjectPreviewExitGhosts()
     cancelHomeReturnTransition()
     render()
     return
@@ -6268,10 +6288,12 @@ function handlePopState() {
 
   const currentDomRoute = document.querySelector(".site-main")?.dataset.route
   if (currentDomRoute === targetRouteDatasetValue(target.path) || prefersReducedMotion()) {
+    clearProjectPreviewExitGhosts()
     navigateRouteWithoutTransition(target.url, { updateHistory: false })
     return
   }
 
+  clearProjectPreviewExitGhosts()
   cancelHomeReturnTransition({ syncHeaderToScroll: false })
   startHomeReturnTransition(target.url, { updateHistory: false })
 }
@@ -6279,6 +6301,9 @@ function handlePopState() {
 document.addEventListener("click", handleRouteLinkClick, { capture: true })
 document.addEventListener("click", dismissProjectPreview)
 document.addEventListener("keydown", handleProjectPreviewKeydown)
+window.addEventListener("wheel", clearProjectPreviewExitGhosts, { passive: true })
+window.addEventListener("touchstart", clearProjectPreviewExitGhosts, { passive: true })
+window.addEventListener("scroll", clearProjectPreviewExitGhosts, { passive: true })
 window.addEventListener("red:public-dither-ready", (event) => {
   if (event?.detail?.generated) stopLegacyCatalogHalftoneWork()
 })

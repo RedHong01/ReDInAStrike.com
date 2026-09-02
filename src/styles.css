@@ -750,10 +750,6 @@ body[data-layout-transition="true"] .about-section {
   row-gap: 0;
   padding-top: 0;
   padding-bottom: 0;
-  position: sticky;
-  top: var(--header-height);
-  z-index: 15;
-  background: var(--paper);
 }
 
 .project-row.has-project-preview:first-child {

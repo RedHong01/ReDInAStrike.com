@@ -206,6 +206,10 @@ const HOME_RETURN_COVER_MS = 620
 const HOME_RETURN_REVEAL_MS = 680
 const HOME_RETURN_FONT_READY_MS = 520
 const HOME_RETURN_READY_TIMEOUT_MS = 1100
+const PROJECT_EXPAND_MIN_MS = 420
+const PROJECT_EXPAND_MAX_MS = 780
+const PROJECT_EXPAND_DISTANCE_RATIO = 0.34
+const PROJECT_EXPAND_MASK_FADE_MS = 260
 const ROUTE_EXIT_SNOW_MAX_CELLS = 76000
 const ROUTE_EXIT_SNOW_MIN_COLUMNS = 144
 const ROUTE_EXIT_SNOW_SOFTNESS = 0.105
@@ -3324,6 +3328,10 @@ function updateProjectRuleReveal() {
   const ruleUpdates = siteState.ruleFadeUpdates
   ruleUpdates.length = 0
   projectRows.forEach((row) => {
+    if (row.classList.contains("has-project-preview")) {
+      ruleUpdates.push(row, "--project-rule-weight", "1")
+      return
+    }
     const rect = readCachedRuleRect(row)
     if (!ruleYNeedsUpdate(rect.bottom)) return
     ruleUpdates.push(row, "--project-rule-weight", ruleRevealFromY(rect.bottom))

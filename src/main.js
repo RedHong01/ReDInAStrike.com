@@ -17,6 +17,14 @@ const navItems = [
 
 const CATALOG_DEFAULT_EAGER_IMAGE_COUNT = 2
 const CATALOG_FILTER_EAGER_IMAGE_COUNT = 12
+const PROJECT_PREVIEW_FILTER_VALUE = "project-preview"
+const PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE = "data-project-preview-filter-muted"
+const PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE = "data-project-preview-previous-filter"
+const PROJECT_PREVIEW_ACTIVE_ATTRIBUTE = "data-project-preview-active"
+const DITHER_CATEGORY_ENTER_ATTRIBUTE = "data-dither-category-enter-reveal"
+const MEDIA_DOMINANT_SAMPLE_MAX = 42
+const MEDIA_DOMINANT_ALPHA_MIN = 24
+const MEDIA_DOMINANT_CACHE_LIMIT = 96
 
 const projects = [
   {
@@ -532,6 +540,10 @@ const siteState = {
   halftoneColorsKey: "",
   reducedMotionQuery: null,
   hoverEmbedMediaBound: new WeakSet(),
+  filteredRestoreCardsBound: new WeakSet(),
+  mediaBackgroundImageBound: new WeakSet(),
+  mediaBackgroundCache: new Map(),
+  projectPreviewMotionId: 0,
 }
 
 function refreshDomCache() {
@@ -2261,6 +2273,8 @@ function mediaStyle(project) {
     "--media-aspect: 16 / 9",
     `--image-fit: ${project.imageFit || "cover"}`,
     `--image-position: ${project.imagePosition || "center center"}`,
+    `--preview-image-fit: ${project.previewImageFit || "contain"}`,
+    `--preview-image-position: ${project.previewImagePosition || project.imagePosition || "center center"}`,
     `--media-bg: ${project.mediaBackground || "#f2f2f2"}`,
   ].join("; ")
 }
@@ -2295,13 +2309,14 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
   const mutedClass = options.muted ? " is-filter-muted" : ""
   const mutedAttributes = options.muted ? ` data-filter-muted="true"` : ""
   const mediaBackgroundClass = project.mediaBackground ? " has-media-background" : ""
+  const mediaBackgroundMode = project.mediaBackground ? "fixed" : "image"
   const halftoneCanvas = options.muted
     ? `<canvas class="project-halftone" aria-hidden="true"></canvas>`
     : ""
   const cardSide = loadingIndex % 2 === 0 ? "left" : "right"
 
   return `
-    <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-card-side="${cardSide}" data-section="${escapeHtml(project.navHash)}" data-index="${index}" aria-expanded="false" style="${mediaStyle(project)}"${mutedAttributes}>
+    <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-card-side="${cardSide}" data-section="${escapeHtml(project.navHash)}" data-index="${index}" data-media-bg-mode="${mediaBackgroundMode}" aria-expanded="false" style="${mediaStyle(project)}"${mutedAttributes}>
       <figure class="project-media${mediaBackgroundClass}"${videoAttributes}>
         <img
           src="${asset(project.image)}"
@@ -2325,6 +2340,123 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
         <span class="project-preview-enter" data-typewriter-skip>Click again to view project ↗</span>
       </div>
     </a>`
+}
+
+function dominantMediaCacheKey(img) {
+  const source = img.currentSrc || img.src || img.getAttribute("src") || ""
+  return `${source}:${img.naturalWidth}x${img.naturalHeight}`
+}
+
+function trimMediaDominantCache() {
+  while (siteState.mediaBackgroundCache.size > MEDIA_DOMINANT_CACHE_LIMIT) {
+    const first = siteState.mediaBackgroundCache.keys().next().value
+    siteState.mediaBackgroundCache.delete(first)
+  }
+}
+
+function previewInkForRgb(red, green, blue) {
+  const luma = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+  return luma < 92 ? "rgb(248 247 245)" : "rgb(69 69 69)"
+}
+
+function dominantMediaBackgroundFromImage(img) {
+  if (!img?.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return null
+
+  const key = dominantMediaCacheKey(img)
+  const cached = siteState.mediaBackgroundCache.get(key)
+  if (cached) return cached
+
+  const scale = MEDIA_DOMINANT_SAMPLE_MAX / Math.max(img.naturalWidth, img.naturalHeight)
+  const width = Math.max(1, Math.round(img.naturalWidth * Math.min(1, scale)))
+  const height = Math.max(1, Math.round(img.naturalHeight * Math.min(1, scale)))
+  const canvas = document.createElement("canvas")
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext("2d", {
+    alpha: true,
+    colorSpace: "srgb",
+    willReadFrequently: true,
+  })
+  if (!context) return null
+
+  try {
+    context.drawImage(img, 0, 0, width, height)
+    const pixels = context.getImageData(0, 0, width, height).data
+    const buckets = new Map()
+
+    for (let index = 0; index < pixels.length; index += 4) {
+      const alpha = pixels[index + 3]
+      if (alpha < MEDIA_DOMINANT_ALPHA_MIN) continue
+
+      const red = pixels[index]
+      const green = pixels[index + 1]
+      const blue = pixels[index + 2]
+      const bucketKey = `${red >> 4}:${green >> 4}:${blue >> 4}`
+      const bucket = buckets.get(bucketKey) || { count: 0, red: 0, green: 0, blue: 0 }
+      bucket.count += 1
+      bucket.red += red
+      bucket.green += green
+      bucket.blue += blue
+      buckets.set(bucketKey, bucket)
+    }
+
+    let dominant = null
+    for (const bucket of buckets.values()) {
+      if (!dominant || bucket.count > dominant.count) dominant = bucket
+    }
+    if (!dominant) return null
+
+    const red = Math.round(dominant.red / dominant.count)
+    const green = Math.round(dominant.green / dominant.count)
+    const blue = Math.round(dominant.blue / dominant.count)
+    const result = {
+      background: `rgb(${red} ${green} ${blue})`,
+      ink: previewInkForRgb(red, green, blue),
+    }
+    siteState.mediaBackgroundCache.set(key, result)
+    trimMediaDominantCache()
+    return result
+  } catch {
+    return null
+  }
+}
+
+function applyDominantMediaBackground(card) {
+  if (!card || card.dataset.mediaBgMode === "fixed") return false
+
+  const media = card.querySelector(".project-media")
+  const img = media?.querySelector("img")
+  if (!media || !img) return false
+
+  const result = dominantMediaBackgroundFromImage(img)
+  if (!result) return false
+
+  card.style.setProperty("--media-bg", result.background)
+  card.style.setProperty("--preview-media-bg", result.background)
+  card.style.setProperty("--preview-ink", result.ink)
+  media.classList.add("has-media-background")
+  return true
+}
+
+function bindDominantMediaBackground(card) {
+  if (!card || card.dataset.mediaBgMode === "fixed") return
+
+  if (applyDominantMediaBackground(card)) return
+
+  const img = card.querySelector(".project-media img")
+  if (!img || siteState.mediaBackgroundImageBound.has(img)) return
+
+  siteState.mediaBackgroundImageBound.add(img)
+  const applyWhenReady = () => {
+    if (card.isConnected) applyDominantMediaBackground(card)
+  }
+  img.addEventListener("load", applyWhenReady, { once: true, passive: true })
+  img.addEventListener("error", applyWhenReady, { once: true, passive: true })
+}
+
+function setupMediaDominantBackgrounds(root = document) {
+  root.querySelectorAll?.(".project-card").forEach(bindDominantMediaBackground)
 }
 
 function galleryTile(project, index, isClone = false) {
@@ -2909,6 +3041,7 @@ function render() {
   siteState.navHoverSpacingKey = ""
   refreshDomCache()
   resetCatalogFilterState()
+  setupMediaDominantBackgrounds(app)
   setupHeader()
   setupNavHoverSpacing({ force: true })
   setupNavHoverInteraction()
@@ -4229,6 +4362,7 @@ function updateCatalogFilterDataset(catalog, category) {
 }
 
 function refreshCatalogAfterFilter(catalog) {
+  setupMediaDominantBackgrounds(catalog)
   setupHoverEmbeds()
   setupFilteredCatalogRestore(catalog)
   updateVisibleCatalogHalftoneCards(catalog)
@@ -5031,6 +5165,8 @@ function replaceCatalogFilterImmediately(category) {
   siteState.catalogFilterCurrent = normalizedCategory
   siteState.catalogFilterPhase = "idle"
   siteState.catalogFilterCycle += 1
+  clearProjectPreviewFilterState(catalog, { restoreFilter: false, refresh: false })
+  delete catalog.dataset.projectPreview
   catalog.innerHTML = catalogRowsMarkup(normalizedCategory)
   refreshDomCache()
   delete catalog.dataset.filterPhase
@@ -5054,6 +5190,8 @@ function commitCatalogFilterTransition(cycle) {
 
   const category = siteState.catalogFilterTarget
   const commitStarted = performance.now()
+  clearProjectPreviewFilterState(catalog, { restoreFilter: false, refresh: false })
+  delete catalog.dataset.projectPreview
   const usesLegacyHalftone = !publicDitherOwnsMutedCards()
   catalog.dataset.filterPhase = "entering"
   if (usesLegacyHalftone) catalog.dataset.halftonePhase = "primed"
@@ -5207,6 +5345,9 @@ function setupFilteredCatalogRestore(catalog) {
   if (!catalog) return
 
   catalog.querySelectorAll(".project-card.is-filter-muted").forEach((card) => {
+    if (siteState.filteredRestoreCardsBound.has(card)) return
+    siteState.filteredRestoreCardsBound.add(card)
+
     const clearIntent = () => {
       if (!card.classList.contains("is-muted-restore-intent")) return
 
@@ -5655,10 +5796,105 @@ function setupHoverEmbeds() {
   })
 }
 
-const PROJECT_PREVIEW_TRANSITION_NAME = "project-preview"
-
 function activeProjectPreview() {
   return document.querySelector(".project-card.is-project-preview")
+}
+
+function ensureProjectHalftoneCanvas(card) {
+  const media = card?.querySelector?.(".project-media")
+  if (!media || media.querySelector(".project-halftone")) return
+
+  const canvas = document.createElement("canvas")
+  canvas.className = "project-halftone"
+  canvas.setAttribute("aria-hidden", "true")
+  media.appendChild(canvas)
+}
+
+function restoreCardBaseMutedState(card) {
+  if (!card) return
+
+  window.clearTimeout(card.__catalogMutedReturnTimer)
+  card.__catalogMutedReturnTimer = 0
+  card.removeAttribute(ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE)
+  card.removeAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE)
+  card.removeAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE)
+  card.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
+  card.classList.remove("is-muted-restore-intent", "is-muted-restore-return")
+
+  if (card.dataset.filterMuted === "true") {
+    card.classList.add("is-filter-muted")
+    ensureProjectHalftoneCanvas(card)
+  } else {
+    card.classList.remove("is-filter-muted")
+  }
+}
+
+function clearProjectPreviewFilterState(catalog, options = {}) {
+  if (!catalog) return
+
+  const restoreFilter = options.restoreFilter !== false
+  const refresh = options.refresh !== false
+  const previousFilter = catalog.getAttribute(PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE)
+  catalog.querySelectorAll(".project-card").forEach(restoreCardBaseMutedState)
+  catalog.removeAttribute(PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE)
+  delete catalog.dataset.projectPreviewFilter
+
+  if (restoreFilter) {
+    if (previousFilter !== null) {
+      if (previousFilter) catalog.dataset.activeFilter = previousFilter
+      else delete catalog.dataset.activeFilter
+    } else if (catalog.dataset.activeFilter === PROJECT_PREVIEW_FILTER_VALUE) {
+      delete catalog.dataset.activeFilter
+    }
+  }
+
+  if (!refresh) return
+  refreshDomCache()
+  setupFilteredCatalogRestore(catalog)
+  updateVisibleCatalogHalftoneCards(catalog)
+  window.__RED_DITHER_PUBLIC_RUNTIME__?.render?.()
+}
+
+function syncProjectPreviewFilterState(catalog, activeCard) {
+  if (!catalog || !activeCard) {
+    clearProjectPreviewFilterState(catalog)
+    return
+  }
+
+  if (!catalog.hasAttribute(PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE)) {
+    catalog.setAttribute(PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE, catalog.dataset.activeFilter || "")
+  }
+  if (!catalog.dataset.activeFilter) {
+    catalog.dataset.activeFilter = PROJECT_PREVIEW_FILTER_VALUE
+  }
+  catalog.dataset.projectPreviewFilter = "true"
+
+  catalog.querySelectorAll(".project-card").forEach((card) => {
+    window.clearTimeout(card.__catalogMutedReturnTimer)
+    card.__catalogMutedReturnTimer = 0
+    card.removeAttribute(ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE)
+    card.classList.remove("is-muted-restore-intent", "is-muted-restore-return")
+
+    if (card === activeCard) {
+      card.setAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE, "true")
+      card.removeAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE)
+      card.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
+      card.classList.remove("is-filter-muted")
+      return
+    }
+
+    card.removeAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE)
+    card.setAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE, "true")
+    card.setAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE, "true")
+    card.classList.add("is-filter-muted")
+    ensureProjectHalftoneCanvas(card)
+    bindDominantMediaBackground(card)
+  })
+
+  refreshDomCache()
+  setupFilteredCatalogRestore(catalog)
+  updateVisibleCatalogHalftoneCards(catalog)
+  window.__RED_DITHER_PUBLIC_RUNTIME__?.render?.()
 }
 
 function refreshAfterProjectPreviewChange() {
@@ -5670,6 +5906,32 @@ function refreshAfterProjectPreviewChange() {
   requestLayoutEffectsUpdate({ rules: true, footer: true })
 }
 
+function prepareProjectPreviewExpandMotion(card) {
+  if (!card) return
+
+  const rect = card.getBoundingClientRect()
+  const viewportWidth = Math.max(
+    window.innerWidth || 0,
+    document.documentElement.clientWidth || 0,
+    Math.ceil(rect.right),
+    1,
+  )
+  const startLeft = clamp(Math.round(rect.left), 0, viewportWidth)
+  const startRight = clamp(Math.round(viewportWidth - rect.right), 0, viewportWidth)
+
+  card.style.setProperty("--project-preview-start-left", `${startLeft}px`)
+  card.style.setProperty("--project-preview-start-right", `${startRight}px`)
+  card.setAttribute("data-project-preview-expanding", "true")
+}
+
+function clearProjectPreviewExpandMotion(card) {
+  if (!card) return
+
+  card.removeAttribute("data-project-preview-expanding")
+  card.style.removeProperty("--project-preview-start-left")
+  card.style.removeProperty("--project-preview-start-right")
+}
+
 function commitProjectPreviewState(card, expanded) {
   const current = activeProjectPreview()
   if (current && current !== card) {
@@ -5677,13 +5939,20 @@ function commitProjectPreviewState(card, expanded) {
     current.setAttribute("aria-expanded", "false")
     current.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "true")
     current.closest(".project-row")?.classList.remove("has-project-preview")
+    clearProjectPreviewExpandMotion(current)
   }
+
+  bindDominantMediaBackground(card)
+  if (expanded) applyDominantMediaBackground(card)
 
   card.classList.toggle("is-project-preview", expanded)
   card.setAttribute("aria-expanded", expanded ? "true" : "false")
   card.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", expanded ? "false" : "true")
   card.closest(".project-row")?.classList.toggle("has-project-preview", expanded)
-  card.closest(".catalog")?.toggleAttribute("data-project-preview", expanded)
+  const catalog = card.closest(".catalog")
+  catalog?.toggleAttribute("data-project-preview", expanded)
+  if (expanded) syncProjectPreviewFilterState(catalog, card)
+  else clearProjectPreviewFilterState(catalog)
   refreshAfterProjectPreviewChange()
 }
 
@@ -5693,38 +5962,43 @@ function setProjectPreview(card, expanded) {
   if (expanded && current === card) return
   if (!expanded && current !== card) return
 
-  const outgoing = current || card
-  outgoing.style.viewTransitionName = PROJECT_PREVIEW_TRANSITION_NAME
+  const motionId = siteState.projectPreviewMotionId + 1
+  siteState.projectPreviewMotionId = motionId
 
-  if (!document.startViewTransition || prefersReducedMotion()) {
+  if (prefersReducedMotion()) {
     commitProjectPreviewState(card, expanded)
-    outgoing.style.removeProperty("view-transition-name")
     return
   }
 
-  document.documentElement.dataset.projectPreviewTransition = "true"
-  let transition
-  try {
-    transition = document.startViewTransition(() => {
-      outgoing.style.removeProperty("view-transition-name")
-      card.style.viewTransitionName = PROJECT_PREVIEW_TRANSITION_NAME
-      commitProjectPreviewState(card, expanded)
-    })
-  } catch {
+  if (!expanded) {
+    clearProjectPreviewExpandMotion(card)
+    commitProjectPreviewState(card, expanded)
+    return
+  }
+
+  prepareProjectPreviewExpandMotion(card)
+  document.documentElement.dataset.projectPreviewTransition = "expanding"
+  commitProjectPreviewState(card, expanded)
+
+  let cleaned = false
+  const cleanup = () => {
+    if (cleaned) return
+    if (motionId !== siteState.projectPreviewMotionId) return
+    cleaned = true
     delete document.documentElement.dataset.projectPreviewTransition
-    outgoing.style.removeProperty("view-transition-name")
-    commitProjectPreviewState(card, expanded)
-    return
+    clearProjectPreviewExpandMotion(card)
+    refreshAfterProjectPreviewChange()
   }
-
-  transition.finished
-    .catch(() => {})
-    .finally(() => {
-      delete document.documentElement.dataset.projectPreviewTransition
-      outgoing.style.removeProperty("view-transition-name")
-      card.style.removeProperty("view-transition-name")
-      refreshAfterProjectPreviewChange()
-    })
+  const handleAnimationEnd = (event) => {
+    if (event.target !== card) return
+    card.removeEventListener("animationend", handleAnimationEnd)
+    cleanup()
+  }
+  card.addEventListener("animationend", handleAnimationEnd)
+  window.setTimeout(() => {
+    card.removeEventListener("animationend", handleAnimationEnd)
+    cleanup()
+  }, catalogFilterDuration(560) + 120)
 }
 
 function dismissProjectPreview(event) {

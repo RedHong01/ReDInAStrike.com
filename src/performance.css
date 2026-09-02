@@ -26,6 +26,10 @@ html.red-perf-pass-1 .project-row {
   contain: layout paint;
 }
 
+html.red-perf-pass-1 .project-row.has-project-preview {
+  contain: layout;
+}
+
 html.red-perf-pass-1 .project-media {
   contain: paint;
 }

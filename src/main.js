@@ -3530,6 +3530,11 @@ function updateProjectRuleReveal() {
   })
 
   cardRuleTargets.forEach((card) => {
+    const row = card.closest(".project-row")
+    if (row?.classList.contains("has-project-preview")) {
+      ruleUpdates.push(card, "--card-rule-weight", "1")
+      return
+    }
     const rect = readCachedRuleRect(card)
     if (!ruleYNeedsUpdate(rect.top)) return
     ruleUpdates.push(card, "--card-rule-weight", ruleRevealFromY(rect.top))

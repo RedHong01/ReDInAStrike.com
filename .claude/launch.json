@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "redinastrike-dev",
-      "runtimeExecutable": "node",
+      "runtimeExecutable": "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node",
       "runtimeArgs": ["server.mjs"],
       "port": 5173
     }

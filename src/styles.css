@@ -797,6 +797,14 @@ body[data-layout-transition="true"] .about-section {
   pointer-events: none;
 }
 
+.project-row.is-before-project-preview::after {
+  display: none;
+}
+
+.project-row.has-project-preview .project-card + .project-card::before {
+  display: none;
+}
+
 .project-row.has-project-preview:last-child::after {
   display: block;
 }

@@ -139,7 +139,7 @@
   --project-rule-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-first-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
-  --project-preview-duration: 560ms;
+  --project-preview-duration: 420ms;
   --project-preview-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --nav-detail-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -566,6 +566,22 @@ body[data-home-return-transition] .nav-list {
   image-rendering: pixelated;
 }
 
+body[data-project-expand-transition] .site-main,
+body[data-project-expand-transition] .nav-list {
+  pointer-events: none;
+}
+
+.project-expand-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: var(--project-expand-mask-color, var(--paper));
+  pointer-events: none;
+  opacity: 1;
+}
+
 body[data-layout-transition="true"] .site-header {
   transition: height var(--responsive-duration) var(--responsive-ease);
 }
@@ -745,11 +761,14 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-row.has-project-preview {
-  --project-preview-rule-bleed: calc((100vw - 100%) / -2);
   grid-template-columns: minmax(0, 1fr);
   row-gap: 0;
   padding-top: 0;
   padding-bottom: 0;
+  position: sticky;
+  top: var(--header-height);
+  z-index: 15;
+  background: var(--paper);
 }
 
 .project-row.has-project-preview:first-child {
@@ -763,8 +782,8 @@ body[data-layout-transition="true"] .about-section {
 .project-row.has-project-preview::before,
 .project-row.has-project-preview::after,
 .project-row.is-before-project-preview::after {
-  left: calc((100vw - 100%) / -2);
-  right: calc((100vw - 100%) / -2);
+  left: calc(-1 * var(--content-edge-pad));
+  right: calc(-1 * var(--content-edge-pad));
 }
 
 .project-row.has-project-preview::before {
@@ -778,13 +797,21 @@ body[data-layout-transition="true"] .about-section {
   pointer-events: none;
 }
 
+.project-row.is-before-project-preview::after {
+  display: none;
+}
+
+.project-row.has-project-preview .project-card + .project-card::before {
+  display: none;
+}
+
 .project-row.has-project-preview:last-child::after {
   display: block;
 }
 
 .project-card.is-project-preview {
   width: 100vw;
-  min-height: clamp(360px, 28.55vw, 432px);
+  min-height: var(--project-preview-start-height, clamp(360px, 28.55vw, 432px));
   margin-left: calc((100vw - 100%) / -2);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2704,6 +2731,29 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     pointer-events: none;
     transition: transform var(--catalog-rule-transition-ms, 190ms) cubic-bezier(0.22, 0.61, 0.36, 1);
     will-change: transform;
+  }
+
+  /* Below the two-column breakpoint, a project-row's two cards already stack
+     as independent list items (see the divider rule above). The desktop
+     preview behavior collapses the row to one column and hides its sibling
+     card because that sibling used to sit beside the expanded card — here it
+     never did, so hiding it just deletes the next card from the list. Let
+     the row stay in normal flow instead of pinning, and keep the sibling. */
+  .project-row.has-project-preview {
+    position: static;
+    z-index: auto;
+    background: none;
+    row-gap: var(--project-caption-rule-gap);
+    padding-top: var(--project-rule-card-gap);
+    padding-bottom: var(--project-caption-rule-gap);
+  }
+
+  .project-row.has-project-preview:first-child {
+    padding-top: var(--project-first-card-gap);
+  }
+
+  .project-row.has-project-preview > .project-card:not(.is-project-preview) {
+    display: block;
   }
 }
 

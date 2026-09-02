@@ -206,6 +206,10 @@ const HOME_RETURN_COVER_MS = 620
 const HOME_RETURN_REVEAL_MS = 680
 const HOME_RETURN_FONT_READY_MS = 520
 const HOME_RETURN_READY_TIMEOUT_MS = 1100
+const PROJECT_EXPAND_MIN_MS = 420
+const PROJECT_EXPAND_MAX_MS = 780
+const PROJECT_EXPAND_DISTANCE_RATIO = 0.34
+const PROJECT_EXPAND_MASK_FADE_MS = 260
 const ROUTE_EXIT_SNOW_MAX_CELLS = 76000
 const ROUTE_EXIT_SNOW_MIN_COLUMNS = 144
 const ROUTE_EXIT_SNOW_SOFTNESS = 0.105
@@ -1445,6 +1449,198 @@ function animateHomeReturnHeader({
 
     transition.frame = requestAnimationFrame(step)
   })
+}
+
+function projectExpandDuration(distance) {
+  if (prefersReducedMotion()) return 1
+  return clamp(
+    PROJECT_EXPAND_MIN_MS + Math.abs(distance) * PROJECT_EXPAND_DISTANCE_RATIO,
+    PROJECT_EXPAND_MIN_MS,
+    PROJECT_EXPAND_MAX_MS,
+  )
+}
+
+function animateProjectCardExpand({ id, card, fromHeight, toHeight, fromScrollY, toScrollY, duration }) {
+  return new Promise((resolve) => {
+    const transition = siteState.homeReturnTransition
+    if (!transition || transition.id !== id) {
+      resolve(false)
+      return
+    }
+
+    const setFrame = (heightValue, scrollYValue) => {
+      card.style.minHeight = `${heightValue.toFixed(2)}px`
+      window.scrollTo({ top: scrollYValue, left: 0, behavior: "auto" })
+      siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
+    }
+
+    if (transition.frame) cancelAnimationFrame(transition.frame)
+    transition.frame = 0
+
+    if (duration <= 1) {
+      setFrame(toHeight, toScrollY)
+      resolve(true)
+      return
+    }
+
+    let startTime = 0
+    const step = (time) => {
+      if (!isCurrentHomeReturnTransition(id)) {
+        resolve(false)
+        return
+      }
+
+      if (!startTime) startTime = time
+      const progress = clamp((time - startTime) / duration, 0, 1)
+      const eased = smoothstep(progress)
+      setFrame(
+        fromHeight + (toHeight - fromHeight) * eased,
+        fromScrollY + (toScrollY - fromScrollY) * eased,
+      )
+
+      if (progress >= 1) {
+        transition.frame = 0
+        resolve(true)
+        return
+      }
+
+      transition.frame = requestAnimationFrame(step)
+    }
+
+    transition.frame = requestAnimationFrame(step)
+  })
+}
+
+function projectExpandMaskColor(card) {
+  const inline = card.style.getPropertyValue("--preview-media-bg")
+  if (inline) return inline
+  const computed = getComputedStyle(card)
+  const fromVar = computed.getPropertyValue("--preview-media-bg") || computed.getPropertyValue("--media-bg")
+  if (fromVar && fromVar.trim()) return fromVar.trim()
+  return computed.backgroundColor || "var(--paper)"
+}
+
+function fadeOutProjectExpandMask(mask, duration, id) {
+  return new Promise((resolve) => {
+    if (!mask?.isConnected) {
+      resolve()
+      return
+    }
+    if (duration <= 1 || prefersReducedMotion()) {
+      resolve()
+      return
+    }
+
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      mask.removeEventListener("transitionend", onEnd)
+      resolve()
+    }
+    const onEnd = (event) => {
+      if (event.target !== mask || event.propertyName !== "opacity") return
+      finish()
+    }
+
+    mask.addEventListener("transitionend", onEnd)
+    mask.style.transition = `opacity ${duration}ms ease`
+    requestAnimationFrame(() => {
+      if (!isCurrentHomeReturnTransition(id)) {
+        finish()
+        return
+      }
+      mask.style.opacity = "0"
+    })
+    window.setTimeout(finish, duration + 140)
+  })
+}
+
+async function startProjectExpandTransition(card, target) {
+  if (!card?.isConnected || !target) return
+  if (isHomeReturnTransitionActive()) return
+
+  const id = siteState.homeReturnTransitionId + 1
+  siteState.homeReturnTransitionId = id
+
+  cancelSectionScroll({ suppressMagnet: PROJECT_EXPAND_MAX_MS + PROJECT_EXPAND_MASK_FADE_MS + 400 })
+  window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: PROJECT_EXPAND_MAX_MS + PROJECT_EXPAND_MASK_FADE_MS + 400 })
+  if (siteState.followFrame) cancelAnimationFrame(siteState.followFrame)
+  siteState.followFrame = 0
+  cancelLayoutEffectsUpdate({ clearPending: true })
+  siteState.lastFrameTime = 0
+
+  const headerHeight = currentHeaderHeight()
+  const startRect = card.getBoundingClientRect()
+  const startScrollY = window.scrollY || window.pageYOffset || 0
+  const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
+  const fromHeight = startRect.height
+  const toHeight = Math.max(fromHeight, viewportHeight - headerHeight)
+  const toScrollY = clamp(startScrollY + (startRect.top - headerHeight), 0, pageMaxScrollY())
+  const maskColor = projectExpandMaskColor(card)
+
+  let mask = null
+  const cleanup = () => {
+    delete document.body.dataset.projectExpandTransition
+    delete document.documentElement.dataset.projectExpandTransition
+    card.style.minHeight = ""
+    card.style.willChange = ""
+    mask?.remove()
+    mask = null
+  }
+
+  siteState.homeReturnTransition = {
+    id,
+    frame: 0,
+    phase: "covering",
+    mode: "card-grow",
+    targetPath: target.path,
+    targetHash: target.hash,
+    targetHref: target.url.href,
+    scrollMode: target.scrollMode,
+    targetCompactProgress: 0,
+    snowCleanup: cleanup,
+  }
+  document.documentElement.dataset.projectExpandTransition = "true"
+  document.body.dataset.projectExpandTransition = "true"
+  card.style.willChange = "min-height"
+
+  const grew = await animateProjectCardExpand({
+    id,
+    card,
+    fromHeight,
+    toHeight,
+    fromScrollY: startScrollY,
+    toScrollY,
+    duration: projectExpandDuration(Math.abs(toHeight - fromHeight) + Math.abs(toScrollY - startScrollY)),
+  })
+  if (!grew || !isCurrentHomeReturnTransition(id)) return
+
+  mask = document.createElement("div")
+  mask.className = "project-expand-mask"
+  mask.setAttribute("aria-hidden", "true")
+  mask.style.top = `${headerHeight}px`
+  mask.style.setProperty("--project-expand-mask-color", maskColor)
+  document.body.appendChild(mask)
+
+  lockHomeReturnScroll()
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  siteState.lastScrollY = 0
+  card.style.willChange = ""
+
+  pushRouteUrl(target)
+  render()
+
+  const ready = await waitForRouteFirstPaint(id, target)
+  if (!ready || !isCurrentHomeReturnTransition(id)) return
+
+  unlockHomeReturnScroll()
+  const scrollSettled = await settleRouteScrollPosition(id, target)
+  if (!scrollSettled || !isCurrentHomeReturnTransition(id)) return
+
+  await fadeOutProjectExpandMask(mask, PROJECT_EXPAND_MASK_FADE_MS, id)
+  if (!isCurrentHomeReturnTransition(id)) return
+  finishHomeReturnTransition(id)
 }
 
 function homeUrl() {
@@ -3324,12 +3520,21 @@ function updateProjectRuleReveal() {
   const ruleUpdates = siteState.ruleFadeUpdates
   ruleUpdates.length = 0
   projectRows.forEach((row) => {
+    if (row.classList.contains("has-project-preview") || row.classList.contains("is-before-project-preview")) {
+      ruleUpdates.push(row, "--project-rule-weight", "1")
+      return
+    }
     const rect = readCachedRuleRect(row)
     if (!ruleYNeedsUpdate(rect.bottom)) return
     ruleUpdates.push(row, "--project-rule-weight", ruleRevealFromY(rect.bottom))
   })
 
   cardRuleTargets.forEach((card) => {
+    const row = card.closest(".project-row")
+    if (row?.classList.contains("has-project-preview")) {
+      ruleUpdates.push(card, "--card-rule-weight", "1")
+      return
+    }
     const rect = readCachedRuleRect(card)
     if (!ruleYNeedsUpdate(rect.top)) return
     ruleUpdates.push(card, "--card-rule-weight", ruleRevealFromY(rect.top))
@@ -5456,16 +5661,10 @@ function setupNavHoverInteraction() {
       .filter(([category]) => category),
   )
   let clearTimer = 0
-  let hoverScrollTimer = 0
   let hoveredItem = null
   let visualStateKey = ""
 
   const itemForCategory = (category) => itemsByCategory.get(category) || null
-
-  const clearHoverScroll = () => {
-    window.clearTimeout(hoverScrollTimer)
-    hoverScrollTimer = 0
-  }
 
   const setVisualActive = (activeItem) => {
     const lockedItem = itemForCategory(siteState.catalogFilterLocked)
@@ -5485,23 +5684,9 @@ function setupNavHoverInteraction() {
     })
   }
 
-  const scheduleHoverScroll = (activeItem, category) => {
-    clearHoverScroll()
-    if (!category || siteState.catalogFilterLocked) return
-
-    hoverScrollTimer = window.setTimeout(() => {
-      hoverScrollTimer = 0
-      if (siteState.catalogFilterLocked) return
-      if (hoveredItem !== activeItem) return
-      if (siteState.catalogFilterTarget !== category && siteState.catalogFilterCurrent !== category) return
-      scrollToCatalogFilterTop()
-    }, catalogFilterDuration(NAV_HOVER_SCROLL_DELAY_MS))
-  }
-
   const clearActive = () => {
     window.clearTimeout(clearTimer)
     clearTimer = 0
-    clearHoverScroll()
     hoveredItem = null
     setVisualActive(itemForCategory(siteState.catalogFilterLocked))
     if (!siteState.catalogFilterLocked) setCatalogFilter(null)
@@ -5510,14 +5695,12 @@ function setupNavHoverInteraction() {
   const setActive = (activeItem, options = {}) => {
     window.clearTimeout(clearTimer)
     clearTimer = 0
-    if (options.cancelHoverScroll) clearHoverScroll()
     const category = normalizeCatalogFilter(activeItem?.dataset.navCategory || null)
     setVisualActive(activeItem)
 
     if (siteState.catalogFilterLocked && !options.forceFilter) return
 
     setCatalogFilter(category)
-    if (options.preview) scheduleHoverScroll(activeItem, category)
   }
 
   const updateFilterHash = (category) => {
@@ -5566,7 +5749,6 @@ function setupNavHoverInteraction() {
 
     item.addEventListener("click", (event) => {
       if (event.defaultPrevented) return
-      clearHoverScroll()
       if (item.dataset.navCategory === "resume") {
         event.preventDefault()
         siteState.catalogFilterLocked = null
@@ -5601,7 +5783,7 @@ function setupNavHoverInteraction() {
       siteState.catalogFilterLocked = category
       cancelCatalogMutedRestore()
       updateFilterHash(category)
-      setActive(item, { cancelHoverScroll: true, forceFilter: true })
+      setActive(item, { forceFilter: true })
     })
   })
 }
@@ -5973,6 +6155,7 @@ function prepareProjectPreviewExpandMotion(card) {
 
   card.style.setProperty("--project-preview-start-left", `${startLeft}px`)
   card.style.setProperty("--project-preview-start-right", `${startRight}px`)
+  if (rect.height > 0) card.style.setProperty("--project-preview-start-height", `${rect.height.toFixed(2)}px`)
   card.setAttribute("data-project-preview-expanding", "true")
 }
 
@@ -6121,7 +6304,7 @@ function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = 
   }
 
   ghost.addEventListener("animationend", handleAnimationEnd)
-  window.setTimeout(cleanup, catalogFilterDuration(560) + 140)
+  window.setTimeout(cleanup, catalogFilterDuration(420) + 140)
 }
 
 function clearProjectPreviewExpandMotion(card) {
@@ -6130,6 +6313,10 @@ function clearProjectPreviewExpandMotion(card) {
   card.removeAttribute("data-project-preview-expanding")
   card.style.removeProperty("--project-preview-start-left")
   card.style.removeProperty("--project-preview-start-right")
+}
+
+function clearProjectPreviewHeightLock(card) {
+  card?.style.removeProperty("--project-preview-start-height")
 }
 
 function commitProjectPreviewState(card, expanded) {
@@ -6141,6 +6328,7 @@ function commitProjectPreviewState(card, expanded) {
     current.setAttribute("aria-expanded", "false")
     current.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "true")
     clearProjectPreviewExpandMotion(current)
+    clearProjectPreviewHeightLock(current)
   }
 
   bindDominantMediaBackground(card)
@@ -6173,6 +6361,7 @@ function setProjectPreview(card, expanded) {
   if (!expanded) {
     const exitMotion = createProjectPreviewExitGhost(card)
     clearProjectPreviewExpandMotion(card)
+    clearProjectPreviewHeightLock(card)
     document.documentElement.dataset.projectPreviewTransition = "exiting"
     commitProjectPreviewState(card, expanded)
     runProjectPreviewExitGhost(exitMotion, card, { clearTransition: true, motionId })
@@ -6203,7 +6392,7 @@ function setProjectPreview(card, expanded) {
   window.setTimeout(() => {
     card.removeEventListener("animationend", handleAnimationEnd)
     cleanup()
-  }, catalogFilterDuration(560) + 120)
+  }, catalogFilterDuration(420) + 120)
 }
 
 function dismissProjectPreview(event) {
@@ -6246,7 +6435,11 @@ function handleRouteLinkClick(event) {
   }
 
   const projectCard = link.closest?.("[data-project-card]") || null
-  if (projectCard && document.documentElement.hasAttribute("data-project-preview-transition")) {
+  if (
+    projectCard &&
+    document.documentElement.hasAttribute("data-project-preview-transition") &&
+    projectCard.classList.contains("is-project-preview")
+  ) {
     event.preventDefault()
     event.stopPropagation()
     return
@@ -6255,6 +6448,19 @@ function handleRouteLinkClick(event) {
     event.preventDefault()
     event.stopPropagation()
     setProjectPreview(projectCard, true)
+    return
+  }
+
+  if (projectCard && projectCard.classList.contains("is-project-preview") && target.path !== routeFromLocation()) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (prefersReducedMotion()) {
+      clearProjectPreviewExitGhosts()
+      navigateRouteWithoutTransition(target.url)
+      return
+    }
+    clearProjectPreviewExitGhosts()
+    startProjectExpandTransition(projectCard, target)
     return
   }
 

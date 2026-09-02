@@ -2265,6 +2265,24 @@ function mediaStyle(project) {
   ].join("; ")
 }
 
+function projectPreviewSummary(project) {
+  if (project.path === "/serialdeminer") {
+    return "A 48-hour game jam project combining mine-detection tools, first-person exploration, and compact puzzle levels in one playable prototype."
+  }
+
+  const knownSummary = framerProjectDetails[project.path]?.summary
+  if (knownSummary) return knownSummary
+
+  const practice = {
+    game: "game design",
+    ongoing: "ongoing game and narrative",
+    interaction: "interaction design",
+    graphic: "graphic design",
+  }[project.navHash] || "interdisciplinary design"
+
+  return `A selected project from Red Wang’s ${practice} practice. The full project page documents its process, system, and final outcome.`
+}
+
 function projectCard(project, index, loadingIndex = index, options = {}) {
   const eagerImageLimit = Number.isFinite(options.eagerImageLimit)
     ? Math.max(0, options.eagerImageLimit)
@@ -2280,10 +2298,11 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
   const halftoneCanvas = options.muted
     ? `<canvas class="project-halftone" aria-hidden="true"></canvas>`
     : ""
+  const cardSide = loadingIndex % 2 === 0 ? "left" : "right"
 
   return `
-    <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-section="${escapeHtml(project.navHash)}" data-index="${index}"${mutedAttributes}>
-      <figure class="project-media${mediaBackgroundClass}" style="${mediaStyle(project)}"${videoAttributes}>
+    <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-card-side="${cardSide}" data-section="${escapeHtml(project.navHash)}" data-index="${index}" aria-expanded="false" style="${mediaStyle(project)}"${mutedAttributes}>
+      <figure class="project-media${mediaBackgroundClass}"${videoAttributes}>
         <img
           src="${asset(project.image)}"
           alt="${escapeHtml(project.pageTitle)}"
@@ -2296,6 +2315,14 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
       <div class="project-meta">
         <span class="project-title">${escapeHtml(project.displayTitle)}</span>
         <span class="project-date">${escapeHtml(project.date)}</span>
+      </div>
+      <div class="project-preview-copy" aria-hidden="true">
+        <div class="project-preview-head">
+          <h2>${escapeHtml(project.pageTitle)}</h2>
+          <p class="project-preview-meta" data-typewriter-skip>${escapeHtml(project.displayTitle)}<br />${escapeHtml(project.date)}</p>
+        </div>
+        <p class="project-preview-summary">${escapeHtml(projectPreviewSummary(project))}</p>
+        <span class="project-preview-enter" data-typewriter-skip>Click again to view project ↗</span>
       </div>
     </a>`
 }
@@ -5628,6 +5655,94 @@ function setupHoverEmbeds() {
   })
 }
 
+const PROJECT_PREVIEW_TRANSITION_NAME = "project-preview"
+
+function activeProjectPreview() {
+  return document.querySelector(".project-card.is-project-preview")
+}
+
+function refreshAfterProjectPreviewChange() {
+  invalidateRuleGeometry()
+  invalidateCatalogContentBottom()
+  siteState.galleryLayoutDirty = true
+  window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: 760 })
+  window.__RED_SCROLL_MAGNET__?.refresh?.()
+  requestLayoutEffectsUpdate({ rules: true, footer: true })
+}
+
+function commitProjectPreviewState(card, expanded) {
+  const current = activeProjectPreview()
+  if (current && current !== card) {
+    current.classList.remove("is-project-preview")
+    current.setAttribute("aria-expanded", "false")
+    current.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "true")
+    current.closest(".project-row")?.classList.remove("has-project-preview")
+  }
+
+  card.classList.toggle("is-project-preview", expanded)
+  card.setAttribute("aria-expanded", expanded ? "true" : "false")
+  card.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", expanded ? "false" : "true")
+  card.closest(".project-row")?.classList.toggle("has-project-preview", expanded)
+  card.closest(".catalog")?.toggleAttribute("data-project-preview", expanded)
+  refreshAfterProjectPreviewChange()
+}
+
+function setProjectPreview(card, expanded) {
+  if (!card?.isConnected) return
+  const current = activeProjectPreview()
+  if (expanded && current === card) return
+  if (!expanded && current !== card) return
+
+  const outgoing = current || card
+  outgoing.style.viewTransitionName = PROJECT_PREVIEW_TRANSITION_NAME
+
+  if (!document.startViewTransition || prefersReducedMotion()) {
+    commitProjectPreviewState(card, expanded)
+    outgoing.style.removeProperty("view-transition-name")
+    return
+  }
+
+  document.documentElement.dataset.projectPreviewTransition = "true"
+  let transition
+  try {
+    transition = document.startViewTransition(() => {
+      outgoing.style.removeProperty("view-transition-name")
+      card.style.viewTransitionName = PROJECT_PREVIEW_TRANSITION_NAME
+      commitProjectPreviewState(card, expanded)
+    })
+  } catch {
+    delete document.documentElement.dataset.projectPreviewTransition
+    outgoing.style.removeProperty("view-transition-name")
+    commitProjectPreviewState(card, expanded)
+    return
+  }
+
+  transition.finished
+    .catch(() => {})
+    .finally(() => {
+      delete document.documentElement.dataset.projectPreviewTransition
+      outgoing.style.removeProperty("view-transition-name")
+      card.style.removeProperty("view-transition-name")
+      refreshAfterProjectPreviewChange()
+    })
+}
+
+function dismissProjectPreview(event) {
+  const current = activeProjectPreview()
+  if (!current || current.contains(event.target)) return
+  if (event.target?.closest?.("[data-project-card]")) return
+  setProjectPreview(current, false)
+}
+
+function handleProjectPreviewKeydown(event) {
+  if (event.key !== "Escape") return
+  const current = activeProjectPreview()
+  if (!current) return
+  event.preventDefault()
+  setProjectPreview(current, false)
+  current.focus({ preventScroll: true })
+}
+
 function handleRouteLinkClick(event) {
   const link = event.target?.closest?.("a[href]")
   if (!link) return
@@ -5647,6 +5762,17 @@ function handleRouteLinkClick(event) {
 
   if (isHomeReturnTransitionActive()) {
     event.preventDefault()
+    return
+  }
+
+  const projectCard = link.matches("[data-project-card]") ? link : null
+  if (projectCard && document.documentElement.dataset.projectPreviewTransition === "true") {
+    event.preventDefault()
+    return
+  }
+  if (projectCard && target.path !== routeFromLocation() && !projectCard.classList.contains("is-project-preview")) {
+    event.preventDefault()
+    setProjectPreview(projectCard, true)
     return
   }
 
@@ -5683,6 +5809,8 @@ function handlePopState() {
 }
 
 document.addEventListener("click", handleRouteLinkClick, { capture: true })
+document.addEventListener("click", dismissProjectPreview)
+document.addEventListener("keydown", handleProjectPreviewKeydown)
 window.addEventListener("red:public-dither-ready", (event) => {
   if (event?.detail?.generated) stopLegacyCatalogHalftoneWork()
 })

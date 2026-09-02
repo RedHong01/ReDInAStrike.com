@@ -1,10 +1,12 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import "./native-halftone-bypass.js?v=20260829-batch2"
-import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260901-perfpass3"
+import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260902-boundarysmooth1"
 import "./layout-surface-sync.js?v=20260830-perfevents1"
-import "./active-color-snow.js?v=20260901-categorybreath1"
-import "./hover-binary-return.js?v=20260901-perfpass2"
-import "./fine-signal-preset-runtime.js?v=20260830-binarysurface1"
+// Register the preset before the motion listeners so the first category change
+// can use Fine Signal even when it happens immediately after page load.
+import "./fine-signal-preset-runtime.js?v=20260902-finesignal1"
+import "./active-color-snow.js?v=20260902-finesignal1"
+import "./hover-binary-return.js?v=20260902-finesignal1"
 import "./active-color-replay-dedupe.js?v=20260829-activecolor2"
 import "./active-color-transition-bridge.js?v=20260829-activecolor2"
 import "./binary-pixel-handoff.js?v=20260830-perfaudit1"

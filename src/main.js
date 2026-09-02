@@ -11,7 +11,7 @@ import {
   boundaryVisibility,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260902-previewboundary5"
+} from "./viewport-boundary-core.js?v=20260902-previewboundary7"
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
@@ -6142,6 +6142,7 @@ function syncProjectPreviewFilterState(catalog, activeCard) {
 }
 
 function refreshAfterProjectPreviewChange() {
+  window.dispatchEvent(new Event("red:layout-geometry-invalidated"))
   invalidateRuleGeometry()
   invalidateCatalogContentBottom()
   siteState.galleryLayoutDirty = true
@@ -6393,6 +6394,10 @@ function clearProjectPreviewHeightLock(card) {
 function commitProjectPreviewState(card, expanded) {
   const current = activeProjectPreview()
   const catalog = card.closest(".catalog")
+  window.__RED_ACTIVE_COLOR_SNOW__?.stopCard?.(card)
+  if (current && current !== card) {
+    window.__RED_ACTIVE_COLOR_SNOW__?.stopCard?.(current)
+  }
   syncProjectPreviewRows(card, false)
   if (current && current !== card) {
     current.classList.remove("is-project-preview")

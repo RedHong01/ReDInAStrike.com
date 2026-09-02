@@ -25,6 +25,7 @@ let scrollSyncTimer = 0
 let lastScrollSync = 0
 let revealModulePromise = null
 let revealApi = null
+let breathWakeQueued = false
 let catalog = null
 let appObserver = null
 let catalogObserver = null
@@ -32,7 +33,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260902-previewboundary5").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260902-previewboundary7").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -307,12 +308,29 @@ function breathLoop(now) {
 
 function wakeLoopOnly() {
   if (document.hidden) return
-  void ensureRevealApi().then(() => {
-    // Always allow one frame after input. It refreshes visibility, then stops
-    // immediately if no owned reveal canvas is on screen.
+
+  // Scroll can dispatch faster than the dynamic import resolves. Keep one
+  // pending wake instead of adding a Promise continuation for every event.
+  if (revealApi) {
     clearBreathTimer()
     scheduleBreathLoop()
-  })
+    return
+  }
+  if (breathWakeQueued) return
+
+  breathWakeQueued = true
+  void ensureRevealApi()
+    .then(() => {
+      breathWakeQueued = false
+      if (document.hidden) return
+      // Always allow one frame after input. It refreshes visibility, then stops
+      // immediately if no owned reveal canvas is on screen.
+      clearBreathTimer()
+      scheduleBreathLoop()
+    })
+    .catch(() => {
+      breathWakeQueued = false
+    })
 }
 
 async function wakeBreathing({ sync = false, refresh = true } = {}) {

@@ -10,7 +10,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260902-previewboundary5"
+} from "./reveal-motion.js?v=20260902-previewboundary7"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -45,6 +45,7 @@ const TOUCH_CATEGORY_PRELOAD_VIEWPORTS = 4.2
 const DESKTOP_CATEGORY_PRELOAD_VIEWPORTS = 2.6
 const TOUCH_SCROLL_REFRESH_MS = 64
 const DESKTOP_SCROLL_REFRESH_MS = 96
+const SCROLL_SETTLE_MS = 180
 
 const state = {
   destroyed: false,
@@ -53,6 +54,8 @@ const state = {
   priorityFrame: 0,
   scrollFrame: 0,
   scrollTimer: 0,
+  scrollSettleTimer: 0,
+  scrollActiveUntil: 0,
   lastScrollRefreshAt: 0,
   idleHandle: 0,
   resizeTimer: 0,
@@ -285,6 +288,41 @@ function usesTouchViewport() {
   )
 }
 
+function headerLayoutInMotion() {
+  return document.documentElement.dataset.headerMotion === "moving"
+}
+
+function scrollIsActive() {
+  return performance.now() < state.scrollActiveUntil
+}
+
+function resamplingIsDeferred() {
+  return headerLayoutInMotion() || scrollIsActive()
+}
+
+function clearScrollSettleTimer() {
+  if (!state.scrollSettleTimer) return
+  clearTimeout(state.scrollSettleTimer)
+  state.scrollSettleTimer = 0
+}
+
+function scheduleSettledDitherWork() {
+  clearScrollSettleTimer()
+  const waitForScroll = Math.max(0, state.scrollActiveUntil - performance.now())
+  const wait = headerLayoutInMotion() ? Math.max(50, waitForScroll) : waitForScroll
+  state.scrollSettleTimer = window.setTimeout(() => {
+    state.scrollSettleTimer = 0
+    if (resamplingIsDeferred()) {
+      scheduleSettledDitherWork()
+      return
+    }
+    const catalog = activeCatalog()
+    if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return
+    queueMutedCards(catalog, visibleMutedCardsForWork(catalog))
+    requestRevealRefresh()
+  }, wait)
+}
+
 function priorityMargin(catalog) {
   const touch = usesTouchViewport()
   const factor = catalogIsEnteringFilter(catalog)
@@ -450,6 +488,10 @@ function visibleMutedCardsForWork(catalog) {
 function refreshViewportDitherWork() {
   const catalog = activeCatalog()
   if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return false
+  // Header compaction changes the card width every frame. Wait for its final
+  // geometry before resampling, otherwise resize snow briefly hides the
+  // viewport-boundary snow during an otherwise continuous scroll.
+  if (resamplingIsDeferred()) return false
   const cards = visibleMutedCardsForWork(catalog)
   if (!cards.length) return false
   queueMutedCards(catalog, cards)
@@ -711,6 +753,11 @@ function queueMutedCards(catalog, cards, { restart = false } = {}) {
       continue
     }
 
+    if (resamplingIsDeferred() && card.querySelector('.dither-preview-canvas[data-active="true"]')) {
+      clearPendingCard(card)
+      continue
+    }
+
     const distance = viewportDistance(card)
     primeImageForDither(img, distance, catalog)
     bindImageLoad(img, card)
@@ -814,7 +861,10 @@ function handleVisibilityChange() {
 }
 
 function handleViewportScroll() {
-  if (state.destroyed || state.scrollFrame || state.scrollTimer || !pageIsVisible()) return
+  if (state.destroyed || !pageIsVisible()) return
+  state.scrollActiveUntil = performance.now() + SCROLL_SETTLE_MS
+  scheduleSettledDitherWork()
+  if (state.scrollFrame || state.scrollTimer) return
   const catalog = activeCatalog()
   if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return
 
@@ -841,6 +891,18 @@ function handleViewportScroll() {
   }
 
   state.scrollFrame = requestAnimationFrame(run)
+}
+
+function handleHeaderMotion(event) {
+  if (event?.detail?.moving || headerLayoutInMotion()) return
+  if (scrollIsActive()) {
+    scheduleSettledDitherWork()
+    return
+  }
+  const catalog = activeCatalog()
+  if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return
+  queueMutedCards(catalog, visibleMutedCardsForWork(catalog))
+  requestRevealRefresh()
 }
 
 function handleHoverBinaryReturnComplete(event) {
@@ -1032,6 +1094,7 @@ function boot() {
   window.addEventListener("scroll", handleViewportScroll, { passive: true })
   window.visualViewport?.addEventListener?.("scroll", handleViewportScroll, { passive: true })
   window.visualViewport?.addEventListener?.("resize", handleViewportScroll, { passive: true })
+  window.addEventListener("red:header-motion", handleHeaderMotion)
   window.addEventListener("red:hover-binary-return-complete", handleHoverBinaryReturnComplete)
   bindAppObserver()
   bindCatalogObserver()
@@ -1068,6 +1131,7 @@ export function destroyPublicDitherRuntime() {
   state.scrollFrame = 0
   clearTimeout(state.scrollTimer)
   state.scrollTimer = 0
+  clearScrollSettleTimer()
   clearTimeout(state.resizeTimer)
   state.resizeTimer = 0
   for (const timer of state.layoutSettleTimers) window.clearTimeout(timer)
@@ -1083,6 +1147,7 @@ export function destroyPublicDitherRuntime() {
   window.removeEventListener("scroll", handleViewportScroll)
   window.visualViewport?.removeEventListener?.("scroll", handleViewportScroll)
   window.visualViewport?.removeEventListener?.("resize", handleViewportScroll)
+  window.removeEventListener("red:header-motion", handleHeaderMotion)
   window.removeEventListener("red:hover-binary-return-complete", handleHoverBinaryReturnComplete)
   document.removeEventListener("visibilitychange", handleVisibilityChange)
   document.documentElement.removeAttribute(ROOT_MODE_ATTRIBUTE)

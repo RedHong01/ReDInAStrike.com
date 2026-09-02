@@ -10,10 +10,10 @@ import {
 import {
   pixelsFromBinaryBits,
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260902-previewboundary5"
+} from "./binary-visible-surface.js?v=20260902-previewboundary7"
 
 const STYLE_ID = "red-active-color-snow-style"
-const STYLE_VERSION = "6"
+const STYLE_VERSION = "7"
 const CANVAS_CLASS = "active-color-snow-canvas"
 const ROOT_ATTRIBUTE = "data-red-active-color-snow"
 const RETURN_ATTRIBUTE = "data-active-color-return"
@@ -2124,8 +2124,9 @@ function bindCardHoverSnow(targetCatalog = catalog) {
       const parentCatalog = card.closest(".catalog")
       if (!parentCatalog || parentCatalog.dataset.filterPhase) return
       if (
-        !parentCatalog.dataset.activeFilter ||
-        !card.classList.contains("is-filter-muted")
+        card.classList.contains("is-project-preview") ||
+        card.classList.contains("project-preview-exit-ghost") ||
+        card.classList.contains("is-project-preview-exit-source-card")
       ) {
         return
       }
@@ -2351,6 +2352,7 @@ if (document.readyState !== "loading") {
 window.__RED_ACTIVE_COLOR_SNOW__ = {
   replay: replayActiveColorSnow,
   play: playCard,
+  stopCard: (card) => cancelCard(card),
   playCatalog,
   stop: stopCatalogStates,
   prewarm: () => schedulePrewarm(catalog),

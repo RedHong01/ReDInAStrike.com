@@ -169,6 +169,13 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  html,
+  html * {
+    cursor: none !important;
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -780,7 +787,8 @@ body[data-layout-transition="true"] .about-section {
   display: none;
 }
 
-.project-row.is-project-preview-exit-source > .project-card:not(.is-project-preview-exit-source-card) {
+.project-row.is-project-preview-exit-source
+  > .project-card:not(.is-project-preview-exit-source-card):not(.is-project-preview) {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;

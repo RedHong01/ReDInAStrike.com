@@ -491,6 +491,7 @@
   }
 
   window.addEventListener("resize", scheduleGeometryResizeInvalidation, { passive: true })
+  window.addEventListener("red:layout-geometry-invalidated", invalidateGeometry, { passive: true })
 
   if (document.body) {
     const headerMountObserver = new MutationObserver(() => {

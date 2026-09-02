@@ -2724,6 +2724,29 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     transition: transform var(--catalog-rule-transition-ms, 190ms) cubic-bezier(0.22, 0.61, 0.36, 1);
     will-change: transform;
   }
+
+  /* Below the two-column breakpoint, a project-row's two cards already stack
+     as independent list items (see the divider rule above). The desktop
+     preview behavior collapses the row to one column and hides its sibling
+     card because that sibling used to sit beside the expanded card — here it
+     never did, so hiding it just deletes the next card from the list. Let
+     the row stay in normal flow instead of pinning, and keep the sibling. */
+  .project-row.has-project-preview {
+    position: static;
+    z-index: auto;
+    background: none;
+    row-gap: var(--project-caption-rule-gap);
+    padding-top: var(--project-rule-card-gap);
+    padding-bottom: var(--project-caption-rule-gap);
+  }
+
+  .project-row.has-project-preview:first-child {
+    padding-top: var(--project-first-card-gap);
+  }
+
+  .project-row.has-project-preview > .project-card:not(.is-project-preview) {
+    display: block;
+  }
 }
 
 @media (max-width: 700px) {

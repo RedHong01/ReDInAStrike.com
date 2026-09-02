@@ -15,14 +15,14 @@
     opacity var(--nav-selection-fade-ms) var(--nav-ease);
 }
 
-.nav-list:has(.nav-item.is-nav-locked) .nav-item .nav-title {
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item .nav-title {
   opacity: var(--nav-selection-muted-opacity);
 }
 
-.nav-list:has(.nav-item.is-nav-locked) .nav-item.is-nav-locked .nav-title,
-.nav-list:has(.nav-item.is-nav-locked) .nav-item.is-nav-active .nav-title,
-.nav-list:has(.nav-item.is-nav-locked) .nav-item:hover .nav-title,
-.nav-list:has(.nav-item.is-nav-locked) .nav-item:focus-visible .nav-title {
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item.is-nav-locked .nav-title,
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item.is-nav-active .nav-title,
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item:hover .nav-title,
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item:focus-visible .nav-title {
   opacity: 1;
 }
 

@@ -2761,7 +2761,6 @@ function homeMarkup() {
       <section class="catalog" aria-label="Project catalog">
         ${catalogRowsMarkup()}
       </section>
-      ${footerGalleryMarkup()}
       ${aboutMarkup()}
     </main>`
 }
@@ -6102,7 +6101,7 @@ function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = 
   }
 
   ghost.addEventListener("animationend", handleAnimationEnd)
-  window.setTimeout(cleanup, catalogFilterDuration(560) + 140)
+  window.setTimeout(cleanup, catalogFilterDuration(420) + 140)
 }
 
 function clearProjectPreviewExpandMotion(card) {
@@ -6184,7 +6183,7 @@ function setProjectPreview(card, expanded) {
   window.setTimeout(() => {
     card.removeEventListener("animationend", handleAnimationEnd)
     cleanup()
-  }, catalogFilterDuration(560) + 120)
+  }, catalogFilterDuration(420) + 120)
 }
 
 function dismissProjectPreview(event) {

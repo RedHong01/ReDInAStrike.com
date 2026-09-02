@@ -139,7 +139,7 @@
   --project-rule-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-first-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
-  --project-preview-duration: 560ms;
+  --project-preview-duration: 420ms;
   --project-preview-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --nav-detail-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -750,6 +750,10 @@ body[data-layout-transition="true"] .about-section {
   row-gap: 0;
   padding-top: 0;
   padding-bottom: 0;
+  position: sticky;
+  top: var(--header-height);
+  z-index: 15;
+  background: var(--paper);
 }
 
 .project-row.has-project-preview:first-child {

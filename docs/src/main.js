@@ -2761,7 +2761,6 @@ function homeMarkup() {
       <section class="catalog" aria-label="Project catalog">
         ${catalogRowsMarkup()}
       </section>
-      ${footerGalleryMarkup()}
       ${aboutMarkup()}
     </main>`
 }

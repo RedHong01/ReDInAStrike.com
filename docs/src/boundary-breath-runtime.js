@@ -1,4 +1,4 @@
-import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
+import { boundaryRevealMotionConfig } from "./motion-default.js"
 
 const OWNER = "breath7"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
@@ -45,16 +45,7 @@ function ensureRevealApi() {
 }
 
 function currentConfig() {
-  const base = sanitizeMotionConfig(
-    window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG,
-  )
-  return {
-    ...base,
-    // Keep the published Fine Signal look, but let the boundary remain legible
-    // while the page is stationary.
-    revealNoiseFlicker: Math.max(base.revealNoiseFlicker, 1),
-    revealNoisePeak: Math.max(base.revealNoisePeak, 0.52),
-  }
+  return boundaryRevealMotionConfig()
 }
 
 function activeCatalog() {

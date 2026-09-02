@@ -3520,7 +3520,7 @@ function updateProjectRuleReveal() {
   const ruleUpdates = siteState.ruleFadeUpdates
   ruleUpdates.length = 0
   projectRows.forEach((row) => {
-    if (row.classList.contains("has-project-preview")) {
+    if (row.classList.contains("has-project-preview") || row.classList.contains("is-before-project-preview")) {
       ruleUpdates.push(row, "--project-rule-weight", "1")
       return
     }
@@ -6423,7 +6423,11 @@ function handleRouteLinkClick(event) {
   }
 
   const projectCard = link.closest?.("[data-project-card]") || null
-  if (projectCard && document.documentElement.hasAttribute("data-project-preview-transition")) {
+  if (
+    projectCard &&
+    document.documentElement.hasAttribute("data-project-preview-transition") &&
+    projectCard.classList.contains("is-project-preview")
+  ) {
     event.preventDefault()
     event.stopPropagation()
     return

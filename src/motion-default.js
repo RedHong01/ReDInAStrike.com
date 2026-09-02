@@ -261,6 +261,24 @@ export function cloneMotionConfig(config) {
   return sanitizeMotionConfig(JSON.parse(JSON.stringify(config || {})))
 }
 
+// The viewport boundary reveal (the "snow" dissolve where a muted card
+// crosses the top/bottom edge of the screen) is armed by two independent
+// callers — the scheduler that first paints a muted card, and the runtime
+// that keeps it breathing while the page is stationary. Both must resolve
+// the exact same config, or handing the reveal off between them mid-scroll
+// makes reveal-motion.js rebuild its noise grid with different values and
+// flash before settling.
+export function boundaryRevealMotionConfig(input) {
+  const base = sanitizeMotionConfig(
+    input ?? (typeof window !== "undefined" ? window.__RED_MOTION_CONFIG__ : null) ?? PUBLISHED_MOTION_CONFIG,
+  )
+  return {
+    ...base,
+    revealNoiseFlicker: Math.max(base.revealNoiseFlicker, 1),
+    revealNoisePeak: Math.max(base.revealNoisePeak, 0.52),
+  }
+}
+
 export function encodeMotionConfig(config) {
   const json = JSON.stringify(sanitizeMotionConfig(config))
   const bytes = new TextEncoder().encode(json)

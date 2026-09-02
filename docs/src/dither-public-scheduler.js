@@ -1,6 +1,6 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import { renderCard } from "./dither-engine.js?v=20260901-perfpass2"
-import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
+import { boundaryRevealMotionConfig } from "./motion-default.js"
 import {
   binaryGridNeedsUpdate,
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
@@ -391,11 +391,12 @@ function armReveal(card, catalog) {
   const existing = card.querySelector(".dither-reveal-canvas")
   if (state.revealSignatures.get(card) === signature && existing) return true
   state.revealSignatures.set(card, signature)
+  const revealConfig = boundaryRevealMotionConfig()
   if (existing) {
-    const painted = paintViewportDitherRevealNow(card, canvas, PUBLISHED_MOTION_CONFIG)
+    const painted = paintViewportDitherRevealNow(card, canvas, revealConfig)
     if (painted?.ready === true) return true
   }
-  return trackViewportDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG)
+  return trackViewportDitherReveal(card, canvas, revealConfig)
 }
 
 function releaseReveal(card, { forgetSignature = true } = {}) {

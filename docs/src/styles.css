@@ -794,6 +794,7 @@ body[data-layout-transition="true"] .about-section {
   background: var(--rule);
   transform: scaleY(0.65);
   transform-origin: center;
+  z-index: 1;
   pointer-events: none;
 }
 

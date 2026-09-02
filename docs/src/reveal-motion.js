@@ -4,6 +4,13 @@ import {
   constrainBinaryGridSize,
   logicalGridFromCanvas,
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
+import {
+  BOUNDARY_DEPTH_MAX_PX,
+  BOUNDARY_HOLD_MAX_PX,
+  boundaryMetrics,
+  boundaryStrength,
+  viewportBoundsForCard,
+} from "./viewport-boundary-core.js?v=20260902-previewboundary1"
 
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
@@ -21,12 +28,6 @@ const BOUNDARY_FIELD_MAX_MS = 760
 const BOUNDARY_STRENGTH_EPSILON = 0.0005
 const BOUNDARY_FIELD_SETTLE_EPSILON = 0.0025
 
-const BOUNDARY_DEPTH_RATIO = 0.19
-const BOUNDARY_DEPTH_MIN_PX = 132
-const BOUNDARY_DEPTH_MAX_PX = 310
-const BOUNDARY_HOLD_RATIO = 0.012
-const BOUNDARY_HOLD_MIN_PX = 6
-const BOUNDARY_HOLD_MAX_PX = 18
 const VIEWPORT_OBSERVER_MARGIN_PX = BOUNDARY_DEPTH_MAX_PX + BOUNDARY_HOLD_MAX_PX
 const PIXEL_THRESHOLD_MIN = 0.08
 const PIXEL_THRESHOLD_SPAN = 0.84
@@ -673,32 +674,6 @@ function scheduleViewportLoop(delay = 0) {
   viewportFrame = requestAnimationFrame(viewportLoop)
 }
 
-function viewportBounds() {
-  const viewportBottom = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0)
-  const header = document.querySelector(".site-header")
-  const headerBottom = clamp(header?.getBoundingClientRect?.().bottom || 0, 0, viewportBottom)
-  return { top: headerBottom, bottom: viewportBottom }
-}
-
-function boundaryMetrics(bounds) {
-  const span = Math.max(1, bounds.bottom - bounds.top)
-  return {
-    depth: clamp(span * BOUNDARY_DEPTH_RATIO, BOUNDARY_DEPTH_MIN_PX, BOUNDARY_DEPTH_MAX_PX),
-    hold: clamp(span * BOUNDARY_HOLD_RATIO, BOUNDARY_HOLD_MIN_PX, BOUNDARY_HOLD_MAX_PX),
-  }
-}
-
-function boundaryStrength(y, bounds, metrics) {
-  const fromTop = y - bounds.top
-  const fromBottom = bounds.bottom - y
-  if (fromTop <= 0 || fromBottom <= 0) return 1
-
-  const nearest = Math.min(fromTop, fromBottom)
-  if (nearest <= metrics.hold) return 1
-  if (nearest >= metrics.hold + metrics.depth) return 0
-  return 1 - smooth01((nearest - metrics.hold) / metrics.depth)
-}
-
 function headerMotionActive() {
   return (
     document.documentElement.dataset.headerMotion === "moving" ||
@@ -784,7 +759,7 @@ function fillBoundaryTargets(state, rect, bounds, metrics) {
 
   for (let row = 0; row < grid.rows; row += 1) {
     const viewportY = rect.top + ((row + 0.5) / grid.rows) * rect.height
-    const strength = boundaryStrength(viewportY, bounds, metrics)
+    const strength = boundaryStrength(viewportY, bounds, metrics, smooth01)
     if (strength <= BOUNDARY_STRENGTH_EPSILON) continue
     target[row] = strength
     hasTarget = true
@@ -980,12 +955,17 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
   return field.moving || (hasTransition && minStrength < 0.9995)
 }
 
-function drawViewportState(state, now, bounds, forceScrollFrame) {
+function drawViewportState(state, now, forceScrollFrame) {
   if (!forceScrollFrame && state.lastViewportDraw && now - state.lastViewportDraw < IDLE_FLICKER_FRAME_MS) {
     return state.hasBoundaryTransition === true
   }
   state.lastViewportDraw = now
-  state.hasBoundaryTransition = renderBoundaryField(state, now, bounds, forceScrollFrame)
+  state.hasBoundaryTransition = renderBoundaryField(
+    state,
+    now,
+    viewportBoundsForCard(state.card),
+    forceScrollFrame,
+  )
   return state.hasBoundaryTransition
 }
 
@@ -993,7 +973,6 @@ function viewportLoop(now) {
   viewportFrame = 0
   if (!viewportStates.size || document.hidden) return
 
-  const bounds = viewportBounds()
   const forceScrollFrame = now < viewportActiveUntil
   let hasBoundaryTransition = false
   const states = forceScrollFrame || !viewportObserver ? viewportStates : viewportVisibleStates
@@ -1003,7 +982,7 @@ function viewportLoop(now) {
       viewportVisibleStates.delete(state)
       continue
     }
-    if (drawViewportState(state, now, bounds, forceScrollFrame)) {
+    if (drawViewportState(state, now, forceScrollFrame)) {
       hasBoundaryTransition = true
     }
   }
@@ -1076,7 +1055,7 @@ export function paintViewportDitherRevealNow(card, finalCanvas = null, inputConf
   }
 
   const now = performance.now()
-  const hasTransition = renderBoundaryField(state, now, viewportBounds(), true, {
+  const hasTransition = renderBoundaryField(state, now, viewportBoundsForCard(card), true, {
     immediate: true,
   })
   if (animationStates.get(card) !== state) {

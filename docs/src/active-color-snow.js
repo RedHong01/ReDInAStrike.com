@@ -10,7 +10,7 @@ import {
 import {
   pixelsFromBinaryBits,
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260901-visualpipe2"
+} from "./binary-visible-surface.js?v=20260902-previewboundary1"
 
 const STYLE_ID = "red-active-color-snow-style"
 const STYLE_VERSION = "6"

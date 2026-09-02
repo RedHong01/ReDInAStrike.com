@@ -6,16 +6,15 @@ import {
   sampleBinaryCanvas,
   smooth01,
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
+import {
+  boundaryMetrics,
+  boundaryStrength,
+  viewportBoundsForCard,
+} from "./viewport-boundary-core.js?v=20260902-previewboundary1"
 
 const BINARY_SOURCE_SELECTOR =
   '.dither-preview-canvas[data-active="true"], .project-halftone'
 const BOUNDARY_SELECTOR = ".dither-reveal-canvas"
-const BOUNDARY_DEPTH_RATIO = 0.19
-const BOUNDARY_DEPTH_MIN_PX = 132
-const BOUNDARY_DEPTH_MAX_PX = 310
-const BOUNDARY_HOLD_RATIO = 0.012
-const BOUNDARY_HOLD_MIN_PX = 6
-const BOUNDARY_HOLD_MAX_PX = 18
 const PIXEL_THRESHOLD_MIN = 0.08
 const PIXEL_THRESHOLD_SPAN = 0.84
 
@@ -38,41 +37,6 @@ function rgbaCss(rgba) {
   return `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, ${rgba[3] / 255})`
 }
 
-function viewportHeight() {
-  return Math.max(
-    window.innerHeight || 0,
-    document.documentElement.clientHeight || 0,
-    window.visualViewport?.height || 0,
-    1,
-  )
-}
-
-function viewportBounds() {
-  const bottom = viewportHeight()
-  const header = document.querySelector(".site-header")
-  const top = clamp(header?.getBoundingClientRect?.().bottom || 0, 0, bottom)
-  return { top, bottom }
-}
-
-function boundaryMetrics(bounds) {
-  const span = Math.max(1, bounds.bottom - bounds.top)
-  return {
-    depth: clamp(span * BOUNDARY_DEPTH_RATIO, BOUNDARY_DEPTH_MIN_PX, BOUNDARY_DEPTH_MAX_PX),
-    hold: clamp(span * BOUNDARY_HOLD_RATIO, BOUNDARY_HOLD_MIN_PX, BOUNDARY_HOLD_MAX_PX),
-  }
-}
-
-function boundaryStrength(y, bounds, metrics) {
-  const fromTop = y - bounds.top
-  const fromBottom = bounds.bottom - y
-  if (fromTop <= 0 || fromBottom <= 0) return 1
-
-  const nearest = Math.min(fromTop, fromBottom)
-  if (nearest <= metrics.hold) return 1
-  if (nearest >= metrics.hold + metrics.depth) return 0
-  return 1 - smooth01((nearest - metrics.hold) / metrics.depth)
-}
-
 function surfaceRect(card, baseCanvas) {
   const target = baseCanvas || card?.querySelector?.(".project-media")
   const rect = target?.getBoundingClientRect?.()
@@ -88,7 +52,7 @@ function applyViewportBoundary(bits, card, baseCanvas, cols, rows, inputConfig) 
   const rect = surfaceRect(card, baseCanvas)
   if (!rect) return bits
 
-  const bounds = viewportBounds()
+  const bounds = viewportBoundsForCard(card)
   const metrics = boundaryMetrics(bounds)
   const topLimit = bounds.top + metrics.hold + metrics.depth
   const bottomLimit = bounds.bottom - metrics.hold - metrics.depth
@@ -102,7 +66,7 @@ function applyViewportBoundary(bits, card, baseCanvas, cols, rows, inputConfig) 
 
   for (let row = 0; row < rows; row += 1) {
     const viewportY = rect.top + ((row + 0.5) / rows) * rect.height
-    const strength = boundaryStrength(viewportY, bounds, metrics)
+    const strength = boundaryStrength(viewportY, bounds, metrics, smooth01)
     if (strength <= 0.0005) continue
 
     const rowStart = row * cols

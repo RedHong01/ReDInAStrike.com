@@ -140,6 +140,7 @@
   --project-first-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
   --project-preview-duration: 420ms;
+  --project-preview-exit-fade-duration: 180ms;
   --project-preview-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --nav-detail-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -779,6 +780,12 @@ body[data-layout-transition="true"] .about-section {
   display: none;
 }
 
+.project-row.is-project-preview-exit-source > .project-card:not(.is-project-preview-exit-source-card) {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .project-row.has-project-preview::before,
 .project-row.has-project-preview::after,
 .project-row.is-before-project-preview::after {
@@ -855,6 +862,7 @@ body[data-layout-transition="true"] .about-section {
   clip-path: inset(0 0 0 0);
   contain: layout paint style;
   transform: translateZ(0);
+  opacity: 1;
 }
 
 .project-card.project-preview-exit-ghost .project-media {
@@ -867,7 +875,12 @@ body[data-layout-transition="true"] .about-section {
 
 .project-card.project-preview-exit-ghost[data-project-preview-exiting="true"] {
   animation: project-preview-stage-retract var(--project-preview-duration) var(--project-preview-ease) both;
-  will-change: clip-path;
+  will-change: clip-path, opacity;
+}
+
+.project-card.project-preview-exit-ghost[data-project-preview-exit-mode="switching"] {
+  transition: opacity var(--project-preview-exit-fade-duration, 180ms) ease-out;
+  transition-delay: 20ms;
 }
 
 .project-card.is-project-preview[data-card-side="left"] .project-media,

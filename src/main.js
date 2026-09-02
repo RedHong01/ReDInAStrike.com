@@ -11,7 +11,7 @@ import {
   boundaryVisibility,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260902-previewboundary4"
+} from "./viewport-boundary-core.js?v=20260902-previewboundary5"
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
@@ -6039,7 +6039,7 @@ function setupHoverEmbeds() {
 }
 
 function activeProjectPreview() {
-  return document.querySelector(".project-card.is-project-preview")
+  return document.querySelector(".project-card.is-project-preview:not(.project-preview-exit-ghost)")
 }
 
 function ensureProjectHalftoneCanvas(card) {
@@ -6241,6 +6241,7 @@ function createProjectPreviewExitGhost(card) {
     width: rect.width,
     height: rect.height,
   }
+  const sourceRow = card.closest(".project-row")
   const ghost = card.cloneNode(true)
   ghost.classList.add("project-preview-exit-ghost")
   ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
@@ -6258,8 +6259,16 @@ function createProjectPreviewExitGhost(card) {
   ghost
     .querySelectorAll(".dither-preview-canvas, .dither-reveal-canvas, .project-halftone, iframe")
     .forEach((element) => element.remove())
-  ghost.querySelectorAll(".project-media img, .project-media video").forEach((element) => element.remove())
+  ghost.querySelectorAll(".project-media img").forEach((image) => {
+    image.loading = "eager"
+    image.decoding = "async"
+  })
   ghost.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "false")
+
+  sourceRow?.classList.add("is-project-preview-exit-source")
+  card.classList.add("is-project-preview-exit-source-card")
+  ghost.__projectPreviewExitSourceRow = sourceRow
+  ghost.__projectPreviewExitSourceCard = card
 
   ghost.style.setProperty("--project-preview-ghost-left", `${sourceRect.left + window.scrollX}px`)
   ghost.style.setProperty("--project-preview-ghost-top", `${sourceRect.top + window.scrollY}px`)
@@ -6300,13 +6309,24 @@ function applyProjectPreviewExitTarget(exitMotion, targetCard) {
 function clearProjectPreviewExitGhosts() {
   if (!siteState.projectPreviewExitGhosts.size) return
   for (const ghost of [...siteState.projectPreviewExitGhosts]) {
+    releaseProjectPreviewExitSource(ghost)
     ghost?.remove()
   }
   siteState.projectPreviewExitGhosts.clear()
 }
 
-function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = false, motionId = 0 } = {}) {
+function releaseProjectPreviewExitSource(ghost) {
+  ghost?.__projectPreviewExitSourceRow?.classList.remove("is-project-preview-exit-source")
+  ghost?.__projectPreviewExitSourceCard?.classList.remove("is-project-preview-exit-source-card")
+}
+
+function runProjectPreviewExitGhost(
+  exitMotion,
+  targetCard,
+  { clearTransition = false, motionId = 0, fade = false } = {},
+) {
   if (!exitMotion?.ghost?.isConnected) {
+    releaseProjectPreviewExitSource(exitMotion?.ghost)
     if (clearTransition && motionId === siteState.projectPreviewMotionId) {
       delete document.documentElement.dataset.projectPreviewTransition
     }
@@ -6314,6 +6334,7 @@ function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = 
   }
 
   const { ghost } = exitMotion
+  if (fade) ghost.setAttribute("data-project-preview-exit-mode", "switching")
   applyProjectPreviewExitTarget(exitMotion, targetCard)
 
   let cleaned = false
@@ -6321,6 +6342,7 @@ function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = 
     if (cleaned) return
     cleaned = true
     ghost.removeEventListener("animationend", handleAnimationEnd)
+    releaseProjectPreviewExitSource(ghost)
     siteState.projectPreviewExitGhosts.delete(ghost)
     ghost.remove()
     if (clearTransition && motionId === siteState.projectPreviewMotionId) {
@@ -6334,6 +6356,13 @@ function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = 
   }
 
   ghost.addEventListener("animationend", handleAnimationEnd)
+  if (fade) {
+    // Let the outgoing snapshot paint once before fading it out.
+    window.requestAnimationFrame(() => {
+      if (!ghost.isConnected || motionId !== siteState.projectPreviewMotionId) return
+      ghost.style.opacity = "0"
+    })
+  }
   window.setTimeout(cleanup, catalogFilterDuration(420) + 140)
 }
 
@@ -6402,7 +6431,7 @@ function setProjectPreview(card, expanded) {
   prepareProjectPreviewExpandMotion(card)
   document.documentElement.dataset.projectPreviewTransition = exitMotion ? "switching" : "expanding"
   commitProjectPreviewState(card, expanded)
-  if (exitMotion) runProjectPreviewExitGhost(exitMotion, current, { motionId })
+  if (exitMotion) runProjectPreviewExitGhost(exitMotion, current, { motionId, fade: true })
 
   let cleaned = false
   const cleanup = () => {
@@ -6538,7 +6567,6 @@ document.addEventListener("click", dismissProjectPreview)
 document.addEventListener("keydown", handleProjectPreviewKeydown)
 window.addEventListener("wheel", clearProjectPreviewExitGhosts, { passive: true })
 window.addEventListener("touchstart", clearProjectPreviewExitGhosts, { passive: true })
-window.addEventListener("scroll", clearProjectPreviewExitGhosts, { passive: true })
 window.addEventListener("red:public-dither-ready", (event) => {
   if (event?.detail?.generated) stopLegacyCatalogHalftoneWork()
 })

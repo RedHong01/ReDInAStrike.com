@@ -66,7 +66,7 @@ function pinnedPreviewBoundary(expandedCard, expandedRow, headerEdge, viewportBo
 export function readViewportBoundaryContext() {
   const bottom = viewportHeight()
   const headerEdge = headerBottom(bottom)
-  const expandedCard = document.querySelector(".project-card.is-project-preview")
+  const expandedCard = document.querySelector(".project-card.is-project-preview:not(.project-preview-exit-ghost)")
   const expandedRow = expandedCard?.closest?.(".project-row")
   const expandedBoundary = pinnedPreviewBoundary(
     expandedCard,

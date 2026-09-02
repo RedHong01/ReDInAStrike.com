@@ -32,7 +32,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260902-previewboundary4").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260902-previewboundary5").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,

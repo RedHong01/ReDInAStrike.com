@@ -216,6 +216,7 @@ const PROJECT_EXPAND_MIN_MS = 420
 const PROJECT_EXPAND_MAX_MS = 780
 const PROJECT_EXPAND_DISTANCE_RATIO = 0.34
 const PROJECT_EXPAND_MASK_FADE_MS = 260
+const PROJECT_PREVIEW_EXIT_SOURCE_REVEAL_MS = 220
 const ROUTE_EXIT_SNOW_MAX_CELLS = 76000
 const ROUTE_EXIT_SNOW_MIN_COLUMNS = 144
 const ROUTE_EXIT_SNOW_SOFTNESS = 0.105
@@ -6316,8 +6317,14 @@ function clearProjectPreviewExitGhosts() {
 }
 
 function releaseProjectPreviewExitSource(ghost) {
-  ghost?.__projectPreviewExitSourceRow?.classList.remove("is-project-preview-exit-source")
+  window.clearTimeout(ghost?.__projectPreviewExitSourceRevealTimer)
+  if (ghost) ghost.__projectPreviewExitSourceRevealTimer = 0
+  revealProjectPreviewExitSourceRow(ghost)
   ghost?.__projectPreviewExitSourceCard?.classList.remove("is-project-preview-exit-source-card")
+}
+
+function revealProjectPreviewExitSourceRow(ghost) {
+  ghost?.__projectPreviewExitSourceRow?.classList.remove("is-project-preview-exit-source")
 }
 
 function runProjectPreviewExitGhost(
@@ -6357,6 +6364,11 @@ function runProjectPreviewExitGhost(
 
   ghost.addEventListener("animationend", handleAnimationEnd)
   if (fade) {
+    ghost.__projectPreviewExitSourceRevealTimer = window.setTimeout(() => {
+      ghost.__projectPreviewExitSourceRevealTimer = 0
+      if (!ghost.isConnected || motionId !== siteState.projectPreviewMotionId) return
+      revealProjectPreviewExitSourceRow(ghost)
+    }, catalogFilterDuration(PROJECT_PREVIEW_EXIT_SOURCE_REVEAL_MS))
     // Let the outgoing snapshot paint once before fading it out.
     window.requestAnimationFrame(() => {
       if (!ghost.isConnected || motionId !== siteState.projectPreviewMotionId) return

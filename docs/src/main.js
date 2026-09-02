@@ -3469,6 +3469,7 @@ function applyHeaderProgress(progress, options = {}) {
   setRootStyleProperty("--glass-blur", `${glassBlur.toFixed(2)}px`)
   setRootStyleProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
   setRootStyleProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
+  setRootStyleProperty("--project-preview-sticky-top", `${height.toFixed(2)}px`)
   siteState.headerVisualBottom = height
 
   const isCompact = progress > 0.7
@@ -6229,6 +6230,7 @@ function createProjectPreviewExitGhost(card) {
   ghost
     .querySelectorAll(".dither-preview-canvas, .dither-reveal-canvas, .project-halftone, iframe")
     .forEach((element) => element.remove())
+  ghost.querySelectorAll(".project-media img, .project-media video").forEach((element) => element.remove())
   ghost.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "false")
 
   ghost.style.setProperty("--project-preview-ghost-left", `${sourceRect.left + window.scrollX}px`)

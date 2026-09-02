@@ -766,7 +766,7 @@ body[data-layout-transition="true"] .about-section {
   padding-top: 0;
   padding-bottom: 0;
   position: sticky;
-  top: var(--header-height);
+  top: var(--project-preview-sticky-top, var(--perf-layout-header-height, var(--header-height)));
   z-index: 15;
   background: var(--paper);
 }

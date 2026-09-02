@@ -745,6 +745,7 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-row.has-project-preview {
+  --project-preview-rule-bleed: calc((100vw - 100%) / -2);
   grid-template-columns: minmax(0, 1fr);
   row-gap: 0;
   padding-top: 0;
@@ -757,6 +758,16 @@ body[data-layout-transition="true"] .about-section {
 
 .project-row.has-project-preview > .project-card:not(.is-project-preview) {
   display: none;
+}
+
+.project-row.has-project-preview::after,
+.project-row.is-before-project-preview::after {
+  left: calc((100vw - 100%) / -2);
+  right: calc((100vw - 100%) / -2);
+}
+
+.project-row.has-project-preview:last-child::after {
+  display: block;
 }
 
 .project-card.is-project-preview {
@@ -788,6 +799,30 @@ body[data-layout-transition="true"] .about-section {
 
 .project-card.is-project-preview[data-project-preview-expanding="true"] {
   animation: project-preview-stage-expand var(--project-preview-duration) var(--project-preview-ease) both;
+  will-change: clip-path;
+}
+
+.project-card.project-preview-exit-ghost {
+  position: fixed;
+  left: var(--project-preview-ghost-left, 0);
+  top: var(--project-preview-ghost-top, 0);
+  z-index: 60;
+  width: var(--project-preview-ghost-width, 100vw);
+  height: var(--project-preview-ghost-height, auto);
+  min-height: 0;
+  margin: 0;
+  pointer-events: none;
+  clip-path: inset(0 0 0 0);
+  contain: layout paint style;
+  transform: translateZ(0);
+}
+
+.project-card.project-preview-exit-ghost .project-media {
+  min-height: 0;
+}
+
+.project-card.project-preview-exit-ghost[data-project-preview-exiting="true"] {
+  animation: project-preview-stage-retract var(--project-preview-duration) var(--project-preview-ease) both;
   will-change: clip-path;
 }
 
@@ -880,6 +915,20 @@ body[data-layout-transition="true"] .about-section {
   }
   to {
     clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes project-preview-stage-retract {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(
+      var(--project-preview-exit-top, 0px)
+      var(--project-preview-exit-right, 0px)
+      var(--project-preview-exit-bottom, 0px)
+      var(--project-preview-exit-left, 0px)
+    );
   }
 }
 

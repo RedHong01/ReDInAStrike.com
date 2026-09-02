@@ -4,7 +4,7 @@ import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260901-motionpipe2"
+} from "./reveal-motion.js?v=20260902-previewexit1"
 import {
   BINARY_MOTION_DEFAULTS,
   binaryBitsEqual,

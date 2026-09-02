@@ -880,6 +880,10 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
 
   const rect = viewportRectForState(state, forceMeasure)
   if (rect.height <= 0 || rect.width <= 0) return false
+  if (forceMeasure && !isRectNearViewport(rect)) {
+    hideViewportOverlay(state)
+    return false
+  }
 
   ensureBoundaryBuffers(state)
   const metrics = boundaryMetrics(bounds)
@@ -992,7 +996,7 @@ function viewportLoop(now) {
   const bounds = viewportBounds()
   const forceScrollFrame = now < viewportActiveUntil
   let hasBoundaryTransition = false
-  const states = viewportObserver ? viewportVisibleStates : viewportStates
+  const states = forceScrollFrame || !viewportObserver ? viewportStates : viewportVisibleStates
 
   for (const state of [...states]) {
     if (!viewportStates.has(state)) {
@@ -1216,6 +1220,8 @@ function requestHubReplay(config) {
 
 window.addEventListener("scroll", () => refreshViewportDitherReveals(), { passive: true })
 window.addEventListener("resize", () => refreshViewportDitherReveals(), { passive: true })
+window.visualViewport?.addEventListener?.("scroll", () => refreshViewportDitherReveals(), { passive: true })
+window.visualViewport?.addEventListener?.("resize", () => refreshViewportDitherReveals(), { passive: true })
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     clearViewportTimer()

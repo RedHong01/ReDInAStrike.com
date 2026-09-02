@@ -7,6 +7,7 @@ const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
 const IDLE_FRAME_MS = 1000 / 30
 const WATCHDOG_FRAME_MS = 240
 const RESIZE_SYNC_MS = 120
+const SCROLL_SYNC_MS = 96
 const RETRY_DELAYS = [0, 80, 220, 520, 1000, 1800]
 
 const trackedSignatures = new WeakMap()
@@ -19,6 +20,9 @@ let breathTimer = 0
 let syncFrame = 0
 let lastBreathDraw = 0
 let resizeTimer = 0
+let scrollSyncFrame = 0
+let scrollSyncTimer = 0
+let lastScrollSync = 0
 let revealModulePromise = null
 let revealApi = null
 let catalog = null
@@ -28,7 +32,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260901-motionpipe2").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260902-previewexit1").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -276,6 +280,12 @@ function clearBreathTimer() {
   breathTimer = 0
 }
 
+function clearScrollSyncTimer() {
+  if (!scrollSyncTimer) return
+  window.clearTimeout(scrollSyncTimer)
+  scrollSyncTimer = 0
+}
+
 function scheduleBreathLoop(delay = 0) {
   if (breathFrame || breathTimer || document.hidden) return
 
@@ -328,6 +338,35 @@ function scheduleSync() {
     syncFrame = 0
     void wakeBreathing({ sync: true, refresh: true })
   })
+}
+
+function runScrollSync(now = performance.now()) {
+  scrollSyncFrame = 0
+  lastScrollSync = now
+  void wakeBreathing({ sync: true, refresh: true })
+}
+
+function scheduleScrollSync() {
+  if (document.hidden || scrollSyncFrame || scrollSyncTimer) return
+
+  const now = performance.now()
+  const wait = Math.max(0, SCROLL_SYNC_MS - (now - lastScrollSync))
+  if (wait > 0) {
+    scrollSyncTimer = window.setTimeout(() => {
+      scrollSyncTimer = 0
+      if (!scrollSyncFrame && !document.hidden) {
+        scrollSyncFrame = requestAnimationFrame(runScrollSync)
+      }
+    }, wait)
+    return
+  }
+
+  scrollSyncFrame = requestAnimationFrame(runScrollSync)
+}
+
+function handleScroll() {
+  wakeLoopOnly()
+  scheduleScrollSync()
 }
 
 async function syncNow({ refresh = true } = {}) {
@@ -458,10 +497,7 @@ function start() {
   // them through the same rAF-coalesced targeted sync.
   for (const delay of RETRY_DELAYS) window.setTimeout(scheduleSync, delay)
 
-  // reveal-motion already updates boundary POSITION on scroll. Do not rescan
-  // every project card for every scroll event; only ensure the idle breath loop
-  // is awake.
-  window.addEventListener("scroll", wakeLoopOnly, { passive: true })
+  window.addEventListener("scroll", handleScroll, { passive: true })
   window.addEventListener("resize", scheduleResizeSync, { passive: true })
   window.addEventListener("red:motion-config", scheduleSync)
   window.addEventListener("red:hover-binary-return-complete", scheduleSync)
@@ -472,14 +508,17 @@ function start() {
     if (document.hidden) {
       clearBreathTimer()
       if (breathFrame) cancelAnimationFrame(breathFrame)
+      if (scrollSyncFrame) cancelAnimationFrame(scrollSyncFrame)
       breathFrame = 0
+      scrollSyncFrame = 0
+      clearScrollSyncTimer()
       return
     }
     scheduleSync()
   })
 
   window.__RED_BOUNDARY_BREATH__ = {
-    version: 8,
+    version: 9,
     sync: scheduleSync,
     syncNow,
     syncCardNow,

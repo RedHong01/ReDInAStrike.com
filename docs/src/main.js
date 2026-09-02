@@ -25,6 +25,8 @@ const DITHER_CATEGORY_ENTER_ATTRIBUTE = "data-dither-category-enter-reveal"
 const MEDIA_DOMINANT_SAMPLE_MAX = 42
 const MEDIA_DOMINANT_ALPHA_MIN = 24
 const MEDIA_DOMINANT_CACHE_LIMIT = 96
+const MEDIA_EDGE_SAMPLE_RATIO = 0.08
+const MEDIA_EDGE_SAMPLE_MIN_PX = 2
 
 const projects = [
   {
@@ -2359,6 +2361,43 @@ function previewInkForRgb(red, green, blue) {
   return luma < 92 ? "rgb(248 247 245)" : "rgb(69 69 69)"
 }
 
+function addMediaColorBucket(buckets, pixels, index) {
+  const alpha = pixels[index + 3]
+  if (alpha < MEDIA_DOMINANT_ALPHA_MIN) return false
+
+  const red = pixels[index]
+  const green = pixels[index + 1]
+  const blue = pixels[index + 2]
+  const bucketKey = `${red >> 4}:${green >> 4}:${blue >> 4}`
+  const bucket = buckets.get(bucketKey) || { count: 0, red: 0, green: 0, blue: 0 }
+  bucket.count += 1
+  bucket.red += red
+  bucket.green += green
+  bucket.blue += blue
+  buckets.set(bucketKey, bucket)
+  return true
+}
+
+function dominantMediaBucket(buckets) {
+  let dominant = null
+  for (const bucket of buckets.values()) {
+    if (!dominant || bucket.count > dominant.count) dominant = bucket
+  }
+  return dominant
+}
+
+function mediaBackgroundFromBucket(bucket) {
+  if (!bucket) return null
+
+  const red = Math.round(bucket.red / bucket.count)
+  const green = Math.round(bucket.green / bucket.count)
+  const blue = Math.round(bucket.blue / bucket.count)
+  return {
+    background: `rgb(${red} ${green} ${blue})`,
+    ink: previewInkForRgb(red, green, blue),
+  }
+}
+
 function dominantMediaBackgroundFromImage(img) {
   if (!img?.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return null
 
@@ -2383,37 +2422,30 @@ function dominantMediaBackgroundFromImage(img) {
   try {
     context.drawImage(img, 0, 0, width, height)
     const pixels = context.getImageData(0, 0, width, height).data
-    const buckets = new Map()
+    const fullBuckets = new Map()
+    const edgeBuckets = new Map()
+    const edgeSize = Math.max(
+      MEDIA_EDGE_SAMPLE_MIN_PX,
+      Math.round(Math.min(width, height) * MEDIA_EDGE_SAMPLE_RATIO),
+    )
 
-    for (let index = 0; index < pixels.length; index += 4) {
-      const alpha = pixels[index + 3]
-      if (alpha < MEDIA_DOMINANT_ALPHA_MIN) continue
-
-      const red = pixels[index]
-      const green = pixels[index + 1]
-      const blue = pixels[index + 2]
-      const bucketKey = `${red >> 4}:${green >> 4}:${blue >> 4}`
-      const bucket = buckets.get(bucketKey) || { count: 0, red: 0, green: 0, blue: 0 }
-      bucket.count += 1
-      bucket.red += red
-      bucket.green += green
-      bucket.blue += blue
-      buckets.set(bucketKey, bucket)
+    for (let y = 0; y < height; y += 1) {
+      const yIsEdge = y < edgeSize || y >= height - edgeSize
+      for (let x = 0; x < width; x += 1) {
+        const index = (y * width + x) * 4
+        if (!addMediaColorBucket(fullBuckets, pixels, index)) continue
+        if (yIsEdge || x < edgeSize || x >= width - edgeSize) {
+          addMediaColorBucket(edgeBuckets, pixels, index)
+        }
+      }
     }
 
-    let dominant = null
-    for (const bucket of buckets.values()) {
-      if (!dominant || bucket.count > dominant.count) dominant = bucket
-    }
+    const dominant = dominantMediaBucket(edgeBuckets) || dominantMediaBucket(fullBuckets)
     if (!dominant) return null
 
-    const red = Math.round(dominant.red / dominant.count)
-    const green = Math.round(dominant.green / dominant.count)
-    const blue = Math.round(dominant.blue / dominant.count)
-    const result = {
-      background: `rgb(${red} ${green} ${blue})`,
-      ink: previewInkForRgb(red, green, blue),
-    }
+    const result = mediaBackgroundFromBucket(dominant)
+    if (!result) return null
+
     siteState.mediaBackgroundCache.set(key, result)
     trimMediaDominantCache()
     return result
@@ -5838,6 +5870,7 @@ function clearProjectPreviewFilterState(catalog, options = {}) {
   catalog.querySelectorAll(".project-card").forEach(restoreCardBaseMutedState)
   catalog.removeAttribute(PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE)
   delete catalog.dataset.projectPreviewFilter
+  clearProjectPreviewRowState(catalog)
 
   if (restoreFilter) {
     if (previousFilter !== null) {
@@ -5906,6 +5939,26 @@ function refreshAfterProjectPreviewChange() {
   requestLayoutEffectsUpdate({ rules: true, footer: true })
 }
 
+function clearProjectPreviewRowState(catalog) {
+  catalog?.querySelectorAll?.(".project-row.has-project-preview, .project-row.is-before-project-preview")
+    .forEach((row) => {
+      row.classList.remove("has-project-preview", "is-before-project-preview")
+    })
+}
+
+function syncProjectPreviewRows(card, expanded) {
+  const catalog = card?.closest?.(".catalog")
+  clearProjectPreviewRowState(catalog)
+  if (!expanded) return
+
+  const row = card.closest(".project-row")
+  row?.classList.add("has-project-preview")
+  const previousRow = row?.previousElementSibling
+  if (previousRow?.classList?.contains("project-row")) {
+    previousRow.classList.add("is-before-project-preview")
+  }
+}
+
 function prepareProjectPreviewExpandMotion(card) {
   if (!card) return
 
@@ -5924,6 +5977,142 @@ function prepareProjectPreviewExpandMotion(card) {
   card.setAttribute("data-project-preview-expanding", "true")
 }
 
+function normalProjectCardFallbackRect(card, sourceRect) {
+  const row = card?.closest?.(".project-row")
+  if (!row || !sourceRect) return sourceRect
+
+  const viewportWidth = Math.max(
+    window.innerWidth || 0,
+    document.documentElement.clientWidth || 0,
+    1,
+  )
+  const rowRect = row.getBoundingClientRect()
+  const compactLayout = window.matchMedia?.("(max-width: 980px), (orientation: portrait)")?.matches === true
+  if (compactLayout) {
+    return {
+      left: rowRect.left,
+      right: rowRect.right,
+      top: sourceRect.top,
+      bottom: sourceRect.bottom,
+      width: rowRect.width,
+      height: sourceRect.height,
+    }
+  }
+
+  const style = getComputedStyle(row)
+  const gap = Number.parseFloat(style.columnGap) || 0
+  const columnWidth = Math.max(0, (rowRect.width - gap) / 2)
+  const side = card.dataset.cardSide === "right" ? "right" : "left"
+  const left = side === "right" ? rowRect.left + columnWidth + gap : rowRect.left
+  const right = side === "right" ? rowRect.right : left + columnWidth
+
+  return {
+    left: clamp(left, 0, viewportWidth),
+    right: clamp(right, 0, viewportWidth),
+    top: sourceRect.top,
+    bottom: sourceRect.bottom,
+    width: Math.max(0, right - left),
+    height: sourceRect.height,
+  }
+}
+
+function createProjectPreviewExitGhost(card) {
+  if (!card?.isConnected) return null
+
+  const rect = card.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return null
+
+  const sourceRect = {
+    left: rect.left,
+    right: rect.right,
+    top: rect.top,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+  }
+  const ghost = card.cloneNode(true)
+  ghost.classList.add("project-preview-exit-ghost")
+  ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
+  ghost.setAttribute("aria-hidden", "true")
+  ghost.setAttribute("tabindex", "-1")
+  ghost.removeAttribute("href")
+  ghost.removeAttribute("id")
+  ghost.removeAttribute("data-project-card")
+  ghost.removeAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE)
+  ghost.removeAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE)
+  ghost.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
+  ghost.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"))
+  ghost
+    .querySelectorAll(".dither-preview-canvas, .dither-reveal-canvas, .project-halftone, iframe")
+    .forEach((element) => element.remove())
+  ghost.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "false")
+
+  ghost.style.setProperty("--project-preview-ghost-left", `${sourceRect.left}px`)
+  ghost.style.setProperty("--project-preview-ghost-top", `${sourceRect.top}px`)
+  ghost.style.setProperty("--project-preview-ghost-width", `${sourceRect.width}px`)
+  ghost.style.setProperty("--project-preview-ghost-height", `${sourceRect.height}px`)
+
+  document.body.appendChild(ghost)
+  return {
+    ghost,
+    sourceRect,
+    fallbackRect: normalProjectCardFallbackRect(card, sourceRect),
+  }
+}
+
+function validPreviewTargetRect(rect) {
+  return Boolean(rect && rect.width > 0 && rect.height > 0)
+}
+
+function applyProjectPreviewExitTarget(exitMotion, targetCard) {
+  if (!exitMotion?.ghost?.isConnected) return
+
+  const { ghost, sourceRect, fallbackRect } = exitMotion
+  const measuredRect = targetCard?.isConnected ? targetCard.getBoundingClientRect() : null
+  const targetRect = validPreviewTargetRect(measuredRect) ? measuredRect : fallbackRect
+  const left = clamp(targetRect.left - sourceRect.left, 0, sourceRect.width)
+  const right = clamp(sourceRect.right - targetRect.right, 0, sourceRect.width)
+  const top = clamp(targetRect.top - sourceRect.top, 0, sourceRect.height)
+  const bottom = clamp(sourceRect.bottom - targetRect.bottom, 0, sourceRect.height)
+
+  ghost.style.setProperty("--project-preview-exit-left", `${left}px`)
+  ghost.style.setProperty("--project-preview-exit-right", `${right}px`)
+  ghost.style.setProperty("--project-preview-exit-top", `${top}px`)
+  ghost.style.setProperty("--project-preview-exit-bottom", `${bottom}px`)
+  ghost.setAttribute("data-project-preview-exiting", "true")
+}
+
+function runProjectPreviewExitGhost(exitMotion, targetCard, { clearTransition = false, motionId = 0 } = {}) {
+  if (!exitMotion?.ghost?.isConnected) {
+    if (clearTransition && motionId === siteState.projectPreviewMotionId) {
+      delete document.documentElement.dataset.projectPreviewTransition
+    }
+    return
+  }
+
+  const { ghost } = exitMotion
+  applyProjectPreviewExitTarget(exitMotion, targetCard)
+
+  let cleaned = false
+  const cleanup = () => {
+    if (cleaned) return
+    cleaned = true
+    ghost.removeEventListener("animationend", handleAnimationEnd)
+    ghost.remove()
+    if (clearTransition && motionId === siteState.projectPreviewMotionId) {
+      delete document.documentElement.dataset.projectPreviewTransition
+      refreshAfterProjectPreviewChange()
+    }
+  }
+  const handleAnimationEnd = (event) => {
+    if (event.target !== ghost) return
+    cleanup()
+  }
+
+  ghost.addEventListener("animationend", handleAnimationEnd)
+  window.setTimeout(cleanup, catalogFilterDuration(560) + 140)
+}
+
 function clearProjectPreviewExpandMotion(card) {
   if (!card) return
 
@@ -5934,11 +6123,12 @@ function clearProjectPreviewExpandMotion(card) {
 
 function commitProjectPreviewState(card, expanded) {
   const current = activeProjectPreview()
+  const catalog = card.closest(".catalog")
+  syncProjectPreviewRows(card, false)
   if (current && current !== card) {
     current.classList.remove("is-project-preview")
     current.setAttribute("aria-expanded", "false")
     current.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "true")
-    current.closest(".project-row")?.classList.remove("has-project-preview")
     clearProjectPreviewExpandMotion(current)
   }
 
@@ -5948,8 +6138,7 @@ function commitProjectPreviewState(card, expanded) {
   card.classList.toggle("is-project-preview", expanded)
   card.setAttribute("aria-expanded", expanded ? "true" : "false")
   card.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", expanded ? "false" : "true")
-  card.closest(".project-row")?.classList.toggle("has-project-preview", expanded)
-  const catalog = card.closest(".catalog")
+  syncProjectPreviewRows(card, expanded)
   catalog?.toggleAttribute("data-project-preview", expanded)
   if (expanded) syncProjectPreviewFilterState(catalog, card)
   else clearProjectPreviewFilterState(catalog)
@@ -5971,14 +6160,19 @@ function setProjectPreview(card, expanded) {
   }
 
   if (!expanded) {
+    const exitMotion = createProjectPreviewExitGhost(card)
     clearProjectPreviewExpandMotion(card)
+    document.documentElement.dataset.projectPreviewTransition = "exiting"
     commitProjectPreviewState(card, expanded)
+    runProjectPreviewExitGhost(exitMotion, card, { clearTransition: true, motionId })
     return
   }
 
+  const exitMotion = current && current !== card ? createProjectPreviewExitGhost(current) : null
   prepareProjectPreviewExpandMotion(card)
-  document.documentElement.dataset.projectPreviewTransition = "expanding"
+  document.documentElement.dataset.projectPreviewTransition = exitMotion ? "switching" : "expanding"
   commitProjectPreviewState(card, expanded)
+  if (exitMotion) runProjectPreviewExitGhost(exitMotion, current, { motionId })
 
   let cleaned = false
   const cleanup = () => {
@@ -6040,7 +6234,7 @@ function handleRouteLinkClick(event) {
   }
 
   const projectCard = link.matches("[data-project-card]") ? link : null
-  if (projectCard && document.documentElement.dataset.projectPreviewTransition === "true") {
+  if (projectCard && document.documentElement.hasAttribute("data-project-preview-transition")) {
     event.preventDefault()
     return
   }

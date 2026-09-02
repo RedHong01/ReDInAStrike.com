@@ -566,6 +566,22 @@ body[data-home-return-transition] .nav-list {
   image-rendering: pixelated;
 }
 
+body[data-project-expand-transition] .site-main,
+body[data-project-expand-transition] .nav-list {
+  pointer-events: none;
+}
+
+.project-expand-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: var(--project-expand-mask-color, var(--paper));
+  pointer-events: none;
+  opacity: 1;
+}
+
 body[data-layout-transition="true"] .site-header {
   transition: height var(--responsive-duration) var(--responsive-ease);
 }

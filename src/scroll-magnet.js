@@ -140,6 +140,9 @@ function isVisibleStation(element) {
 
 function isEligibleStation(element) {
   if (!element?.matches?.(".catalog .project-row")) return true
+  if (element.classList.contains("has-project-preview") || element.classList.contains("is-before-project-preview")) {
+    return false
+  }
   return Boolean(element.id)
 }
 

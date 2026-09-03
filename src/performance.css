@@ -65,6 +65,13 @@ html.red-perf-pass-1 .dither-lab__sticky-head {
  * The shell is also a size container, so typography, gaps, grids and media react
  * to the real detail width produced by the animated header—not only to viewport width.
  */
+.detail-page {
+  --type-detail-title-size: clamp(48px, 6.8cqi, 98px);
+  --type-detail-subtitle-size: clamp(18px, 1.55cqi, 26px);
+  --type-detail-body-size: clamp(15px, 1.22cqi, 19px);
+  --type-detail-section-size: clamp(21px, 1.8cqi, 29px);
+}
+
 .detail-page .detail-shell,
 .detail-page .framer-derived-shell,
 .detail-page .framer-case-shell {
@@ -73,6 +80,14 @@ html.red-perf-pass-1 .dither-lab__sticky-head {
   margin-inline: auto;
   container-name: project-detail;
   container-type: inline-size;
+}
+
+.detail-page .detail-heading h1,
+.detail-page .framer-derived-hero h1,
+.detail-page .framer-case-hero h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  letter-spacing: 0;
 }
 
 body[data-layout-transition="true"] .framer-case-shell {
@@ -92,13 +107,13 @@ body[data-layout-transition="true"] .framer-case-shell {
 }
 
 .detail-page .detail-heading h1 {
-  font-size: clamp(44px, 7.2cqi, 104px);
-  line-height: 0.94;
+  font-size: var(--type-detail-title-size);
+  line-height: 0.95;
 }
 
 .detail-page .detail-heading p,
 .detail-page .detail-heading span {
-  font-size: clamp(14px, 1.28cqi, 19px);
+  font-size: var(--type-detail-subtitle-size);
   line-height: calc(1em + 2px);
 }
 
@@ -130,13 +145,13 @@ body[data-layout-transition="true"] .framer-case-shell {
 }
 
 .detail-page .framer-derived-hero h1 {
-  font-size: clamp(48px, 6.8cqi, 98px);
+  font-size: var(--type-detail-title-size);
   line-height: 0.95;
 }
 
 .detail-page .framer-derived-year,
 .detail-page .framer-derived-category {
-  font-size: clamp(18px, 1.55cqi, 26px);
+  font-size: var(--type-detail-subtitle-size);
   line-height: calc(1em + 2px);
 }
 
@@ -155,8 +170,8 @@ body[data-layout-transition="true"] .framer-case-shell {
 .detail-page .framer-derived-intro li,
 .detail-page .framer-derived-blocks p,
 .detail-page .framer-derived-footer p {
-  font-size: clamp(15px, 1.22cqi, 19px);
-  line-height: 1.18;
+  font-size: var(--type-detail-body-size);
+  line-height: calc(1em + 2px);
 }
 
 .detail-page .framer-derived-intro p {
@@ -180,7 +195,7 @@ body[data-layout-transition="true"] .framer-case-shell {
 .detail-page .framer-derived-blocks h2,
 .detail-page .framer-derived-footer h2 {
   margin-bottom: clamp(12px, 1.3cqi, 18px);
-  font-size: clamp(21px, 1.8cqi, 29px);
+  font-size: var(--type-detail-section-size);
   line-height: 1.08;
 }
 
@@ -231,13 +246,13 @@ body[data-layout-transition="true"] .framer-case-shell {
 
 .detail-page .framer-case-hero h1 {
   max-width: 72cqi;
-  font-size: clamp(48px, 6.4cqi, 96px);
+  font-size: var(--type-detail-title-size);
   line-height: 0.95;
 }
 
 .detail-page .framer-case-year,
 .detail-page .framer-case-category {
-  font-size: clamp(18px, 1.55cqi, 26px);
+  font-size: var(--type-detail-subtitle-size);
   line-height: calc(1em + 2px);
 }
 
@@ -254,15 +269,15 @@ body[data-layout-transition="true"] .framer-case-shell {
 .detail-page .framer-text-section h2,
 .detail-page .framer-case-footer h2 {
   margin-bottom: clamp(14px, 1.35cqi, 22px);
-  font-size: clamp(22px, 1.8cqi, 30px);
-  line-height: 1.02;
+  font-size: var(--type-detail-section-size);
+  line-height: 1.08;
 }
 
 .detail-page .framer-copy-grid p,
 .detail-page .framer-text-section p,
 .detail-page .framer-case-footer p {
-  font-size: clamp(15px, 1.18cqi, 18px);
-  line-height: 1.18;
+  font-size: var(--type-detail-body-size);
+  line-height: calc(1em + 2px);
 }
 
 .detail-page .framer-copy-grid p + p,
@@ -286,68 +301,67 @@ body[data-layout-transition="true"] .framer-case-shell {
  * the viewport did not cross a media-query breakpoint. Container queries make
  * the internal auto-layout respond to that actual shell width. */
 @container project-detail (max-width: 760px) {
-  .framer-derived-intro,
-  .framer-derived-blocks,
-  .framer-derived-footer {
+  .detail-page .framer-derived-intro,
+  .detail-page .framer-derived-blocks,
+  .detail-page .framer-derived-footer {
     grid-template-columns: 1fr;
   }
 
-  .framer-derived-intro {
+  .detail-page .framer-derived-intro {
     gap: clamp(22px, 5cqi, 34px);
   }
 
-  .framer-media-grid-three,
-  .framer-media-grid-two,
-  .framer-copy-grid,
-  .framer-case-footer {
+  .detail-page .framer-media-grid-three,
+  .detail-page .framer-media-grid-two,
+  .detail-page .framer-copy-grid,
+  .detail-page .framer-case-footer {
     grid-template-columns: 1fr;
   }
 
-  .framer-media-grid-three .framer-case-image,
-  .framer-media-grid-two .framer-case-image,
-  .framer-media-grid-checkers .framer-case-image {
+  .detail-page .framer-media-grid-three .framer-case-image,
+  .detail-page .framer-media-grid-two .framer-case-image,
+  .detail-page .framer-media-grid-checkers .framer-case-image {
     aspect-ratio: 16 / 9;
   }
 }
 
 @container project-detail (max-width: 560px) {
-  .detail-heading {
+  .detail-page .detail-heading {
     grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 16px;
   }
 
-  .detail-heading h1 {
-    font-size: clamp(40px, 12cqi, 58px);
-  }
-
-  .framer-derived-hero h1,
-  .framer-case-hero h1 {
+  .detail-page .detail-heading h1,
+  .detail-page .framer-derived-hero h1,
+  .detail-page .framer-case-hero h1 {
     max-width: none;
     font-size: clamp(42px, 12cqi, 60px);
   }
 
-  .framer-derived-year,
-  .framer-derived-category,
-  .framer-case-year,
-  .framer-case-category {
+  .detail-page .detail-heading p,
+  .detail-page .detail-heading span,
+  .detail-page .framer-derived-year,
+  .detail-page .framer-derived-category,
+  .detail-page .framer-case-year,
+  .detail-page .framer-case-category {
     font-size: clamp(17px, 4.7cqi, 21px);
   }
 
-  .framer-copy-grid h2,
-  .framer-text-section h2,
-  .framer-case-footer h2,
-  .framer-derived-blocks h2,
-  .framer-derived-footer h2 {
+  .detail-page .framer-copy-grid h2,
+  .detail-page .framer-text-section h2,
+  .detail-page .framer-case-footer h2,
+  .detail-page .framer-derived-blocks h2,
+  .detail-page .framer-derived-footer h2 {
     font-size: clamp(21px, 5.8cqi, 24px);
   }
 
-  .framer-copy-grid p,
-  .framer-text-section p,
-  .framer-case-footer p,
-  .framer-derived-intro p,
-  .framer-derived-intro li,
-  .framer-derived-blocks p,
-  .framer-derived-footer p {
+  .detail-page .framer-copy-grid p,
+  .detail-page .framer-text-section p,
+  .detail-page .framer-case-footer p,
+  .detail-page .framer-derived-intro p,
+  .detail-page .framer-derived-intro li,
+  .detail-page .framer-derived-blocks p,
+  .detail-page .framer-derived-footer p {
     font-size: clamp(14px, 4.1cqi, 16px);
   }
 }
@@ -367,7 +381,7 @@ body[data-layout-transition="true"] .framer-case-shell {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .detail-page .detail-shell,
   .detail-page .framer-derived-shell,
   .detail-page .framer-case-shell {

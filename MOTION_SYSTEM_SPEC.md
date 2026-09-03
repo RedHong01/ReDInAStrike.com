@@ -97,3 +97,24 @@ For any filtered card in generated binary mode:
 - an edge-card hover return must never expose the static canvas without its current boundary field
 
 If a visible pop occurs, first check whether a handoff exposed two canvases with different backing dimensions, different render signatures, or different viewport-boundary ownership. Do not hide that mismatch with opacity; fix ownership or grid identity.
+
+## 9. Responsive preview contract
+
+- Above 980px in landscape, the catalog uses paired columns. The expanded row may pin below the header and hide its paired sibling.
+- At 980px and below, or in portrait, cards stay in one ordered column. The expanded row stays in document flow and never removes its sibling.
+- At 700px and below, preview media and copy stack. Above 700px they retain their two-panel composition, independently of the catalog column count.
+- Every expanded card owns two 1px paper/ink rules at its own top and bottom edges. They span the same viewport width as the card, not the containing two-card row. Do not calculate their reach using the desktop content gutter.
+- Rules inherit the card's existing 420ms clip-path expansion/retraction. They do not run a second reveal, use the boundary dissolve, or require a scroll listener.
+- Normal sibling dividers cannot add padding or a second rule inside an expanded card. Collapsed cards keep their normal content-width dividers.
+- The header still occludes content that has genuinely scrolled behind it. A screenshot assertion must place the tested rule inside the visible viewport before testing its pixels.
+
+## 10. Responsive type and content contract
+
+- Homepage and all project-detail shells share the 980px tablet and 700px phone content bounds. Detail interiors respond to their actual container width, including changes driven by the header.
+- Preview headings use the serif family, zero tracking, and the shared 48/42/34px scale selected by the copy container (above 440px, up to 440px, up to 320px). Narrower viewport alone must not make the same available copy width use a larger heading.
+- Preview title and metadata stack in the same reading order at every breakpoint. Metadata and the project-entry command use the mono subtitle role; summary text uses the serif body role. Both retain the shared font-size-plus-2px leading.
+- Generic, derived, and case-study detail templates consume the same title, subtitle, section-heading, and body size roles. Long titles wrap within their grid track instead of being clipped or expanding it.
+- Container-query selectors must match the specificity of the rules they override. A declared single-column query that loses to a base two-column selector is a regression.
+- Reduced-motion and touch layouts retain the same rules, hierarchy, and card order; only their interaction/motion behavior changes.
+
+Run `npm run audit:responsive -- http://127.0.0.1:5173` with a local preview running. The audit uses Playwright and pngjs (local packages or the bundled Codex runtime), covers breakpoint edges and both orientations, samples painted full-bleed rules, checks typography/content bounds, and regresses category snow, hover, scroll, and reduced-motion touch behavior. Screenshots and JSON results are written to the system temporary directory under `red-responsive-audit` (override with `AUDIT_OUTPUT_DIR`).

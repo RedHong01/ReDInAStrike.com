@@ -1,7 +1,7 @@
 (() => {
   const PROJECT_OVERRIDES = {
     "/narrative-design-document": {
-      pageTitle: "Type 2 Specimen Booklet",
+      pageTitle: "Untitled Sans",
       displayTitle: "Type 2 Specimen Booklet",
       navHash: "graphic",
     },

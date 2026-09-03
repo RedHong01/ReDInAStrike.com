@@ -105,7 +105,7 @@ const projects = [
     image: "assets/framer-live/service-game-ui-2026-a.png",
   },
   {
-    pageTitle: "SushiGo",
+    pageTitle: "Super99",
     displayTitle: "Alternative Controller Game Prototype",
     date: "11/4/2025",
     path: "/alt-controller-2025-a",
@@ -121,7 +121,7 @@ const projects = [
     image: "assets/framer-live/service-game-ui-2026-b.png",
   },
   {
-    pageTitle: "Squirrel Samurai",
+    pageTitle: "SushiGo",
     displayTitle: "Alternative Controller Game Prototype",
     date: "11/4/2025",
     path: "/alt-controller-2025-b",
@@ -129,7 +129,7 @@ const projects = [
     image: "assets/framer-live/alt-controller-2025-b.png",
   },
   {
-    pageTitle: "Game Prototype",
+    pageTitle: "Slow'em Down",
     displayTitle: "Game Prototype",
     date: "3/10/2026",
     path: "/game-prototype",
@@ -138,7 +138,7 @@ const projects = [
     itchEmbed: "https://redinastrike.itch.io/innovative-game-mechanic/embed",
   },
   {
-    pageTitle: "Alternative Controller Game Prototype",
+    pageTitle: "Squirrel Samurai",
     displayTitle: "Alternative Controller Game Prototype",
     date: "11/4/2025",
     path: "/alt-controller-2025-c",
@@ -146,7 +146,7 @@ const projects = [
     image: "assets/framer-live/alt-controller-2025-c.png",
   },
   {
-    pageTitle: "Narrative Design Document",
+    pageTitle: "To Be Chosen",
     displayTitle: "Narrative Design Document",
     date: "3/10/2025",
     path: "/monologue",
@@ -154,7 +154,7 @@ const projects = [
     image: "assets/framer-live/narrative-doc-2025-a.png",
   },
   {
-    pageTitle: "Ongoing Game Project",
+    pageTitle: "DAD",
     displayTitle: "Ongoing Game Project",
     date: "11/4/2025-Present",
     path: "/ongoing-game-project",

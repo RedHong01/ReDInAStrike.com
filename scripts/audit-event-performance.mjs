@@ -72,9 +72,19 @@ async function scrollProbe(page, label) {
       const hidden = canvases.filter((canvas) =>
         getComputedStyle(canvas).visibility === "hidden" || getComputedStyle(canvas).opacity === "0",
       )
-      const missed = hidden.filter((canvas) =>
-        window.__RED_REVEAL_MOTION__?.paintViewportNow?.(canvas.closest(".project-card"))?.visible === true,
-      )
+      const missed = hidden.filter((canvas) => {
+        const card = canvas.closest(".project-card")
+        const hoverOwnsSurface = card?.matches(":hover") && (
+          card.getAttribute("data-active-color-motion") === "true" ||
+          card.getAttribute("data-hover-binary-return") === "true" ||
+          (
+            card.classList.contains("is-muted-restore-intent") &&
+            card.getAttribute("data-active-color-restore-ready") === "true"
+          )
+        )
+        if (hoverOwnsSurface) return false
+        return window.__RED_REVEAL_MOTION__?.paintViewportNow?.(card)?.visible === true
+      })
       traces.push({
         visible: canvases.length,
         hidden: missed.length,

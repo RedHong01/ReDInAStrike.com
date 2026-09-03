@@ -30,6 +30,7 @@ const MAX_PALETTE_CACHE = 72
 const VIEWPORT_MARGIN = 620
 const TARGET_FRAME_MS = 1000 / 60
 const HOVER_SCROLL_SUPPRESS_MS = 260
+const HOVER_SCROLL_RECONCILE_PAD_MS = 34
 const HOVER_SCROLL_RETURN_CLASS_MS = 920
 const CATEGORY_READY_DEFER_STEP_MS = 9
 const CATEGORY_READY_DEFER_MAX_MS = 150
@@ -71,6 +72,10 @@ let panelWatchObserver = null
 let prewarmHandle = 0
 let hoverScrollSuppressUntil = 0
 let lastHoverScrollCancelAt = 0
+let hoverScrollReconcileTimer = 0
+let lastFinePointerX = 0
+let lastFinePointerY = 0
+let finePointerKnown = false
 let paperCacheKey = ""
 let paperCacheValue = [248, 247, 245, 255]
 let inkCacheKey = ""
@@ -118,7 +123,78 @@ function pageIsVisible() {
   return document.visibilityState !== "hidden"
 }
 
-function suppressHoverSnowDuringScroll() {
+function rememberFinePointer(event) {
+  if (event?.pointerType === "touch" || event?.isPrimary === false) return
+  const x = Number(event?.clientX)
+  const y = Number(event?.clientY)
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return
+  lastFinePointerX = x
+  lastFinePointerY = y
+  finePointerKnown = true
+}
+
+function clearFinePointer() {
+  finePointerKnown = false
+  if (hoverScrollReconcileTimer) window.clearTimeout(hoverScrollReconcileTimer)
+  hoverScrollReconcileTimer = 0
+}
+
+function stationaryPointerHoverCard() {
+  if (!finePointerKnown || !pageIsVisible()) return null
+  if (!window.matchMedia?.("(any-hover: hover) and (any-pointer: fine)")?.matches) return null
+  const target = document.elementFromPoint(lastFinePointerX, lastFinePointerY)
+  const card = target?.closest?.(".project-card.is-filter-muted")
+  const parentCatalog = card?.closest?.(".catalog[data-active-filter]")
+  if (
+    !card?.isConnected ||
+    !parentCatalog ||
+    parentCatalog.dataset.filterPhase ||
+    card.classList.contains("is-project-preview") ||
+    card.classList.contains("project-preview-exit-ghost") ||
+    card.classList.contains("is-project-preview-exit-source-card")
+  ) return null
+  return card
+}
+
+function reconcileStationaryPointerHover() {
+  hoverScrollReconcileTimer = 0
+  const remaining = hoverScrollSuppressUntil - performance.now()
+  if (remaining > 0) {
+    hoverScrollReconcileTimer = window.setTimeout(
+      reconcileStationaryPointerHover,
+      remaining + HOVER_SCROLL_RECONCILE_PAD_MS,
+    )
+    return
+  }
+
+  const card = stationaryPointerHoverCard()
+  if (!card) return
+  const state = cardStates.get(card)
+  if (keepRunningHoverRestore(state) || hoverRestoreRetries.has(card)) return
+
+  // Native pointerover captures this before pointerenter starts color restore.
+  // Scroll can change :hover without either event, so recreate that ownership
+  // order once scrolling has settled.
+  window.__RED_HOVER_BINARY_RETURN__?.capture?.(card)
+  window.clearTimeout(card.__catalogMutedReturnTimer)
+  card.__catalogMutedReturnTimer = 0
+  clearRestoreReady(card)
+  card.classList.remove("is-muted-restore-return")
+  card.classList.add("is-muted-restore-intent")
+  playCard(card, "in", 0, runtimeConfig, { reason: "hover" })
+}
+
+function scheduleStationaryPointerHoverReconcile() {
+  if (!finePointerKnown || hoverScrollReconcileTimer) return
+  const delay = Math.max(0, hoverScrollSuppressUntil - performance.now())
+  hoverScrollReconcileTimer = window.setTimeout(
+    reconcileStationaryPointerHover,
+    delay + HOVER_SCROLL_RECONCILE_PAD_MS,
+  )
+}
+
+function suppressHoverSnowDuringScroll(event) {
+  if (event?.type === "wheel") rememberFinePointer(event)
   const time = performance.now()
   hoverScrollSuppressUntil = Math.max(
     hoverScrollSuppressUntil,
@@ -141,6 +217,7 @@ function suppressHoverSnowDuringScroll() {
       if (cardStates.has(card)) return
       returnMutedHoverFromScroll(card)
     })
+  scheduleStationaryPointerHoverReconcile()
 }
 
 function hoverSnowSuppressedByScroll() {
@@ -2330,6 +2407,11 @@ window.addEventListener(
 )
 window.addEventListener("scroll", suppressHoverSnowDuringScroll, { passive: true, capture: true })
 window.addEventListener("wheel", suppressHoverSnowDuringScroll, { passive: true, capture: true })
+window.addEventListener("pointermove", rememberFinePointer, { passive: true, capture: true })
+window.addEventListener("pointerout", (event) => {
+  if (!event.relatedTarget) clearFinePointer()
+}, { passive: true, capture: true })
+window.addEventListener("blur", clearFinePointer, { passive: true })
 document.addEventListener("visibilitychange", handleVisibilityChange)
 
 document.addEventListener(

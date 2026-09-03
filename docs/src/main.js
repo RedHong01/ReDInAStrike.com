@@ -722,7 +722,10 @@ function currentHeaderHeight() {
   return readHeaderMetrics().fullHeight
 }
 
-function setHomeReturnSpacerHeight(height = currentHeaderHeight()) {
+// The cover transition lifts the header out of flow, so the spacer that
+// replaces it has to match the header's flow footprint, not its shrunken
+// visual height — otherwise the page jumps as the transition starts.
+function setHomeReturnSpacerHeight(height = headerFlowHeight()) {
   setRootStyleProperty("--home-return-spacer-height", `${Math.max(0, height).toFixed(2)}px`)
 }
 
@@ -3293,6 +3296,27 @@ function render() {
   setupHoverEmbeds()
 }
 
+/**
+ * Snap a header height onto the same pixel grid the performance prelude uses
+ * when it writes --header-height, so the painted header bottom, the sticky
+ * preview top and the cached geometry all agree to the pixel instead of
+ * disagreeing by a fraction that shimmers frame to frame.
+ */
+function quantizeHeaderHeight(value) {
+  const step = window.__RED_PERF__?.headerHeightVisualStepPx || 0
+  if (!(step > 0) || !Number.isFinite(value)) return value
+  return Math.round(value / step) * step
+}
+
+/**
+ * How much vertical space the header occupies in normal flow. This stays fixed
+ * for a given breakpoint even while the header shrinks, so scrolling never
+ * reflows the document underneath it.
+ */
+function headerFlowHeight() {
+  return readHeaderMetrics().fullHeight
+}
+
 function readHeaderMetrics() {
   const width = window.innerWidth
   if (siteState.headerMetrics && siteState.headerMetricsWidth === width) {
@@ -3357,7 +3381,7 @@ function setElementStyleProperty(element, name, value) {
 function cachedRuleRect(record) {
   const scrollX = window.scrollX || window.pageXOffset || 0
   const scrollY = window.scrollY || window.pageYOffset || 0
-  const headerDelta = siteState.headerVisualBottom - record.headerHeight
+  const headerDelta = headerFlowHeight() - record.headerHeight
   const left = record.documentLeft - scrollX
   const top = record.documentTop + headerDelta - scrollY
   return {
@@ -3385,7 +3409,7 @@ function readCachedRuleRect(element) {
     documentLeft: rect.left + scrollX,
     width: rect.width,
     height: rect.height,
-    headerHeight: siteState.headerVisualBottom,
+    headerHeight: headerFlowHeight(),
   })
   return rect
 }
@@ -3394,7 +3418,7 @@ function readCachedAboutNaturalTop(about) {
   const cached = siteState.aboutNaturalTopCache
   const scrollY = window.scrollY || window.pageYOffset || 0
   if (cached?.element === about && cached.generation === siteState.ruleGeometryGeneration) {
-    const headerDelta = siteState.headerVisualBottom - cached.headerHeight
+    const headerDelta = headerFlowHeight() - cached.headerHeight
     return cached.documentTop + headerDelta - scrollY
   }
 
@@ -3404,7 +3428,7 @@ function readCachedAboutNaturalTop(about) {
     element: about,
     generation: siteState.ruleGeometryGeneration,
     documentTop: naturalTop + scrollY,
-    headerHeight: siteState.headerVisualBottom,
+    headerHeight: headerFlowHeight(),
   }
   return naturalTop
 }
@@ -3450,6 +3474,23 @@ function cancelLayoutEffectsUpdate(options = {}) {
   }
 }
 
+/**
+ * Backfill whatever height the header gave up so its footprint in normal flow
+ * stays constant while it shrinks. The backfill is capped at the current scroll
+ * offset: reserving more than that would leave bare paper below a compact
+ * header sitting near the top of the page. Ordinary scrolling never reaches the
+ * cap — the header sheds less height than the scroll distance that sheds it —
+ * so this only bites if the header is left compact at a scroll position that
+ * cannot hide the reserved space.
+ */
+function syncHeaderFlowGap(height = siteState.headerVisualBottom) {
+  const metrics = readHeaderMetrics()
+  const visualHeight = height > 0 ? height : metrics.fullHeight
+  const scrollTop = Math.max(0, window.scrollY || window.pageYOffset || 0)
+  const flowGap = clamp(metrics.fullHeight - visualHeight, 0, scrollTop)
+  setRootStyleProperty("--header-flow-gap", `${flowGap.toFixed(2)}px`)
+}
+
 function applyHeaderProgress(progress, options = {}) {
   const metrics = readHeaderMetrics()
   const coverProgress = clamp(options.coverProgress || 0, 0, 1)
@@ -3459,7 +3500,7 @@ function applyHeaderProgress(progress, options = {}) {
     metrics.fullHeight,
   )
   const baseHeight = metrics.fullHeight + (metrics.compactHeight - metrics.fullHeight) * progress
-  const height = baseHeight + (viewportHeight - baseHeight) * coverProgress
+  const height = quantizeHeaderHeight(baseHeight + (viewportHeight - baseHeight) * coverProgress)
   const logo = metrics.fullLogo + (metrics.compactLogo - metrics.fullLogo) * progress
   const navScale = 1 + (0.88 - 1) * progress
   const detailOpacity = 1
@@ -3478,6 +3519,7 @@ function applyHeaderProgress(progress, options = {}) {
   setRootStyleProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
   setRootStyleProperty("--project-preview-sticky-top", `${height.toFixed(2)}px`)
   siteState.headerVisualBottom = height
+  syncHeaderFlowGap(height)
 
   const isCompact = progress > 0.7
   const density =
@@ -3591,7 +3633,7 @@ function getCatalogContentBottom(catalog, fallback = 0) {
     Number.isFinite(siteState.catalogContentBottomDocument) &&
     Number.isFinite(siteState.catalogContentBottomHeaderHeight)
   ) {
-    const headerDelta = siteState.headerVisualBottom - siteState.catalogContentBottomHeaderHeight
+    const headerDelta = headerFlowHeight() - siteState.catalogContentBottomHeaderHeight
     return Math.max(0, siteState.catalogContentBottomDocument + headerDelta - scrollY)
   }
 
@@ -3610,7 +3652,7 @@ function getCatalogContentBottom(catalog, fallback = 0) {
 
   if (canUseDocumentCache) {
     siteState.catalogContentBottomDocument = bottom + scrollY
-    siteState.catalogContentBottomHeaderHeight = siteState.headerVisualBottom
+    siteState.catalogContentBottomHeaderHeight = headerFlowHeight()
     siteState.catalogContentBottomDirty = false
   }
   return bottom
@@ -5911,6 +5953,7 @@ function requestScrollEffectsUpdate(delta) {
     siteState.scrollFrame = 0
 
     if (!shouldSuppressHeaderScrollDelta(pendingDelta)) updateHeaderFromScroll(pendingDelta)
+    syncHeaderFlowGap()
     nudgeFooterGallery()
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
     if (!siteState.halftoneObserver || !siteState.halftoneObserverReady) {

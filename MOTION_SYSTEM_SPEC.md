@@ -126,6 +126,7 @@ Run `npm run audit:responsive -- http://127.0.0.1:5173` with a local preview run
 - Catalog-only scroll work exits before allocating timers on project-detail routes or the unfiltered homepage.
 - Detached-target cleanup runs only after DOM removal or footer insertion. Runtime canvas and typewriter leaf mutations must not schedule a global observer sweep.
 - Intersection observers remain responsible for bringing newly visible dither cards into the priority queue; this must not be replaced by scroll-time DOM scans.
+- When scrolling changes the card underneath a stationary fine pointer, reconcile hit-testing after the scroll suppression window. Capture the current binary surface first, then resume the same hover intent and Fine Signal ownership used by native pointer entry.
 
 Run `npm run audit:event-performance -- http://127.0.0.1:5173` to exercise continuous scroll at phone, tablet, and desktop widths, verify bounded scan/timer counts, check leaf-mutation cleanup behavior, and ensure detail-page scrolling does not wake catalog work.
 

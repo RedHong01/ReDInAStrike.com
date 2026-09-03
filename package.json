@@ -10,6 +10,7 @@
     "audit:events": "node scripts/audit-events.mjs",
     "audit:event-performance": "node scripts/audit-event-performance.mjs",
     "audit:cursor": "node scripts/audit-cursor-compat.mjs",
+    "audit:scroll-hover": "node scripts/audit-scroll-hover.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs"
   },
   "engines": {

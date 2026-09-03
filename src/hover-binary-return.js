@@ -4,7 +4,7 @@ import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260903-rasterperf1"
+} from "./reveal-motion.js?v=20260903-headerseam1"
 import {
   BINARY_MOTION_DEFAULTS,
   binaryBitsEqual,
@@ -23,7 +23,7 @@ import {
   canvasHasPixels,
   sampleCompositeBinaryBits,
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260902-previewboundary7"
+} from "./binary-visible-surface.js?v=20260903-headerseam1"
 
 const STYLE_ID = "red-hover-binary-return-style"
 const CANVAS_CLASS = "dither-hover-return-snow-canvas"

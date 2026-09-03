@@ -15,10 +15,10 @@ import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260903-rasterperf1"
+} from "./reveal-motion.js?v=20260903-headerseam1"
 import {
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260902-previewboundary7"
+} from "./binary-visible-surface.js?v=20260903-headerseam1"
 
 const STYLE_ID = "red-dither-resize-snow-style"
 const STYLE_VERSION = "2"

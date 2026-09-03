@@ -167,6 +167,22 @@ async function checkPaintedRules(page, card, label) {
     const y = await card.evaluate((element, edge) => window.__auditRect.call(element)[edge], edge)
     const buffer = await page.screenshot()
     await writeFile(join(output, `${label}-${edge}.png`), buffer)
+    const seam = await card.evaluate((element) => {
+      const headerRule = document.querySelector(".header-rule")
+      const headerStyle = headerRule ? getComputedStyle(headerRule) : null
+      return {
+        shared: element.hasAttribute("data-project-preview-header-seam"),
+        previewOpacity: getComputedStyle(element, "::before").opacity,
+        headerHeight: Number.parseFloat(headerStyle?.height || "0"),
+        headerOpacity: Number.parseFloat(headerStyle?.opacity || "0"),
+      }
+    })
+    if (edge === "top" && seam.shared) {
+      assert.equal(seam.previewOpacity, "0", `${label}: preview yields shared header seam`)
+      assert.equal(seam.headerHeight, 1, `${label}: header keeps its 1px rule`)
+      assert(seam.headerOpacity > 0, `${label}: header rule remains visible`)
+      continue
+    }
     // Repaint only the rule in its opposite color. This proves its full width
     // even where an image edge happens to match the intended rule color.
     const previous = await card.evaluate((element) => {

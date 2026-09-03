@@ -11,7 +11,7 @@ import {
   boundaryVisibility,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260902-previewboundary7"
+} from "./viewport-boundary-core.js?v=20260903-headerseam1"
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
@@ -27,6 +27,7 @@ const PROJECT_PREVIEW_FILTER_VALUE = "project-preview"
 const PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE = "data-project-preview-filter-muted"
 const PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE = "data-project-preview-previous-filter"
 const PROJECT_PREVIEW_ACTIVE_ATTRIBUTE = "data-project-preview-active"
+const PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE = "data-project-preview-header-seam"
 const DITHER_CATEGORY_ENTER_ATTRIBUTE = "data-dither-category-enter-reveal"
 const MEDIA_DOMINANT_SAMPLE_MAX = 42
 const MEDIA_DOMINANT_ALPHA_MIN = 24
@@ -469,6 +470,7 @@ const siteState = {
   hasProjectRuleTargets: false,
   ruleFadeFrame: 0,
   ruleFadeUpdates: [],
+  previewHeaderSeamCard: null,
   ruleGeometryCache: new WeakMap(),
   ruleGeometryGeneration: 0,
   aboutNaturalTopCache: null,
@@ -3563,9 +3565,34 @@ function applyHeaderProgress(progress, options = {}) {
   })
 }
 
+/**
+ * The site header paints its own 1px bottom rule, and an expanded preview
+ * paints a 1px top rule in its own ink — white on a dark card. Once the card's
+ * top edge reaches the header edge the two stack into a double rule, so the
+ * card yields its top rule to the header for as long as they share that seam
+ * and takes it back the moment the card sits clear of the header again.
+ * The state lives on the card, so a card retracting toward its collapsed slot
+ * keeps the seam it was drawn with instead of borrowing the next card's.
+ */
+function syncProjectPreviewHeaderSeam(boundaryContext) {
+  const card = boundaryContext.expandedCard || null
+  const previous = siteState.previewHeaderSeamCard
+  if (previous && previous !== card) {
+    previous.removeAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)
+  }
+  siteState.previewHeaderSeamCard = card
+  if (!card) return
+
+  const shared = boundaryContext.expandedMeetsHeader
+  if (shared === card.hasAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)) return
+  if (shared) card.setAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE, "true")
+  else card.removeAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)
+}
+
 function updateProjectRuleReveal() {
   const { projectRows, cardRuleTargets } = siteState.dom
   const boundaryContext = readViewportBoundaryContext()
+  syncProjectPreviewHeaderSeam(boundaryContext)
   if (!boundaryContext.bottom) return
 
   const previewActive = Boolean(boundaryContext.expandedRow)
@@ -5589,6 +5616,22 @@ function startCatalogFilterTransition() {
     return
   }
 
+  const preview = activeProjectPreview()
+  if (preview) {
+    const previewMotionId = siteState.projectPreviewMotionId + 1
+    siteState.projectPreviewMotionId = previewMotionId
+    const exitMotion = createProjectPreviewExitGhost(preview)
+    clearProjectPreviewExpandMotion(preview)
+    clearProjectPreviewHeightLock(preview)
+    document.documentElement.dataset.projectPreviewTransition = "filtering"
+    commitProjectPreviewState(preview, false)
+    runProjectPreviewExitGhost(exitMotion, preview, {
+      clearTransition: true,
+      motionId: previewMotionId,
+      fade: true,
+    })
+  }
+
   window.clearTimeout(siteState.catalogFilterTimer)
   window.clearTimeout(siteState.catalogFilterEnterTimer)
   const cycle = siteState.catalogFilterCycle + 1
@@ -6405,13 +6448,14 @@ function runProjectPreviewExitGhost(
 
   const { ghost } = exitMotion
   if (fade) ghost.setAttribute("data-project-preview-exit-mode", "switching")
-  applyProjectPreviewExitTarget(exitMotion, targetCard)
+  else applyProjectPreviewExitTarget(exitMotion, targetCard)
 
   let cleaned = false
   const cleanup = () => {
     if (cleaned) return
     cleaned = true
     ghost.removeEventListener("animationend", handleAnimationEnd)
+    ghost.removeEventListener("transitionend", handleTransitionEnd)
     releaseProjectPreviewExitSource(ghost)
     siteState.projectPreviewExitGhosts.delete(ghost)
     ghost.remove()
@@ -6424,8 +6468,13 @@ function runProjectPreviewExitGhost(
     if (event.target !== ghost) return
     cleanup()
   }
+  const handleTransitionEnd = (event) => {
+    if (event.target !== ghost || event.propertyName !== "opacity") return
+    cleanup()
+  }
 
   ghost.addEventListener("animationend", handleAnimationEnd)
+  ghost.addEventListener("transitionend", handleTransitionEnd)
   if (fade) {
     ghost.__projectPreviewExitSourceRevealTimer = window.setTimeout(() => {
       ghost.__projectPreviewExitSourceRevealTimer = 0
@@ -6490,6 +6539,9 @@ function setProjectPreview(card, expanded) {
 
   const motionId = siteState.projectPreviewMotionId + 1
   siteState.projectPreviewMotionId = motionId
+  // Rapid preview changes must never accumulate outgoing full-bleed layers.
+  // The current preview can provide the next snapshot after the old one leaves.
+  clearProjectPreviewExitGhosts()
 
   if (prefersReducedMotion()) {
     commitProjectPreviewState(card, expanded)

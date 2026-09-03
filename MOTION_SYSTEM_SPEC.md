@@ -105,7 +105,9 @@ If a visible pop occurs, first check whether a handoff exposed two canvases with
 - At 700px and below, preview media and copy stack. Above 700px they retain their two-panel composition, independently of the catalog column count.
 - Every expanded card owns two 1px rules at its own top and bottom edges. They span the same viewport width as the card, not the containing two-card row. Do not calculate their reach using the desktop content gutter.
 - Expanded rules use the card-local `--preview-rule`: white (`#ffffff`) or dark (`#111111`), whichever has greater [relative-luminance contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) against its expanded background. Reuse the cached image background sample; fixed six-digit hex backgrounds resolve when creating the card. Do not recolor the global rule token, add scroll work, or change typography.
-- Rules inherit the card's existing 420ms clip-path expansion/retraction. They do not run a second reveal, use the boundary dissolve, or require a scroll listener.
+- When the preview top meets or passes the header's painted bottom edge, the header exclusively owns the seam and the preview top rule becomes transparent. Restore the preview rule as soon as the two edges separate. This applies to sticky desktop previews and normal-flow compact previews.
+- On direct expansion or direct close, rules inherit the card's existing 420ms clip-path expansion/retraction. They do not run a second reveal or use the boundary dissolve.
+- Category filtering and preview-to-preview switching hand the outgoing full-bleed preview to one fixed-geometry snapshot that fades while the collapsed catalog continues its Fine Signal Snow transition. The snapshot must not run the preview retraction clip-path, and rapid input must never leave more than one outgoing snapshot. A direct close may retain the 420ms geometric retraction.
 - Normal sibling dividers cannot add padding or a second rule inside an expanded card. Collapsed cards keep their normal content-width dividers.
 - The header still occludes content that has genuinely scrolled behind it. A screenshot assertion must place the tested rule inside the visible viewport before testing its pixels.
 
@@ -121,6 +123,8 @@ If a visible pop occurs, first check whether a handoff exposed two canvases with
 Run `npm run audit:responsive -- http://127.0.0.1:5173` with a local preview running. The audit uses Playwright and pngjs (local packages or the bundled Codex runtime), covers breakpoint edges and both orientations, samples painted full-bleed rules, checks typography/content bounds, and regresses category snow, hover, scroll, and reduced-motion touch behavior. Screenshots and JSON results are written to the system temporary directory under `red-responsive-audit` (override with `AUDIT_OUTPUT_DIR`).
 
 Add `--rules-only` to check every card at phone, tablet, and desktop widths. Rule-paint checks compare the intended color against an opposite-color control, so matching background/image pixels cannot hide missing or incomplete rules.
+
+Run `npm run audit:preview-handoff -- http://127.0.0.1:5174` to verify header-seam ownership and fixed-geometry preview handoffs during category filtering and rapid preview switching.
 
 ## 11. Event-flow performance contract
 

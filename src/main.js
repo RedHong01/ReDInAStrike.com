@@ -11,7 +11,7 @@ import {
   boundaryVisibility,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260902-previewboundary7"
+} from "./viewport-boundary-core.js?v=20260903-headerseam1"
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
@@ -5616,6 +5616,22 @@ function startCatalogFilterTransition() {
     return
   }
 
+  const preview = activeProjectPreview()
+  if (preview) {
+    const previewMotionId = siteState.projectPreviewMotionId + 1
+    siteState.projectPreviewMotionId = previewMotionId
+    const exitMotion = createProjectPreviewExitGhost(preview)
+    clearProjectPreviewExpandMotion(preview)
+    clearProjectPreviewHeightLock(preview)
+    document.documentElement.dataset.projectPreviewTransition = "filtering"
+    commitProjectPreviewState(preview, false)
+    runProjectPreviewExitGhost(exitMotion, preview, {
+      clearTransition: true,
+      motionId: previewMotionId,
+      fade: true,
+    })
+  }
+
   window.clearTimeout(siteState.catalogFilterTimer)
   window.clearTimeout(siteState.catalogFilterEnterTimer)
   const cycle = siteState.catalogFilterCycle + 1
@@ -6432,13 +6448,14 @@ function runProjectPreviewExitGhost(
 
   const { ghost } = exitMotion
   if (fade) ghost.setAttribute("data-project-preview-exit-mode", "switching")
-  applyProjectPreviewExitTarget(exitMotion, targetCard)
+  else applyProjectPreviewExitTarget(exitMotion, targetCard)
 
   let cleaned = false
   const cleanup = () => {
     if (cleaned) return
     cleaned = true
     ghost.removeEventListener("animationend", handleAnimationEnd)
+    ghost.removeEventListener("transitionend", handleTransitionEnd)
     releaseProjectPreviewExitSource(ghost)
     siteState.projectPreviewExitGhosts.delete(ghost)
     ghost.remove()
@@ -6451,8 +6468,13 @@ function runProjectPreviewExitGhost(
     if (event.target !== ghost) return
     cleanup()
   }
+  const handleTransitionEnd = (event) => {
+    if (event.target !== ghost || event.propertyName !== "opacity") return
+    cleanup()
+  }
 
   ghost.addEventListener("animationend", handleAnimationEnd)
+  ghost.addEventListener("transitionend", handleTransitionEnd)
   if (fade) {
     ghost.__projectPreviewExitSourceRevealTimer = window.setTimeout(() => {
       ghost.__projectPreviewExitSourceRevealTimer = 0
@@ -6517,6 +6539,9 @@ function setProjectPreview(card, expanded) {
 
   const motionId = siteState.projectPreviewMotionId + 1
   siteState.projectPreviewMotionId = motionId
+  // Rapid preview changes must never accumulate outgoing full-bleed layers.
+  // The current preview can provide the next snapshot after the old one leaves.
+  clearProjectPreviewExitGhosts()
 
   if (prefersReducedMotion()) {
     commitProjectPreviewState(card, expanded)

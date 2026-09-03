@@ -31,7 +31,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260903-rasterperf1").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260903-headerseam1").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,

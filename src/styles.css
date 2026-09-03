@@ -176,7 +176,9 @@ html {
 
 @media (any-hover: hover) and (any-pointer: fine) {
   html,
-  html * {
+  html *,
+  html *::before,
+  html *::after {
     cursor: none !important;
   }
 }
@@ -823,8 +825,17 @@ body[data-layout-transition="true"] .about-section {
   overflow: hidden;
   overflow: clip;
   isolation: isolate;
-  cursor: zoom-in;
   clip-path: inset(0 0 0 0);
+}
+
+@media not ((any-hover: hover) and (any-pointer: fine)) {
+  .project-card.is-project-preview {
+    cursor: zoom-in;
+  }
+
+  .project-card.is-project-preview .project-preview-copy {
+    cursor: pointer;
+  }
 }
 
 /* The expanded card owns its edges, including when its row keeps a sibling. */
@@ -922,7 +933,6 @@ body[data-layout-transition="true"] .about-section {
   gap: clamp(24px, 2.5vw, 40px);
   min-width: 0;
   padding: clamp(38px, 4.65vw, 72px) clamp(32px, 6.6vw, 100px) clamp(30px, 3.5vw, 54px) clamp(28px, 3.2vw, 48px);
-  cursor: pointer;
   animation: project-preview-copy-in var(--project-preview-duration) var(--project-preview-ease) both;
 }
 

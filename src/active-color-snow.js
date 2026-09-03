@@ -160,6 +160,15 @@ function stationaryPointerHoverCard() {
   return cardEligibleForHoverSnow(card) ? card : null
 }
 
+function cardRetainsHoverReveal(card, state = cardStates.get(card)) {
+  if (!cardEligibleForHoverSnow(card)) return false
+  if (keepRunningHoverRestore(state) || hoverRestoreRetries.has(card)) return true
+  return Boolean(
+    card.classList.contains("is-muted-restore-intent") &&
+      card.getAttribute(RESTORE_READY_ATTRIBUTE) === "true",
+  )
+}
+
 function reconcileStationaryPointerHover() {
   hoverScrollReconcileTimer = 0
   const remaining = hoverScrollSuppressUntil - performance.now()
@@ -174,7 +183,7 @@ function reconcileStationaryPointerHover() {
   const card = stationaryPointerHoverCard()
   if (!card) return
   const state = cardStates.get(card)
-  if (keepRunningHoverRestore(state) || hoverRestoreRetries.has(card)) return
+  if (cardRetainsHoverReveal(card, state)) return
 
   // Native pointerover captures this before pointerenter starts color restore.
   // Scroll can change :hover without either event, so recreate that ownership
@@ -206,9 +215,12 @@ function suppressHoverSnowDuringScroll(event) {
   )
   if (time - lastHoverScrollCancelAt < 80) return
   lastHoverScrollCancelAt = time
+  const retainedHoverCard = stationaryPointerHoverCard()
 
   for (const state of [...activeStates]) {
-    if (state.reason === "hover") returnMutedHoverFromScroll(state.card, state)
+    if (state.reason === "hover" && state.card !== retainedHoverCard) {
+      returnMutedHoverFromScroll(state.card, state)
+    }
   }
 
   const activeCatalog = document.querySelector(".catalog[data-active-filter]:not([data-filter-phase])")
@@ -218,6 +230,7 @@ function suppressHoverSnowDuringScroll(event) {
         `.project-card.is-filter-muted[${RESTORE_READY_ATTRIBUTE}="true"]`,
     )
     .forEach((card) => {
+      if (card === retainedHoverCard) return
       if (cardStates.has(card)) return
       returnMutedHoverFromScroll(card)
     })
@@ -2203,6 +2216,7 @@ function bindCardHoverSnow(targetCatalog = catalog) {
 
     const playHoverSnow = (event) => {
       if (event?.pointerType === "touch") return
+      rememberFinePointer(event)
       if (pointerHoverSnowSuppressed(event)) return
       if (!cardEligibleForHoverSnow(card)) return
       playCard(card, "in", 0, runtimeConfig, { reason: "hover" })

@@ -96,6 +96,60 @@ for (const [engineName, engine] of Object.entries({ chromium, firefox, webkit })
       assert.equal(entered.intent, true, `${engineName} ${width}: motion intent reconciled`)
       assert.equal(entered.motion, "true", `${engineName} ${width}: Fine Signal motion resumed`)
 
+      const continuityToken = `${engineName}-${width}`
+      await page.evaluate(({ x, y, index, token }) => {
+        const card = document.elementFromPoint(x, y)?.closest?.(".project-card")
+        assertCard(card, index)
+        card.querySelector(".active-color-snow-canvas").dataset.auditContinuity = token
+
+        function assertCard(candidate, expectedIndex) {
+          if (candidate?.dataset.index !== expectedIndex) {
+            throw new Error(`continuity setup hit ${candidate?.dataset.index || "none"}`)
+          }
+        }
+      }, { x: target.x, y: pointerY, index: target.index, token: continuityToken })
+
+      for (const delta of [8, -8, 10, -10]) {
+        await page.mouse.wheel(0, delta)
+        await page.waitForTimeout(18)
+      }
+      await page.waitForTimeout(330)
+      const continuous = await page.evaluate(({ x, y, index, token }) => {
+        const card = document.elementFromPoint(x, y)?.closest?.(".project-card")
+        return {
+          index: card?.dataset.index,
+          token: card?.querySelector(".active-color-snow-canvas")?.dataset.auditContinuity,
+          motion: card?.getAttribute("data-active-color-motion"),
+        }
+      }, { x: target.x, y: pointerY, index: target.index, token: continuityToken })
+      assert.equal(continuous.index, target.index, `${engineName} ${width}: small scroll retains hover card`)
+      assert.equal(continuous.token, continuityToken, `${engineName} ${width}: in-flight reveal state is continuous`)
+      assert.equal(continuous.motion, "true", `${engineName} ${width}: in-flight reveal remains active`)
+
+      await page.waitForFunction((index) => {
+        const card = document.querySelector(`[data-project-card][data-index="${index}"]`)
+        return (
+          card?.getAttribute("data-active-color-restore-ready") === "true" &&
+          card.getAttribute("data-active-color-motion") !== "true" &&
+          !card.querySelector(".active-color-snow-canvas")
+        )
+      }, target.index)
+      await page.mouse.wheel(0, 12)
+      await page.waitForTimeout(340)
+      const completed = await page.evaluate(({ x, y }) => {
+        const card = document.elementFromPoint(x, y)?.closest?.(".project-card")
+        return {
+          index: card?.dataset.index,
+          intent: card?.classList.contains("is-muted-restore-intent"),
+          canvas: Boolean(card?.querySelector(".active-color-snow-canvas")),
+          motion: card?.getAttribute("data-active-color-motion"),
+        }
+      }, { x: target.x, y: pointerY })
+      assert.equal(completed.index, target.index, `${engineName} ${width}: completed hover card remains hit`)
+      assert.equal(completed.intent, true, `${engineName} ${width}: completed hover ownership remains`)
+      assert.equal(completed.canvas, false, `${engineName} ${width}: completed reveal is not replayed`)
+      assert.notEqual(completed.motion, "true", `${engineName} ${width}: completed reveal stays settled`)
+
       await page.mouse.wheel(0, -500)
       await page.waitForFunction((index) => {
         const card = document.querySelector(`[data-project-card][data-index="${index}"]`)

@@ -1,6 +1,6 @@
 import { boundaryRevealMotionConfig } from "./motion-default.js"
 
-const OWNER = "breath7"
+const OWNER = "breath8"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
 const ACTIVE_COLOR_COOLDOWN_ATTRIBUTE = "data-active-color-boundary-cooldown"
 const DITHER_RESIZE_MOTION_ATTRIBUTE = "data-dither-resize-motion"
@@ -13,10 +13,12 @@ const trackedSignatures = new WeakMap()
 const trackedCards = new Set()
 const ownedOverlays = new Set()
 const visibleOverlays = new Set()
+const pendingCardSyncs = new Set()
 
 let breathFrame = 0
 let breathTimer = 0
 let syncFrame = 0
+let cardSyncFrame = 0
 let lastBreathDraw = 0
 let resizeTimer = 0
 let revealModulePromise = null
@@ -370,6 +372,30 @@ async function syncCardNow(card, { refresh = true } = {}) {
   return tracked
 }
 
+async function syncCardOwnershipNow(cards, { refresh = true } = {}) {
+  const targetCatalog = activeCatalog()
+  await ensureRevealApi()
+
+  let hasTrackedCard = false
+  for (const card of cards) {
+    if (!isMutedCardBase(card, targetCatalog)) {
+      if (trackedCards.has(card)) cancelTrackedCard(card)
+      continue
+    }
+    if (!shouldKeepTrackedCard(card, targetCatalog)) {
+      cancelTrackedCard(card)
+      continue
+    }
+    if (!isMutedCard(card, targetCatalog)) continue
+    if (await migrateCard(card, targetCatalog)) hasTrackedCard = true
+  }
+
+  pruneOverlays()
+  if (refresh) revealApi.refresh({ linger: false })
+  scheduleBreathLoop()
+  return hasTrackedCard
+}
+
 function mutedClassChanged(mutation) {
   const target = mutation.target
   if (!(target instanceof Element) || !target.classList.contains("project-card")) return false
@@ -387,10 +413,16 @@ function structuralMutationNeedsSync(mutation) {
   })
 }
 
-function catalogMutationNeedsSync(mutation, targetCatalog) {
+function catalogMutationNeedsFullSync(mutation, targetCatalog) {
   if (mutation.type === "childList") return structuralMutationNeedsSync(mutation)
   if (mutation.type !== "attributes") return false
   if (mutation.target === targetCatalog && mutation.attributeName === "data-active-filter") return true
+  if (mutation.attributeName === "class") return mutedClassChanged(mutation)
+  return false
+}
+
+function catalogMutationCardTarget(mutation) {
+  if (mutation.type !== "attributes") return null
   if (
     mutation.target instanceof Element &&
     mutation.target.classList.contains("project-card") &&
@@ -399,12 +431,26 @@ function catalogMutationNeedsSync(mutation, targetCatalog) {
       mutation.attributeName === ACTIVE_COLOR_COOLDOWN_ATTRIBUTE ||
       mutation.attributeName === DITHER_RESIZE_MOTION_ATTRIBUTE
     )
-  ) return true
+  ) return mutation.target
   if (mutation.attributeName === "data-active") {
     return mutation.target instanceof Element && mutation.target.classList.contains("dither-preview-canvas")
+      ? mutation.target.closest(".project-card")
+      : null
   }
-  if (mutation.attributeName === "class") return mutedClassChanged(mutation)
-  return false
+  return null
+}
+
+function scheduleCardSync(card) {
+  if (!card) return
+  pendingCardSyncs.add(card)
+  if (cardSyncFrame) return
+
+  cardSyncFrame = requestAnimationFrame(() => {
+    cardSyncFrame = 0
+    const cards = [...pendingCardSyncs]
+    pendingCardSyncs.clear()
+    void syncCardOwnershipNow(cards)
+  })
 }
 
 function bindCatalog(nextCatalog) {
@@ -421,8 +467,12 @@ function bindCatalog(nextCatalog) {
 
   const boundCatalog = catalog
   catalogObserver = new MutationObserver((mutations) => {
-    if (mutations.some((mutation) => catalogMutationNeedsSync(mutation, boundCatalog))) {
+    if (mutations.some((mutation) => catalogMutationNeedsFullSync(mutation, boundCatalog))) {
       scheduleSync()
+      return
+    }
+    for (const mutation of mutations) {
+      scheduleCardSync(catalogMutationCardTarget(mutation))
     }
   })
   catalogObserver.observe(catalog, {
@@ -492,7 +542,7 @@ function start() {
   })
 
   window.__RED_BOUNDARY_BREATH__ = {
-    version: 9,
+    version: 10,
     sync: scheduleSync,
     syncNow,
     syncCardNow,

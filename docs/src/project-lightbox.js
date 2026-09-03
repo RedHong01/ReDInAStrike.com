@@ -28,14 +28,24 @@ function ensureStyles() {
   const style = document.createElement("style")
   style.id = LIGHTBOX_STYLE_ID
   style.textContent = `
-    .detail-page img:not([data-lightbox-disabled="true"]) {
-      cursor: zoom-in;
-    }
+    @media not ((any-hover: hover) and (any-pointer: fine)) {
+      .detail-page img:not([data-lightbox-disabled="true"]) {
+        cursor: zoom-in;
+      }
 
-    .detail-page a img,
-    .detail-page button img,
-    .detail-page [role="button"] img {
-      cursor: pointer;
+      .detail-page a img,
+      .detail-page button img,
+      .detail-page [role="button"] img {
+        cursor: pointer;
+      }
+
+      .${LIGHTBOX_CLASS} {
+        cursor: zoom-out;
+      }
+
+      .${LIGHTBOX_CLASS}__image {
+        cursor: default;
+      }
     }
 
     .${LIGHTBOX_CLASS} {
@@ -45,7 +55,6 @@ function ensureStyles() {
       display: block;
       overflow: hidden;
       pointer-events: none;
-      cursor: zoom-out;
       overscroll-behavior: contain;
       touch-action: none;
     }
@@ -79,7 +88,6 @@ function ensureStyles() {
       margin: 0;
       background: transparent;
       object-fit: contain;
-      cursor: default;
       user-select: none;
       -webkit-user-drag: none;
       transform-origin: center center;

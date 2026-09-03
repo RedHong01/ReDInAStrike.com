@@ -57,6 +57,11 @@ for (const [name, engine] of Object.entries(engines)) {
     assert.equal(cursor.opacity, "1", `${name}: pointer visible`)
     assert.notEqual(cursor.display, "none", `${name}: pointer displayed`)
     assert.equal(cursor.nativeCursor, "none", `${name}: native pointer suppressed`)
+    assert.equal(
+      await page.locator("html").evaluate((node) => node.classList.contains("has-red-invert-cursor")),
+      true,
+      `${name}: invert cursor active class`,
+    )
     assert.match(cursor.transform, /^matrix\(1, 0, 0, 1, 93, 93\)$/, `${name}: pointer alignment`)
 
     const darkShot = await page.screenshot()

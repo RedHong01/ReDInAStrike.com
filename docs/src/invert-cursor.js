@@ -1,6 +1,7 @@
 (() => {
   const STYLE_ID = "red-invert-cursor-style"
   const CURSOR_CLASS = "red-invert-cursor"
+  const ACTIVE_CLASS = "has-red-invert-cursor"
   const CURSOR_SIZE = 14
   const POINTER_MEDIA = "(any-hover: hover) and (any-pointer: fine)"
 
@@ -57,6 +58,7 @@
         transform: translate3d(-100px, -100px, 0);
         will-change: transform, opacity;
         contain: strict;
+        cursor: none !important;
       }
 
       .${CURSOR_CLASS}.is-visible {
@@ -64,12 +66,36 @@
       }
 
       @media ${POINTER_MEDIA} {
+        html.${ACTIVE_CLASS},
+        html.${ACTIVE_CLASS} *,
+        html.${ACTIVE_CLASS} *::before,
+        html.${ACTIVE_CLASS} *::after {
+          cursor: none !important;
+        }
+
         .${CURSOR_CLASS} {
           display: block;
         }
       }
     `
     document.head.appendChild(style)
+  }
+
+  function setNativeCursorHidden(hidden) {
+    document.documentElement.classList.toggle(ACTIVE_CLASS, hidden)
+  }
+
+  function isForeignSurface(node) {
+    let current = node
+    while (current && current !== document.documentElement) {
+      if (current.nodeType === 1) {
+        const tag = current.nodeName
+        if (tag === "IFRAME" || tag === "EMBED" || tag === "OBJECT") return true
+      }
+      current = current.parentNode
+      if (current && current.nodeType === 11) current = current.host
+    }
+    return false
   }
 
   function createShader(type, source) {
@@ -169,20 +195,49 @@
     scheduleRender()
   }
 
+  function showCursorAt(x, y) {
+    pointerX = x
+    pointerY = y
+    pointerVisible = true
+    scheduleRender()
+  }
+
   function handlePointerMove(event) {
     if (event.pointerType === "touch" || event.isPrimary === false) {
       hideCursor()
       return
     }
 
-    pointerX = event.clientX
-    pointerY = event.clientY
-    pointerVisible = true
-    scheduleRender()
+    if (isForeignSurface(event.target)) {
+      hideCursor()
+      return
+    }
+
+    showCursorAt(event.clientX, event.clientY)
+  }
+
+  function handlePointerDown(event) {
+    if (event.pointerType === "touch" || event.isPrimary === false) return
+    if (isForeignSurface(event.target)) {
+      hideCursor()
+      return
+    }
+
+    // Re-assert native hide on press; some engines briefly restore the OS cursor
+    // when hit-testing clickable controls with leftover cursor:* declarations.
+    setNativeCursorHidden(true)
+    showCursorAt(event.clientX, event.clientY)
   }
 
   function handlePointerOut(event) {
-    if (!event.relatedTarget) hideCursor()
+    const related = event.relatedTarget
+    if (!related || isForeignSurface(related)) hideCursor()
+  }
+
+  function handleDocumentLeave(event) {
+    if (event.target === document.documentElement || event.target === document.body) {
+      hideCursor()
+    }
   }
 
   function handleVisibilityChange() {
@@ -193,6 +248,7 @@
     if (mounted || !window.matchMedia?.(POINTER_MEDIA).matches) return
     mounted = true
     ensureStyle()
+    setNativeCursorHidden(true)
 
     canvas = document.createElement("canvas")
     canvas.className = CURSOR_CLASS
@@ -205,16 +261,25 @@
     canvas.dataset.renderer = renderedWithWebGL ? "webgl" : "fallback"
     resizeCanvas()
     window.addEventListener("pointermove", handlePointerMove, { passive: true })
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true })
+    window.addEventListener("pointerup", handlePointerDown, { passive: true })
     window.addEventListener("pointerout", handlePointerOut, { passive: true })
     window.addEventListener("blur", hideCursor, { passive: true })
     window.addEventListener("resize", scheduleRender, { passive: true })
+    document.addEventListener("mouseleave", handleDocumentLeave, { passive: true })
+    document.documentElement.addEventListener("mouseleave", hideCursor, { passive: true })
     document.addEventListener("visibilitychange", handleVisibilityChange, { passive: true })
+  }
+
+  function stopNativeOverride() {
+    setNativeCursorHidden(false)
+    hideCursor()
   }
 
   const pointerMedia = window.matchMedia?.(POINTER_MEDIA)
   const handlePointerCapabilityChange = (event) => {
     if (event.matches) start()
-    else hideCursor()
+    else stopNativeOverride()
   }
   pointerMedia?.addEventListener?.("change", handlePointerCapabilityChange)
   if (!pointerMedia?.addEventListener) pointerMedia?.addListener?.(handlePointerCapabilityChange)

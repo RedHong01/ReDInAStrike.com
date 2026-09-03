@@ -1,4 +1,7 @@
 const PIN_EPSILON_PX = 1.5
+const PREVIEW_HEADER_SEAM_EPSILON_PX = 2
+let cachedBoundaryFrame = null
+let cachedBoundaryContext = null
 
 export const BOUNDARY_DEPTH_RATIO = 0.19
 export const BOUNDARY_DEPTH_MIN_PX = 132
@@ -53,7 +56,7 @@ function livePreviewRect(expandedCard) {
  */
 function previewMeetsHeaderEdge(cardRect, headerEdge) {
   if (!cardRect) return false
-  return cardRect.top <= headerEdge + PIN_EPSILON_PX
+  return cardRect.top <= headerEdge + PREVIEW_HEADER_SEAM_EPSILON_PX
 }
 
 function pinnedPreviewBoundary(expandedRow, cardRect, headerEdge, viewportBottom) {
@@ -78,7 +81,15 @@ function pinnedPreviewBoundary(expandedRow, cardRect, headerEdge, viewportBottom
  * Later cards use the pinned expanded preview's lower edge as their upper
  * occlusion line, so every binary surface agrees on what is physically hidden.
  */
-export function readViewportBoundaryContext() {
+export function readViewportBoundaryContext(frameTime = null) {
+  if (
+    Number.isFinite(frameTime) &&
+    frameTime === cachedBoundaryFrame &&
+    cachedBoundaryContext
+  ) {
+    return cachedBoundaryContext
+  }
+
   const bottom = viewportHeight()
   const headerEdge = headerBottom(bottom)
   const expandedCard = document.querySelector(".project-card.is-project-preview:not(.project-preview-exit-ghost)")
@@ -91,7 +102,7 @@ export function readViewportBoundaryContext() {
     bottom,
   )
 
-  return {
+  const context = {
     bottom,
     headerEdge,
     expandedCard,
@@ -99,6 +110,11 @@ export function readViewportBoundaryContext() {
     expandedBoundary,
     expandedMeetsHeader: previewMeetsHeaderEdge(expandedRect, headerEdge),
   }
+  if (Number.isFinite(frameTime)) {
+    cachedBoundaryFrame = frameTime
+    cachedBoundaryContext = context
+  }
+  return context
 }
 
 export function viewportBoundsForCard(card = null, context = null) {

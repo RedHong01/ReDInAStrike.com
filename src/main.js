@@ -11,7 +11,7 @@ import {
   boundaryVisibility,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260903-headerseam1"
+} from "./viewport-boundary-core.js?v=20260903-scrollperf2"
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
@@ -3474,14 +3474,14 @@ function requestLayoutEffectsUpdate(options = {}) {
   if (isHomeReturnTransitionActive()) return
   if (siteState.layoutFrame) return
 
-  siteState.layoutFrame = requestAnimationFrame(() => {
+  siteState.layoutFrame = requestAnimationFrame((frameTime) => {
     siteState.layoutFrame = 0
     const updateRules = siteState.layoutPendingRules
     const updateFooter = siteState.layoutPendingFooter && footerGalleryWorkActive()
     siteState.layoutPendingRules = false
     siteState.layoutPendingFooter = false
 
-    if (updateRules) updateProjectRuleReveal()
+    if (updateRules) updateProjectRuleReveal(frameTime)
     if (updateFooter) updateFooterGalleryReveal()
   })
 }
@@ -3589,9 +3589,9 @@ function syncProjectPreviewHeaderSeam(boundaryContext) {
   else card.removeAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)
 }
 
-function updateProjectRuleReveal() {
+function updateProjectRuleReveal(frameTime = null) {
   const { projectRows, cardRuleTargets } = siteState.dom
-  const boundaryContext = readViewportBoundaryContext()
+  const boundaryContext = readViewportBoundaryContext(frameTime)
   syncProjectPreviewHeaderSeam(boundaryContext)
   if (!boundaryContext.bottom) return
 
@@ -6015,7 +6015,7 @@ function requestScrollEffectsUpdate(delta) {
     siteState.scrollFrame = 0
 
     if (!shouldSuppressHeaderScrollDelta(pendingDelta)) updateHeaderFromScroll(pendingDelta)
-    syncHeaderFlowGap()
+    if (!isHeaderMotionActive()) syncHeaderFlowGap()
     nudgeFooterGallery()
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
     if (!siteState.halftoneObserver || !siteState.halftoneObserverReady) {
@@ -6073,16 +6073,18 @@ function setupHeader() {
     { passive: true },
   )
 
-  window.addEventListener(
-    "scroll",
-    () => {
-      const current = window.scrollY || window.pageYOffset || 0
-      const delta = current - siteState.lastScrollY
-      siteState.lastScrollY = current
-      requestScrollEffectsUpdate(delta)
-    },
-    { passive: true }
-  )
+  const handleScrollFrame = (snapshot = null) => {
+    if (snapshot && !snapshot.windowScroll) return
+    const current = snapshot?.scrollY ?? (window.scrollY || window.pageYOffset || 0)
+    const delta = current - siteState.lastScrollY
+    siteState.lastScrollY = current
+    requestScrollEffectsUpdate(delta)
+  }
+  if (window.__RED_SCROLL_FRAME__?.subscribe) {
+    window.__RED_SCROLL_FRAME__.subscribe(handleScrollFrame, { priority: 10 })
+  } else {
+    window.addEventListener("scroll", handleScrollFrame, { passive: true })
+  }
 
   window.addEventListener("resize", () => {
     if (siteState.resizeFrame) return

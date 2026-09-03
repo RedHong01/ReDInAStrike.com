@@ -31,7 +31,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260903-headerseam1").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260903-scrollperf2").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -519,7 +519,11 @@ function start() {
   // them through the same rAF-coalesced targeted sync.
   for (const delay of RETRY_DELAYS) window.setTimeout(scheduleSync, delay)
 
-  window.addEventListener("scroll", handleScroll, { passive: true })
+  if (window.__RED_SCROLL_FRAME__?.subscribe) {
+    window.__RED_SCROLL_FRAME__.subscribe(handleScroll, { priority: 50 })
+  } else {
+    window.addEventListener("scroll", handleScroll, { passive: true })
+  }
   window.addEventListener("resize", scheduleResizeSync, { passive: true })
   window.addEventListener("red:motion-config", scheduleSync)
   window.addEventListener("red:hover-binary-return-complete", scheduleSync)

@@ -10,7 +10,7 @@ import {
 import {
   pixelsFromBinaryBits,
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260903-headerseam1"
+} from "./binary-visible-surface.js?v=20260903-scrollperf2"
 
 const STYLE_ID = "red-active-color-snow-style"
 const STYLE_VERSION = "7"
@@ -71,6 +71,7 @@ let lastPhase = ""
 let hubLoadPromise = null
 let panelWatchObserver = null
 let prewarmHandle = 0
+let prewarmResumeTimer = 0
 let hoverScrollSuppressUntil = 0
 let lastHoverScrollCancelAt = 0
 let hoverScrollReconcileTimer = 0
@@ -207,6 +208,16 @@ function scheduleStationaryPointerHoverReconcile() {
   )
 }
 
+function resumePrewarmAfterScroll() {
+  prewarmResumeTimer = 0
+  const remaining = hoverScrollSuppressUntil - performance.now()
+  if (remaining > 0) {
+    prewarmResumeTimer = window.setTimeout(resumePrewarmAfterScroll, remaining)
+    return
+  }
+  schedulePrewarm()
+}
+
 function suppressHoverSnowDuringScroll(event) {
   if (event?.type === "wheel") rememberFinePointer(event)
   const time = performance.now()
@@ -214,6 +225,15 @@ function suppressHoverSnowDuringScroll(event) {
     hoverScrollSuppressUntil,
     time + HOVER_SCROLL_SUPPRESS_MS,
   )
+  if (prewarmHandle || prewarmQueued.size) {
+    cancelPrewarmHandle()
+    if (!prewarmResumeTimer) {
+      prewarmResumeTimer = window.setTimeout(
+        resumePrewarmAfterScroll,
+        HOVER_SCROLL_SUPPRESS_MS + HOVER_SCROLL_RECONCILE_PAD_MS,
+      )
+    }
+  }
   const activeCatalog = catalog?.isConnected && catalog.dataset.activeFilter &&
     !catalog.dataset.filterPhase ? catalog : null
   if (!activeCatalog || !pageIsVisible()) return
@@ -2161,6 +2181,10 @@ function prewarmCard(card, config = runtimeConfig) {
 function runPrewarm(deadline) {
   prewarmHandle = 0
   if (!pageIsVisible()) return
+  if (performance.now() < hoverScrollSuppressUntil) {
+    schedulePrewarm()
+    return
+  }
   let processed = 0
 
   for (const card of [...prewarmQueued]) {
@@ -2185,6 +2209,16 @@ function schedulePrewarm(targetCatalog = null) {
     allCards(targetCatalog).forEach((card) => prewarmQueued.add(card))
   }
   if (!prewarmQueued.size || prewarmHandle || !pageIsVisible()) return
+  const scrollWait = hoverScrollSuppressUntil - performance.now()
+  if (scrollWait > 0) {
+    if (!prewarmResumeTimer) {
+      prewarmResumeTimer = window.setTimeout(
+        resumePrewarmAfterScroll,
+        scrollWait + HOVER_SCROLL_RECONCILE_PAD_MS,
+      )
+    }
+    return
+  }
 
   if ("requestIdleCallback" in window) {
     prewarmHandle = window.requestIdleCallback(runPrewarm, { timeout: 700 })
@@ -2206,6 +2240,8 @@ function cancelPrewarmHandle() {
 function handleVisibilityChange() {
   if (!pageIsVisible()) {
     cancelPrewarmHandle()
+    window.clearTimeout(prewarmResumeTimer)
+    prewarmResumeTimer = 0
     return
   }
   schedulePrewarm(catalog)
@@ -2427,7 +2463,13 @@ window.addEventListener(
   },
   { passive: true },
 )
-window.addEventListener("scroll", suppressHoverSnowDuringScroll, { passive: true, capture: true })
+if (window.__RED_SCROLL_FRAME__?.subscribe) {
+  window.__RED_SCROLL_FRAME__.subscribe((snapshot) => {
+    if (snapshot.windowScroll) suppressHoverSnowDuringScroll()
+  }, { priority: 20 })
+} else {
+  window.addEventListener("scroll", suppressHoverSnowDuringScroll, { passive: true, capture: true })
+}
 window.addEventListener("wheel", suppressHoverSnowDuringScroll, { passive: true, capture: true })
 window.addEventListener("pointermove", rememberFinePointer, { passive: true, capture: true })
 window.addEventListener("pointerout", (event) => {

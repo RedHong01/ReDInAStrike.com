@@ -11,7 +11,7 @@ import {
   boundaryStrength,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260903-headerseam1"
+} from "./viewport-boundary-core.js?v=20260903-scrollperf2"
 
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"
@@ -28,6 +28,9 @@ const BOUNDARY_FIELD_MIN_MS = 240
 const BOUNDARY_FIELD_MAX_MS = 760
 const BOUNDARY_STRENGTH_EPSILON = 0.0005
 const BOUNDARY_FIELD_SETTLE_EPSILON = 0.0025
+const BOUNDARY_ROW_CLEAR = 0
+const BOUNDARY_ROW_PAPER = 1
+const BOUNDARY_ROW_TRANSITION = 2
 
 const VIEWPORT_OBSERVER_MARGIN_PX = BOUNDARY_DEPTH_MAX_PX + BOUNDARY_HOLD_MAX_PX
 const PIXEL_THRESHOLD_MIN = 0.08
@@ -169,6 +172,9 @@ function isRectNearViewport(rect) {
 function resetBoundaryField(state, { initialized = false } = {}) {
   state.boundaryStrengths?.fill(0)
   state.boundaryTargetStrengths?.fill(0)
+  state.boundaryRowKinds?.fill(BOUNDARY_ROW_CLEAR)
+  state.boundaryUploadRanges && (state.boundaryUploadRanges.length = 0)
+  state.framePixels?.fill(0)
   state.boundaryRowsInitialized = initialized
   state.lastBoundaryFieldAt = 0
 }
@@ -181,7 +187,6 @@ function hideViewportOverlay(state, { resetField = true } = {}) {
     state.canvas.style.visibility = "hidden"
   }
   if (resetField) resetBoundaryField(state)
-  state.dirtyRanges = null
   state.viewportRect = null
   state.boundaryVisible = false
   state.hasBoundaryTransition = false
@@ -344,7 +349,8 @@ function retargetViewportState(state, finalCanvas, config) {
   state.sourceSignature = finalCanvasSignature(finalCanvas)
   state.configKey = revealConfigKey(config)
   state.viewportRect = null
-  state.dirtyRanges = null
+  state.boundaryRowKinds = new Uint8Array(grid.rows)
+  state.boundaryUploadRanges = []
   state.boundaryVisible = null
   state.hasBoundaryTransition = false
   state.lastBoundaryStrength = 0
@@ -695,36 +701,13 @@ function viewportRectForState(state, forceMeasure = false) {
   return state.viewportRect
 }
 
-function clampRow(value, rows) {
-  return Math.min(rows, Math.max(0, Math.round(value)))
-}
-
-function influencedRowRanges(rect, bounds, metrics, rows) {
-  const topLimit = bounds.top + metrics.hold + metrics.depth
-  const bottomLimit = bounds.bottom - metrics.hold - metrics.depth
-  const ranges = []
-  const topEnd = clampRow(((topLimit - rect.top) / rect.height) * rows, rows)
-  const bottomStart = clampRow(((bottomLimit - rect.top) / rect.height) * rows, rows)
-
-  if (topEnd > 0) ranges.push([0, topEnd])
-  if (bottomStart < rows) ranges.push([bottomStart, rows])
-  if (ranges.length === 2 && ranges[0][1] >= ranges[1][0]) {
-    ranges[0][1] = ranges[1][1]
-    ranges.pop()
+function appendBoundaryUploadRow(ranges, row) {
+  const last = ranges.length - 2
+  if (last >= 0 && ranges[last + 1] === row) {
+    ranges[last + 1] = row + 1
+    return
   }
-
-  return ranges.filter(([from, to]) => to > from)
-}
-
-function clearDirtyRanges(state) {
-  const ranges = state.dirtyRanges
-  if (!ranges?.length) return
-  const { canvas, ctx, grid, framePixels } = state
-  for (const [from, to] of ranges) {
-    framePixels.fill(0, from * grid.cols * 4, to * grid.cols * 4)
-    ctx.clearRect(0, from, canvas.width, to - from)
-  }
-  state.dirtyRanges = null
+  ranges.push(row, row + 1)
 }
 
 function boundaryFieldDuration(config) {
@@ -737,11 +720,17 @@ function boundaryFieldDuration(config) {
 
 function ensureBoundaryBuffers(state) {
   const rows = state.grid.rows
-  if (state.boundaryStrengths?.length === rows && state.boundaryTargetStrengths?.length === rows) {
+  if (
+    state.boundaryStrengths?.length === rows &&
+    state.boundaryTargetStrengths?.length === rows &&
+    state.boundaryRowKinds?.length === rows
+  ) {
     return
   }
   state.boundaryStrengths = new Float32Array(rows)
   state.boundaryTargetStrengths = new Float32Array(rows)
+  state.boundaryRowKinds = new Uint8Array(rows)
+  state.boundaryUploadRanges = []
   state.boundaryRowsInitialized = false
   state.lastBoundaryFieldAt = 0
 }
@@ -822,27 +811,6 @@ function advanceBoundaryField(state, now, immediate = false) {
   return { moving, maxStrength, minActiveStrength }
 }
 
-function boundaryRowRangesFromField(state) {
-  const current = state.boundaryStrengths
-  const target = state.boundaryTargetStrengths
-  const ranges = []
-  let start = -1
-
-  for (let row = 0; row < state.grid.rows; row += 1) {
-    const active =
-      current[row] > BOUNDARY_STRENGTH_EPSILON ||
-      target[row] > BOUNDARY_STRENGTH_EPSILON
-    if (active && start < 0) {
-      start = row
-    } else if (!active && start >= 0) {
-      ranges.push([start, row])
-      start = -1
-    }
-  }
-  if (start >= 0) ranges.push([start, state.grid.rows])
-  return ranges
-}
-
 function renderBoundaryField(state, now, bounds, forceMeasure = false, options = {}) {
   const { card, finalCanvas, canvas, grid, config, colors } = state
   if (activeColorOwnsCard(card)) {
@@ -869,42 +837,48 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
   const breathAmount = 0.07 + config.revealNoiseFlicker * 0.16
   const timeSeconds = now / 1000
   const data = state.framePixels
-  const ranges = boundaryRowRangesFromField(state)
-
-  clearDirtyRanges(state)
-  if (!ranges.length) {
-    hideViewportOverlay(state, { resetField: false })
-    return false
-  }
-  for (const [from, to] of ranges) {
-    data.fill(0, from * grid.cols * 4, to * grid.cols * 4)
-  }
+  const rowKinds = state.boundaryRowKinds
+  const uploadRanges = state.boundaryUploadRanges
+  uploadRanges.length = 0
 
   let hasInfluence = false
   let hasTransition = false
   let maxStrength = 0
   let minStrength = 1
 
-  for (const [fromRow, toRow] of ranges) {
-    for (let row = fromRow; row < toRow; row += 1) {
-      const strength = state.boundaryStrengths[row]
+  for (let row = 0; row < grid.rows; row += 1) {
+    const strength = state.boundaryStrengths[row]
+    const targetStrength = state.boundaryTargetStrengths[row]
+    const active =
+      strength > BOUNDARY_STRENGTH_EPSILON ||
+      targetStrength > BOUNDARY_STRENGTH_EPSILON
+    if (active) {
       maxStrength = Math.max(maxStrength, strength)
       minStrength = Math.min(minStrength, strength)
+    }
 
-      if (strength <= BOUNDARY_STRENGTH_EPSILON) continue
+    let rowKind = BOUNDARY_ROW_CLEAR
+    if (strength > BOUNDARY_STRENGTH_EPSILON) {
       hasInfluence = true
+      rowKind = strength >= 0.9995 ? BOUNDARY_ROW_PAPER : BOUNDARY_ROW_TRANSITION
+    }
+    if (rowKind === BOUNDARY_ROW_TRANSITION) hasTransition = true
 
-      const rowStart = row * grid.cols
-      const rowEnd = rowStart + grid.cols
+    const previousKind = rowKinds[row]
+    const needsPaint = rowKind === BOUNDARY_ROW_TRANSITION || rowKind !== previousKind
+    if (!needsPaint) continue
 
-      if (strength >= 0.9995) {
-        for (let index = rowStart; index < rowEnd; index += 1) {
-          writePaperPixel(data, index * 4, colors.paper, 1)
-        }
-        continue
+    const rowStart = row * grid.cols
+    const rowEnd = rowStart + grid.cols
+    const byteStart = rowStart * 4
+    const byteEnd = rowEnd * 4
+    data.fill(0, byteStart, byteEnd)
+
+    if (rowKind === BOUNDARY_ROW_PAPER) {
+      for (let index = rowStart; index < rowEnd; index += 1) {
+        writePaperPixel(data, index * 4, colors.paper, 1)
       }
-
-      hasTransition = true
+    } else if (rowKind === BOUNDARY_ROW_TRANSITION) {
       const presence = transitionPresence(strength)
       const maxBreathShift = breathAmount * presence
       const clearThreshold = strength + maxBreathShift + softness
@@ -946,6 +920,8 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
         )
       }
     }
+    rowKinds[row] = rowKind
+    appendBoundaryUploadRow(uploadRanges, row)
   }
 
   if (!hasInfluence || maxStrength <= BOUNDARY_STRENGTH_EPSILON) {
@@ -956,10 +932,11 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
   canvas.style.transition = "none"
   canvas.style.opacity = "1"
   canvas.style.visibility = "visible"
-  for (const [from, to] of ranges) {
+  for (let index = 0; index < uploadRanges.length; index += 2) {
+    const from = uploadRanges[index]
+    const to = uploadRanges[index + 1]
     state.ctx.putImageData(state.imageData, 0, 0, 0, from, grid.cols, to - from)
   }
-  state.dirtyRanges = ranges
   state.boundaryVisible = true
   state.lastBoundaryStrength = maxStrength
 
@@ -984,7 +961,7 @@ function viewportLoop(now) {
   viewportFrame = 0
   if (!viewportStates.size || document.hidden) return
 
-  const boundaryContext = readViewportBoundaryContext()
+  const boundaryContext = readViewportBoundaryContext(now)
   const forceScrollFrame = now < viewportActiveUntil
   let hasBoundaryTransition = false
   const states = forceScrollFrame || !viewportObserver ? viewportStates : viewportVisibleStates
@@ -1109,6 +1086,8 @@ function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
     boundaryVisible: null,
     boundaryStrengths: new Float32Array(grid.rows),
     boundaryTargetStrengths: new Float32Array(grid.rows),
+    boundaryRowKinds: new Uint8Array(grid.rows),
+    boundaryUploadRanges: [],
     boundaryRowsInitialized: false,
     lastBoundaryFieldAt: 0,
   }
@@ -1215,9 +1194,14 @@ function requestHubReplay(config) {
   })
 }
 
-window.addEventListener("scroll", () => refreshViewportDitherReveals(), { passive: true })
+const refreshRevealFromScrollFrame = () => refreshViewportDitherReveals()
+if (window.__RED_SCROLL_FRAME__?.subscribe) {
+  window.__RED_SCROLL_FRAME__.subscribe(refreshRevealFromScrollFrame, { priority: 30 })
+} else {
+  window.addEventListener("scroll", refreshRevealFromScrollFrame, { passive: true })
+  window.visualViewport?.addEventListener?.("scroll", refreshRevealFromScrollFrame, { passive: true })
+}
 window.addEventListener("resize", () => refreshViewportDitherReveals(), { passive: true })
-window.visualViewport?.addEventListener?.("scroll", () => refreshViewportDitherReveals(), { passive: true })
 window.visualViewport?.addEventListener?.("resize", () => refreshViewportDitherReveals(), { passive: true })
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {

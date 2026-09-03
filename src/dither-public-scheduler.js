@@ -10,7 +10,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260903-headerseam1"
+} from "./reveal-motion.js?v=20260903-scrollperf2"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -18,7 +18,7 @@ import {
   playPreparedDitherResizeSnow,
   prepareDitherInitialSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260903-headerseam1"
+} from "./dither-resize-snow.js?v=20260903-scrollperf2"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const PUBLIC_STYLE_VERSION = "8"
@@ -51,6 +51,7 @@ const state = {
   destroyed: false,
   renderFrame: 0,
   revealRefreshFrame: 0,
+  scrollUnsubscribe: null,
   priorityFrame: 0,
   scrollFrame: 0,
   scrollTimer: 0,
@@ -620,6 +621,10 @@ function schedulePriorityQueue() {
 function processIdleQueue(deadline) {
   state.idleHandle = 0
   if (state.destroyed || !pageIsVisible()) return
+  if (scrollIsActive()) {
+    scheduleSettledDitherWork()
+    return
+  }
   const catalog = activeCatalog()
   if (!catalog) return
   const generation = state.generation
@@ -651,7 +656,8 @@ function scheduleIdleQueue() {
     state.priorityFrame ||
     !pageIsVisible() ||
     state.priorityQueue.length ||
-    !state.idleQueue.length
+    !state.idleQueue.length ||
+    scrollIsActive()
   ) return
 
   if ("requestIdleCallback" in window) {
@@ -865,6 +871,11 @@ function handleViewportScroll() {
   const catalog = activeCatalog()
   if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return
   state.scrollActiveUntil = performance.now() + SCROLL_SETTLE_MS
+  if (state.idleHandle) {
+    if ("cancelIdleCallback" in window) window.cancelIdleCallback(state.idleHandle)
+    else window.clearTimeout(state.idleHandle)
+    state.idleHandle = 0
+  }
   scheduleSettledDitherWork()
   if (state.scrollFrame || state.scrollTimer) return
 
@@ -1091,8 +1102,12 @@ function boot() {
   applyPublishedModeState()
   ensurePublicStyles()
   document.addEventListener("visibilitychange", handleVisibilityChange)
-  window.addEventListener("scroll", handleViewportScroll, { passive: true })
-  window.visualViewport?.addEventListener?.("scroll", handleViewportScroll, { passive: true })
+  if (window.__RED_SCROLL_FRAME__?.subscribe) {
+    state.scrollUnsubscribe = window.__RED_SCROLL_FRAME__.subscribe(handleViewportScroll, { priority: 40 })
+  } else {
+    window.addEventListener("scroll", handleViewportScroll, { passive: true })
+    window.visualViewport?.addEventListener?.("scroll", handleViewportScroll, { passive: true })
+  }
   window.visualViewport?.addEventListener?.("resize", handleViewportScroll, { passive: true })
   window.addEventListener("red:header-motion", handleHeaderMotion)
   window.addEventListener("red:hover-binary-return-complete", handleHoverBinaryReturnComplete)
@@ -1144,6 +1159,8 @@ export function destroyPublicDitherRuntime() {
   state.observedCards.clear()
   document.querySelectorAll(".project-card").forEach((card) => releaseReveal(card))
   window.removeEventListener("resize", requestRender)
+  state.scrollUnsubscribe?.()
+  state.scrollUnsubscribe = null
   window.removeEventListener("scroll", handleViewportScroll)
   window.visualViewport?.removeEventListener?.("scroll", handleViewportScroll)
   window.visualViewport?.removeEventListener?.("resize", handleViewportScroll)

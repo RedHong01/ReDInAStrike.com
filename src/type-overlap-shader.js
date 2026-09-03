@@ -715,8 +715,15 @@
 
     window.addEventListener("resize", schedule, { passive: true })
     window.visualViewport?.addEventListener("resize", schedule, { passive: true })
-    window.visualViewport?.addEventListener("scroll", scheduleFromVisualViewportScroll, { passive: true })
-    window.addEventListener("scroll", scheduleFromWindowScroll, { passive: true })
+    if (window.__RED_SCROLL_FRAME__?.subscribe) {
+      window.__RED_SCROLL_FRAME__.subscribe((snapshot) => {
+        if (snapshot.windowScroll) scheduleFromWindowScroll()
+        else if (snapshot.visualScroll) scheduleFromVisualViewportScroll()
+      }, { priority: 70 })
+    } else {
+      window.visualViewport?.addEventListener("scroll", scheduleFromVisualViewportScroll, { passive: true })
+      window.addEventListener("scroll", scheduleFromWindowScroll, { passive: true })
+    }
     window.addEventListener("red:header-motion", schedule)
     window.addEventListener("red:route-change", schedule)
     document.fonts?.ready?.then(() => schedule(true)).catch?.(() => {})

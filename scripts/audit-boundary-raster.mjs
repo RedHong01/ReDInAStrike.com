@@ -32,7 +32,12 @@ try {
     const api = window.__rasterAudit
     const state = [...api.states].find((s) => !s.card.hasAttribute("data-active-color-motion"))
     if (!state) throw new Error("No boundary state for raster audit")
+    const referenceCanvas = document.createElement("canvas")
+    referenceCanvas.width = state.canvas.width
+    referenceCanvas.height = state.canvas.height
+    const referenceContext = referenceCanvas.getContext("2d", { alpha: true })
     let comparedBytes = 0
+    let comparedCanvasBytes = 0
     let referenceSinCalls = 0
     let optimizedSinCalls = 0
     let cases = 0
@@ -79,16 +84,51 @@ try {
                   throw new Error(`RGBA mismatch at ${i}: ${expected[i]} != ${state.framePixels[i]}, top=${top}, height=${height}, flicker=${flicker}, time=${now}`)
                 }
               }
+              const canvasPixels = state.ctx.getImageData(
+                0,
+                0,
+                state.canvas.width,
+                state.canvas.height,
+              ).data
+              referenceContext.putImageData(new ImageData(expected, state.grid.cols, state.grid.rows), 0, 0)
+              const referencePixels = referenceContext.getImageData(
+                0,
+                0,
+                referenceCanvas.width,
+                referenceCanvas.height,
+              ).data
+              for (let i = 0; i < referencePixels.length; i++) {
+                if (referencePixels[i] !== canvasPixels[i]) {
+                  throw new Error(`Canvas mismatch at ${i}: ${referencePixels[i]} != ${canvasPixels[i]}, top=${top}, height=${height}, flicker=${flicker}, time=${now}`)
+                }
+              }
               comparedBytes += expected.length
+              comparedCanvasBytes += canvasPixels.length
               cases++
             }
           }
         }
       }
     } finally { Math.sin = originalSin }
-    return { cases, comparedBytes, optimizedSinCalls, referenceSinCalls }
+    state.viewportRect = { top: -320, bottom: -220, width: 500, height: 100 }
+    api.renderBoundaryField(state, 9100, { top: 160, bottom: 932 }, false, { immediate: true })
+    api.renderBoundaryField(state, 9120, { top: 160, bottom: 932 }, false, { immediate: true })
+    const repeatedPaperUploadRows = state.boundaryUploadRanges.reduce(
+      (total, value, index, ranges) => index % 2 ? total + value - ranges[index - 1] : total,
+      0,
+    )
+    return {
+      cases,
+      comparedBytes,
+      comparedCanvasBytes,
+      repeatedPaperUploadRows,
+      optimizedSinCalls,
+      referenceSinCalls,
+    }
   })
   assert(result.optimizedSinCalls < result.referenceSinCalls * 0.7, "prune at least 30% of waveform calls")
+  assert.equal(result.comparedCanvasBytes, result.comparedBytes, "visible canvas matches every reference byte")
+  assert.equal(result.repeatedPaperUploadRows, 0, "stable paper rows are not uploaded twice")
   assert.deepEqual(errors, [], "page errors")
   console.log(`PASS exact boundary pixels: ${JSON.stringify(result)}`)
 } finally {

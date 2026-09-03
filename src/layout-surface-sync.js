@@ -54,7 +54,13 @@ function wakeLayoutSurfaceFromScroll() {
   wakeLayoutSurface()
 }
 
-window.addEventListener("scroll", wakeLayoutSurfaceFromScroll, { passive: true })
+if (window.__RED_SCROLL_FRAME__?.subscribe) {
+  window.__RED_SCROLL_FRAME__.subscribe((snapshot) => {
+    if (snapshot.windowScroll) wakeLayoutSurfaceFromScroll()
+  }, { priority: 60 })
+} else {
+  window.addEventListener("scroll", wakeLayoutSurfaceFromScroll, { passive: true })
+}
 window.addEventListener("resize", wakeLayoutSurface, { passive: true })
 window.addEventListener("red:header-motion", wakeLayoutSurface)
 window.addEventListener("red:home-return-transition", wakeLayoutSurface)

@@ -10,7 +10,7 @@ import {
   boundaryMetrics,
   boundaryStrength,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260903-headerseam1"
+} from "./viewport-boundary-core.js?v=20260903-scrollperf2"
 
 const BINARY_SOURCE_SELECTOR =
   '.dither-preview-canvas[data-active="true"], .project-halftone'

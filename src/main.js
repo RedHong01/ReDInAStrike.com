@@ -55,8 +55,8 @@ const projects = [
     imagePosition: "center top",
   },
   {
-    pageTitle: "Analog Game",
-    displayTitle: "Analog Game",
+    pageTitle: "Build and Shoot",
+    displayTitle: "Build and Shoot",
     date: "11/15/2024",
     path: "/analog-game",
     navHash: "game",

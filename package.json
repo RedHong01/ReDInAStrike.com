@@ -8,6 +8,8 @@
     "build": "node scripts/build.mjs",
     "preview": "node server.mjs dist 4174",
     "audit:events": "node scripts/audit-events.mjs",
+    "audit:event-performance": "node scripts/audit-event-performance.mjs",
+    "audit:cursor": "node scripts/audit-cursor-compat.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs"
   },
   "engines": {

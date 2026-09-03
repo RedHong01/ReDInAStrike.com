@@ -307,7 +307,7 @@ function clearScrollSettleTimer() {
 }
 
 function scheduleSettledDitherWork() {
-  if (state.destroyed || !pageIsVisible() || state.scrollSettleTimer) return
+  clearScrollSettleTimer()
   const waitForScroll = Math.max(0, state.scrollActiveUntil - performance.now())
   const wait = headerLayoutInMotion() ? Math.max(50, waitForScroll) : waitForScroll
   state.scrollSettleTimer = window.setTimeout(() => {
@@ -862,11 +862,11 @@ function handleVisibilityChange() {
 
 function handleViewportScroll() {
   if (state.destroyed || !pageIsVisible()) return
-  const catalog = activeCatalog()
-  if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return
   state.scrollActiveUntil = performance.now() + SCROLL_SETTLE_MS
   scheduleSettledDitherWork()
   if (state.scrollFrame || state.scrollTimer) return
+  const catalog = activeCatalog()
+  if (!catalog?.dataset?.activeFilter || !publishedIsGenerated()) return
 
   const now = performance.now()
   const wait = Math.max(

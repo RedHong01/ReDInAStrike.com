@@ -313,6 +313,24 @@
     })
   }
 
+  function mutationNeedsObserverSweep(mutation) {
+    if (mutation.type !== "childList") return false
+    const runtimeCanvasClasses = [
+      "dither-preview-canvas",
+      "dither-reveal-canvas",
+      "active-color-snow-canvas",
+      "dither-resize-snow-canvas",
+      "dither-hover-return-snow-canvas",
+    ]
+    const isRuntimeCanvas = (node) =>
+      node instanceof Element && runtimeCanvasClasses.some((name) => node.classList.contains(name))
+    if ([...mutation.removedNodes].some((node) => node instanceof Element && !isRuntimeCanvas(node))) return true
+    return [...mutation.addedNodes].some((node) =>
+      node instanceof Element &&
+      (node.matches?.(".about-section") || node.querySelector?.(".about-section")),
+    )
+  }
+
   function setupFooterWakeObserver(force = false) {
     const nextTarget = document.querySelector(".about-section")
     if (!force && nextTarget === footerWakeTarget) return
@@ -484,7 +502,7 @@
     appMutationObserver?.disconnect()
     appMutationObserver = new MutationObserver((mutations) => {
       if (mutations.some(mutationTouchesProjectStructure)) invalidateGeometry()
-      scheduleObserverSweep()
+      if (mutations.some(mutationNeedsObserverSweep)) scheduleObserverSweep()
     })
     appMutationObserver.observe(app, { childList: true, subtree: true })
     scheduleObserverSweep()

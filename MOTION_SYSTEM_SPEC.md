@@ -118,3 +118,22 @@ If a visible pop occurs, first check whether a handoff exposed two canvases with
 - Reduced-motion and touch layouts retain the same rules, hierarchy, and card order; only their interaction/motion behavior changes.
 
 Run `npm run audit:responsive -- http://127.0.0.1:5173` with a local preview running. The audit uses Playwright and pngjs (local packages or the bundled Codex runtime), covers breakpoint edges and both orientations, samples painted full-bleed rules, checks typography/content bounds, and regresses category snow, hover, scroll, and reduced-motion touch behavior. Screenshots and JSON results are written to the system temporary directory under `red-responsive-audit` (override with `AUDIT_OUTPUT_DIR`).
+
+## 11. Event-flow performance contract
+
+- Scroll advances the boundary field but never rescans the catalog for ownership. Catalog mutations, explicit motion handoffs, and settled resize events own synchronization.
+- Scroll-settle work uses one live deadline timer. Additional scroll events extend the deadline without replacing the timer on every event.
+- Catalog-only scroll work exits before allocating timers on project-detail routes or the unfiltered homepage.
+- Detached-target cleanup runs only after DOM removal or footer insertion. Runtime canvas and typewriter leaf mutations must not schedule a global observer sweep.
+- Intersection observers remain responsible for bringing newly visible dither cards into the priority queue; this must not be replaced by scroll-time DOM scans.
+
+Run `npm run audit:event-performance -- http://127.0.0.1:5173` to exercise continuous scroll at phone, tablet, and desktop widths, verify bounded scan/timer counts, check leaf-mutation cleanup behavior, and ensure detail-page scrolling does not wake catalog work.
+
+## 12. Pointer compatibility contract
+
+- The 14px square cursor is enabled when any attached input supports hover and fine pointing. This includes desktop mouse input, Windows hybrid devices, and an iPad with a compatible mouse or trackpad.
+- Touch-only devices retain native behavior and never hide the system pointer or mount the WebGL canvas.
+- Pointer capability changes are observed at runtime so attaching a mouse after page load does not require a refresh.
+- The WebGL shader paints the source square; `mix-blend-mode: difference` performs compositor-level inversion over HTML, images, and canvases. If WebGL is unavailable, the white canvas background preserves the same square and difference blend.
+
+Run `npm run audit:cursor -- http://127.0.0.1:5173` to validate square geometry, pointer alignment, inversion over black and white surfaces, and touch-only fallback in Chromium, Firefox, and WebKit.

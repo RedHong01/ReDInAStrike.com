@@ -2,7 +2,7 @@
   const STYLE_ID = "red-invert-cursor-style"
   const CURSOR_CLASS = "red-invert-cursor"
   const CURSOR_SIZE = 14
-  const POINTER_MEDIA = "(any-hover: hover) and (any-pointer: fine)"
+  const POINTER_MEDIA = "(hover: hover) and (pointer: fine)"
 
   const VERTEX_SHADER_SOURCE = `
     attribute vec2 a_position;
@@ -29,7 +29,6 @@
   let pointerX = 0
   let pointerY = 0
   let pointerVisible = false
-  let mounted = false
 
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return
@@ -42,7 +41,7 @@
         left: 0;
         top: 0;
         z-index: 2147483647;
-        display: none;
+        display: block;
         width: ${CURSOR_SIZE}px;
         height: ${CURSOR_SIZE}px;
         margin: 0;
@@ -63,9 +62,9 @@
         opacity: 1;
       }
 
-      @media ${POINTER_MEDIA} {
+      @media (hover: none), (pointer: coarse) {
         .${CURSOR_CLASS} {
-          display: block;
+          display: none;
         }
       }
     `
@@ -190,8 +189,7 @@
   }
 
   function start() {
-    if (mounted || !window.matchMedia?.(POINTER_MEDIA).matches) return
-    mounted = true
+    if (!window.matchMedia?.(POINTER_MEDIA).matches) return
     ensureStyle()
 
     canvas = document.createElement("canvas")
@@ -210,14 +208,6 @@
     window.addEventListener("resize", scheduleRender, { passive: true })
     document.addEventListener("visibilitychange", handleVisibilityChange, { passive: true })
   }
-
-  const pointerMedia = window.matchMedia?.(POINTER_MEDIA)
-  const handlePointerCapabilityChange = (event) => {
-    if (event.matches) start()
-    else hideCursor()
-  }
-  pointerMedia?.addEventListener?.("change", handlePointerCapabilityChange)
-  if (!pointerMedia?.addEventListener) pointerMedia?.addListener?.(handlePointerCapabilityChange)
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true })

@@ -1,6 +1,6 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import "./native-halftone-bypass.js?v=20260829-batch2"
-import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260902-boundarysmooth1"
+import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260902-eventperf1"
 import "./layout-surface-sync.js?v=20260830-perfevents1"
 // Register the preset before the motion listeners so the first category change
 // can use Fine Signal even when it happens immediately after page load.

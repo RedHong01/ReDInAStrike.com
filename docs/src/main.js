@@ -105,8 +105,8 @@ const projects = [
     image: "assets/framer-live/service-game-ui-2026-a.png",
   },
   {
-    pageTitle: "Alternative Controller Game Prototype",
-    displayTitle: "Alternative Controller Game Prototype",
+    pageTitle: "SushiGo",
+    displayTitle: "SushiGo",
     date: "11/4/2025",
     path: "/alt-controller-2025-a",
     navHash: "game",

@@ -139,21 +139,25 @@ function clearFinePointer() {
   hoverScrollReconcileTimer = 0
 }
 
+function cardEligibleForHoverSnow(card) {
+  const parentCatalog = card?.closest?.(".catalog[data-active-filter]")
+  return Boolean(
+    card?.isConnected &&
+      parentCatalog &&
+      !parentCatalog.dataset.filterPhase &&
+      card.classList.contains("is-filter-muted") &&
+      !card.classList.contains("is-project-preview") &&
+      !card.classList.contains("project-preview-exit-ghost") &&
+      !card.classList.contains("is-project-preview-exit-source-card"),
+  )
+}
+
 function stationaryPointerHoverCard() {
   if (!finePointerKnown || !pageIsVisible()) return null
   if (!window.matchMedia?.("(any-hover: hover) and (any-pointer: fine)")?.matches) return null
   const target = document.elementFromPoint(lastFinePointerX, lastFinePointerY)
   const card = target?.closest?.(".project-card.is-filter-muted")
-  const parentCatalog = card?.closest?.(".catalog[data-active-filter]")
-  if (
-    !card?.isConnected ||
-    !parentCatalog ||
-    parentCatalog.dataset.filterPhase ||
-    card.classList.contains("is-project-preview") ||
-    card.classList.contains("project-preview-exit-ghost") ||
-    card.classList.contains("is-project-preview-exit-source-card")
-  ) return null
-  return card
+  return cardEligibleForHoverSnow(card) ? card : null
 }
 
 function reconcileStationaryPointerHover() {
@@ -1756,11 +1760,13 @@ function cardNearViewport(card) {
 
 function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig, options = {}) {
   const config = sanitizeActiveColorConfig(inputConfig)
+  const hoverMotion = String(options.reason || "").startsWith("hover")
 
   if (
     !config.activeColorEnabled ||
     prefersReducedMotion() ||
-    (!options.includeOffscreen && !cardNearViewport(card))
+    (!options.includeOffscreen && !cardNearViewport(card)) ||
+    (hoverMotion && !cardEligibleForHoverSnow(card))
   ) {
     cancelCard(card)
     return false
@@ -2198,15 +2204,7 @@ function bindCardHoverSnow(targetCatalog = catalog) {
     const playHoverSnow = (event) => {
       if (event?.pointerType === "touch") return
       if (pointerHoverSnowSuppressed(event)) return
-      const parentCatalog = card.closest(".catalog")
-      if (!parentCatalog || parentCatalog.dataset.filterPhase) return
-      if (
-        card.classList.contains("is-project-preview") ||
-        card.classList.contains("project-preview-exit-ghost") ||
-        card.classList.contains("is-project-preview-exit-source-card")
-      ) {
-        return
-      }
+      if (!cardEligibleForHoverSnow(card)) return
       playCard(card, "in", 0, runtimeConfig, { reason: "hover" })
     }
 

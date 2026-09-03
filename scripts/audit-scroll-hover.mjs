@@ -24,9 +24,38 @@ for (const [engineName, engine] of Object.entries({ chromium, firefox, webkit })
       const page = await browser.newPage({ viewport: { width, height: 900 } })
       page.on("pageerror", (error) => errors.push(`${engineName} ${width}: ${error.message}`))
       await page.goto(new URL("/", origin).href, { waitUntil: "domcontentloaded" })
+
+      const unfilteredCard = page.locator(".project-card").first()
+      await unfilteredCard.hover()
+      await page.waitForTimeout(180)
+      assert.equal(
+        await unfilteredCard.locator(".active-color-snow-canvas").count(),
+        0,
+        `${engineName} ${width}: unfiltered card has no hover snow`,
+      )
+      assert.notEqual(
+        await unfilteredCard.getAttribute("data-active-color-motion"),
+        "true",
+        `${engineName} ${width}: unfiltered card has no hover motion`,
+      )
+
       await page.locator('[data-nav-category="graphic"]').click()
       await page.waitForFunction(() => !document.querySelector(".catalog[data-filter-phase]"))
-      await page.waitForTimeout(700)
+      await page.waitForFunction(() => !document.querySelector('[data-active-color-motion="true"]'))
+
+      const includedCard = page.locator(".project-card:not(.is-filter-muted)").first()
+      await includedCard.hover()
+      await page.waitForTimeout(180)
+      assert.equal(
+        await includedCard.locator(".active-color-snow-canvas").count(),
+        0,
+        `${engineName} ${width}: included filtered card has no hover snow`,
+      )
+      assert.notEqual(
+        await includedCard.getAttribute("data-active-color-motion"),
+        "true",
+        `${engineName} ${width}: included filtered card has no hover motion`,
+      )
 
       const target = await page.evaluate(() => {
         const card = [...document.querySelectorAll(".project-card.is-filter-muted")]

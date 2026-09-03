@@ -43,16 +43,40 @@ async function placePreviewTop(page, card, offset) {
   await page.waitForTimeout(100)
 }
 
+async function scrollToAboutSeam(page, card) {
+  for (let step = 0; step < 24; step += 1) {
+    const snapshot = await seamSnapshot(card)
+    if (Math.abs(snapshot.aboutGap) <= 2) return snapshot
+    await page.evaluate(() => window.scrollBy(0, Math.max(120, innerHeight * 0.42)))
+    await page.waitForTimeout(100)
+  }
+  return seamSnapshot(card)
+}
+
+async function scrollAwayFromAbout(page, card) {
+  for (let step = 0; step < 12; step += 1) {
+    const snapshot = await seamSnapshot(card)
+    if (snapshot.aboutGap > 2) return snapshot
+    await page.evaluate(() => window.scrollBy(0, -Math.max(120, innerHeight * 0.42)))
+    await page.waitForTimeout(100)
+  }
+  return seamSnapshot(card)
+}
+
 async function seamSnapshot(card) {
   return card.evaluate((element) => {
     const rect = element.getBoundingClientRect()
     const header = document.querySelector(".site-header").getBoundingClientRect()
+    const about = document.querySelector(".about-card")?.getBoundingClientRect()
     const rule = getComputedStyle(element, "::before")
     return {
       gap: rect.top - header.bottom,
+      aboutGap: about ? about.top - rect.bottom : null,
       shared: element.hasAttribute("data-project-preview-header-seam"),
       opacity: rule.opacity,
       color: rule.backgroundColor,
+      aboutShared: element.hasAttribute("data-project-preview-about-seam"),
+      aboutOpacity: getComputedStyle(element, "::after").opacity,
     }
   })
 }
@@ -83,6 +107,45 @@ async function checkHeaderSeam(width) {
   assert.equal(restored.opacity, "1", `${width}: preview top rule returns`)
   await page.close()
   console.log(`PASS header seam ${width}`)
+}
+
+async function checkAboutSeam(width) {
+  const page = await open(width)
+  if (width <= 980) {
+    const card = page.locator('[data-project-card][data-index="15"]')
+    await card.click({ position: { x: 80, y: 80 } })
+    await settlePreview(page)
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }))
+    await page.waitForTimeout(120)
+    const separated = await seamSnapshot(card)
+    assert(separated.aboutGap > 2, `${width}: single-column preview keeps About clearance`)
+    assert.equal(separated.aboutShared, false, `${width}: single-column preview does not hide About-separated rule`)
+    assert.equal(separated.aboutOpacity, "1", `${width}: single-column bottom rule remains visible`)
+    await page.close()
+    console.log(`PASS About clearance ${width}`)
+    return
+  }
+
+  const card = page.locator('[data-project-card][data-index="12"]')
+  await card.click({ position: { x: 80, y: 80 } })
+  await settlePreview(page)
+
+  const separated = await seamSnapshot(card)
+  assert(separated.aboutGap > 2, `${width}: preview separates from About`)
+  assert.equal(separated.aboutShared, false, `${width}: About-separated preview owns bottom rule`)
+  assert.equal(separated.aboutOpacity, "1", `${width}: separated bottom rule is visible`)
+
+  const shared = await scrollToAboutSeam(page, card)
+  assert(Math.abs(shared.aboutGap) <= 2, `${width}: preview reaches About`)
+  assert.equal(shared.aboutShared, true, `${width}: About owns shared seam`)
+  assert.equal(shared.aboutOpacity, "0", `${width}: preview bottom rule is removed at About`)
+
+  const restored = await scrollAwayFromAbout(page, card)
+  assert(restored.aboutGap > 2, `${width}: preview leaves About again`)
+  assert.equal(restored.aboutShared, false, `${width}: preview retakes separated bottom seam`)
+  assert.equal(restored.aboutOpacity, "1", `${width}: separated bottom rule returns`)
+  await page.close()
+  console.log(`PASS About seam ${width}`)
 }
 
 async function sampleOutgoingPreview(page, duration = 260) {
@@ -161,6 +224,7 @@ async function checkRapidSwitching() {
 
 try {
   for (const width of [430, 940, 1280]) await checkHeaderSeam(width)
+  for (const width of [430, 940, 1280]) await checkAboutSeam(width)
   await checkCategoryHandoff()
   await checkRapidSwitching()
   assert.deepEqual(errors, [], "page errors")

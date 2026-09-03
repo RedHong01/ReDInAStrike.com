@@ -864,6 +864,12 @@ body[data-layout-transition="true"] .about-section {
   opacity: 0;
 }
 
+/* The About surface owns its top rule when the expanded preview lands on it.
+   Keep the card edge in the paint tree and only hide its duplicate stroke. */
+.project-card.is-project-preview[data-project-preview-about-seam="true"]::after {
+  opacity: 0;
+}
+
 .project-card.is-project-preview::after {
   bottom: 0;
 }

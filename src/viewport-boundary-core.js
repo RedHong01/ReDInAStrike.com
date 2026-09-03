@@ -1,5 +1,6 @@
 const PIN_EPSILON_PX = 1.5
 const PREVIEW_HEADER_SEAM_EPSILON_PX = 2
+const PREVIEW_ABOUT_SEAM_EPSILON_PX = 2
 let cachedBoundaryFrame = null
 let cachedBoundaryContext = null
 
@@ -95,6 +96,8 @@ export function readViewportBoundaryContext(frameTime = null) {
   const expandedCard = document.querySelector(".project-card.is-project-preview:not(.project-preview-exit-ghost)")
   const expandedRow = expandedCard?.closest?.(".project-row")
   const expandedRect = livePreviewRect(expandedCard)
+  const aboutCard = expandedCard ? document.querySelector(".about-card") : null
+  const aboutRect = livePreviewRect(aboutCard)
   const expandedBoundary = pinnedPreviewBoundary(
     expandedRow,
     expandedRect,
@@ -109,6 +112,11 @@ export function readViewportBoundaryContext(frameTime = null) {
     expandedRow,
     expandedBoundary,
     expandedMeetsHeader: previewMeetsHeaderEdge(expandedRect, headerEdge),
+    expandedMeetsAbout: Boolean(
+      expandedRect &&
+      aboutRect &&
+      Math.abs(expandedRect.bottom - aboutRect.top) <= PREVIEW_ABOUT_SEAM_EPSILON_PX,
+    ),
   }
   if (Number.isFinite(frameTime)) {
     cachedBoundaryFrame = frameTime

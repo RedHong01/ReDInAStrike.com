@@ -28,6 +28,7 @@ const PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE = "data-project-preview-filter-mute
 const PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE = "data-project-preview-previous-filter"
 const PROJECT_PREVIEW_ACTIVE_ATTRIBUTE = "data-project-preview-active"
 const PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE = "data-project-preview-header-seam"
+const PROJECT_PREVIEW_ABOUT_SEAM_ATTRIBUTE = "data-project-preview-about-seam"
 const DITHER_CATEGORY_ENTER_ATTRIBUTE = "data-dither-category-enter-reveal"
 const MEDIA_DOMINANT_SAMPLE_MAX = 42
 const MEDIA_DOMINANT_ALPHA_MIN = 24
@@ -3566,33 +3567,38 @@ function applyHeaderProgress(progress, options = {}) {
 }
 
 /**
- * The site header paints its own 1px bottom rule, and an expanded preview
- * paints a 1px top rule in its own ink — white on a dark card. Once the card's
- * top edge reaches the header edge the two stack into a double rule, so the
- * card yields its top rule to the header for as long as they share that seam
- * and takes it back the moment the card sits clear of the header again.
+ * The header and About surface each own a boundary rule. An expanded preview
+ * has matching top and bottom rules, so it yields only the edge that is
+ * physically sharing a seam and takes it back as soon as it separates.
  * The state lives on the card, so a card retracting toward its collapsed slot
  * keeps the seam it was drawn with instead of borrowing the next card's.
  */
-function syncProjectPreviewHeaderSeam(boundaryContext) {
+function syncProjectPreviewSeams(boundaryContext) {
   const card = boundaryContext.expandedCard || null
   const previous = siteState.previewHeaderSeamCard
   if (previous && previous !== card) {
     previous.removeAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)
+    previous.removeAttribute(PROJECT_PREVIEW_ABOUT_SEAM_ATTRIBUTE)
   }
   siteState.previewHeaderSeamCard = card
   if (!card) return
 
-  const shared = boundaryContext.expandedMeetsHeader
-  if (shared === card.hasAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)) return
-  if (shared) card.setAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE, "true")
-  else card.removeAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)
+  const headerShared = boundaryContext.expandedMeetsHeader
+  const aboutShared = boundaryContext.expandedMeetsAbout
+  setProjectPreviewSeamAttribute(card, PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE, headerShared)
+  setProjectPreviewSeamAttribute(card, PROJECT_PREVIEW_ABOUT_SEAM_ATTRIBUTE, aboutShared)
+}
+
+function setProjectPreviewSeamAttribute(card, attribute, enabled) {
+  if (enabled === card.hasAttribute(attribute)) return
+  if (enabled) card.setAttribute(attribute, "true")
+  else card.removeAttribute(attribute)
 }
 
 function updateProjectRuleReveal(frameTime = null) {
   const { projectRows, cardRuleTargets } = siteState.dom
   const boundaryContext = readViewportBoundaryContext(frameTime)
-  syncProjectPreviewHeaderSeam(boundaryContext)
+  syncProjectPreviewSeams(boundaryContext)
   if (!boundaryContext.bottom) return
 
   const previewActive = Boolean(boundaryContext.expandedRow)
@@ -4247,6 +4253,9 @@ function applyFooterComposition() {
     setElementStyleProperty(about, "--about-pull-y", `${pull.toFixed(2)}px`)
     setElementStyleProperty(about, "--about-card-offset-y", `${Math.max(0, siteState.aboutCardOffset || 0).toFixed(2)}px`)
     setElementStyleProperty(about, "--resume-card-offset-y", `${Math.max(0, siteState.resumeCardOffset || 0).toFixed(2)}px`)
+  }
+  if (siteState.previewHeaderSeamCard?.isConnected) {
+    syncProjectPreviewSeams(readViewportBoundaryContext())
   }
   setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
 }

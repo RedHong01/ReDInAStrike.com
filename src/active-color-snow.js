@@ -8,9 +8,10 @@ import {
   logicalGridForMedia,
 } from "./binary-surface-core.js?v=20260830-perfaudit1"
 import {
+  activeBoundaryCanvas,
   pixelsFromBinaryBits,
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260903-scrollperf2"
+} from "./binary-visible-surface.js?v=20260903-categoriesurface1"
 
 const STYLE_ID = "red-active-color-snow-style"
 const STYLE_VERSION = "7"
@@ -951,6 +952,43 @@ function buildRestoreSurface(card, grid, paper = readPaperColor(), ink = readInk
   }
 }
 
+function buildCategoryExitSurface(card, config, paper = readPaperColor(), ink = readInkColor()) {
+  const media = card?.querySelector?.(".project-media")
+  if (!media) return null
+
+  const { cols, rows } = logicalGridSize(media, config)
+  const currentSurface = sampleCurrentBinarySurface(card, {
+    cols,
+    rows,
+    paper,
+    ink,
+    ditherConfig: PUBLISHED_DITHER_CONFIG,
+    // Preserve the composited order that is on screen: the viewport reveal,
+    // any binary hover handoff, then the active Fine Signal layer.
+    overlayCanvases: [
+      activeBoundaryCanvas(card),
+      card.querySelector(".dither-hover-return-snow-canvas"),
+      card.querySelector(`.${CANVAS_CLASS}`),
+    ],
+  })
+  if (!currentSurface) return null
+
+  return {
+    cols: currentSurface.cols,
+    rows: currentSurface.rows,
+    sourceBits: currentSurface.bits,
+    sourcePixels: pixelsFromBinaryBits(
+      currentSurface.bits,
+      currentSurface.cols,
+      currentSurface.rows,
+      currentSurface.paper,
+      currentSurface.ink,
+    ),
+    paper: currentSurface.paper,
+    ink: currentSurface.ink,
+  }
+}
+
 function restoreSourceReady(card) {
   const source = card?.querySelector?.(RESTORE_SOURCE_SELECTOR)
   return Boolean(source && source.width > 0 && source.height > 0)
@@ -1372,6 +1410,64 @@ function categoryBreathingWave(state, index, col, row, now) {
   return clamp(0.5 + primary * 0.26 + drift * 0.17 + secondary * 0.055)
 }
 
+function drawCategoryExitSurface(state, progress, categoryHold, categoryAmount, frameTick, now) {
+  const { config, grid, sourceBits, sourcePixels, paper, framePixels: data } = state
+  const softness = 0.07 + clamp(config.activeColorFlicker) * 0.105
+  const density = clamp(config.activeColorNoiseDensity * (0.42 + Math.sin(Math.PI * progress) * 0.58))
+
+  for (let index = 0; index < grid.count; index += 1) {
+    // A paper cell is already visually empty. Keeping it transparent lets the
+    // live card surface below remain the owner of that pixel.
+    if (!sourceBits[index]) continue
+
+    const col = index % grid.cols
+    const row = Math.floor(index / grid.cols)
+    const order = grid.order[index]
+    let effectiveOrder = order
+    let frontPulse = 0
+    let breath = 0.5
+
+    if (categoryAmount > 0.001) {
+      frontPulse = categoryFrontPresence(progress, order, config)
+      if (frontPulse > 0.001 || categoryHold > 0.001) {
+        breath = categoryBreathingWave(state, index, col, row, now)
+        const breathShift = (breath - 0.5) * 2 * categoryAmount
+        effectiveOrder = clamp(
+          order + breathShift * (categoryHold * 0.036 + frontPulse * 0.065),
+        )
+      }
+    }
+
+    if (effectiveOrder > progress) {
+      const offset = index * 4
+      data[offset] = sourcePixels[offset]
+      data[offset + 1] = sourcePixels[offset + 1]
+      data[offset + 2] = sourcePixels[offset + 2]
+      data[offset + 3] = 255
+      continue
+    }
+
+    const edge = smooth01((softness - Math.abs(effectiveOrder - progress)) / softness)
+    if (edge <= 0.001) continue
+
+    const pulse = (breath - 0.5) * 2
+    const flicker = hash01(config.activeColorSeed, col, row, 1000 + frameTick)
+    const colorChance = clamp(
+      density * (1 - config.activeColorPaperRatio * 0.72) +
+        edge * (0.16 + categoryHold * 0.08) +
+        pulse * categoryAmount * edge * 0.18,
+    )
+    const usePalette = flicker < colorChance
+    const offset = index * 4
+    const motion = usePalette ? grid.palette : paper
+    const motionMix = clamp(edge * (0.32 + density * 0.42))
+    data[offset] = sourcePixels[offset] * (1 - motionMix) + motion[0] * motionMix
+    data[offset + 1] = sourcePixels[offset + 1] * (1 - motionMix) + motion[1] * motionMix
+    data[offset + 2] = sourcePixels[offset + 2] * (1 - motionMix) + motion[2] * motionMix
+    data[offset + 3] = Math.round(255 * edge)
+  }
+}
+
 function restoreImageHandoffProgress(state, restoreProgress) {
   const duration = Math.max(1, Number(state.config?.activeColorDurationMs) || 1)
   const settleMs = Math.max(0, Number(state.config?.activeColorImageHandoffMs) || 0)
@@ -1502,6 +1598,20 @@ function drawState(state, now) {
 
   if (state.mode === "placeholder") {
     drawPlaceholderState(state, frameTick, now)
+    return
+  }
+
+  if (state.mode === "category-surface" && state.sourceBits && state.sourcePixels) {
+    drawCategoryExitSurface(
+      state,
+      progress,
+      categoryHold,
+      categoryAmount,
+      frameTick,
+      now,
+    )
+    ctx.putImageData(state.imageData, 0, 0)
+    if (raw >= 1) finishState(state)
     return
   }
 
@@ -1822,11 +1932,19 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     }
   }
 
-  cancelCard(card)
-
   const media = card.querySelector(".project-media")
   const img = media?.querySelector("img")
   if (!media || !img) return false
+
+  // Capture the live binary surface before cancelCard removes a previous
+  // Fine Signal canvas. Category exit then dissolves this exact frame instead
+  // of rebuilding a full image-sized pattern from the source photo.
+  const categoryExitSurface =
+    direction === "out" && options.reason === "category-exit"
+      ? buildCategoryExitSurface(card, config)
+      : null
+
+  cancelCard(card)
 
   const startPlaceholder = () => {
     if (options.placeholder === false) return null
@@ -1900,11 +2018,17 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       buildLocalPalette(img, media, config, descriptor)
     if (!grid) return false
 
-    const paper = readPaperColor()
-    const ink = readInkColor()
+    const paper = categoryExitSurface?.paper || readPaperColor()
+    const ink = categoryExitSurface?.ink || readInkColor()
     const restoreSurface =
       requiresRestoreSource
         ? buildRestoreSurface(card, grid, paper, ink)
+        : null
+    const categorySurface =
+      categoryExitSurface &&
+      categoryExitSurface.cols === grid.cols &&
+      categoryExitSurface.rows === grid.rows
+        ? categoryExitSurface
         : null
     const sourcePixels = restoreSurface?.sourcePixels || null
     if (requiresRestoreSource && !sourcePixels) {
@@ -1917,6 +2041,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     const canvas = ensureCanvas(card, grid.cols, grid.rows)
     const ctx = canvas?.getContext("2d", { alpha: true })
     if (!canvas || !ctx) return false
+    canvas.dataset.activeColorSource = categorySurface ? "live-binary" : "generated-image"
 
     holdMotion(card)
     if (mode === "restore-reverse" && sourcePixels) clearRestoreReady(card)
@@ -1970,13 +2095,13 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       grid,
       config: localConfig,
       direction,
-      mode: sourcePixels ? mode : "snow",
+      mode: categorySurface ? "category-surface" : sourcePixels ? mode : "snow",
       reason: options.reason || "transition",
       paper,
       ink,
-      sourcePixels,
+      sourcePixels: categorySurface?.sourcePixels || sourcePixels,
       fullPixels: restoreSurface?.fullPixels || null,
-      sourceBits: restoreSurface?.sourceBits || null,
+      sourceBits: categorySurface?.sourceBits || restoreSurface?.sourceBits || null,
       fullBits: restoreSurface?.fullBits || null,
       restoreBoundary: restoreSurface?.boundary || null,
       hiddenSource,

@@ -116,12 +116,14 @@ export function sampleCompositeBinaryBits(baseCanvas, overlayCanvas, cols, rows,
 
   try {
     ctx.drawImage(baseCanvas, 0, 0, cols, rows)
-    if (overlayVisible(overlayCanvas, options.respectOverlayVisibility !== false)) {
-      const style = getComputedStyle(overlayCanvas)
+    const overlays = Array.isArray(overlayCanvas) ? overlayCanvas : [overlayCanvas]
+    for (const overlay of overlays) {
+      if (!overlayVisible(overlay, options.respectOverlayVisibility !== false)) continue
+      const style = getComputedStyle(overlay)
       const opacity = Number.parseFloat(style.opacity)
       ctx.save()
       ctx.globalAlpha = Number.isFinite(opacity) ? opacity : 1
-      ctx.drawImage(overlayCanvas, 0, 0, cols, rows)
+      ctx.drawImage(overlay, 0, 0, cols, rows)
       ctx.restore()
     }
     return sampleBinaryCanvas(sample, cols, rows, paper, ink)
@@ -155,12 +157,16 @@ export function sampleCurrentBinarySurface(card, options = {}) {
   const { paper, ink } = options.paper && options.ink
     ? { paper: options.paper, ink: options.ink }
     : readBinaryColors()
-  const overlayCanvas = options.overlayCanvas === null
-    ? null
-    : options.overlayCanvas || activeBoundaryCanvas(card)
+  const overlayCanvases = Array.isArray(options.overlayCanvases)
+    ? options.overlayCanvases
+    : [
+        options.overlayCanvas === null
+          ? null
+          : options.overlayCanvas || activeBoundaryCanvas(card),
+      ]
   let bits = sampleCompositeBinaryBits(
     baseCanvas,
-    overlayCanvas,
+    overlayCanvases,
     grid.cols,
     grid.rows,
     paper,
@@ -187,6 +193,7 @@ export function sampleCurrentBinarySurface(card, options = {}) {
     paper,
     ink,
     baseCanvas,
-    overlayCanvas,
+    overlayCanvas: overlayCanvases.find(Boolean) || null,
+    overlayCanvases,
   }
 }

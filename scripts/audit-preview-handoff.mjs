@@ -200,6 +200,30 @@ async function checkCategoryHandoff() {
   console.log("PASS category preview handoff")
 }
 
+async function checkLiveCategorySurfaceHandoff() {
+  const page = await open(1280, 900)
+  await page.locator('[data-nav-category="graphic"]').hover()
+  await page.waitForFunction(() => document.querySelector('.catalog[data-filter-phase="color-snow"]'))
+  await page.waitForTimeout(900)
+
+  const sourceCount = await page.evaluate(() =>
+    [...document.querySelectorAll('.project-card.is-filter-muted')]
+      .filter((card) => card.querySelector('.dither-preview-canvas[data-active="true"]'))
+      .length,
+  )
+  assert(sourceCount > 0, "live category surface: filtered cards have a binary source")
+
+  await page.locator('[data-nav-category="game"]').hover()
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('.active-color-snow-canvas')]
+      .some((canvas) => canvas.dataset.activeColorSource === "live-binary"),
+  )
+  const liveSourceCount = await page.locator('.active-color-snow-canvas[data-active-color-source="live-binary"]').count()
+  assert(liveSourceCount > 0, "live category surface: exit motion uses current binary pixels")
+  await page.close()
+  console.log("PASS live category surface handoff")
+}
+
 async function checkRapidSwitching() {
   const page = await open(1280, 900)
   await page.locator('[data-project-card][data-index="4"]').click({ position: { x: 80, y: 80 } })
@@ -226,6 +250,7 @@ try {
   for (const width of [430, 940, 1280]) await checkHeaderSeam(width)
   for (const width of [430, 940, 1280]) await checkAboutSeam(width)
   await checkCategoryHandoff()
+  await checkLiveCategorySurfaceHandoff()
   await checkRapidSwitching()
   assert.deepEqual(errors, [], "page errors")
 } finally {

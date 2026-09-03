@@ -55,7 +55,7 @@ const projects = [
     imagePosition: "center top",
   },
   {
-    pageTitle: "Analog Game",
+    pageTitle: "Build and Shoot",
     displayTitle: "Analog Game",
     date: "11/15/2024",
     path: "/analog-game",
@@ -63,7 +63,7 @@ const projects = [
     image: "assets/framer-live/analog-game.png",
   },
   {
-    pageTitle: "My Fridge",
+    pageTitle: "MyFridge",
     displayTitle: "UI&UX Prototype",
     date: "4/29/2024",
     path: "/myfridge",
@@ -80,7 +80,7 @@ const projects = [
     youtube: "PjBUK45MWJs",
   },
   {
-    pageTitle: "UI&UX Prototype",
+    pageTitle: "Assets Hub",
     displayTitle: "UI&UX Prototype",
     date: "12/9/2024",
     path: "/uiux-prototype",
@@ -105,7 +105,7 @@ const projects = [
     image: "assets/framer-live/service-game-ui-2026-a.png",
   },
   {
-    pageTitle: "Alternative Controller Game Prototype",
+    pageTitle: "SushiGo",
     displayTitle: "Alternative Controller Game Prototype",
     date: "11/4/2025",
     path: "/alt-controller-2025-a",
@@ -113,7 +113,7 @@ const projects = [
     image: "assets/framer-live/alt-controller-2025-a.png",
   },
   {
-    pageTitle: "Service Game UI Prototype",
+    pageTitle: "Space Bounty Hunter",
     displayTitle: "Service Game UI Prototype",
     date: "3/10/2026",
     path: "/service-game-ui-2",
@@ -121,7 +121,7 @@ const projects = [
     image: "assets/framer-live/service-game-ui-2026-b.png",
   },
   {
-    pageTitle: "Alternative Controller Game Prototype",
+    pageTitle: "Squirrel Samurai",
     displayTitle: "Alternative Controller Game Prototype",
     date: "11/4/2025",
     path: "/alt-controller-2025-b",

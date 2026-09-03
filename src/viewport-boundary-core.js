@@ -37,16 +37,31 @@ function followingRow(expandedRow, targetCard) {
   return false
 }
 
-function pinnedPreviewBoundary(expandedCard, expandedRow, headerEdge, viewportBottom) {
-  if (!expandedCard || !expandedRow) return null
+function livePreviewRect(expandedCard) {
+  const rect = expandedCard?.getBoundingClientRect?.()
+  if (!rect || rect.width <= 0 || rect.height <= 0) return null
+  return rect
+}
+
+/**
+ * True once the expanded preview's own top edge has reached the header's
+ * painted bottom edge. The header already draws a rule there, so the card must
+ * not draw a second one directly under it.
+ * Deliberately independent of the sticky test below: below the two-column
+ * breakpoint the expanded row stays in normal flow and scrolls its top edge
+ * under the header instead of pinning against it.
+ */
+function previewMeetsHeaderEdge(cardRect, headerEdge) {
+  if (!cardRect) return false
+  return cardRect.top <= headerEdge + PIN_EPSILON_PX
+}
+
+function pinnedPreviewBoundary(expandedRow, cardRect, headerEdge, viewportBottom) {
+  if (!expandedRow || !cardRect) return null
   if (getComputedStyle(expandedRow).position !== "sticky") return null
 
   const rowRect = expandedRow.getBoundingClientRect?.()
-  const cardRect = expandedCard.getBoundingClientRect?.()
-  if (!rowRect || !cardRect || rowRect.width <= 0 || rowRect.height <= 0 ||
-      cardRect.width <= 0 || cardRect.height <= 0) {
-    return null
-  }
+  if (!rowRect || rowRect.width <= 0 || rowRect.height <= 0) return null
 
   const pinned =
     rowRect.top <= headerEdge + PIN_EPSILON_PX &&
@@ -68,14 +83,22 @@ export function readViewportBoundaryContext() {
   const headerEdge = headerBottom(bottom)
   const expandedCard = document.querySelector(".project-card.is-project-preview:not(.project-preview-exit-ghost)")
   const expandedRow = expandedCard?.closest?.(".project-row")
+  const expandedRect = livePreviewRect(expandedCard)
   const expandedBoundary = pinnedPreviewBoundary(
-    expandedCard,
     expandedRow,
+    expandedRect,
     headerEdge,
     bottom,
   )
 
-  return { bottom, headerEdge, expandedRow, expandedBoundary }
+  return {
+    bottom,
+    headerEdge,
+    expandedCard,
+    expandedRow,
+    expandedBoundary,
+    expandedMeetsHeader: previewMeetsHeaderEdge(expandedRect, headerEdge),
+  }
 }
 
 export function viewportBoundsForCard(card = null, context = null) {

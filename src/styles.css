@@ -855,6 +855,15 @@ body[data-layout-transition="true"] .about-section {
   top: 0;
 }
 
+/* Pinned (or scrolled) against the header, the card's top rule would land one
+   pixel under .header-rule and read as a double line — worst when the card's
+   ink is white and the header's is near-black. The header owns that seam, so
+   the card drops its own top rule until it sits clear again. Opacity, not
+   display, so nothing in the 100vw bar's layout or paint tree changes. */
+.project-card.is-project-preview[data-project-preview-header-seam="true"]::before {
+  opacity: 0;
+}
+
 .project-card.is-project-preview::after {
   bottom: 0;
 }

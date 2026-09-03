@@ -27,6 +27,7 @@ const PROJECT_PREVIEW_FILTER_VALUE = "project-preview"
 const PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE = "data-project-preview-filter-muted"
 const PROJECT_PREVIEW_PREVIOUS_FILTER_ATTRIBUTE = "data-project-preview-previous-filter"
 const PROJECT_PREVIEW_ACTIVE_ATTRIBUTE = "data-project-preview-active"
+const PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE = "data-project-preview-header-seam"
 const DITHER_CATEGORY_ENTER_ATTRIBUTE = "data-dither-category-enter-reveal"
 const MEDIA_DOMINANT_SAMPLE_MAX = 42
 const MEDIA_DOMINANT_ALPHA_MIN = 24
@@ -469,6 +470,7 @@ const siteState = {
   hasProjectRuleTargets: false,
   ruleFadeFrame: 0,
   ruleFadeUpdates: [],
+  previewHeaderSeamCard: null,
   ruleGeometryCache: new WeakMap(),
   ruleGeometryGeneration: 0,
   aboutNaturalTopCache: null,
@@ -3563,9 +3565,34 @@ function applyHeaderProgress(progress, options = {}) {
   })
 }
 
+/**
+ * The site header paints its own 1px bottom rule, and an expanded preview
+ * paints a 1px top rule in its own ink — white on a dark card. Once the card's
+ * top edge reaches the header edge the two stack into a double rule, so the
+ * card yields its top rule to the header for as long as they share that seam
+ * and takes it back the moment the card sits clear of the header again.
+ * The state lives on the card, so a card retracting toward its collapsed slot
+ * keeps the seam it was drawn with instead of borrowing the next card's.
+ */
+function syncProjectPreviewHeaderSeam(boundaryContext) {
+  const card = boundaryContext.expandedCard || null
+  const previous = siteState.previewHeaderSeamCard
+  if (previous && previous !== card) {
+    previous.removeAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)
+  }
+  siteState.previewHeaderSeamCard = card
+  if (!card) return
+
+  const shared = boundaryContext.expandedMeetsHeader
+  if (shared === card.hasAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)) return
+  if (shared) card.setAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE, "true")
+  else card.removeAttribute(PROJECT_PREVIEW_HEADER_SEAM_ATTRIBUTE)
+}
+
 function updateProjectRuleReveal() {
   const { projectRows, cardRuleTargets } = siteState.dom
   const boundaryContext = readViewportBoundaryContext()
+  syncProjectPreviewHeaderSeam(boundaryContext)
   if (!boundaryContext.bottom) return
 
   const previewActive = Boolean(boundaryContext.expandedRow)

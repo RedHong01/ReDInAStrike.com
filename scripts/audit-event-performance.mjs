@@ -22,6 +22,13 @@ async function open(width = 1280, path = "/") {
   page.on("pageerror", (error) => errors.push(error.message))
   await page.addInitScript(() => {
     const counters = { boundaryScans: 0, settleTimers: 0, sweeps: 0 }
+    const listenerAdds = { window: 0, document: 0 }
+    const addEventListener = EventTarget.prototype.addEventListener
+    EventTarget.prototype.addEventListener = function (type, listener, options) {
+      if (this === window) listenerAdds.window++
+      if (this === document) listenerAdds.document++
+      return addEventListener.call(this, type, listener, options)
+    }
     const queryAll = Element.prototype.querySelectorAll
     Element.prototype.querySelectorAll = function (selector) {
       if (selector === ".project-card.is-filter-muted" && new Error().stack.includes("syncTrackedCards")) counters.boundaryScans++
@@ -39,6 +46,7 @@ async function open(width = 1280, path = "/") {
     }
     window.__eventAudit = {
       counters,
+      listenerAdds,
       reset() { for (const key of Object.keys(counters)) counters[key] = 0 },
     }
   })
@@ -132,6 +140,36 @@ try {
   results.push({ label: "detail-scroll", counts: detailCounts })
   console.log(`detail-scroll: ${JSON.stringify(detailCounts)}`)
   await detail.close()
+
+  const routes = await open(1280)
+  const listenerBaseline = await routes.evaluate(() => ({ ...window.__eventAudit.listenerAdds }))
+  let listenerAfterFirstRoute = null
+  for (let iteration = 0; iteration < 3; iteration++) {
+    await routes.waitForFunction(() => !document.documentElement.dataset.homeReturnTransition)
+    await routes.evaluate(() => document.querySelector("[data-project-card]")?.click())
+    await routes.waitForFunction(() => document.querySelector(".project-card.is-project-preview"))
+    await routes.waitForFunction(() => !document.documentElement.hasAttribute("data-project-preview-transition"))
+    await routes.evaluate(() => document.querySelector("[data-project-card]")?.click())
+    await routes.waitForFunction(() => document.querySelector(".detail-page"))
+    await routes.evaluate(() => history.back())
+    await routes.waitForFunction(() => document.querySelector(".catalog"))
+    await routes.waitForFunction(() => !document.documentElement.dataset.homeReturnTransition)
+    if (iteration === 0) {
+      listenerAfterFirstRoute = await routes.evaluate(() => ({ ...window.__eventAudit.listenerAdds }))
+    }
+  }
+  const listenerFinal = await routes.evaluate(() => ({ ...window.__eventAudit.listenerAdds }))
+  // Playwright installs its own browser-side input listeners on first history
+  // interaction. Subsequent route cycles must remain stable.
+  assert.deepEqual(listenerFinal, listenerAfterFirstRoute, "SPA route cycles do not add global listeners")
+  results.push({
+    label: "route-listeners",
+    baseline: listenerBaseline,
+    afterFirstRoute: listenerAfterFirstRoute,
+    final: listenerFinal,
+  })
+  console.log(`route-listeners: ${JSON.stringify(listenerFinal)}`)
+  await routes.close()
   assert.deepEqual(errors, [], "page errors")
 } finally {
   await writeFile(join(output, baseline ? "baseline.json" : "results.json"), JSON.stringify({ results, errors }, null, 2))

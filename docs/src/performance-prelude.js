@@ -69,6 +69,13 @@
     "animateFooterGallery",
     "animateFooterGalleryLoop",
   ])
+  const RUNTIME_CANVAS_CLASSES = new Set([
+    "dither-preview-canvas",
+    "dither-reveal-canvas",
+    "active-color-snow-canvas",
+    "dither-resize-snow-canvas",
+    "dither-hover-return-snow-canvas",
+  ])
 
   function resolveHeader() {
     if (header?.isConnected) return header
@@ -315,15 +322,13 @@
 
   function mutationNeedsObserverSweep(mutation) {
     if (mutation.type !== "childList") return false
-    const runtimeCanvasClasses = [
-      "dither-preview-canvas",
-      "dither-reveal-canvas",
-      "active-color-snow-canvas",
-      "dither-resize-snow-canvas",
-      "dither-hover-return-snow-canvas",
-    ]
-    const isRuntimeCanvas = (node) =>
-      node instanceof Element && runtimeCanvasClasses.some((name) => node.classList.contains(name))
+    const isRuntimeCanvas = (node) => {
+      if (!(node instanceof Element)) return false
+      for (const name of RUNTIME_CANVAS_CLASSES) {
+        if (node.classList.contains(name)) return true
+      }
+      return false
+    }
     if ([...mutation.removedNodes].some((node) => node instanceof Element && !isRuntimeCanvas(node))) return true
     return [...mutation.addedNodes].some((node) =>
       node instanceof Element &&

@@ -92,4 +92,37 @@ for (const [name, engine] of Object.entries(engines)) {
   }
 }
 
+{
+  const browser = await chromium.launch({ headless: true })
+  try {
+    const page = await browser.newPage({ viewport: { width: 500, height: 400 } })
+    await page.addInitScript(() => {
+      const nativeMatchMedia = window.matchMedia.bind(window)
+      const query = "(any-hover: hover) and (any-pointer: fine)"
+      const listeners = new Set()
+      const capability = {
+        matches: false,
+        media: query,
+        addEventListener(type, listener) { if (type === "change") listeners.add(listener) },
+        removeEventListener(type, listener) { if (type === "change") listeners.delete(listener) },
+        addListener(listener) { listeners.add(listener) },
+        removeListener(listener) { listeners.delete(listener) },
+        dispatch(value) {
+          this.matches = value
+          for (const listener of listeners) listener.call(this, { matches: value, media: query })
+        },
+      }
+      window.matchMedia = (value) => value === query ? capability : nativeMatchMedia(value)
+      window.__cursorCapability = capability
+    })
+    await page.goto(new URL("/", origin).href, { waitUntil: "domcontentloaded" })
+    assert.equal(await page.locator(".red-invert-cursor").count(), 0, "no fine pointer at startup")
+    await page.evaluate(() => window.__cursorCapability.dispatch(true))
+    await page.locator(".red-invert-cursor").waitFor({ state: "attached" })
+    console.log("PASS hybrid device: pointer attachment enables cursor without reload")
+  } finally {
+    await browser.close()
+  }
+}
+
 assert.deepEqual(errors, [], "page errors")

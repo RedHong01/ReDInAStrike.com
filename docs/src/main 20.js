@@ -722,10 +722,7 @@ function currentHeaderHeight() {
   return readHeaderMetrics().fullHeight
 }
 
-// The cover transition lifts the header out of flow, so the spacer that
-// replaces it has to match the header's flow footprint, not its shrunken
-// visual height — otherwise the page jumps as the transition starts.
-function setHomeReturnSpacerHeight(height = headerFlowHeight()) {
+function setHomeReturnSpacerHeight(height = currentHeaderHeight()) {
   setRootStyleProperty("--home-return-spacer-height", `${Math.max(0, height).toFixed(2)}px`)
 }
 
@@ -3296,27 +3293,6 @@ function render() {
   setupHoverEmbeds()
 }
 
-/**
- * Snap a header height onto the same pixel grid the performance prelude uses
- * when it writes --header-height, so the painted header bottom, the sticky
- * preview top and the cached geometry all agree to the pixel instead of
- * disagreeing by a fraction that shimmers frame to frame.
- */
-function quantizeHeaderHeight(value) {
-  const step = window.__RED_PERF__?.headerHeightVisualStepPx || 0
-  if (!(step > 0) || !Number.isFinite(value)) return value
-  return Math.round(value / step) * step
-}
-
-/**
- * How much vertical space the header occupies in normal flow. This stays fixed
- * for a given breakpoint even while the header shrinks, so scrolling never
- * reflows the document underneath it.
- */
-function headerFlowHeight() {
-  return readHeaderMetrics().fullHeight
-}
-
 function readHeaderMetrics() {
   const width = window.innerWidth
   if (siteState.headerMetrics && siteState.headerMetricsWidth === width) {
@@ -3381,7 +3357,7 @@ function setElementStyleProperty(element, name, value) {
 function cachedRuleRect(record) {
   const scrollX = window.scrollX || window.pageXOffset || 0
   const scrollY = window.scrollY || window.pageYOffset || 0
-  const headerDelta = headerFlowHeight() - record.headerHeight
+  const headerDelta = siteState.headerVisualBottom - record.headerHeight
   const left = record.documentLeft - scrollX
   const top = record.documentTop + headerDelta - scrollY
   return {
@@ -3409,7 +3385,7 @@ function readCachedRuleRect(element) {
     documentLeft: rect.left + scrollX,
     width: rect.width,
     height: rect.height,
-    headerHeight: headerFlowHeight(),
+    headerHeight: siteState.headerVisualBottom,
   })
   return rect
 }
@@ -3418,7 +3394,7 @@ function readCachedAboutNaturalTop(about) {
   const cached = siteState.aboutNaturalTopCache
   const scrollY = window.scrollY || window.pageYOffset || 0
   if (cached?.element === about && cached.generation === siteState.ruleGeometryGeneration) {
-    const headerDelta = headerFlowHeight() - cached.headerHeight
+    const headerDelta = siteState.headerVisualBottom - cached.headerHeight
     return cached.documentTop + headerDelta - scrollY
   }
 
@@ -3428,7 +3404,7 @@ function readCachedAboutNaturalTop(about) {
     element: about,
     generation: siteState.ruleGeometryGeneration,
     documentTop: naturalTop + scrollY,
-    headerHeight: headerFlowHeight(),
+    headerHeight: siteState.headerVisualBottom,
   }
   return naturalTop
 }
@@ -3483,8 +3459,7 @@ function applyHeaderProgress(progress, options = {}) {
     metrics.fullHeight,
   )
   const baseHeight = metrics.fullHeight + (metrics.compactHeight - metrics.fullHeight) * progress
-  const height = quantizeHeaderHeight(baseHeight + (viewportHeight - baseHeight) * coverProgress)
-  const flowGap = Math.max(0, metrics.fullHeight - height)
+  const height = baseHeight + (viewportHeight - baseHeight) * coverProgress
   const logo = metrics.fullLogo + (metrics.compactLogo - metrics.fullLogo) * progress
   const navScale = 1 + (0.88 - 1) * progress
   const detailOpacity = 1
@@ -3494,7 +3469,6 @@ function applyHeaderProgress(progress, options = {}) {
   const ruleAlpha = 0.82
 
   setRootStyleProperty("--header-height", `${height.toFixed(2)}px`)
-  setRootStyleProperty("--header-flow-gap", `${flowGap.toFixed(2)}px`)
   setRootStyleProperty("--logo-size", `${logo.toFixed(2)}px`)
   setRootStyleProperty("--nav-scale", navScale.toFixed(4))
   setRootStyleProperty("--detail-opacity", detailOpacity.toFixed(4))
@@ -3617,7 +3591,7 @@ function getCatalogContentBottom(catalog, fallback = 0) {
     Number.isFinite(siteState.catalogContentBottomDocument) &&
     Number.isFinite(siteState.catalogContentBottomHeaderHeight)
   ) {
-    const headerDelta = headerFlowHeight() - siteState.catalogContentBottomHeaderHeight
+    const headerDelta = siteState.headerVisualBottom - siteState.catalogContentBottomHeaderHeight
     return Math.max(0, siteState.catalogContentBottomDocument + headerDelta - scrollY)
   }
 
@@ -3636,7 +3610,7 @@ function getCatalogContentBottom(catalog, fallback = 0) {
 
   if (canUseDocumentCache) {
     siteState.catalogContentBottomDocument = bottom + scrollY
-    siteState.catalogContentBottomHeaderHeight = headerFlowHeight()
+    siteState.catalogContentBottomHeaderHeight = siteState.headerVisualBottom
     siteState.catalogContentBottomDirty = false
   }
   return bottom

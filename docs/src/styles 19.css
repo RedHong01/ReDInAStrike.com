@@ -300,11 +300,6 @@ img {
   z-index: 20;
   width: 100%;
   height: var(--header-height);
-  /* The header shrinks visually, but its footprint in flow stays constant
-     (--header-flow-gap backfills what the shrink gives up). Without this the
-     document reflows on every animation frame, so page content drifts at a
-     different speed than the scroll and the page reads as jittery. */
-  margin-block-end: var(--header-flow-gap, 0px);
   background: transparent;
   overflow: visible;
   isolation: isolate;
@@ -601,9 +596,7 @@ body[data-project-expand-transition] .nav-list {
 }
 
 body[data-layout-transition="true"] .site-header {
-  transition:
-    height var(--responsive-duration) var(--responsive-ease),
-    margin-block-end var(--responsive-duration) var(--responsive-ease);
+  transition: height var(--responsive-duration) var(--responsive-ease);
 }
 
 body[data-layout-transition="true"] .header-inner {

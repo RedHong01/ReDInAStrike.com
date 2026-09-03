@@ -3474,6 +3474,23 @@ function cancelLayoutEffectsUpdate(options = {}) {
   }
 }
 
+/**
+ * Backfill whatever height the header gave up so its footprint in normal flow
+ * stays constant while it shrinks. The backfill is capped at the current scroll
+ * offset: reserving more than that would leave bare paper below a compact
+ * header sitting near the top of the page. Ordinary scrolling never reaches the
+ * cap — the header sheds less height than the scroll distance that sheds it —
+ * so this only bites if the header is left compact at a scroll position that
+ * cannot hide the reserved space.
+ */
+function syncHeaderFlowGap(height = siteState.headerVisualBottom) {
+  const metrics = readHeaderMetrics()
+  const visualHeight = height > 0 ? height : metrics.fullHeight
+  const scrollTop = Math.max(0, window.scrollY || window.pageYOffset || 0)
+  const flowGap = clamp(metrics.fullHeight - visualHeight, 0, scrollTop)
+  setRootStyleProperty("--header-flow-gap", `${flowGap.toFixed(2)}px`)
+}
+
 function applyHeaderProgress(progress, options = {}) {
   const metrics = readHeaderMetrics()
   const coverProgress = clamp(options.coverProgress || 0, 0, 1)
@@ -3484,7 +3501,6 @@ function applyHeaderProgress(progress, options = {}) {
   )
   const baseHeight = metrics.fullHeight + (metrics.compactHeight - metrics.fullHeight) * progress
   const height = quantizeHeaderHeight(baseHeight + (viewportHeight - baseHeight) * coverProgress)
-  const flowGap = Math.max(0, metrics.fullHeight - height)
   const logo = metrics.fullLogo + (metrics.compactLogo - metrics.fullLogo) * progress
   const navScale = 1 + (0.88 - 1) * progress
   const detailOpacity = 1
@@ -3494,7 +3510,6 @@ function applyHeaderProgress(progress, options = {}) {
   const ruleAlpha = 0.82
 
   setRootStyleProperty("--header-height", `${height.toFixed(2)}px`)
-  setRootStyleProperty("--header-flow-gap", `${flowGap.toFixed(2)}px`)
   setRootStyleProperty("--logo-size", `${logo.toFixed(2)}px`)
   setRootStyleProperty("--nav-scale", navScale.toFixed(4))
   setRootStyleProperty("--detail-opacity", detailOpacity.toFixed(4))
@@ -3504,6 +3519,7 @@ function applyHeaderProgress(progress, options = {}) {
   setRootStyleProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
   setRootStyleProperty("--project-preview-sticky-top", `${height.toFixed(2)}px`)
   siteState.headerVisualBottom = height
+  syncHeaderFlowGap(height)
 
   const isCompact = progress > 0.7
   const density =
@@ -5937,6 +5953,7 @@ function requestScrollEffectsUpdate(delta) {
     siteState.scrollFrame = 0
 
     if (!shouldSuppressHeaderScrollDelta(pendingDelta)) updateHeaderFromScroll(pendingDelta)
+    syncHeaderFlowGap()
     nudgeFooterGallery()
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
     if (!siteState.halftoneObserver || !siteState.halftoneObserverReady) {

@@ -80,8 +80,8 @@ const projects = [
     youtube: "PjBUK45MWJs",
   },
   {
-    pageTitle: "UI&UX Prototype",
-    displayTitle: "UI&UX Prototype",
+    pageTitle: "Assets Hub",
+    displayTitle: "Assets Hub",
     date: "12/9/2024",
     path: "/uiux-prototype",
     navHash: "interaction",

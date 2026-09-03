@@ -103,7 +103,8 @@ If a visible pop occurs, first check whether a handoff exposed two canvases with
 - Above 980px in landscape, the catalog uses paired columns. The expanded row may pin below the header and hide its paired sibling.
 - At 980px and below, or in portrait, cards stay in one ordered column. The expanded row stays in document flow and never removes its sibling.
 - At 700px and below, preview media and copy stack. Above 700px they retain their two-panel composition, independently of the catalog column count.
-- Every expanded card owns two 1px paper/ink rules at its own top and bottom edges. They span the same viewport width as the card, not the containing two-card row. Do not calculate their reach using the desktop content gutter.
+- Every expanded card owns two 1px rules at its own top and bottom edges. They span the same viewport width as the card, not the containing two-card row. Do not calculate their reach using the desktop content gutter.
+- Expanded rules use the card-local `--preview-rule`: white (`#ffffff`) or dark (`#111111`), whichever has greater [relative-luminance contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) against its expanded background. Reuse the cached image background sample; fixed six-digit hex backgrounds resolve when creating the card. Do not recolor the global rule token, add scroll work, or change typography.
 - Rules inherit the card's existing 420ms clip-path expansion/retraction. They do not run a second reveal, use the boundary dissolve, or require a scroll listener.
 - Normal sibling dividers cannot add padding or a second rule inside an expanded card. Collapsed cards keep their normal content-width dividers.
 - The header still occludes content that has genuinely scrolled behind it. A screenshot assertion must place the tested rule inside the visible viewport before testing its pixels.
@@ -118,6 +119,8 @@ If a visible pop occurs, first check whether a handoff exposed two canvases with
 - Reduced-motion and touch layouts retain the same rules, hierarchy, and card order; only their interaction/motion behavior changes.
 
 Run `npm run audit:responsive -- http://127.0.0.1:5173` with a local preview running. The audit uses Playwright and pngjs (local packages or the bundled Codex runtime), covers breakpoint edges and both orientations, samples painted full-bleed rules, checks typography/content bounds, and regresses category snow, hover, scroll, and reduced-motion touch behavior. Screenshots and JSON results are written to the system temporary directory under `red-responsive-audit` (override with `AUDIT_OUTPUT_DIR`).
+
+Add `--rules-only` to check every card at phone, tablet, and desktop widths. Rule-paint checks compare the intended color against an opposite-color control, so matching background/image pixels cannot hide missing or incomplete rules.
 
 ## 11. Event-flow performance contract
 

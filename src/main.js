@@ -97,7 +97,7 @@ const projects = [
     youtube: "PjBUK45MWJs",
   },
   {
-    pageTitle: "Service Game UI Prototype",
+    pageTitle: "The Mystery of Instrument",
     displayTitle: "Service Game UI Prototype",
     date: "3/10/2026",
     path: "/service-game-ui",
@@ -2475,13 +2475,17 @@ function headerMarkup() {
 }
 
 function mediaStyle(project) {
+  const background = project.mediaBackground || "#f2f2f2"
+  const hex = /^#([\da-f]{6})$/i.exec(background)?.[1]
+  const rgb = hex ? Number.parseInt(hex, 16) : null
   return [
     "--media-aspect: 16 / 9",
     `--image-fit: ${project.imageFit || "cover"}`,
     `--image-position: ${project.imagePosition || "center center"}`,
     `--preview-image-fit: ${project.previewImageFit || "contain"}`,
     `--preview-image-position: ${project.previewImagePosition || project.imagePosition || "center center"}`,
-    `--media-bg: ${project.mediaBackground || "#f2f2f2"}`,
+    `--media-bg: ${background}`,
+    `--preview-rule: ${rgb === null ? "var(--rule)" : previewRuleForRgb(rgb >> 16, (rgb >> 8) & 255, rgb & 255)}`,
   ].join("; ")
 }
 
@@ -2565,6 +2569,19 @@ function previewInkForRgb(red, green, blue) {
   return luma < 92 ? "rgb(248 247 245)" : "rgb(69 69 69)"
 }
 
+function previewRuleForRgb(red, green, blue) {
+  const linear = (channel) => {
+    const value = channel / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  }
+  const luminance = 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+  const darkLuminance = linear(17)
+  const darkContrast = (Math.max(luminance, darkLuminance) + 0.05) /
+    (Math.min(luminance, darkLuminance) + 0.05)
+  const whiteContrast = 1.05 / (luminance + 0.05)
+  return whiteContrast > darkContrast ? "#ffffff" : "#111111"
+}
+
 function addMediaColorBucket(buckets, pixels, index) {
   const alpha = pixels[index + 3]
   if (alpha < MEDIA_DOMINANT_ALPHA_MIN) return false
@@ -2599,6 +2616,7 @@ function mediaBackgroundFromBucket(bucket) {
   return {
     background: `rgb(${red} ${green} ${blue})`,
     ink: previewInkForRgb(red, green, blue),
+    rule: previewRuleForRgb(red, green, blue),
   }
 }
 
@@ -2671,6 +2689,7 @@ function applyDominantMediaBackground(card) {
   card.style.setProperty("--media-bg", result.background)
   card.style.setProperty("--preview-media-bg", result.background)
   card.style.setProperty("--preview-ink", result.ink)
+  card.style.setProperty("--preview-rule", result.rule)
   media.classList.add("has-media-background")
   return true
 }

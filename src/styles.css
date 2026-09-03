@@ -846,7 +846,7 @@ body[data-layout-transition="true"] .about-section {
   left: 0;
   right: 0;
   height: var(--project-preview-rule-width);
-  background: var(--rule);
+  background: var(--preview-rule, var(--rule));
   z-index: 10;
   pointer-events: none;
 }

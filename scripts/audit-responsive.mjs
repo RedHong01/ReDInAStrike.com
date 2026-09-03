@@ -14,6 +14,7 @@ const { chromium } = dependency("playwright")
 const { PNG } = dependency("pngjs")
 const origin = process.argv[2] || "http://127.0.0.1:5173"
 const motionOnly = process.argv.includes("--motion-only")
+const rulesOnly = process.argv.includes("--rules-only")
 const motionRepeats = Math.max(1, Number(process.env.AUDIT_MOTION_REPEATS) || 1)
 const output = process.env.AUDIT_OUTPUT_DIR || join(tmpdir(), "red-responsive-audit")
 await mkdir(output, { recursive: true })
@@ -68,6 +69,7 @@ async function previewSnapshot(card) {
         width: parseFloat(style.width), height: parseFloat(style.height),
         left: style.left, right: style.right, top: style.top, bottom: style.bottom,
         content: style.content, display: style.display,
+        color: style.backgroundColor,
       }
     })
     const sibling = [...row.children].find((node) => node !== element)
@@ -75,6 +77,7 @@ async function previewSnapshot(card) {
     return {
       width: innerWidth, left: rect.left, right: rect.right,
       top: rect.top, bottom: rect.bottom, padding: getComputedStyle(element).paddingTop,
+      background: getComputedStyle(element).backgroundColor,
       single: matchMedia("(max-width: 980px), (orientation: portrait)").matches,
       rowPosition: getComputedStyle(row).position,
       siblingVisible: sibling && getComputedStyle(sibling).display !== "none",
@@ -88,6 +91,20 @@ async function previewSnapshot(card) {
   })
 }
 
+function luminance(color) {
+  const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number).map((channel) => {
+    const value = channel / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  })
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+}
+
+function contrast(first, second) {
+  const a = luminance(first)
+  const b = luminance(second)
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+
 function checkPreview(snapshot, label) {
   assert(Math.abs(snapshot.left) < 1 && Math.abs(snapshot.right - snapshot.width) < 1, `${label}: full bleed bounds`)
   assert.equal(snapshot.padding, "0px", `${label}: preview has no sibling-divider inset`)
@@ -96,6 +113,10 @@ function checkPreview(snapshot, label) {
     assert(Math.abs(rule.width - snapshot.width) < 1, `${label}: rule ${index} width`)
     assert.equal(rule.height, 1, `${label}: rule ${index} thickness`)
     assert.equal(index ? rule.bottom : rule.top, "0px", `${label}: rule ${index} edge`)
+    const white = contrast("rgb(255, 255, 255)", snapshot.background)
+    const dark = contrast("rgb(17, 17, 17)", snapshot.background)
+    assert.equal(rule.color, white > dark ? "rgb(255, 255, 255)" : "rgb(17, 17, 17)", `${label}: highest-contrast rule ${index}`)
+    assert(contrast(rule.color, snapshot.background) >= 3, `${label}: visible rule ${index} contrast`)
   }
   assert.equal(snapshot.active, 1, `${label}: one active preview`)
   assert.equal(snapshot.ghosts, 0, `${label}: no outgoing snapshot`)
@@ -118,19 +139,20 @@ function checkPreview(snapshot, label) {
   }
 }
 
-function checkRulePixels(buffer, label, edge) {
+function checkRulePixels(buffer, controlBuffer, label, edge) {
   const png = PNG.sync.read(buffer)
-  let dark = 0
+  const baseline = PNG.sync.read(controlBuffer)
+  let painted = 0
   const count = png.width - 8
   for (let x = 4; x < png.width - 4; x++) {
     const hit = [edge - 2, edge - 1, edge, edge + 1, edge + 2].some((y) => {
       if (y < 0 || y >= png.height) return false
       const offset = (y * png.width + x) * 4
-      return png.data[offset] < 190 && png.data[offset + 1] < 190 && png.data[offset + 2] < 190
+      return [0, 1, 2].some((channel) => Math.abs(png.data[offset + channel] - baseline.data[offset + channel]) > 12)
     })
-    if (hit) dark++
+    if (hit) painted++
   }
-  assert(dark / count > 0.95, `${label}: painted edge ${edge} covers ${(100 * dark / count).toFixed(1)}%`)
+  assert(painted / count > 0.95, `${label}: painted edge ${edge} covers ${(100 * painted / count).toFixed(1)}%`)
 }
 
 async function checkPaintedRules(page, card, label) {
@@ -145,7 +167,42 @@ async function checkPaintedRules(page, card, label) {
     const y = await card.evaluate((element, edge) => window.__auditRect.call(element)[edge], edge)
     const buffer = await page.screenshot()
     await writeFile(join(output, `${label}-${edge}.png`), buffer)
-    checkRulePixels(buffer, label, Math.round(y))
+    // Repaint only the rule in its opposite color. This proves its full width
+    // even where an image edge happens to match the intended rule color.
+    const previous = await card.evaluate((element) => {
+      const value = element.style.getPropertyValue("--preview-rule")
+      const color = getComputedStyle(element, "::before").backgroundColor
+      element.style.setProperty("--preview-rule", color === "rgb(255, 255, 255)" ? "#111111" : "#ffffff")
+      return value
+    })
+    try {
+      const controlBuffer = await page.screenshot()
+      checkRulePixels(buffer, controlBuffer, label, Math.round(y))
+    } finally {
+      await card.evaluate((element, value) => {
+        if (value) element.style.setProperty("--preview-rule", value)
+        else element.style.removeProperty("--preview-rule")
+      }, previous)
+    }
+  }
+}
+
+async function auditAllCardRules() {
+  for (const [width, height] of [[430, 932], [940, 820], [1280, 900]]) {
+    const page = await open({ width, height })
+    const indices = [0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
+    for (const index of indices) {
+      const card = page.locator("[data-project-card]").nth(index)
+      await card.click({ position: { x: 100, y: 100 } })
+      await settlePreview(page)
+      const label = `${width}x${height}-card${index}`
+      const snapshot = await previewSnapshot(card)
+      checkPreview(snapshot, label)
+      await checkPaintedRules(page, card, label)
+      results.push({ label, ...snapshot })
+    }
+    await page.close()
+    console.log(`PASS all 16 card rules ${width}x${height}`)
   }
 }
 
@@ -261,9 +318,12 @@ async function auditCatalogMotion(width, repeat) {
 }
 
 try {
-  if (!motionOnly) await auditLayoutSystems()
-  for (let repeat = 0; repeat < motionRepeats; repeat++) {
-    for (const width of [430, 940, 1280]) await auditCatalogMotion(width, repeat)
+  if (rulesOnly) await auditAllCardRules()
+  else {
+    if (!motionOnly) await auditLayoutSystems()
+    for (let repeat = 0; repeat < motionRepeats; repeat++) {
+      for (const width of [430, 940, 1280]) await auditCatalogMotion(width, repeat)
+    }
   }
 
   const reduced = await open({ width: 430, height: 932 }, "/", { reducedMotion: "reduce", isMobile: true, hasTouch: true })

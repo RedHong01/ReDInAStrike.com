@@ -13,6 +13,8 @@ function dependency(name) {
 const { chromium } = dependency("playwright")
 const { PNG } = dependency("pngjs")
 const origin = process.argv[2] || "http://127.0.0.1:5173"
+const motionOnly = process.argv.includes("--motion-only")
+const motionRepeats = Math.max(1, Number(process.env.AUDIT_MOTION_REPEATS) || 1)
 const output = process.env.AUDIT_OUTPUT_DIR || join(tmpdir(), "red-responsive-audit")
 await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ headless: true })
@@ -147,7 +149,7 @@ async function checkPaintedRules(page, card, label) {
   }
 }
 
-try {
+async function auditLayoutSystems() {
   for (const [width, height] of viewports) {
     const page = await open({ width, height })
     const indices = [0, 2, 1, ...([430, 940].includes(width) ? [6, 15] : [])]
@@ -210,7 +212,9 @@ try {
     console.log(`PASS detail systems ${width}`)
   }
 
-  for (const width of [430, 940, 1280]) {
+}
+
+async function auditCatalogMotion(width, repeat) {
     const page = await open({ width, height: 932 })
     await page.locator('[data-nav-category="graphic"]').click()
     await page.waitForFunction(() => document.querySelector(".active-color-snow-canvas"))
@@ -236,17 +240,30 @@ try {
         return {
           visible: visible.length,
           hidden: visible.filter((el) => getComputedStyle(el).opacity === "0" || getComputedStyle(el).visibility === "hidden").length,
+          hiddenCards: visible.filter((el) => getComputedStyle(el).opacity === "0" || getComputedStyle(el).visibility === "hidden").map((el) => ({
+            index: el.closest(".project-card").dataset.index,
+            card: { ...el.closest(".project-card").dataset },
+            rect: window.__auditRect.call(el).toJSON(),
+            headerBottom: window.__auditRect.call(document.querySelector(".site-header")).bottom,
+            hover: el.closest(".project-card").matches(":hover"),
+          })),
           invalidGrid: [...document.querySelectorAll('.dither-preview-canvas[data-active="true"]')].filter((c) =>
             c.width !== Number(c.dataset.ditherColumns) || c.height !== Number(c.dataset.ditherRows),
           ).length,
         }
       }))
     }
+    results.push({ label: `${width}-motion-${repeat}`, traces })
     assert(traces.some((trace) => trace.visible > 0), `${width}: boundary canvases present`)
     assert(traces.every((trace) => !trace.hidden && !trace.invalidGrid), `${width}: continuous boundary/grid ownership`)
-    results.push({ label: `${width}-motion`, traces })
     await page.close()
     console.log(`PASS category, hover, scroll ${width}`)
+}
+
+try {
+  if (!motionOnly) await auditLayoutSystems()
+  for (let repeat = 0; repeat < motionRepeats; repeat++) {
+    for (const width of [430, 940, 1280]) await auditCatalogMotion(width, repeat)
   }
 
   const reduced = await open({ width: 430, height: 932 }, "/", { reducedMotion: "reduce", isMobile: true, hasTouch: true })

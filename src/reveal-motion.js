@@ -905,11 +905,21 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
       }
 
       hasTransition = true
+      const presence = transitionPresence(strength)
+      const maxBreathShift = breathAmount * presence
+      const clearThreshold = strength + maxBreathShift + softness
+      const paperThreshold = strength - maxBreathShift - softness
 
       for (let index = rowStart; index < rowEnd; index += 1) {
         const threshold = PIXEL_THRESHOLD_MIN + grid.pixelOrder[index] * PIXEL_THRESHOLD_SPAN
+        // Outside the entire breathing envelope this pixel is always clear or
+        // paper. Keep the exact waveform only for pixels that can transition.
+        if (threshold >= clearThreshold) continue
+        if (threshold <= paperThreshold) {
+          writeMixedPixel(data, index * 4, colors.paper, colors.ink, 0, 1)
+          continue
+        }
         const breath = breathingWave(timeSeconds, grid.flickerPhase[index], grid.breathRate[index])
-        const presence = transitionPresence(strength)
         const breathShift = (breath - 0.5) * 2 * breathAmount * presence
         let coverAlpha = smooth01((strength + breathShift - threshold + softness) / (softness * 2))
         if (coverAlpha <= 0.001) continue

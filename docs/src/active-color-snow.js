@@ -61,6 +61,7 @@ const hoverCardsBound = new WeakSet()
 const motionReleaseFrames = new WeakMap()
 const boundaryCooldownTimers = new WeakMap()
 const hoverRestoreRetries = new WeakMap()
+const fineHoverQuery = window.matchMedia?.("(any-hover: hover) and (any-pointer: fine)")
 
 let animationFrame = 0
 let catalogObserver = null
@@ -154,7 +155,7 @@ function cardEligibleForHoverSnow(card) {
 
 function stationaryPointerHoverCard() {
   if (!finePointerKnown || !pageIsVisible()) return null
-  if (!window.matchMedia?.("(any-hover: hover) and (any-pointer: fine)")?.matches) return null
+  if (!fineHoverQuery?.matches) return null
   const target = document.elementFromPoint(lastFinePointerX, lastFinePointerY)
   const card = target?.closest?.(".project-card.is-filter-muted")
   return cardEligibleForHoverSnow(card) ? card : null
@@ -213,6 +214,9 @@ function suppressHoverSnowDuringScroll(event) {
     hoverScrollSuppressUntil,
     time + HOVER_SCROLL_SUPPRESS_MS,
   )
+  const activeCatalog = catalog?.isConnected && catalog.dataset.activeFilter &&
+    !catalog.dataset.filterPhase ? catalog : null
+  if (!activeCatalog || !pageIsVisible()) return
   if (time - lastHoverScrollCancelAt < 80) return
   lastHoverScrollCancelAt = time
   const retainedHoverCard = stationaryPointerHoverCard()
@@ -223,7 +227,6 @@ function suppressHoverSnowDuringScroll(event) {
     }
   }
 
-  const activeCatalog = document.querySelector(".catalog[data-active-filter]:not([data-filter-phase])")
   activeCatalog
     ?.querySelectorAll(
       ".project-card.is-filter-muted.is-muted-restore-intent, " +
@@ -2142,7 +2145,7 @@ function prewarmCard(card, config = runtimeConfig) {
         prewarmImageBound.delete(img)
         if (card.isConnected) {
           prewarmQueued.add(card)
-          schedulePrewarm(card.closest(".catalog"))
+          schedulePrewarm()
         }
       },
       { once: true, passive: true },
@@ -2176,7 +2179,8 @@ function runPrewarm(deadline) {
   if (prewarmQueued.size) schedulePrewarm()
 }
 
-function schedulePrewarm(targetCatalog = catalog) {
+// An omitted catalog resumes the remaining queue; it must not enqueue it again.
+function schedulePrewarm(targetCatalog = null) {
   if (targetCatalog) {
     allCards(targetCatalog).forEach((card) => prewarmQueued.add(card))
   }
@@ -2279,6 +2283,14 @@ function runtimeOverlayMutationOnly(mutation) {
   return Boolean(nodes.length) && nodes.every(isRuntimeOverlayNode)
 }
 
+function cardMediaMutation(mutation) {
+  if (mutation.type !== "childList" || runtimeOverlayMutationOnly(mutation)) return false
+  const selector = ".project-card, .project-media, img"
+  return [...mutation.addedNodes, ...mutation.removedNodes].some((node) =>
+    node instanceof Element && (node.matches(selector) || node.querySelector(selector)),
+  )
+}
+
 function handleCatalogPhase(targetCatalog) {
   if (!targetCatalog || !runtimeConfig.activeColorEnabled) return
   const phase = targetCatalog.dataset.filterPhase || ""
@@ -2327,9 +2339,7 @@ function bindCatalog(nextCatalog) {
   if (!catalog || !("MutationObserver" in window)) return
 
   catalogObserver = new MutationObserver((mutations) => {
-    if (mutations.some((mutation) =>
-      mutation.type === "childList" && !runtimeOverlayMutationOnly(mutation)
-    )) {
+    if (mutations.some(cardMediaMutation)) {
       schedulePrewarm(catalog)
       bindCardHoverSnow(catalog)
     }

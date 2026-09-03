@@ -21,7 +21,11 @@ async function open(width = 1280, path = "/") {
   const page = await browser.newPage({ viewport: { width, height: 900 } })
   page.on("pageerror", (error) => errors.push(error.message))
   await page.addInitScript(() => {
-    const counters = { boundaryScans: 0, settleTimers: 0, sweeps: 0 }
+    const counters = {
+      boundaryScans: 0, settleTimers: 0, sweeps: 0,
+      prewarmBatches: 0, prewarmScans: 0, hoverHitTests: 0,
+      hoverTimers: 0, boundaryWakeFrames: 0,
+    }
     const listenerAdds = { window: 0, document: 0 }
     const addEventListener = EventTarget.prototype.addEventListener
     EventTarget.prototype.addEventListener = function (type, listener, options) {
@@ -32,16 +36,32 @@ async function open(width = 1280, path = "/") {
     const queryAll = Element.prototype.querySelectorAll
     Element.prototype.querySelectorAll = function (selector) {
       if (selector === ".project-card.is-filter-muted" && new Error().stack.includes("syncTrackedCards")) counters.boundaryScans++
+      if (selector === ".project-card" && new Error().stack.includes("schedulePrewarm")) counters.prewarmScans++
       return queryAll.call(this, selector)
+    }
+    const hitTest = document.elementFromPoint.bind(document)
+    document.elementFromPoint = function (...args) {
+      if (new Error().stack.includes("stationaryPointerHoverCard")) counters.hoverHitTests++
+      return hitTest(...args)
+    }
+    if (window.requestIdleCallback) {
+      const idle = window.requestIdleCallback.bind(window)
+      window.requestIdleCallback = function (callback, options) {
+        if (new Error().stack.includes("schedulePrewarm")) counters.prewarmBatches++
+        return idle(callback, options)
+      }
     }
     const timeout = window.setTimeout
     window.setTimeout = function (callback, delay, ...args) {
       if (new Error().stack.includes("scheduleSettledDitherWork")) counters.settleTimers++
+      if (new Error().stack.includes("scheduleStationaryPointerHoverReconcile")) counters.hoverTimers++
+      if (new Error().stack.includes("schedulePrewarm")) counters.prewarmBatches++
       return timeout.call(this, callback, delay, ...args)
     }
     const raf = window.requestAnimationFrame
     window.requestAnimationFrame = function (callback) {
       if (new Error().stack.includes("scheduleObserverSweep")) counters.sweeps++
+      if (new Error().stack.includes("scheduleBreathLoop")) counters.boundaryWakeFrames++
       return raf.call(this, callback)
     }
     window.__eventAudit = {
@@ -111,6 +131,50 @@ async function scrollProbe(page, label) {
 }
 
 try {
+  for (const path of ["/", "/uiux-prototype/"]) {
+    const page = await open(1280, path)
+    await page.waitForTimeout(1000)
+    await page.evaluate(() => window.__eventAudit.reset())
+    await page.waitForTimeout(600)
+    const idleCounts = await page.evaluate(() => ({ ...window.__eventAudit.counters }))
+    if (!baseline) {
+      assert.equal(idleCounts.prewarmBatches, 0, `${path}: prewarm queue drains while idle`)
+      assert.equal(idleCounts.prewarmScans, 0, `${path}: no idle catalog requeue`)
+    }
+    if (path === "/") {
+      await page.evaluate(async () => {
+        const meta = document.querySelector(".project-meta")
+        const span = document.createElement("span")
+        meta.append(span)
+        for (const text of ["a", "ab", "abc"]) {
+          span.textContent = text
+          await new Promise(requestAnimationFrame)
+        }
+        span.remove()
+      })
+      await page.waitForTimeout(100)
+      const textCounts = await page.evaluate(() => ({ ...window.__eventAudit.counters }))
+      if (!baseline) assert.equal(textCounts.prewarmScans, 0, "caption changes do not requeue all palettes")
+      results.push({ label: "caption-mutations", counts: textCounts })
+    }
+    await page.mouse.move(400, 500)
+    await page.evaluate(async () => {
+      for (let i = 0; i < 60; i++) {
+        scrollTo(0, 600 + i * 4)
+        await new Promise(requestAnimationFrame)
+      }
+    })
+    await page.waitForTimeout(400)
+    const inactiveCounts = await page.evaluate(() => ({ ...window.__eventAudit.counters }))
+    if (!baseline) {
+      assert.equal(inactiveCounts.hoverHitTests, 0, `${path}: no filtered hover hit tests`)
+      assert.equal(inactiveCounts.hoverTimers, 0, `${path}: no filtered hover timers`)
+      assert.equal(inactiveCounts.boundaryWakeFrames, 0, `${path}: no boundary wakeups without cards`)
+    }
+    results.push({ label: `inactive-${path}`, idleCounts, inactiveCounts })
+    console.log(`inactive-${path}: ${JSON.stringify(inactiveCounts)}`)
+    await page.close()
+  }
   for (const width of [430, 940, 1280]) {
     const page = await open(width)
     await page.locator('[data-nav-category="graphic"]').click()

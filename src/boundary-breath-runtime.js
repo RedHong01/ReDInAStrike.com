@@ -31,7 +31,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260902-previewboundary7").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260903-rasterperf1").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,
@@ -219,14 +219,9 @@ async function syncTrackedCards() {
     return false
   }
 
-  const keepableCards = new Set(
-    [...targetCatalog.querySelectorAll(".project-card.is-filter-muted")]
-      .filter((card) => shouldKeepTrackedCard(card, targetCatalog)),
-  )
-  const mutedCards = new Set(
-    [...targetCatalog.querySelectorAll(".project-card.is-filter-muted")]
-      .filter((card) => isMutedCard(card, targetCatalog)),
-  )
+  const cards = [...targetCatalog.querySelectorAll(".project-card.is-filter-muted")]
+  const keepableCards = new Set(cards.filter((card) => shouldKeepTrackedCard(card, targetCatalog)))
+  const mutedCards = cards.filter((card) => isMutedCard(card, targetCatalog))
   if (trackedCards.size) {
     await ensureRevealApi()
     for (const card of [...trackedCards]) {
@@ -299,7 +294,7 @@ function breathLoop(now) {
 }
 
 function wakeLoopOnly() {
-  if (document.hidden) return
+  if (document.hidden || !trackedCards.size) return
 
   // Scroll can dispatch faster than the dynamic import resolves. Keep one
   // pending wake instead of adding a Promise continuation for every event.

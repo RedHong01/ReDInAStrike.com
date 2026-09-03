@@ -129,8 +129,13 @@ Run `npm run audit:responsive -- http://127.0.0.1:5173` with a local preview run
 - When scrolling changes the card underneath a stationary fine pointer, reconcile hit-testing after the scroll suppression window. Capture the current binary surface first, then resume the same hover intent and Fine Signal ownership used by native pointer entry.
 - When scroll hit-testing resolves to the same card that owned hover before the scroll, preserve its in-flight progress or completed reveal state. Only a real owner change may start a new Fine Signal reveal.
 - Hover Fine Signal is a filtered-state recovery only. An unfiltered catalog card, including a card retained by the active category, must not mount an active-color canvas or start hover motion.
+- Palette prewarming is a finite queue. Continuing an idle batch must not enqueue the catalog again; image readiness queues that card only. Caption/typewriter and runtime-overlay mutations must not restart palette prewarming.
+- Unfiltered and detail-page scrolling must not schedule hover hit-testing or wake an empty boundary runtime.
+- Boundary raster optimizations must preserve exact RGBA output. Waveform evaluation can be skipped only when the full breathing envelope proves a pixel is always clear or fully covered; time, grid, and motion curves remain unchanged.
 
 Run `npm run audit:event-performance -- http://127.0.0.1:5173` to exercise continuous scroll at phone, tablet, and desktop widths, verify bounded scan/timer counts, check leaf-mutation cleanup behavior, and ensure detail-page scrolling does not wake catalog work.
+
+Run `npm run audit:boundary-raster -- http://127.0.0.1:5174` to compare the optimized renderer against the scalar pixel formula. Run `AUDIT_MOTION_REPEATS=5 npm run audit:responsive -- http://127.0.0.1:5174 --motion-only` to isolate repeated category/hover/scroll checks; failed traces are retained in the audit output.
 
 ## 12. Pointer compatibility contract
 

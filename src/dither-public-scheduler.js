@@ -10,7 +10,7 @@ import {
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260902-previewboundary7"
+} from "./reveal-motion.js?v=20260903-rasterperf1"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -18,7 +18,7 @@ import {
   playPreparedDitherResizeSnow,
   prepareDitherInitialSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260901-visualpipe2"
+} from "./dither-resize-snow.js?v=20260903-rasterperf1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 const PUBLIC_STYLE_VERSION = "8"

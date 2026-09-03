@@ -11,6 +11,7 @@
     "audit:event-performance": "node scripts/audit-event-performance.mjs",
     "audit:cursor": "node scripts/audit-cursor-compat.mjs",
     "audit:scroll-hover": "node scripts/audit-scroll-hover.mjs",
+    "audit:boundary-raster": "node scripts/audit-boundary-raster.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs"
   },
   "engines": {

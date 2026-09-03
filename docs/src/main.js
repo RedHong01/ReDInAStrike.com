@@ -204,6 +204,7 @@ const CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS = 128
 const CATALOG_COLOR_SNOW_VIEWPORT_MARGIN = 620
 const CATALOG_ENTER_DITHER_READY_MAX_WAIT_MS = 320
 const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
+const BINARY_HANDOFF_SKIP_ATTRIBUTE = "data-binary-handoff-skip"
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const SECTION_SCROLL_MIN_MS = 620
 const SECTION_SCROLL_MAX_MS = 1380
@@ -5747,6 +5748,7 @@ function setupFilteredCatalogRestore(catalog) {
 
       window.clearTimeout(card.__catalogMutedReturnTimer)
       card.__catalogMutedReturnTimer = 0
+      if (card.classList.contains("is-muted-restore-intent")) return
       card.removeAttribute(ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE)
       card.classList.remove("is-muted-restore-return")
       card.classList.add("is-muted-restore-intent")
@@ -6516,6 +6518,18 @@ function clearProjectPreviewHeightLock(card) {
 function commitProjectPreviewState(card, expanded) {
   const current = activeProjectPreview()
   const catalog = card.closest(".catalog")
+  const retainsHoverMotion =
+    expanded &&
+    card?.classList.contains("is-filter-muted") &&
+    (card.matches(":hover") || card.matches(":focus-within")) &&
+    (
+      card.classList.contains("is-muted-restore-intent") ||
+      card.getAttribute("data-active-color-motion") === "true" ||
+      card.getAttribute(ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE) === "true"
+    )
+  if (retainsHoverMotion) {
+    card.setAttribute(BINARY_HANDOFF_SKIP_ATTRIBUTE, "true")
+  }
   window.__RED_ACTIVE_COLOR_SNOW__?.stopCard?.(card)
   if (current && current !== card) {
     window.__RED_ACTIVE_COLOR_SNOW__?.stopCard?.(current)

@@ -9,6 +9,7 @@ const STYLE_ID = "red-binary-pixel-handoff-style"
 const STYLE_VERSION = "2"
 const CANVAS_CLASS = "binary-pixel-handoff-canvas"
 const HANDOFF_ATTR = "data-binary-handoff"
+const SKIP_UNMUTE_ATTR = "data-binary-handoff-skip"
 const TARGET_FRAME_MS = 1000 / 60
 const FINE_SIGNAL = ACTIVE_COLOR_PRESETS.find((preset) => preset.id === "fine-signal")?.values || PUBLISHED_ACTIVE_COLOR_CONFIG
 const CLUSTER_SIZE = Math.max(1, Math.round(Number(FINE_SIGNAL.activeColorClusterSize) || 3))
@@ -362,6 +363,15 @@ function handleMutedChange(card, oldClassName) {
   const isMuted = card.classList.contains("is-filter-muted")
   if (wasMuted === isMuted) return
 
+  // A card already restoring under the pointer does not need a second pixel
+  // handoff when the click promotes it to the full preview.
+  if (!isMuted && card.getAttribute(SKIP_UNMUTE_ATTR) === "true") {
+    card.removeAttribute(SKIP_UNMUTE_ATTR)
+    clearPending(card)
+    cancelState(card)
+    return
+  }
+
   const previous = states.get(card)
   if (previous) {
     const finalCanvas = finalCanvasFor(card)
@@ -381,9 +391,15 @@ function bindCatalog(nextCatalog) {
   if (!catalog || !("MutationObserver" in window)) return
 
   catalogObserver = new MutationObserver((mutations) => {
+    const changedCards = new Map()
     for (const mutation of mutations) {
       if (mutation.type !== "attributes" || mutation.attributeName !== "class") continue
-      handleMutedChange(mutation.target, mutation.oldValue)
+      if (!changedCards.has(mutation.target)) {
+        changedCards.set(mutation.target, mutation.oldValue)
+      }
+    }
+    for (const [card, oldClassName] of changedCards) {
+      handleMutedChange(card, oldClassName)
     }
   })
   catalogObserver.observe(catalog, {

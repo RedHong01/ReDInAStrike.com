@@ -1924,7 +1924,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
     options.reason === "hover" &&
     card?.classList?.contains("is-filter-muted")
   if (hoverRestore) {
-    if (keepRunningHoverRestore(existingState) || hoverRestoreRetries.has(card)) {
+    if (cardRetainsHoverReveal(card, existingState)) {
       return true
     }
     if (retargetHoverReturnToRestore(card, existingState)) {

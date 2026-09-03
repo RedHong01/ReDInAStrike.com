@@ -224,6 +224,71 @@ async function checkLiveCategorySurfaceHandoff() {
   console.log("PASS live category surface handoff")
 }
 
+async function checkHoverClickContinuity(width, hoverState) {
+  const page = await open(width, 900)
+  await page.locator('[data-nav-category="graphic"]').click()
+  await page.waitForFunction(() => !document.querySelector('.catalog[data-filter-phase]'))
+  const card = page.locator('.project-card.is-filter-muted').first()
+  await card.scrollIntoViewIfNeeded()
+  const index = await card.getAttribute("data-index")
+  await page.evaluate((selectedIndex) => {
+    window.__hoverClickHandoffLog = []
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        const owner = mutation.target instanceof Element
+          ? mutation.target.closest('.project-card')
+          : null
+        if (!owner || owner.dataset.index !== selectedIndex) continue
+        for (const node of mutation.addedNodes) {
+          if (!(node instanceof Element)) continue
+          if (node.matches('.active-color-snow-canvas, .binary-pixel-handoff-canvas')) {
+            window.__hoverClickHandoffLog.push(node.className)
+          }
+        }
+      }
+    })
+    observer.observe(document.querySelector('#app'), { childList: true, subtree: true })
+  }, index)
+
+  if (hoverState !== "none") {
+    await card.hover()
+    await page.waitForFunction((selectedIndex) => {
+      const card = document.querySelector(`.project-card[data-index="${selectedIndex}"]`)
+      return card?.matches(':hover') && card.querySelector('.active-color-snow-canvas')
+    }, index)
+    if (hoverState === "finished") {
+      await page.waitForFunction((selectedIndex) => {
+        const card = document.querySelector(`.project-card[data-index="${selectedIndex}"]`)
+        return card?.getAttribute('data-active-color-restore-ready') === 'true' &&
+          !card.querySelector('.active-color-snow-canvas')
+      }, index)
+    }
+    await page.mouse.down()
+    await page.mouse.up()
+  } else {
+    await card.evaluate((element) => element.click())
+  }
+
+  await page.waitForFunction((selectedIndex) =>
+    document.querySelector(`.project-card.is-project-preview[data-index="${selectedIndex}"]`),
+  index)
+  await settlePreview(page)
+  const log = await page.evaluate(() => window.__hoverClickHandoffLog)
+  assert.equal(
+    log.filter((className) => className === "active-color-snow-canvas").length,
+    hoverState === "none" ? 0 : 1,
+    `${width}/${hoverState}: pointer and click focus share one hover initiate`,
+  )
+  assert.equal(
+    log.filter((className) => className === "binary-pixel-handoff-canvas").length,
+    hoverState === "none" ? 1 : 0,
+    `${width}/${hoverState}: only a non-hover click starts a binary handoff`,
+  )
+  assert.equal(await card.getAttribute('data-binary-handoff-skip'), null, "click intent is consumed")
+  await page.close()
+  console.log(`PASS hover click continuity ${width} ${hoverState}`)
+}
+
 async function checkRapidSwitching() {
   const page = await open(1280, 900)
   await page.locator('[data-project-card][data-index="4"]').click({ position: { x: 80, y: 80 } })
@@ -251,6 +316,11 @@ try {
   for (const width of [430, 940, 1280]) await checkAboutSeam(width)
   await checkCategoryHandoff()
   await checkLiveCategorySurfaceHandoff()
+  for (const width of [430, 940, 1280]) {
+    for (const hoverState of ["running", "finished", "none"]) {
+      await checkHoverClickContinuity(width, hoverState)
+    }
+  }
   await checkRapidSwitching()
   assert.deepEqual(errors, [], "page errors")
 } finally {

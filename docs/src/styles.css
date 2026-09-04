@@ -841,6 +841,20 @@ body[data-layout-transition="true"] .about-section {
   clip-path: inset(0 0 0 0);
 }
 
+/* The detail page starts with the same lead surface as the home preview. It
+   is intentionally full bleed, while the content below remains constrained. */
+.project-lead {
+  cursor: default;
+}
+
+.project-lead .project-preview-copy {
+  animation: none;
+}
+
+.project-lead .project-preview-enter {
+  cursor: default;
+}
+
 @media not ((any-hover: hover) and (any-pointer: fine)) {
   .project-card.is-project-preview {
     cursor: zoom-in;

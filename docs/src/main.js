@@ -1576,6 +1576,9 @@ async function startProjectExpandTransition(card, target) {
 
   const id = siteState.homeReturnTransitionId + 1
   siteState.homeReturnTransitionId = id
+  const detailUrl = new URL(target.url.href)
+  detailUrl.searchParams.set("preview-side", card.dataset.cardSide === "right" ? "right" : "left")
+  const detailTarget = { ...target, url: detailUrl }
 
   cancelSectionScroll({ suppressMagnet: PROJECT_EXPAND_MAX_MS + PROJECT_EXPAND_MASK_FADE_MS + 400 })
   window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: PROJECT_EXPAND_MAX_MS + PROJECT_EXPAND_MASK_FADE_MS + 400 })
@@ -1608,9 +1611,9 @@ async function startProjectExpandTransition(card, target) {
     frame: 0,
     phase: "covering",
     mode: "card-grow",
-    targetPath: target.path,
-    targetHash: target.hash,
-    targetHref: target.url.href,
+    targetPath: detailTarget.path,
+    targetHash: detailTarget.hash,
+    targetHref: detailTarget.url.href,
     scrollMode: target.scrollMode,
     targetCompactProgress: 0,
     snowCleanup: cleanup,
@@ -1642,10 +1645,10 @@ async function startProjectExpandTransition(card, target) {
   siteState.lastScrollY = 0
   card.style.willChange = ""
 
-  pushRouteUrl(target)
+  pushRouteUrl(detailTarget)
   render()
 
-  const ready = await waitForRouteFirstPaint(id, target)
+  const ready = await waitForRouteFirstPaint(id, detailTarget)
   if (!ready || !isCurrentHomeReturnTransition(id)) return
 
   unlockHomeReturnScroll()
@@ -2489,6 +2492,7 @@ function mediaStyle(project) {
     `--preview-image-fit: ${project.previewImageFit || "contain"}`,
     `--preview-image-position: ${project.previewImagePosition || project.imagePosition || "center center"}`,
     `--media-bg: ${background}`,
+    `--preview-ink: ${rgb === null ? "var(--ink)" : previewInkForRgb(rgb >> 16, (rgb >> 8) & 255, rgb & 255)}`,
     `--preview-rule: ${rgb === null ? "var(--rule)" : previewRuleForRgb(rgb >> 16, (rgb >> 8) & 255, rgb & 255)}`,
   ].join("; ")
 }
@@ -2509,6 +2513,39 @@ function projectPreviewSummary(project) {
   }[project.navHash] || "interdisciplinary design"
 
   return `A selected project from Red Wang’s ${practice} practice. The full project page documents its process, system, and final outcome.`
+}
+
+function projectLeadSide(project) {
+  const requestedSide = new URLSearchParams(window.location.search).get("preview-side")
+  if (requestedSide === "left" || requestedSide === "right") return requestedSide
+  return projects.indexOf(project) % 2 === 0 ? "left" : "right"
+}
+
+function projectLeadMarkup(project, { detail = false } = {}) {
+  const side = projectLeadSide(project)
+  const title = project.pageTitle || project.displayTitle
+  const leadLabel = detail ? `${title} project introduction` : `${title} project preview`
+
+  return `
+    <section class="project-lead project-card is-project-preview" data-card-side="${side}" data-media-bg-mode="${project.mediaBackground ? "fixed" : "image"}" aria-label="${escapeHtml(leadLabel)}" style="${mediaStyle(project)}">
+      <figure class="project-media${project.mediaBackground ? " has-media-background" : ""}">
+        <img
+          src="${asset(project.image)}"
+          alt="${escapeHtml(title)}"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+      </figure>
+      <div class="project-preview-copy">
+        <div class="project-preview-head">
+          <h2>${escapeHtml(title)}</h2>
+          <p class="project-preview-meta">${escapeHtml(project.displayTitle)}<br />${escapeHtml(project.date)}</p>
+        </div>
+        <p class="project-preview-summary">${escapeHtml(projectPreviewSummary(project))}</p>
+        <span class="project-preview-enter">${detail ? "Scroll to view project ↓" : "Click again to view project ↗"}</span>
+      </div>
+    </section>`
 }
 
 function projectCard(project, index, loadingIndex = index, options = {}) {
@@ -3018,14 +3055,8 @@ function detailMarkup(project) {
   return `
     ${headerMarkup()}
     <main class="site-main detail-page" data-route="${escapeHtml(project.path)}">
+      ${projectLeadMarkup(project, { detail: true })}
       <article class="detail-shell">
-        <div class="detail-heading">
-          <div>
-            <h1>${escapeHtml(project.pageTitle)}</h1>
-            <p>${escapeHtml(project.displayTitle)}</p>
-          </div>
-          <span>${escapeHtml(project.date)}</span>
-        </div>
         ${projectMedia}
       </article>
     </main>`
@@ -3048,15 +3079,8 @@ function framerProjectDetailMarkup(project, detail) {
   return `
     ${headerMarkup()}
     <main class="site-main detail-page framer-derived-page" data-route="${escapeHtml(project.path)}">
+      ${projectLeadMarkup(project, { detail: true })}
       <article class="framer-derived-shell" aria-label="${escapeHtml(detail.title)} project page">
-        <section class="framer-derived-hero">
-          <div class="framer-derived-hero-head">
-            <h1>${escapeHtml(detail.title)}</h1>
-            <p class="framer-derived-year">${escapeHtml(detail.year)}</p>
-          </div>
-          <span class="framer-derived-category">${escapeHtml(detail.category)}</span>
-        </section>
-
         <section class="framer-derived-intro">
           <figure>
             <img src="${asset(detail.leadImage)}" alt="${escapeHtml(detail.leadAlt)}" loading="eager" />
@@ -3126,15 +3150,8 @@ function serialDeminerDetailMarkup(project) {
   return `
     ${headerMarkup()}
     <main class="site-main detail-page framer-case-page" data-route="${escapeHtml(project.path)}">
+      ${projectLeadMarkup(project, { detail: true })}
       <article class="framer-case-shell" aria-label="Serial Deminer case study">
-        <section class="framer-case-hero">
-          <div class="framer-case-hero-head">
-            <h1>Serial Deminer</h1>
-            <p class="framer-case-year">2024 Fall</p>
-          </div>
-          <p class="framer-case-category">Game Design &amp; Level Design</p>
-        </section>
-
         <section class="framer-case-section framer-media-section">
           ${youtubeEmbed("yZgmrNLV1Pg", "framer-youtube-wide")}
           <div class="framer-media-grid framer-media-grid-three">

@@ -1,0 +1,45 @@
+:root {
+  --nav-selection-muted-opacity: 0.28;
+  --nav-selection-fade-ms: 460ms;
+}
+
+/*
+ * Category selection is expressed only through hierarchy, not geometry.
+ * Keep every category anchor in its native layout position.
+ */
+.nav-title {
+  opacity: 1;
+  transition:
+    transform 420ms var(--nav-ease),
+    color 260ms ease,
+    opacity var(--nav-selection-fade-ms) var(--nav-ease);
+}
+
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item .nav-title {
+  opacity: var(--nav-selection-muted-opacity);
+}
+
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item.is-nav-locked .nav-title,
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item.is-nav-active .nav-title,
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item:hover .nav-title,
+.nav-list:has(.nav-item.is-nav-locked, .nav-item.is-nav-active) .nav-item:focus-visible .nav-title {
+  opacity: 1;
+}
+
+/*
+ * The base stylesheet used min-width + inline margins to reserve room for nav detail
+ * copy. Typewriter subtitles are an overlay/static secondary line and must never push
+ * sibling categories horizontally.
+ */
+.nav-item.is-nav-active,
+.nav-item.is-nav-locked:not(.is-nav-lock-suppressed),
+.nav-item:focus-visible {
+  min-width: 0;
+  margin-inline: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-title {
+    transition-duration: 0ms;
+  }
+}

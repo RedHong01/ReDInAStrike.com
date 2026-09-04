@@ -262,20 +262,30 @@ async function auditLayoutSystems() {
     const titles = []
     for (const path of ["/serialdeminer/", "/pitchfork/", "/ongoing-game-project/"]) {
       const page = await open(viewport, path)
-      const detail = await page.locator(".detail-shell, .framer-derived-shell, .framer-case-shell").evaluate((shell) => {
-        const heading = shell.querySelector("h1")
+      const detail = await page.locator(".site-main").evaluate((main) => {
+        const lead = main.querySelector(".project-lead")
+        const shell = main.querySelector(".detail-shell, .framer-derived-shell, .framer-case-shell")
+        const heading = lead.querySelector("h2")
         const intro = shell.querySelector(".framer-derived-intro")
         const style = getComputedStyle(heading)
+        const leadRect = lead.getBoundingClientRect()
         return {
           width: shell.getBoundingClientRect().width,
-          titleSize: style.fontSize, titleLeading: style.lineHeight,
+          leadWidth: leadRect.width, leadLeft: leadRect.left, leadRight: leadRect.right,
+          leadHeight: leadRect.height, leadSide: lead.dataset.cardSide,
+          title: heading.textContent, titleSize: style.fontSize, titleLeading: style.lineHeight,
           titleOverflow: heading.scrollWidth > heading.clientWidth + 1,
+          leadOverflow: [...lead.querySelectorAll("h2,p,span")]
+            .filter((e) => e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1)
+            .map((e) => e.textContent),
           introColumns: intro ? getComputedStyle(intro).gridTemplateColumns.split(" ").length : null,
           overflow: [...shell.querySelectorAll("h1,h2,p,li")].filter((e) => e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1).map((e) => e.textContent),
         }
       })
       assert(Math.abs(detail.width - homeWidth) < 1, `${width} ${path}: shared content bounding`)
-      assert(!detail.titleOverflow && !detail.overflow.length, `${width} ${path}: text overflow ${detail.overflow}`)
+      assert(Math.abs(detail.leadLeft) < 1 && Math.abs(detail.leadRight - width) < 1, `${width} ${path}: shared lead full bleed`)
+      assert(detail.leadHeight > 0 && ["left", "right"].includes(detail.leadSide), `${width} ${path}: shared lead geometry`)
+      assert(!detail.titleOverflow && !detail.leadOverflow.length && !detail.overflow.length, `${width} ${path}: text overflow ${[...detail.leadOverflow, ...detail.overflow]}`)
       if (detail.introColumns && detail.width <= 760) assert.equal(detail.introColumns, 1, `${width}: container layout`)
       titles.push(detail.titleSize)
       results.push({ label: `${width}-${path}`, ...detail })

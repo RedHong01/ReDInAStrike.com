@@ -203,8 +203,12 @@ const CATALOG_COLOR_SNOW_ENTER_DEFER_MS = 54
 const CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS = 128
 const CATALOG_COLOR_SNOW_VIEWPORT_MARGIN = 620
 const CATALOG_ENTER_DITHER_READY_MAX_WAIT_MS = 320
+const CATALOG_RULE_SCROLL_SETTLE_MS = 120
 const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const BINARY_HANDOFF_SKIP_ATTRIBUTE = "data-binary-handoff-skip"
+// Ignore tiny jitter-frame weight changes so subpixel boundary drift does not
+// continuously flip transition direction while scrolling.
+const PROJECT_RULE_WEIGHT_UPDATE_EPSILON = 0.004
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const SECTION_SCROLL_MIN_MS = 620
 const SECTION_SCROLL_MAX_MS = 1380
@@ -562,6 +566,40 @@ const siteState = {
   mediaBackgroundCache: new Map(),
   projectPreviewMotionId: 0,
   projectPreviewExitGhosts: new Set(),
+  catalogRuleScrollTimer: 0,
+  catalogRuleScrollActive: false,
+}
+
+function getCatalogElement() {
+  return siteState.dom.catalog || document.querySelector(".catalog")
+}
+
+function setCatalogRuleScrollTransition(active) {
+  const catalog = getCatalogElement()
+  if (!catalog) return
+
+  if (active) catalog.dataset.ruleScroll = "true"
+  else catalog.removeAttribute("data-rule-scroll")
+}
+
+function markCatalogRuleScrollActivity(delta = 0) {
+  if (Math.abs(delta || 0) < 0.01) return
+
+  if (!siteState.catalogRuleScrollActive) {
+    siteState.catalogRuleScrollActive = true
+    setCatalogRuleScrollTransition(true)
+  }
+
+  if (siteState.catalogRuleScrollTimer) {
+    window.clearTimeout(siteState.catalogRuleScrollTimer)
+    siteState.catalogRuleScrollTimer = 0
+  }
+
+  siteState.catalogRuleScrollTimer = window.setTimeout(() => {
+    siteState.catalogRuleScrollTimer = 0
+    siteState.catalogRuleScrollActive = false
+    setCatalogRuleScrollTransition(false)
+  }, CATALOG_RULE_SCROLL_SETTLE_MS)
 }
 
 function refreshDomCache() {
@@ -605,6 +643,8 @@ function refreshDomCache() {
     siteState.dom.projectRows.length || siteState.dom.cardRuleTargets.length,
   )
   invalidateRuleGeometry()
+  if (siteState.catalogRuleScrollActive) setCatalogRuleScrollTransition(true)
+  else setCatalogRuleScrollTransition(false)
   if (!ditherOwnsMuted) setupCatalogHalftoneObservers(catalog)
 }
 
@@ -3357,12 +3397,21 @@ function headerFlowHeight() {
   return readHeaderMetrics().fullHeight
 }
 
+/**
+ * Header geometry is a pure function of the layout viewport width, so the
+ * result is cached until something can actually change it. The cache is
+ * invalidated synchronously from the resize listener rather than re-read here:
+ * this runs through headerFlowHeight() from cachedRuleRect(), once per rule
+ * element per frame, and window.innerWidth is a layout-dependent read. Probing
+ * it to validate the cache cost ~17 reads per scroll frame — more than the
+ * arithmetic it was guarding.
+ */
 function readHeaderMetrics() {
-  const width = window.innerWidth
-  if (siteState.headerMetrics && siteState.headerMetricsWidth === width) {
+  if (siteState.headerMetrics) {
     return siteState.headerMetrics
   }
 
+  const width = window.innerWidth
   const fullHeight = width < 760 ? 186 : width < 1120 ? 210 : 200
   const compactHeight = width < 560 ? 84 : width < 760 ? 88 : 78
   const fullLogo = 150
@@ -3415,6 +3464,14 @@ function setBodyDatasetValue(name, value) {
 
 function setElementStyleProperty(element, name, value) {
   if (element.style.getPropertyValue(name) === value) return
+  element.style.setProperty(name, value)
+}
+
+function setRuleRevealWeight(element, name, value) {
+  const next = Number.parseFloat(value)
+  if (!Number.isFinite(next)) return
+  const current = Number.parseFloat(element.style.getPropertyValue(name))
+  if (Number.isFinite(current) && Math.abs(current - next) < PROJECT_RULE_WEIGHT_UPDATE_EPSILON) return
   element.style.setProperty(name, value)
 }
 
@@ -3683,7 +3740,7 @@ function updateProjectRuleReveal(frameTime = null) {
   })
 
   for (let index = 0; index < ruleUpdates.length; index += 3) {
-    setElementStyleProperty(ruleUpdates[index], ruleUpdates[index + 1], ruleUpdates[index + 2])
+    setRuleRevealWeight(ruleUpdates[index], ruleUpdates[index + 1], ruleUpdates[index + 2])
   }
 }
 
@@ -6045,6 +6102,7 @@ function requestScrollEffectsUpdate(delta) {
     if (!shouldSuppressHeaderScrollDelta(pendingDelta)) updateHeaderFromScroll(pendingDelta)
     if (!isHeaderMotionActive()) syncHeaderFlowGap()
     nudgeFooterGallery()
+    markCatalogRuleScrollActivity(pendingDelta)
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
     if (!siteState.halftoneObserver || !siteState.halftoneObserverReady) {
       requestVisibleCatalogHalftones()
@@ -6115,11 +6173,14 @@ function setupHeader() {
   }
 
   window.addEventListener("resize", () => {
+    // Drop viewport-derived caches synchronously, before the coalescing frame:
+    // anything reading header metrics between this event and that frame must
+    // see the new width, not the previous one.
+    siteState.headerMetricsWidth = -1
+    siteState.headerMetrics = null
     if (siteState.resizeFrame) return
     siteState.resizeFrame = requestAnimationFrame(() => {
       siteState.resizeFrame = 0
-      siteState.headerMetricsWidth = -1
-      siteState.headerMetrics = null
       siteState.galleryLayoutDirty = true
       siteState.galleryLayoutMetrics = null
       siteState.galleryViewportLeft = null

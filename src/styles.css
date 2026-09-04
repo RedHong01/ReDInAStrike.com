@@ -741,6 +741,10 @@ body[data-layout-transition="true"] .about-section {
   --catalog-rule-transition-ms: 560ms;
 }
 
+.catalog[data-rule-scroll] {
+  --catalog-rule-transition-ms: 0ms;
+}
+
 .catalog[data-filter-phase] .project-row {
   overflow: hidden;
 }

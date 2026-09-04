@@ -6,7 +6,7 @@ import "./layout-surface-sync.js?v=20260903-scrollperf2"
 // can use Fine Signal even when it happens immediately after page load.
 import "./fine-signal-preset-runtime.js?v=20260902-finesignal1"
 import "./active-color-snow.js?v=20260904-categoryperf1"
-import "./hover-binary-return.js?v=20260903-scrollperf2"
+import "./hover-binary-return.js?v=20260904-boundaryhandoff1"
 import "./active-color-replay-dedupe.js?v=20260829-activecolor2"
 import "./active-color-transition-bridge.js?v=20260829-activecolor2"
 import "./binary-pixel-handoff.js?v=20260903-hoverclick1"

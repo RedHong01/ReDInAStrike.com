@@ -32,7 +32,31 @@ for (const [engineName, engine] of Object.entries({ chromium, firefox, webkit })
           body: `${await response.text()}\nwindow.__hoverAuditState = (card) => cardStates.get(card);`,
         })
       })
+      await page.route("**/src/reveal-motion.js*", async (route) => {
+        const response = await route.fetch()
+        await route.fulfill({
+          response,
+          body: `${await response.text()}\nwindow.__boundaryFieldAudit = { capture: captureViewportDitherBoundaryField, handoff: handoffViewportDitherBoundaryField, state: (card) => animationStates.get(card) };`,
+        })
+      })
+      await page.route("**/src/hover-binary-return.js*", async (route) => {
+        const response = await route.fetch()
+        await route.fulfill({
+          response,
+          body: `${await response.text()}\nwindow.__hoverReturnAuditState = (card) => states.get(card);`,
+        })
+      })
       await page.goto(new URL("/", origin).href, { waitUntil: "domcontentloaded" })
+      await page.evaluate(() => {
+        window.__hoverReturnCompletions = []
+        window.addEventListener("red:hover-binary-return-complete", (event) => {
+          window.__hoverReturnCompletions.push({
+            index: event.detail?.card?.dataset?.index,
+            phase: event.detail?.phase,
+            handoff: event.detail?.handoff,
+          })
+        })
+      })
 
       const unfilteredCard = page.locator(".project-card").first()
       await unfilteredCard.hover()
@@ -51,6 +75,79 @@ for (const [engineName, engine] of Object.entries({ chromium, firefox, webkit })
       await page.locator('[data-nav-category="graphic"]').click()
       await page.waitForFunction(() => !document.querySelector(".catalog[data-filter-phase]"))
       await page.waitForFunction(() => !document.querySelector('[data-active-color-motion="true"]'))
+
+      const directReturnCard = page.locator(".project-card.is-filter-muted").first()
+      await page.mouse.move(4, 4)
+      await directReturnCard.evaluate((card) => {
+        const root = document.documentElement
+        const previousBehavior = root.style.scrollBehavior
+        root.style.scrollBehavior = "auto"
+        card.scrollIntoView({ block: "center" })
+        root.style.scrollBehavior = previousBehavior
+      })
+      await page.waitForTimeout(720)
+      await directReturnCard.hover()
+      await page.waitForFunction(() => (
+        document.querySelector(".project-card.is-filter-muted:hover")
+          ?.getAttribute("data-active-color-motion") === "true"
+      ))
+      await page.mouse.move(4, 4)
+      await page.waitForFunction(() => window.__hoverReturnCompletions.length >= 1)
+      const directReturn = await page.evaluate(() => window.__hoverReturnCompletions[0])
+      assert.equal(directReturn.phase, "canonical-direct-sync", `${engineName} ${width}: unchanged boundary uses direct owner handoff`)
+      assert.equal(directReturn.handoff?.didScroll, false, `${engineName} ${width}: direct owner handoff records no hover scroll`)
+      assert.equal(directReturn.handoff?.changed, false, `${engineName} ${width}: breathing pixels do not count as boundary geometry changes`)
+      assert.equal(directReturn.handoff?.continued, true, `${engineName} ${width}: unchanged boundary preserves the canonical field state`)
+
+      await page.mouse.move(4, 4)
+      await page.evaluate(() => {
+        const card = document.querySelectorAll(".project-card.is-filter-muted")[1]
+        const headerBottom = document.querySelector(".site-header").getBoundingClientRect().bottom
+        const documentTop = card.getBoundingClientRect().top + scrollY
+        window.scrollTo(0, Math.max(0, documentTop - headerBottom - 36))
+      })
+      await page.waitForTimeout(280)
+      const controlledScrollReturn = await page.evaluate(() => {
+        const card = document.querySelectorAll(".project-card.is-filter-muted")[1]
+        const beforeRect = card.getBoundingClientRect()
+        const beforeY = scrollY
+        const beforeState = window.__boundaryFieldAudit.state(card)
+        const snapshot = window.__boundaryFieldAudit.capture(card)
+        const root = document.documentElement
+        const previousBehavior = root.style.scrollBehavior
+        root.style.scrollBehavior = "auto"
+        window.scrollTo(0, beforeY > 72 ? beforeY - 72 : beforeY + 72)
+        const afterRect = card.getBoundingClientRect()
+        const handoff = window.__boundaryFieldAudit.handoff(card, snapshot, {
+          allowBoundaryUpdate: true,
+        })
+        root.style.scrollBehavior = previousBehavior
+        return {
+          handoff,
+          sameState: beforeState === window.__boundaryFieldAudit.state(card),
+          beforeY,
+          afterY: scrollY,
+          beforeTop: beforeRect.top,
+          afterTop: afterRect.top,
+          snapshotRange: snapshot?.range,
+        }
+      })
+      assert.equal(
+        controlledScrollReturn.handoff?.changed,
+        true,
+        `${engineName} ${width}: spatial strength change retargets the boundary ${JSON.stringify(controlledScrollReturn)}`,
+      )
+      assert.equal(controlledScrollReturn.handoff?.continued, true, `${engineName} ${width}: changed scroll boundary continues existing progress`)
+      assert.equal(controlledScrollReturn.handoff?.updateAllowed, true, `${engineName} ${width}: real scroll allows the stable boundary update`)
+      assert.equal(controlledScrollReturn.sameState, true, `${engineName} ${width}: boundary retarget preserves canonical state identity`)
+      await page.evaluate(() => {
+        const root = document.documentElement
+        const previousBehavior = root.style.scrollBehavior
+        root.style.scrollBehavior = "auto"
+        window.scrollTo(0, 0)
+        root.style.scrollBehavior = previousBehavior
+      })
+      await page.waitForTimeout(720)
 
       const includedCard = page.locator(".project-card:not(.is-filter-muted)").first()
       await includedCard.hover()
@@ -210,11 +307,34 @@ for (const [engineName, engine] of Object.entries({ chromium, firefox, webkit })
       assert.equal(completed.canvas, false, `${engineName} ${width}: completed reveal is not replayed`)
       assert.notEqual(completed.motion, "true", `${engineName} ${width}: completed reveal stays settled`)
 
+      await page.evaluate((index) => {
+        const card = document.querySelector(`[data-project-card][data-index="${index}"]`)
+        const phases = []
+        let frame = 0
+        const sample = () => {
+          const phase = window.__hoverReturnAuditState?.(card)?.phase
+          if (phase) phases.push(phase)
+          frame = requestAnimationFrame(sample)
+        }
+        sample()
+        window.__hoverReturnPhaseAudit = {
+          stop() {
+            cancelAnimationFrame(frame)
+            return phases
+          },
+        }
+      }, target.index)
       await page.mouse.wheel(0, -500)
       await page.waitForFunction((index) => {
         const card = document.querySelector(`[data-project-card][data-index="${index}"]`)
         return card && !card.classList.contains("is-muted-restore-intent")
       }, target.index)
+      await page.waitForTimeout(240)
+      const returnPhases = await page.evaluate(() => window.__hoverReturnPhaseAudit.stop())
+      assert(
+        !returnPhases.includes("viewport-direct"),
+        `${engineName} ${width}: hover return does not replay the retired viewport-direct motion`,
+      )
       console.log(`PASS stationary scroll hover ${engineName} ${width}`)
       await page.close()
     }

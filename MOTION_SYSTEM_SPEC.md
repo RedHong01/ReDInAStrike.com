@@ -84,6 +84,8 @@ This rule is identical on desktop, tablet, phone, portrait, and landscape breakp
 - Do not create a resize-snow state when old and new bit fields are identical.
 - Motion overlays use logical-resolution canvases, not DPR-sized canvases.
 - Hover return captures the visible `static + boundary` composite before hover, then hands off directly to the current `static + boundary` composite after hover.
+- The hover-return overlay is an ownership guard, not a second motion owner. Keep the captured visible snapshot unchanged until the canonical viewport surface is ready, retain it for one painted owner-handoff frame, then remove it; never redraw a target frame on the guard, create a new random order, or replay `viewport-direct` after Fine Signal has already returned.
+- Boundary identity is the stable spatial strength field, never the instantaneous breathing/flicker bitmap. With unchanged geometry, restore the captured field state directly. Only a real scroll during hover may retarget a materially different field, and that retarget must continue from the captured current strengths without resetting order, progress, or timing.
 
 ## 8. Debug invariants
 
@@ -103,6 +105,8 @@ If a visible pop occurs, first check whether a handoff exposed two canvases with
 - Above 980px in landscape, the catalog uses paired columns. The expanded row may pin below the header and hide its paired sibling.
 - At 980px and below, or in portrait, cards stay in one ordered column. The expanded row stays in document flow and never removes its sibling.
 - At 700px and below, preview media and copy stack. Above 700px they retain their two-panel composition, independently of the catalog column count.
+- Above 980px in landscape, the full-bleed background and rules remain viewport-wide, while preview media and copy use the live `--content-edge-pad` derived from the responsive header logo. The center edge keeps half the catalog column gap.
+- Expanded media uses a bounded content box between both rules and `object-fit: contain`. Header motion, scrolling, and the click position must not persist viewport-relative image coordinates or clip the image against either preview edge.
 - Every expanded card owns two 1px rules at its own top and bottom edges. They span the same viewport width as the card, not the containing two-card row. Do not calculate their reach using the desktop content gutter.
 - Expanded rules use the card-local `--preview-rule`: white (`#ffffff`) or dark (`#111111`), whichever has greater [relative-luminance contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) against its expanded background. Reuse the cached image background sample; fixed six-digit hex backgrounds resolve when creating the card. Do not recolor the global rule token, add scroll work, or change typography.
 - When the preview top meets or passes the header's painted bottom edge, the header exclusively owns the seam and the preview top rule becomes transparent. Restore the preview rule as soon as the two edges separate. This applies to sticky desktop previews and normal-flow compact previews.

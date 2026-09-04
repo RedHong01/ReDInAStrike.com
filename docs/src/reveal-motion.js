@@ -28,6 +28,8 @@ const BOUNDARY_FIELD_MIN_MS = 240
 const BOUNDARY_FIELD_MAX_MS = 760
 const BOUNDARY_STRENGTH_EPSILON = 0.0005
 const BOUNDARY_FIELD_SETTLE_EPSILON = 0.0025
+const BOUNDARY_FIELD_COMPARE_EPSILON = 0.015
+const BOUNDARY_FIELD_RANGE_TOLERANCE = 1
 const BOUNDARY_ROW_CLEAR = 0
 const BOUNDARY_ROW_PAPER = 1
 const BOUNDARY_ROW_TRANSITION = 2
@@ -735,8 +737,7 @@ function ensureBoundaryBuffers(state) {
   state.lastBoundaryFieldAt = 0
 }
 
-function fillBoundaryTargets(state, rect, bounds, metrics) {
-  const { grid, boundaryTargetStrengths: target } = state
+function fillBoundaryTargetArray(grid, target, rect, bounds, metrics) {
   target.fill(0)
 
   let hasTarget = false
@@ -757,6 +758,142 @@ function fillBoundaryTargets(state, rect, bounds, metrics) {
   }
 
   return { hasTarget, maxTarget }
+}
+
+function fillBoundaryTargets(state, rect, bounds, metrics) {
+  return fillBoundaryTargetArray(
+    state.grid,
+    state.boundaryTargetStrengths,
+    rect,
+    bounds,
+    metrics,
+  )
+}
+
+function boundaryFieldRange(strengths) {
+  let first = -1
+  let last = -1
+  let max = 0
+  if (!strengths?.length) return { first, last, max }
+
+  for (let row = 0; row < strengths.length; row += 1) {
+    const strength = strengths[row]
+    if (strength <= BOUNDARY_STRENGTH_EPSILON) continue
+    if (first < 0) first = row
+    last = row
+    max = Math.max(max, strength)
+  }
+  return { first, last, max }
+}
+
+function boundaryFieldsDiffer(previous, next) {
+  if (!previous?.length || !next?.length) return true
+  const comparable = new Float32Array(next.length)
+  copyBoundaryRows(previous, comparable)
+  const previousRange = boundaryFieldRange(comparable)
+  const nextRange = boundaryFieldRange(next)
+  if (
+    Math.abs(previousRange.first - nextRange.first) > BOUNDARY_FIELD_RANGE_TOLERANCE ||
+    Math.abs(previousRange.last - nextRange.last) > BOUNDARY_FIELD_RANGE_TOLERANCE ||
+    Math.abs(previousRange.max - nextRange.max) > BOUNDARY_FIELD_COMPARE_EPSILON
+  ) {
+    return true
+  }
+
+  for (let row = 0; row < next.length; row += 1) {
+    if (Math.abs(comparable[row] - next[row]) > BOUNDARY_FIELD_COMPARE_EPSILON) return true
+  }
+  return false
+}
+
+function currentBoundaryTarget(state) {
+  const now = performance.now()
+  const rect = viewportRectForState(state, true)
+  if (!rect || rect.width <= 0 || rect.height <= 0) return null
+  const bounds = viewportBoundsForCard(state.card, readViewportBoundaryContext(now))
+  const strengths = new Float32Array(state.grid.rows)
+  fillBoundaryTargetArray(state.grid, strengths, rect, bounds, boundaryMetrics(bounds))
+  return { now, rect, bounds, strengths }
+}
+
+export function captureViewportDitherBoundaryField(card) {
+  const state = animationStates.get(card)
+  if (!state || state.mode !== "viewport" || !viewportStates.has(state)) return null
+
+  ensureBoundaryBuffers(state)
+  const target = currentBoundaryTarget(state)
+  if (!target) return null
+  const current = state.boundaryRowsInitialized
+    ? Float32Array.from(state.boundaryStrengths)
+    : Float32Array.from(target.strengths)
+
+  return {
+    cols: state.grid.cols,
+    rows: state.grid.rows,
+    currentStrengths: current,
+    targetStrengths: target.strengths,
+    range: boundaryFieldRange(target.strengths),
+  }
+}
+
+export function handoffViewportDitherBoundaryField(
+  card,
+  snapshot,
+  { allowBoundaryUpdate = false } = {},
+) {
+  const state = animationStates.get(card)
+  if (!state || state.mode !== "viewport" || !viewportStates.has(state)) {
+    return { ready: false, reason: "state-missing" }
+  }
+
+  ensureBoundaryBuffers(state)
+  const target = currentBoundaryTarget(state)
+  if (!target) return { ready: false, reason: "geometry-missing" }
+
+  const previousTarget = new Float32Array(state.grid.rows)
+  const previousCurrent = new Float32Array(state.grid.rows)
+  copyBoundaryRows(snapshot?.targetStrengths, previousTarget)
+  copyBoundaryRows(snapshot?.currentStrengths, previousCurrent)
+  const hasSnapshot = Boolean(snapshot?.targetStrengths?.length && snapshot?.currentStrengths?.length)
+  const changed = hasSnapshot
+    ? boundaryFieldsDiffer(previousTarget, target.strengths)
+    : true
+  const continuesProgress = hasSnapshot && (!changed || allowBoundaryUpdate)
+
+  if (continuesProgress) {
+    state.boundaryStrengths.set(previousCurrent)
+    state.boundaryTargetStrengths.set(target.strengths)
+  } else {
+    // A non-scroll layout correction is not a new boundary motion. Synchronize
+    // it atomically while the snapshot guard still owns the visible pixels.
+    state.boundaryStrengths.set(target.strengths)
+    state.boundaryTargetStrengths.set(target.strengths)
+  }
+  state.boundaryRowsInitialized = true
+  state.lastBoundaryFieldAt = target.now
+  state.boundaryRowKinds.fill(255)
+  state.boundaryUploadRanges.length = 0
+  state.framePixels.fill(0)
+  state.boundaryVisible = null
+  state.viewportRect = target.rect
+
+  const hasTransition = renderBoundaryField(
+    state,
+    target.now,
+    target.bounds,
+    true,
+    { immediate: false },
+  )
+  state.lastViewportDraw = target.now
+  state.hasBoundaryTransition = hasTransition
+
+  return {
+    ready: true,
+    changed,
+    continued: continuesProgress,
+    updateAllowed: allowBoundaryUpdate,
+    range: boundaryFieldRange(target.strengths),
+  }
 }
 
 function advanceBoundaryField(state, now, immediate = false) {

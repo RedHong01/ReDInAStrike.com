@@ -316,40 +316,91 @@ async function checkDesktopMediaGeometry() {
   const card = page.locator('[data-project-card]').first()
   const before = await card.locator('.project-media > img').evaluate((image) => {
     const rect = image.getBoundingClientRect()
-    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+    return { x: rect.x, width: rect.width }
   })
 
   await card.click({ position: { x: 80, y: 80 } })
   await settlePreview(page)
-  const after = await card.locator('.project-media > img').evaluate((image) => {
-    const rect = image.getBoundingClientRect()
-    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+  const snapshot = async () => card.evaluate((element) => {
+    const image = element.querySelector('.project-media > img')
+    const media = element.querySelector('.project-media')
+    const copy = element.querySelector('.project-preview-copy')
+    const catalog = element.closest('.catalog')
+    const imageRect = image.getBoundingClientRect()
+    const mediaRect = media.getBoundingClientRect()
+    const cardRect = element.getBoundingClientRect()
+    const catalogRect = catalog.getBoundingClientRect()
+    const copyStyle = getComputedStyle(copy)
+    return {
+      side: element.dataset.cardSide,
+      image: { left: imageRect.left, right: imageRect.right, top: imageRect.top, bottom: imageRect.bottom, width: imageRect.width },
+      media: { left: mediaRect.left, right: mediaRect.right, top: mediaRect.top, bottom: mediaRect.bottom },
+      card: { left: cardRect.left, right: cardRect.right, width: cardRect.width },
+      catalog: { left: catalogRect.left, right: catalogRect.right },
+      gap: Number.parseFloat(getComputedStyle(element.closest('.project-row')).columnGap) || 0,
+      copyOuterPadding: element.dataset.cardSide === 'left'
+        ? Number.parseFloat(copyStyle.paddingRight)
+        : Number.parseFloat(copyStyle.paddingLeft),
+      objectFit: getComputedStyle(image).objectFit,
+    }
   })
-  for (const property of ["x", "y", "width", "height"]) {
-    assert(
-      Math.abs(after[property] - before[property]) <= 0.25,
-      `desktop media geometry: ${property} remains fixed`,
-    )
-  }
-  assert.equal(
-    await card.getAttribute("data-project-preview-media-locked"),
-    "true",
-    "desktop media geometry: expanded card owns a source geometry lock",
-  )
-  assert(
-    await card.evaluate((element) => element.getBoundingClientRect().width >= innerWidth - 1),
-    "desktop media geometry: card still expands full bleed",
-  )
 
-  await page.locator('[data-project-card]').nth(1).evaluate((element) => element.click())
-  await settlePreview(page)
-  assert.equal(
-    await card.getAttribute("data-project-preview-media-locked"),
-    null,
-    "desktop media geometry: switching releases the previous geometry lock",
-  )
+  const assertBounded = (result, label) => {
+    const topGap = result.image.top - result.media.top
+    const bottomGap = result.media.bottom - result.image.bottom
+    assert(topGap >= 0 && bottomGap >= 0, `${label}: image stays inside both rules`)
+    assert(Math.abs(topGap - bottomGap) <= 1, `${label}: image is vertically centered`)
+    assert.equal(result.objectFit, 'contain', `${label}: image content is not cropped`)
+    assert(result.card.width >= 1279, `${label}: card remains full bleed`)
+    const expectedOuterPadding = result.catalog.left - result.card.left
+    assert(
+      Math.abs(result.copyOuterPadding - expectedOuterPadding) <= 1,
+      `${label}: preview type follows the live logo/catalog inset`,
+    )
+    if (result.side === 'left') {
+      assert(Math.abs(result.image.left - result.catalog.left) <= 1, `${label}: left media follows catalog inset`)
+      assert(Math.abs(result.image.right - (result.media.right - result.gap / 2)) <= 1, `${label}: left media preserves the center gutter`)
+    } else {
+      assert(Math.abs(result.image.left - (result.media.left + result.gap / 2)) <= 1, `${label}: right media preserves the center gutter`)
+      assert(Math.abs(result.image.right - result.catalog.right) <= 1, `${label}: right media follows catalog inset`)
+    }
+  }
+  const expanded = await snapshot()
+  assertBounded(expanded, 'desktop media geometry')
+  assert(Math.abs(expanded.image.left - before.x) <= 1, 'desktop media geometry: valid horizontal origin remains stable')
+  assert(Math.abs(expanded.image.width - before.width) <= 1, 'desktop media geometry: valid width remains stable')
+
+  await page.evaluate(() => window.scrollTo({ top: 150, behavior: 'instant' }))
+  await page.waitForTimeout(650)
+  assertBounded(await snapshot(), 'responsive header media geometry')
   await page.close()
-  console.log("PASS desktop preview media geometry")
+
+  const edgePage = await open(1280, 900)
+  const edgeCard = edgePage.locator('[data-project-card][data-index="4"]')
+  await edgeCard.evaluate((element) => {
+    const header = document.querySelector('.site-header').getBoundingClientRect()
+    const rect = element.getBoundingClientRect()
+    window.scrollTo({
+      top: Math.max(0, scrollY + rect.top - header.bottom + rect.height * 0.42),
+      behavior: 'instant',
+    })
+    element.click()
+  })
+  await settlePreview(edgePage)
+  const edgeResult = await edgeCard.evaluate((element) => {
+    const image = element.querySelector('.project-media > img').getBoundingClientRect()
+    const media = element.querySelector('.project-media').getBoundingClientRect()
+    return {
+      image: { top: image.top, bottom: image.bottom },
+      media: { top: media.top, bottom: media.bottom },
+      objectFit: getComputedStyle(element.querySelector('.project-media > img')).objectFit,
+    }
+  })
+  assert(edgeResult.image.top >= edgeResult.media.top, 'moving header click: image is not clipped above the preview')
+  assert(edgeResult.image.bottom <= edgeResult.media.bottom, 'moving header click: image is not clipped below the preview')
+  assert.equal(edgeResult.objectFit, 'contain', 'moving header click: image content remains contained')
+  await edgePage.close()
+  console.log("PASS responsive preview content bounds")
 }
 
 try {

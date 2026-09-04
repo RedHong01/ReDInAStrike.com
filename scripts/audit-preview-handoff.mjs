@@ -311,6 +311,47 @@ async function checkRapidSwitching() {
   console.log("PASS rapid preview switching")
 }
 
+async function checkDesktopMediaGeometry() {
+  const page = await open(1280, 900)
+  const card = page.locator('[data-project-card]').first()
+  const before = await card.locator('.project-media > img').evaluate((image) => {
+    const rect = image.getBoundingClientRect()
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+  })
+
+  await card.click({ position: { x: 80, y: 80 } })
+  await settlePreview(page)
+  const after = await card.locator('.project-media > img').evaluate((image) => {
+    const rect = image.getBoundingClientRect()
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+  })
+  for (const property of ["x", "y", "width", "height"]) {
+    assert(
+      Math.abs(after[property] - before[property]) <= 0.25,
+      `desktop media geometry: ${property} remains fixed`,
+    )
+  }
+  assert.equal(
+    await card.getAttribute("data-project-preview-media-locked"),
+    "true",
+    "desktop media geometry: expanded card owns a source geometry lock",
+  )
+  assert(
+    await card.evaluate((element) => element.getBoundingClientRect().width >= innerWidth - 1),
+    "desktop media geometry: card still expands full bleed",
+  )
+
+  await page.locator('[data-project-card]').nth(1).evaluate((element) => element.click())
+  await settlePreview(page)
+  assert.equal(
+    await card.getAttribute("data-project-preview-media-locked"),
+    null,
+    "desktop media geometry: switching releases the previous geometry lock",
+  )
+  await page.close()
+  console.log("PASS desktop preview media geometry")
+}
+
 try {
   for (const width of [430, 940, 1280]) await checkHeaderSeam(width)
   for (const width of [430, 940, 1280]) await checkAboutSeam(width)
@@ -322,6 +363,7 @@ try {
     }
   }
   await checkRapidSwitching()
+  await checkDesktopMediaGeometry()
   assert.deepEqual(errors, [], "page errors")
 } finally {
   await browser.close()

@@ -13,6 +13,8 @@
     "audit:scroll-hover": "node scripts/audit-scroll-hover.mjs",
     "audit:preview-handoff": "node scripts/audit-preview-handoff.mjs",
     "audit:boundary-raster": "node scripts/audit-boundary-raster.mjs",
+    "audit:category-raster": "node scripts/audit-category-raster.mjs",
+    "audit:category-performance": "node scripts/audit-category-performance.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs"
   },
   "engines": {

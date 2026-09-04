@@ -6,12 +6,12 @@ import {
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
 import {
   logicalGridForMedia,
-} from "./binary-surface-core.js?v=20260830-perfaudit1"
+} from "./binary-surface-core.js?v=20260904-categoryperf1"
 import {
   activeBoundaryCanvas,
   pixelsFromBinaryBits,
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260903-categoriesurface1"
+} from "./binary-visible-surface.js?v=20260904-categoryperf1"
 
 const STYLE_ID = "red-active-color-snow-style"
 const STYLE_VERSION = "7"
@@ -28,6 +28,8 @@ const BOUNDARY_COOLDOWN_MS = 520
 const HOVER_RESTORE_SOURCE_WAIT_MS = 900
 const MAX_GRID_CELLS = 86000
 const MAX_PALETTE_CACHE = 72
+const MAX_CATEGORY_MOTION_CACHE = 8
+const CATEGORY_ORDER_BUCKETS = 256
 const VIEWPORT_MARGIN = 620
 const TARGET_FRAME_MS = 1000 / 60
 const HOVER_SCROLL_SUPPRESS_MS = 260
@@ -55,6 +57,7 @@ const RUNTIME_OVERLAY_CLASSES = [
 const cardStates = new WeakMap()
 const activeStates = new Set()
 const paletteCache = new Map()
+const categoryMotionCache = new Map()
 const prewarmQueued = new Set()
 const prewarmImageBound = new WeakSet()
 const playImageBound = new WeakSet()
@@ -612,6 +615,127 @@ function signalOrder(config, col, row) {
   return localRandom * (1 - clusterMix) + clusterRandom * clusterMix
 }
 
+function categoryMotionKey(grid, config) {
+  return [
+    `${grid.cols}x${grid.rows}`,
+    config.activeColorSeed,
+    config.activeColorClusterSize,
+    config.activeColorClusterMix,
+    config.activeColorBreathRate,
+  ].join("|")
+}
+
+function categoryMotionFields(grid, config) {
+  const key = categoryMotionKey(grid, config)
+  const cached = categoryMotionCache.get(key)
+  if (cached) {
+    categoryMotionCache.delete(key)
+    categoryMotionCache.set(key, cached)
+    return cached
+  }
+
+  const count = grid.count
+  const columns = new Uint16Array(count)
+  const rows = new Uint16Array(count)
+  const phase = new Float64Array(count)
+  const rate = new Float64Array(count)
+  const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
+  const clusterCols = Math.ceil(grid.cols / clusterSize)
+  const clusterRows = Math.ceil(grid.rows / clusterSize)
+  const groupPhase = new Float64Array(clusterCols * clusterRows)
+  const groupRate = new Float64Array(clusterCols * clusterRows)
+  const orderBucketCounts = new Uint32Array(CATEGORY_ORDER_BUCKETS)
+  const baseRate = Math.max(0.08, Number(config.activeColorBreathRate) || 0.42)
+
+  for (let clusterRow = 0; clusterRow < clusterRows; clusterRow += 1) {
+    for (let clusterCol = 0; clusterCol < clusterCols; clusterCol += 1) {
+      const groupIndex = clusterRow * clusterCols + clusterCol
+      groupPhase[groupIndex] = hash01(
+        config.activeColorSeed,
+        clusterCol,
+        clusterRow,
+        3001,
+      )
+      groupRate[groupIndex] = hash01(
+        config.activeColorSeed,
+        clusterCol,
+        clusterRow,
+        3003,
+      )
+    }
+  }
+
+  for (let row = 0; row < grid.rows; row += 1) {
+    const clusterRow = Math.floor(row / clusterSize)
+    for (let col = 0; col < grid.cols; col += 1) {
+      const index = row * grid.cols + col
+      const clusterCol = Math.floor(col / clusterSize)
+      const groupIndex = clusterRow * clusterCols + clusterCol
+      columns[index] = col
+      rows[index] = row
+      rate[index] = baseRate * (0.86 + groupRate[groupIndex] * 0.28)
+      phase[index] =
+        groupPhase[groupIndex] * TAU +
+        hash01(config.activeColorSeed, col, row, 3002) * 0.76 +
+        grid.order[index] * TAU * 0.19
+      const bucket = Math.min(
+        CATEGORY_ORDER_BUCKETS - 1,
+        Math.floor(grid.order[index] * CATEGORY_ORDER_BUCKETS),
+      )
+      orderBucketCounts[bucket] += 1
+    }
+  }
+
+  const orderBucketOffsets = new Uint32Array(CATEGORY_ORDER_BUCKETS + 1)
+  for (let bucket = 0; bucket < CATEGORY_ORDER_BUCKETS; bucket += 1) {
+    orderBucketOffsets[bucket + 1] =
+      orderBucketOffsets[bucket] + orderBucketCounts[bucket]
+  }
+  const orderBucketCursors = Uint32Array.from(orderBucketOffsets)
+  const orderBucketIndices = new Uint32Array(count)
+  for (let index = 0; index < count; index += 1) {
+    const bucket = Math.min(
+      CATEGORY_ORDER_BUCKETS - 1,
+      Math.floor(grid.order[index] * CATEGORY_ORDER_BUCKETS),
+    )
+    orderBucketIndices[orderBucketCursors[bucket]++] = index
+  }
+
+  const fields = {
+    columns,
+    rows,
+    phase,
+    rate,
+    wave: new Float64Array(count),
+    waveStamp: new Uint32Array(count),
+    waveEpoch: 0,
+    waveNow: Number.NaN,
+    flicker: new Float64Array(count),
+    flickerStamp: new Uint32Array(count),
+    flickerTick: -1,
+    flickerEpoch: 0,
+    orderBucketIndices,
+    orderBucketOffsets,
+  }
+  categoryMotionCache.set(key, fields)
+  while (categoryMotionCache.size > MAX_CATEGORY_MOTION_CACHE) {
+    categoryMotionCache.delete(categoryMotionCache.keys().next().value)
+  }
+  return fields
+}
+
+function binaryInkIndices(bits) {
+  if (!bits) return null
+  let count = 0
+  for (let index = 0; index < bits.length; index += 1) count += bits[index] ? 1 : 0
+  const indices = new Uint32Array(count)
+  let cursor = 0
+  for (let index = 0; index < bits.length; index += 1) {
+    if (bits[index]) indices[cursor++] = index
+  }
+  return indices
+}
+
 function buildPlaceholderGrid(media, config) {
   if (!media) return null
   const { cols, rows } = logicalGridSize(media, config)
@@ -977,6 +1101,7 @@ function buildCategoryExitSurface(card, config, paper = readPaperColor(), ink = 
     cols: currentSurface.cols,
     rows: currentSurface.rows,
     sourceBits: currentSurface.bits,
+    sourceInkIndices: binaryInkIndices(currentSurface.bits),
     sourcePixels: pixelsFromBinaryBits(
       currentSurface.bits,
       currentSurface.cols,
@@ -1394,6 +1519,30 @@ function categoryFrontPresence(progress, order, config) {
 
 function categoryBreathingWave(state, index, col, row, now) {
   const { config, grid } = state
+  const fields = state.categoryMotion
+  if (fields) {
+    if (fields.waveNow !== now) {
+      fields.waveNow = now
+      fields.waveEpoch = (fields.waveEpoch + 1) >>> 0
+      if (!fields.waveEpoch) {
+        fields.waveStamp.fill(0)
+        fields.waveEpoch = 1
+      }
+    }
+    if (fields.waveStamp[index] === fields.waveEpoch) return fields.wave[index]
+
+    const rate = fields.rate[index]
+    const phase = fields.phase[index]
+    const timeSeconds = now / 1000
+    const primary = Math.sin(timeSeconds * TAU * rate + phase)
+    const drift = Math.sin(timeSeconds * TAU * rate * 0.37 + phase * 0.61 + 1.13)
+    const secondary = Math.sin(timeSeconds * TAU * rate * 1.61 + phase * 1.37 - 0.47)
+    const value = clamp(0.5 + primary * 0.26 + drift * 0.17 + secondary * 0.055)
+    fields.wave[index] = value
+    fields.waveStamp[index] = fields.waveEpoch
+    return value
+  }
+
   const clusterSize = Math.max(1, Math.round(config.activeColorClusterSize))
   const clusterCol = Math.floor(col / clusterSize)
   const clusterRow = Math.floor(row / clusterSize)
@@ -1410,18 +1559,46 @@ function categoryBreathingWave(state, index, col, row, now) {
   return clamp(0.5 + primary * 0.26 + drift * 0.17 + secondary * 0.055)
 }
 
+function categoryFlicker(state, index, col, row, frameTick) {
+  const fields = state.categoryMotion
+  if (!fields) {
+    return hash01(state.config.activeColorSeed, col, row, 1000 + frameTick)
+  }
+  if (fields.flickerTick !== frameTick) {
+    fields.flickerTick = frameTick
+    fields.flickerEpoch = (fields.flickerEpoch + 1) >>> 0
+    if (!fields.flickerEpoch) {
+      fields.flickerStamp.fill(0)
+      fields.flickerEpoch = 1
+    }
+  }
+  if (fields.flickerStamp[index] !== fields.flickerEpoch) {
+    fields.flicker[index] = hash01(
+      state.config.activeColorSeed,
+      col,
+      row,
+      1000 + frameTick,
+    )
+    fields.flickerStamp[index] = fields.flickerEpoch
+  }
+  return fields.flicker[index]
+}
+
 function drawCategoryExitSurface(state, progress, categoryHold, categoryAmount, frameTick, now) {
-  const { config, grid, sourceBits, sourcePixels, paper, framePixels: data } = state
+  const { config, grid, sourceBits, sourceInkIndices, sourcePixels, paper, framePixels: data } = state
+  const fields = state.categoryMotion
   const softness = 0.07 + clamp(config.activeColorFlicker) * 0.105
   const density = clamp(config.activeColorNoiseDensity * (0.42 + Math.sin(Math.PI * progress) * 0.58))
+  const indices = sourceInkIndices || sourceBits
 
-  for (let index = 0; index < grid.count; index += 1) {
+  for (let cursor = 0; cursor < indices.length; cursor += 1) {
+    const index = sourceInkIndices ? indices[cursor] : cursor
     // A paper cell is already visually empty. Keeping it transparent lets the
     // live card surface below remain the owner of that pixel.
     if (!sourceBits[index]) continue
 
-    const col = index % grid.cols
-    const row = Math.floor(index / grid.cols)
+    const col = fields ? fields.columns[index] : index % grid.cols
+    const row = fields ? fields.rows[index] : Math.floor(index / grid.cols)
     const order = grid.order[index]
     let effectiveOrder = order
     let frontPulse = 0
@@ -1451,7 +1628,7 @@ function drawCategoryExitSurface(state, progress, categoryHold, categoryAmount, 
     if (edge <= 0.001) continue
 
     const pulse = (breath - 0.5) * 2
-    const flicker = hash01(config.activeColorSeed, col, row, 1000 + frameTick)
+    const flicker = categoryFlicker(state, index, col, row, frameTick)
     const colorChance = clamp(
       density * (1 - config.activeColorPaperRatio * 0.72) +
         edge * (0.16 + categoryHold * 0.08) +
@@ -1578,6 +1755,7 @@ function drawState(state, now) {
     (elapsed - config.activeColorDelayMs) / Math.max(1, duration),
   )
   const isCategorySnow = categorySnowState(state)
+  const categoryFields = state.categoryMotion
   const categoryProgress = isCategorySnow
     ? categorySnowProgress(state, raw, duration)
     : null
@@ -1821,9 +1999,24 @@ function drawState(state, now) {
     return
   }
 
-  for (let index = 0; index < grid.count; index += 1) {
-    const col = index % grid.cols
-    const row = Math.floor(index / grid.cols)
+  let iterationIndices = null
+  let iterationStart = 0
+  let iterationEnd = grid.count
+  if (isCategorySnow && direction === "in" && categoryFields) {
+    const maximumBreathShift = categoryAmount * (categoryHold * 0.036 + 0.065)
+    const minimumPossibleOrder = clamp(progress - maximumBreathShift)
+    const minimumBucket = Math.min(
+      CATEGORY_ORDER_BUCKETS - 1,
+      Math.floor(minimumPossibleOrder * CATEGORY_ORDER_BUCKETS),
+    )
+    iterationIndices = categoryFields.orderBucketIndices
+    iterationStart = categoryFields.orderBucketOffsets[minimumBucket]
+  }
+
+  for (let cursor = iterationStart; cursor < iterationEnd; cursor += 1) {
+    const index = iterationIndices ? iterationIndices[cursor] : cursor
+    const col = categoryFields ? categoryFields.columns[index] : index % grid.cols
+    const row = categoryFields ? categoryFields.rows[index] : Math.floor(index / grid.cols)
     const order = grid.order[index]
     let effectiveOrder = order
     let categoryPulse = 0
@@ -1848,12 +2041,9 @@ function drawState(state, now) {
     if (!covered) continue
 
     const offset = index * 4
-    const flicker = hash01(
-      config.activeColorSeed,
-      col,
-      row,
-      1000 + frameTick,
-    )
+    const flicker = isCategorySnow
+      ? categoryFlicker(state, index, col, row, frameTick)
+      : hash01(config.activeColorSeed, col, row, 1000 + frameTick)
     let colorChance = density * (1 - config.activeColorPaperRatio * 0.72)
     if (direction === "out") colorChance *= 1 - progress * 0.34
     if (categoryPulse > 0.001) {
@@ -1911,7 +2101,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
   if (
     !config.activeColorEnabled ||
     prefersReducedMotion() ||
-    (!options.includeOffscreen && !cardNearViewport(card)) ||
+    (!options.includeOffscreen && !options.viewportChecked && !cardNearViewport(card)) ||
     (hoverMotion && !cardEligibleForHoverSnow(card))
   ) {
     cancelCard(card)
@@ -2102,6 +2292,7 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       sourcePixels: categorySurface?.sourcePixels || sourcePixels,
       fullPixels: restoreSurface?.fullPixels || null,
       sourceBits: categorySurface?.sourceBits || restoreSurface?.sourceBits || null,
+      sourceInkIndices: categorySurface?.sourceInkIndices || null,
       fullBits: restoreSurface?.fullBits || null,
       restoreBoundary: restoreSurface?.boundary || null,
       hiddenSource,
@@ -2110,6 +2301,9 @@ function playCard(card, direction = "in", index = 0, inputConfig = runtimeConfig
       startTime: performance.now(),
       lastDraw: 0,
       finished: false,
+    }
+    if (categorySnowState(state)) {
+      state.categoryMotion = categoryMotionFields(grid, localConfig)
     }
 
     cardStates.set(card, state)
@@ -2257,6 +2451,7 @@ function playCatalog(
   const playbackOptions = catalogPlaybackOptions(targetCatalog, direction, {
     ...options,
     includeOffscreen,
+    viewportChecked: !includeOffscreen,
   })
   const cards = playableCards(targetCatalog, { includeMuted })
     .filter((card) => includeOffscreen || cardNearViewport(card))
@@ -2299,8 +2494,10 @@ function prewarmCard(card, config = runtimeConfig) {
   }
 
   const descriptor = paletteDescriptor(img, media, config)
-  if (!descriptor || paletteCache.has(descriptor.key)) return
-  buildLocalPalette(img, media, config, descriptor)
+  if (!descriptor) return
+  const grid = paletteCache.get(descriptor.key) ||
+    buildLocalPalette(img, media, config, descriptor)
+  if (grid) categoryMotionFields(grid, config)
 }
 
 function runPrewarm(deadline) {
@@ -2430,6 +2627,7 @@ function bindCardHoverSnow(targetCatalog = catalog) {
 
 function clearPaletteCache() {
   paletteCache.clear()
+  categoryMotionCache.clear()
   prewarmQueued.clear()
 }
 

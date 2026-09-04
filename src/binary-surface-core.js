@@ -231,6 +231,16 @@ function colorDistance(data, offset, rgba) {
   return dr * dr + dg * dg + db * db
 }
 
+export function binaryBitsFromPixels(data, count, paper, ink) {
+  if (!data || data.length < count * 4) return null
+  const bits = new Uint8Array(count)
+  for (let index = 0; index < count; index += 1) {
+    const offset = index * 4
+    bits[index] = colorDistance(data, offset, ink) <= colorDistance(data, offset, paper) ? 1 : 0
+  }
+  return bits
+}
+
 export function sampleBinaryCanvas(sourceCanvas, cols, rows, paper, ink) {
   if (!sourceCanvas || cols < 1 || rows < 1) return null
   const sample = document.createElement("canvas")
@@ -245,12 +255,7 @@ export function sampleBinaryCanvas(sourceCanvas, cols, rows, paper, ink) {
   try {
     ctx.drawImage(sourceCanvas, 0, 0, cols, rows)
     const data = ctx.getImageData(0, 0, cols, rows).data
-    const bits = new Uint8Array(cols * rows)
-    for (let index = 0; index < bits.length; index += 1) {
-      const offset = index * 4
-      bits[index] = colorDistance(data, offset, ink) <= colorDistance(data, offset, paper) ? 1 : 0
-    }
-    return bits
+    return binaryBitsFromPixels(data, cols * rows, paper, ink)
   } catch {
     return null
   }

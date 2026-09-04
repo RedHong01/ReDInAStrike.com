@@ -6106,6 +6106,7 @@ function setupHeader() {
       siteState.galleryLayoutDirty = true
       siteState.galleryLayoutMetrics = null
       siteState.galleryViewportLeft = null
+      clearProjectPreviewMediaGeometry(activeProjectPreview())
       invalidateCatalogHalftoneGeometry()
       invalidateCatalogContentBottom()
       startResponsiveLayoutTransition()
@@ -6289,9 +6290,58 @@ function syncProjectPreviewRows(card, expanded) {
   }
 }
 
+function captureProjectPreviewMediaGeometry(card) {
+  const image = card?.querySelector?.(".project-media > img")
+  if (!image) return
+
+  const rect = image.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return
+  const style = getComputedStyle(image)
+  card.__projectPreviewSourceMediaGeometry = {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+    objectFit: style.objectFit,
+    objectPosition: style.objectPosition,
+  }
+}
+
+function clearProjectPreviewMediaGeometry(card) {
+  if (!card) return
+  delete card.__projectPreviewSourceMediaGeometry
+  card.removeAttribute("data-project-preview-media-locked")
+  card.style.removeProperty("--project-preview-media-left")
+  card.style.removeProperty("--project-preview-media-top")
+  card.style.removeProperty("--project-preview-media-width")
+  card.style.removeProperty("--project-preview-media-height")
+  card.style.removeProperty("--project-preview-source-image-fit")
+  card.style.removeProperty("--project-preview-source-image-position")
+}
+
+function syncProjectPreviewMediaGeometry(card) {
+  const source = card?.__projectPreviewSourceMediaGeometry
+  const media = card?.querySelector?.(".project-media")
+  const desktopLandscape = window.matchMedia?.("(min-width: 981px) and (orientation: landscape)")?.matches === true
+  if (!source || !media || !desktopLandscape) {
+    clearProjectPreviewMediaGeometry(card)
+    return
+  }
+
+  const mediaRect = media.getBoundingClientRect()
+  card.style.setProperty("--project-preview-media-left", `${(source.left - mediaRect.left).toFixed(2)}px`)
+  card.style.setProperty("--project-preview-media-top", `${(source.top - mediaRect.top).toFixed(2)}px`)
+  card.style.setProperty("--project-preview-media-width", `${source.width.toFixed(2)}px`)
+  card.style.setProperty("--project-preview-media-height", `${source.height.toFixed(2)}px`)
+  card.style.setProperty("--project-preview-source-image-fit", source.objectFit)
+  card.style.setProperty("--project-preview-source-image-position", source.objectPosition)
+  card.setAttribute("data-project-preview-media-locked", "true")
+}
+
 function prepareProjectPreviewExpandMotion(card) {
   if (!card) return
 
+  captureProjectPreviewMediaGeometry(card)
   const rect = card.getBoundingClientRect()
   const viewportWidth = Math.max(
     window.innerWidth || 0,
@@ -6541,6 +6591,7 @@ function commitProjectPreviewState(card, expanded) {
     current.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "true")
     clearProjectPreviewExpandMotion(current)
     clearProjectPreviewHeightLock(current)
+    clearProjectPreviewMediaGeometry(current)
   }
 
   bindDominantMediaBackground(card)
@@ -6550,6 +6601,8 @@ function commitProjectPreviewState(card, expanded) {
   card.setAttribute("aria-expanded", expanded ? "true" : "false")
   card.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", expanded ? "false" : "true")
   syncProjectPreviewRows(card, expanded)
+  if (expanded) syncProjectPreviewMediaGeometry(card)
+  else clearProjectPreviewMediaGeometry(card)
   catalog?.toggleAttribute("data-project-preview", expanded)
   if (expanded) syncProjectPreviewFilterState(catalog, card)
   else clearProjectPreviewFilterState(catalog)
@@ -6569,6 +6622,7 @@ function setProjectPreview(card, expanded) {
   clearProjectPreviewExitGhosts()
 
   if (prefersReducedMotion()) {
+    if (expanded) captureProjectPreviewMediaGeometry(card)
     commitProjectPreviewState(card, expanded)
     return
   }

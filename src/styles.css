@@ -886,6 +886,18 @@ body[data-layout-transition="true"] .about-section {
   object-position: var(--preview-image-position, var(--image-position, center center));
 }
 
+@media (min-width: 981px) and (orientation: landscape) {
+  .project-card.is-project-preview[data-project-preview-media-locked="true"] .project-media img {
+    inset: auto;
+    left: var(--project-preview-media-left, 0);
+    top: var(--project-preview-media-top, 0);
+    width: var(--project-preview-media-width, 100%);
+    height: var(--project-preview-media-height, 100%);
+    object-fit: var(--project-preview-source-image-fit, var(--image-fit, cover));
+    object-position: var(--project-preview-source-image-position, var(--image-position, center center));
+  }
+}
+
 .project-card.is-project-preview[data-project-preview-expanding="true"] {
   animation: project-preview-stage-expand var(--project-preview-duration) var(--project-preview-ease) both;
   will-change: clip-path;

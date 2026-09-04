@@ -1,11 +1,11 @@
 import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
 import {
+  binaryBitsFromPixels,
   hash01,
   logicalGridForMedia,
   readBinaryColors,
-  sampleBinaryCanvas,
   smooth01,
-} from "./binary-surface-core.js?v=20260830-perfaudit1"
+} from "./binary-surface-core.js?v=20260904-categoryperf1"
 import {
   boundaryMetrics,
   boundaryStrength,
@@ -126,7 +126,12 @@ export function sampleCompositeBinaryBits(baseCanvas, overlayCanvas, cols, rows,
       ctx.drawImage(overlay, 0, 0, cols, rows)
       ctx.restore()
     }
-    return sampleBinaryCanvas(sample, cols, rows, paper, ink)
+    return binaryBitsFromPixels(
+      ctx.getImageData(0, 0, cols, rows).data,
+      cols * rows,
+      paper,
+      ink,
+    )
   } catch {
     return null
   }

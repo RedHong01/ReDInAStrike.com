@@ -4,7 +4,7 @@ import { join, resolve } from "node:path"
 const root = resolve(".")
 const dist = join(root, "dist")
 const docs = join(root, "docs")
-const faviconVersion = "20260824"
+const faviconVersion = "20260904"
 const routes = [
   "",
   "serialdeminer",

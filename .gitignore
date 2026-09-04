@@ -2,3 +2,9 @@ dist
 .DS_Store
 node_modules
 *.log
+
+# macOS / iCloud 同步冲突副本："favicon 2.svg"、"about-nav 10.js"、"assets 5/"
+* [0-9]
+* [0-9][0-9]
+* [0-9].*
+* [0-9][0-9].*

@@ -66,6 +66,6 @@ async function writeSite(outRoot, { clean = false } = {}) {
 }
 
 await writeSite(dist, { clean: true })
-await writeSite(docs)
+await writeSite(docs, { clean: true })
 
 console.log(`Built ${routes.length} routes to ${dist} and ${docs}`)

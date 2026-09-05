@@ -203,8 +203,12 @@ const CATALOG_COLOR_SNOW_ENTER_DEFER_MS = 54
 const CATALOG_COLOR_SNOW_SWAP_OVERLAP_MS = 128
 const CATALOG_COLOR_SNOW_VIEWPORT_MARGIN = 620
 const CATALOG_ENTER_DITHER_READY_MAX_WAIT_MS = 320
+const CATALOG_RULE_SCROLL_SETTLE_MS = 120
 const ACTIVE_COLOR_RESTORE_READY_ATTRIBUTE = "data-active-color-restore-ready"
 const BINARY_HANDOFF_SKIP_ATTRIBUTE = "data-binary-handoff-skip"
+// Ignore tiny jitter-frame weight changes so subpixel boundary drift does not
+// continuously flip transition direction while scrolling.
+const PROJECT_RULE_WEIGHT_UPDATE_EPSILON = 0.004
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const SECTION_SCROLL_MIN_MS = 620
 const SECTION_SCROLL_MAX_MS = 1380
@@ -562,6 +566,41 @@ const siteState = {
   mediaBackgroundCache: new Map(),
   projectPreviewMotionId: 0,
   projectPreviewExitGhosts: new Set(),
+  projectPreviewExpandGhosts: new Set(),
+  catalogRuleScrollTimer: 0,
+  catalogRuleScrollActive: false,
+}
+
+function getCatalogElement() {
+  return siteState.dom.catalog || document.querySelector(".catalog")
+}
+
+function setCatalogRuleScrollTransition(active) {
+  const catalog = getCatalogElement()
+  if (!catalog) return
+
+  if (active) catalog.dataset.ruleScroll = "true"
+  else catalog.removeAttribute("data-rule-scroll")
+}
+
+function markCatalogRuleScrollActivity(delta = 0) {
+  if (Math.abs(delta || 0) < 0.01) return
+
+  if (!siteState.catalogRuleScrollActive) {
+    siteState.catalogRuleScrollActive = true
+    setCatalogRuleScrollTransition(true)
+  }
+
+  if (siteState.catalogRuleScrollTimer) {
+    window.clearTimeout(siteState.catalogRuleScrollTimer)
+    siteState.catalogRuleScrollTimer = 0
+  }
+
+  siteState.catalogRuleScrollTimer = window.setTimeout(() => {
+    siteState.catalogRuleScrollTimer = 0
+    siteState.catalogRuleScrollActive = false
+    setCatalogRuleScrollTransition(false)
+  }, CATALOG_RULE_SCROLL_SETTLE_MS)
 }
 
 function refreshDomCache() {
@@ -605,6 +644,8 @@ function refreshDomCache() {
     siteState.dom.projectRows.length || siteState.dom.cardRuleTargets.length,
   )
   invalidateRuleGeometry()
+  if (siteState.catalogRuleScrollActive) setCatalogRuleScrollTransition(true)
+  else setCatalogRuleScrollTransition(false)
   if (!ditherOwnsMuted) setupCatalogHalftoneObservers(catalog)
 }
 
@@ -3357,12 +3398,21 @@ function headerFlowHeight() {
   return readHeaderMetrics().fullHeight
 }
 
+/**
+ * Header geometry is a pure function of the layout viewport width, so the
+ * result is cached until something can actually change it. The cache is
+ * invalidated synchronously from the resize listener rather than re-read here:
+ * this runs through headerFlowHeight() from cachedRuleRect(), once per rule
+ * element per frame, and window.innerWidth is a layout-dependent read. Probing
+ * it to validate the cache cost ~17 reads per scroll frame — more than the
+ * arithmetic it was guarding.
+ */
 function readHeaderMetrics() {
-  const width = window.innerWidth
-  if (siteState.headerMetrics && siteState.headerMetricsWidth === width) {
+  if (siteState.headerMetrics) {
     return siteState.headerMetrics
   }
 
+  const width = window.innerWidth
   const fullHeight = width < 760 ? 186 : width < 1120 ? 210 : 200
   const compactHeight = width < 560 ? 84 : width < 760 ? 88 : 78
   const fullLogo = 150
@@ -3415,6 +3465,14 @@ function setBodyDatasetValue(name, value) {
 
 function setElementStyleProperty(element, name, value) {
   if (element.style.getPropertyValue(name) === value) return
+  element.style.setProperty(name, value)
+}
+
+function setRuleRevealWeight(element, name, value) {
+  const next = Number.parseFloat(value)
+  if (!Number.isFinite(next)) return
+  const current = Number.parseFloat(element.style.getPropertyValue(name))
+  if (Number.isFinite(current) && Math.abs(current - next) < PROJECT_RULE_WEIGHT_UPDATE_EPSILON) return
   element.style.setProperty(name, value)
 }
 
@@ -3683,7 +3741,7 @@ function updateProjectRuleReveal(frameTime = null) {
   })
 
   for (let index = 0; index < ruleUpdates.length; index += 3) {
-    setElementStyleProperty(ruleUpdates[index], ruleUpdates[index + 1], ruleUpdates[index + 2])
+    setRuleRevealWeight(ruleUpdates[index], ruleUpdates[index + 1], ruleUpdates[index + 2])
   }
 }
 
@@ -6045,6 +6103,7 @@ function requestScrollEffectsUpdate(delta) {
     if (!shouldSuppressHeaderScrollDelta(pendingDelta)) updateHeaderFromScroll(pendingDelta)
     if (!isHeaderMotionActive()) syncHeaderFlowGap()
     nudgeFooterGallery()
+    markCatalogRuleScrollActivity(pendingDelta)
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
     if (!siteState.halftoneObserver || !siteState.halftoneObserverReady) {
       requestVisibleCatalogHalftones()
@@ -6115,11 +6174,14 @@ function setupHeader() {
   }
 
   window.addEventListener("resize", () => {
+    // Drop viewport-derived caches synchronously, before the coalescing frame:
+    // anything reading header metrics between this event and that frame must
+    // see the new width, not the previous one.
+    siteState.headerMetricsWidth = -1
+    siteState.headerMetrics = null
     if (siteState.resizeFrame) return
     siteState.resizeFrame = requestAnimationFrame(() => {
       siteState.resizeFrame = 0
-      siteState.headerMetricsWidth = -1
-      siteState.headerMetrics = null
       siteState.galleryLayoutDirty = true
       siteState.galleryLayoutMetrics = null
       siteState.galleryViewportLeft = null
@@ -6421,6 +6483,77 @@ function createProjectPreviewExitGhost(card) {
   }
 }
 
+function projectPreviewRect(rect) {
+  if (!rect || rect.width <= 0 || rect.height <= 0) return null
+  return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+  }
+}
+
+/**
+ * Keep the source card painted while the row changes shape, then grow a
+ * preview snapshot from that exact edge. The real card stays in the document
+ * as the accessible target; the snapshot only hides the layout reflow that
+ * would otherwise read as a jump.
+ */
+function createProjectPreviewExpandGhost(card, sourceRect, targetRect) {
+  if (!card?.isConnected || !sourceRect || !targetRect) return null
+
+  const ghost = card.cloneNode(true)
+  const side = card.dataset.cardSide === "right" ? "right" : "left"
+  ghost.classList.add("project-preview-expand-ghost")
+  ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
+  ghost.setAttribute("aria-hidden", "true")
+  ghost.setAttribute("tabindex", "-1")
+  ghost.removeAttribute("href")
+  ghost.removeAttribute("id")
+  ghost.removeAttribute("data-project-card")
+  ghost.removeAttribute("data-project-preview-expanding")
+  ghost.removeAttribute("data-project-preview-exiting")
+  ghost.removeAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE)
+  ghost.removeAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE)
+  ghost.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
+  ghost.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"))
+  ghost.querySelectorAll(".dither-preview-canvas, .dither-reveal-canvas, .project-halftone, iframe")
+    .forEach((element) => element.remove())
+  ghost.querySelectorAll(".project-media img").forEach((image) => {
+    image.loading = "eager"
+    image.decoding = "async"
+  })
+  ghost.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "false")
+
+  ghost.style.setProperty("--project-preview-expand-origin", side === "right" ? "100% 50%" : "0% 50%")
+  ghost.style.left = `${sourceRect.left}px`
+  ghost.style.top = `${sourceRect.top}px`
+  ghost.style.width = `${sourceRect.width}px`
+  ghost.style.height = `${sourceRect.height}px`
+  ghost.style.setProperty("--project-preview-expand-target-left", `${targetRect.left}px`)
+  ghost.style.setProperty("--project-preview-expand-target-top", `${targetRect.top}px`)
+  ghost.style.setProperty("--project-preview-expand-target-width", `${targetRect.width}px`)
+  ghost.style.setProperty("--project-preview-expand-target-height", `${targetRect.height}px`)
+
+  document.body.appendChild(ghost)
+  siteState.projectPreviewExpandGhosts.add(ghost)
+  // Force the source-sized snapshot to paint before the target geometry is
+  // applied. This makes the expansion a continuous horizontal gesture.
+  void ghost.offsetWidth
+  window.requestAnimationFrame(() => {
+    if (!ghost.isConnected) return
+    ghost.dataset.projectPreviewExpandState = "target"
+    ghost.style.left = `${targetRect.left}px`
+    ghost.style.top = `${targetRect.top}px`
+    ghost.style.width = `${targetRect.width}px`
+    ghost.style.height = `${targetRect.height}px`
+  })
+
+  return ghost
+}
+
 function validPreviewTargetRect(rect) {
   return Boolean(rect && rect.width > 0 && rect.height > 0)
 }
@@ -6444,6 +6577,11 @@ function applyProjectPreviewExitTarget(exitMotion, targetCard) {
 }
 
 function clearProjectPreviewExitGhosts() {
+  for (const ghost of [...siteState.projectPreviewExpandGhosts]) {
+    ghost.__projectPreviewExpandCard?.removeAttribute("data-project-preview-expand-ghosting")
+    ghost.remove()
+  }
+  siteState.projectPreviewExpandGhosts.clear()
   if (!siteState.projectPreviewExitGhosts.size) return
   for (const ghost of [...siteState.projectPreviewExitGhosts]) {
     releaseProjectPreviewExitSource(ghost)
@@ -6600,10 +6738,17 @@ function setProjectPreview(card, expanded) {
     return
   }
 
+  const sourceRect = projectPreviewRect(card.getBoundingClientRect())
   const exitMotion = current && current !== card ? createProjectPreviewExitGhost(current) : null
   prepareProjectPreviewExpandMotion(card)
   document.documentElement.dataset.projectPreviewTransition = exitMotion ? "switching" : "expanding"
   commitProjectPreviewState(card, expanded)
+  const targetRect = projectPreviewRect(card.getBoundingClientRect())
+  const expandGhost = createProjectPreviewExpandGhost(card, sourceRect, targetRect)
+  if (expandGhost) {
+    expandGhost.__projectPreviewExpandCard = card
+    card.setAttribute("data-project-preview-expand-ghosting", "true")
+  }
   if (exitMotion) runProjectPreviewExitGhost(exitMotion, current, { motionId, fade: true })
 
   let cleaned = false
@@ -6612,6 +6757,11 @@ function setProjectPreview(card, expanded) {
     if (motionId !== siteState.projectPreviewMotionId) return
     cleaned = true
     delete document.documentElement.dataset.projectPreviewTransition
+    if (expandGhost) {
+      expandGhost.remove()
+      siteState.projectPreviewExpandGhosts.delete(expandGhost)
+    }
+    card.removeAttribute("data-project-preview-expand-ghosting")
     clearProjectPreviewExpandMotion(card)
     refreshAfterProjectPreviewChange()
   }
@@ -6621,6 +6771,10 @@ function setProjectPreview(card, expanded) {
     cleanup()
   }
   card.addEventListener("animationend", handleAnimationEnd)
+  expandGhost?.addEventListener("transitionend", (event) => {
+    if (event.target !== expandGhost || event.propertyName !== "width") return
+    cleanup()
+  })
   window.setTimeout(() => {
     card.removeEventListener("animationend", handleAnimationEnd)
     cleanup()

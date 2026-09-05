@@ -4,10 +4,10 @@
 
   const ROOT_CLASS = "red-perf-pass-1"
   const PROJECT_MEDIA_SETTLE_MS = 120
-  const LAYOUT_LOGO_BUCKET_PX = 4
-  const LAYOUT_HEADER_BUCKET_PX = 2
-  const HEADER_HEIGHT_VISUAL_STEP_PX = 1
-  const LOGO_VISUAL_STEP_PX = 0.5
+  const LAYOUT_LOGO_BUCKET_PX = 1
+  const LAYOUT_HEADER_BUCKET_PX = 1
+  const HEADER_HEIGHT_VISUAL_STEP_PX = 0.5
+  const LOGO_VISUAL_STEP_PX = 0.25
   const RULE_NATIVE_MARGIN_PX = 460
   const FOOTER_WAKE_MARGIN_PX = 1200
   const GEOMETRY_RESIZE_SETTLE_MS = 140
@@ -141,7 +141,12 @@
     if (name === "--logo-size") {
       const visualValue = quantizedPx(value, LOGO_VISUAL_STEP_PX)
       setHeaderProperty("--logo-size", visualValue, priority)
-      setRootProxy("--perf-layout-logo-size", quantizedPx(value, LAYOUT_LOGO_BUCKET_PX), priority)
+      // Once the layout synchronizer is loaded it owns this proxy and eases
+      // toward the visual value. Avoid overwriting its in-between frame with
+      // the prelude's quantized target on every header update.
+      if (!window.__RED_LAYOUT_SURFACE_SYNC__) {
+        setRootProxy("--perf-layout-logo-size", quantizedPx(value, LAYOUT_LOGO_BUCKET_PX), priority)
+      }
       return
     }
 

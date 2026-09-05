@@ -19,6 +19,7 @@ const mime = {
   ".png": "image/png",
   ".webp": "image/webp",
   ".otf": "font/otf",
+  ".woff2": "font/woff2",
 }
 
 function cleanPath(urlPath) {

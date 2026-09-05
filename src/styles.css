@@ -39,6 +39,23 @@
   unicode-range: U+738b, U+7d2b, U+9d6c, U+9e4f;
 }
 
+/* Self-host the CJK glyph subsets used by the rendered site. */
+@font-face {
+  font-family: "Red Noto Serif SC";
+  src: url("../fonts/NotoSerifSC-Regular-Subset.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Red Noto Serif SC";
+  src: url("../fonts/NotoSerifSC-SemiBold-Subset.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+}
+
 @font-face {
   font-family: "Red Local CJK Serif";
   src:
@@ -154,11 +171,11 @@
   --responsive-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --catalog-muted-hover-ms: 356ms;
   --serif: "Red EB Garamond", "Red Minion Pro", "Minion Pro", "Garamond Premier Pro", YuMincho, "Times New Roman", serif;
-  --zh-serif: "Noto Serif SC", "Red Local CJK Serif", "Songti SC", "Songti TC", "Hiragino Mincho ProN", "Hiragino Mincho Pro", YuMincho, "Yu Mincho", "Noto Serif CJK SC", "Noto Serif CJK TC", "Noto Serif TC", "STSong", "STFangsong", "FangSong", SimSun, "PMingLiU", serif;
+  --zh-serif: "Red Noto Serif SC", "Red Local CJK Serif", "Songti SC", "Songti TC", "Hiragino Mincho ProN", "Hiragino Mincho Pro", YuMincho, "Yu Mincho", "Noto Serif CJK SC", "Noto Serif CJK TC", "Noto Serif TC", "STSong", "STFangsong", "FangSong", SimSun, "PMingLiU", serif;
   --body-latin-font: var(--serif);
   --mono: "Red Courier Prime", "Courier Prime", "Courier New", monospace;
   --type-subtitle-font: var(--mono);
-  --name-serif: "Red Noto Serif TC", "Noto Serif SC", "Red Local CJK Serif", "Songti SC", "Songti TC", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Noto Serif TC", YuMincho, "Yu Mincho", "STSong", "STFangsong", serif;
+  --name-serif: "Red Noto Serif TC", "Red Noto Serif SC", "Red Local CJK Serif", "Songti SC", "Songti TC", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Noto Serif TC", YuMincho, "Yu Mincho", "STSong", "STFangsong", serif;
   --display-italic: "Red EB Garamond", "EB Garamond", "Garamond Premier Pro Display", "Garamond Premier Pro", "Times New Roman", serif;
 }
 
@@ -941,6 +958,55 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-preview-expanding="true"] {
   animation: project-preview-stage-expand var(--project-preview-duration) var(--project-preview-ease) both;
   will-change: clip-path;
+}
+
+/* The open gesture is a horizontal FLIP between the card's original rect and
+   the full-bleed preview rect. Keep the real card as the document anchor while
+   this paint-only snapshot carries the visual expansion, so sticky/grid
+   reflow never flashes through the motion. */
+.project-card.is-project-preview[data-project-preview-expand-ghosting="true"] {
+  visibility: hidden;
+}
+
+.project-preview-expand-ghost {
+  position: fixed !important;
+  z-index: 70;
+  display: grid !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  overflow: hidden;
+  overflow: clip;
+  pointer-events: none;
+  isolation: isolate;
+  transform-origin: var(--project-preview-expand-origin, 0% 50%);
+  transition:
+    left 520ms var(--project-preview-ease),
+    top 520ms var(--project-preview-ease),
+    width 520ms var(--project-preview-ease),
+    height 520ms var(--project-preview-ease);
+  will-change: left, top, width, height;
+}
+
+.project-preview-expand-ghost .project-media {
+  min-height: 0 !important;
+}
+
+.project-preview-expand-ghost .project-preview-copy {
+  transition:
+    opacity 360ms ease 55ms,
+    transform 520ms var(--project-preview-ease) 55ms;
+}
+
+.project-preview-expand-ghost:not([data-project-preview-expand-state="target"]) .project-preview-copy {
+  opacity: 0;
+}
+
+@media (max-width: 700px), (orientation: portrait) {
+  .project-preview-expand-ghost {
+    transition-duration: 440ms;
+    transform-origin: 50% 0;
+  }
 }
 
 .project-card.project-preview-exit-ghost {

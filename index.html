@@ -36,9 +36,6 @@
     <link rel="mask-icon" href="./public/favicon.svg" color="#454545" />
     <!-- LOCAL_FAVICON_END -->
     <!-- BUILD_FAVICONS -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&display=block" />
     <link rel="stylesheet" href="%BASE%src/styles.css?v=20260904-responsive-bounds1" />
     <link rel="stylesheet" href="%BASE%src/performance.css?v=20260902-responsive1" />
     <link rel="stylesheet" href="%BASE%src/nav-state.css?v=20260830-navrestore1" />
@@ -48,7 +45,8 @@
     <script>
       document.body.dataset.base = new URL(document.body.dataset.base || "./", window.location.href).href
     </script>
-    <script src="%BASE%src/performance-prelude.js?v=20260902-eventperf1"></script>
+    <script src="%BASE%figma-capture.js" async></script>
+    <script src="%BASE%src/performance-prelude.js?v=20260904-layoutsmooth1"></script>
     <script src="%BASE%src/scroll-frame-runtime.js?v=20260903-scrollframe1"></script>
     <script src="%BASE%src/project-metadata-prelude.js"></script>
     <script src="%BASE%src/about-nav.js?v=20260831-about1"></script>
@@ -59,7 +57,7 @@
     <script src="%BASE%src/type-overlap-shader.js?v=20260903-scrollperf2"></script>
     <script src="%BASE%src/invert-cursor.js?v=20260903-cursordual1"></script>
     <script type="module" src="%BASE%src/project-lightbox.js"></script>
-    <script type="module" src="%BASE%src/dither-lab.js?v=20260904-categoryperf1"></script>
+    <script type="module" src="%BASE%src/dither-lab.js?v=20260904-layoutsmooth1"></script>
     <script type="module" src="%BASE%src/boundary-breath-runtime.js?v=20260903-scrollperf2"></script>
   </body>
 </html>

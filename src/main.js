@@ -566,6 +566,7 @@ const siteState = {
   mediaBackgroundCache: new Map(),
   projectPreviewMotionId: 0,
   projectPreviewExitGhosts: new Set(),
+  projectPreviewExpandGhosts: new Set(),
   catalogRuleScrollTimer: 0,
   catalogRuleScrollActive: false,
 }
@@ -6461,7 +6462,13 @@ function createProjectPreviewExitGhost(card) {
     image.loading = "eager"
     image.decoding = "async"
   })
-  ghost.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "false")
+  const copy = ghost.querySelector(".project-preview-copy")
+  copy?.setAttribute("aria-hidden", "false")
+  if (copy) {
+    copy.style.animation = "none"
+    copy.style.opacity = "0"
+    copy.style.transform = `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`
+  }
 
   sourceRow?.classList.add("is-project-preview-exit-source")
   card.classList.add("is-project-preview-exit-source-card")
@@ -6480,6 +6487,81 @@ function createProjectPreviewExitGhost(card) {
     sourceRect,
     fallbackRect: normalProjectCardFallbackRect(card, sourceRect),
   }
+}
+
+function projectPreviewRect(rect) {
+  if (!rect || rect.width <= 0 || rect.height <= 0) return null
+  return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+  }
+}
+
+/**
+ * Keep the source card painted while the row changes shape, then grow a
+ * preview snapshot from that exact edge. The real card stays in the document
+ * as the accessible target; the snapshot only hides the layout reflow that
+ * would otherwise read as a jump.
+ */
+function createProjectPreviewExpandGhost(card, sourceRect, targetRect) {
+  if (!card?.isConnected || !sourceRect || !targetRect) return null
+
+  const ghost = card.cloneNode(true)
+  const side = card.dataset.cardSide === "right" ? "right" : "left"
+  ghost.classList.add("project-preview-expand-ghost")
+  ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
+  ghost.setAttribute("aria-hidden", "true")
+  ghost.setAttribute("tabindex", "-1")
+  ghost.removeAttribute("href")
+  ghost.removeAttribute("id")
+  ghost.removeAttribute("data-project-card")
+  ghost.removeAttribute("data-project-preview-expanding")
+  ghost.removeAttribute("data-project-preview-exiting")
+  ghost.removeAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE)
+  ghost.removeAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE)
+  ghost.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
+  ghost.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"))
+  ghost.querySelectorAll(".dither-preview-canvas, .dither-reveal-canvas, .project-halftone, iframe")
+    .forEach((element) => element.remove())
+  ghost.querySelectorAll(".project-media img").forEach((image) => {
+    image.loading = "eager"
+    image.decoding = "async"
+  })
+  ghost.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "false")
+
+  ghost.style.setProperty("--project-preview-expand-origin", side === "right" ? "100% 50%" : "0% 50%")
+  ghost.style.left = `${sourceRect.left}px`
+  ghost.style.top = `${sourceRect.top}px`
+  ghost.style.width = `${sourceRect.width}px`
+  ghost.style.height = `${sourceRect.height}px`
+  ghost.style.setProperty("--project-preview-expand-target-left", `${targetRect.left}px`)
+  ghost.style.setProperty("--project-preview-expand-target-top", `${targetRect.top}px`)
+  ghost.style.setProperty("--project-preview-expand-target-width", `${targetRect.width}px`)
+  ghost.style.setProperty("--project-preview-expand-target-height", `${targetRect.height}px`)
+
+  document.body.appendChild(ghost)
+  siteState.projectPreviewExpandGhosts.add(ghost)
+  // Force the source-sized snapshot to paint before the target geometry is
+  // applied. This makes the expansion a continuous horizontal gesture.
+  void ghost.offsetWidth
+  window.requestAnimationFrame(() => {
+    if (!ghost.isConnected) return
+    ghost.dataset.projectPreviewExpandState = "target"
+    ghost.style.left = `${targetRect.left}px`
+    ghost.style.top = `${targetRect.top}px`
+    ghost.style.width = `${targetRect.width}px`
+    ghost.style.height = `${targetRect.height}px`
+    if (copy) {
+      copy.style.opacity = "1"
+      copy.style.transform = "translate3d(0, 0, 0)"
+    }
+  })
+
+  return ghost
 }
 
 function validPreviewTargetRect(rect) {
@@ -6505,6 +6587,11 @@ function applyProjectPreviewExitTarget(exitMotion, targetCard) {
 }
 
 function clearProjectPreviewExitGhosts() {
+  for (const ghost of [...siteState.projectPreviewExpandGhosts]) {
+    ghost.__projectPreviewExpandCard?.removeAttribute("data-project-preview-expand-ghosting")
+    ghost.remove()
+  }
+  siteState.projectPreviewExpandGhosts.clear()
   if (!siteState.projectPreviewExitGhosts.size) return
   for (const ghost of [...siteState.projectPreviewExitGhosts]) {
     releaseProjectPreviewExitSource(ghost)
@@ -6661,10 +6748,17 @@ function setProjectPreview(card, expanded) {
     return
   }
 
+  const sourceRect = projectPreviewRect(card.getBoundingClientRect())
   const exitMotion = current && current !== card ? createProjectPreviewExitGhost(current) : null
   prepareProjectPreviewExpandMotion(card)
   document.documentElement.dataset.projectPreviewTransition = exitMotion ? "switching" : "expanding"
   commitProjectPreviewState(card, expanded)
+  const targetRect = projectPreviewRect(card.getBoundingClientRect())
+  const expandGhost = createProjectPreviewExpandGhost(card, sourceRect, targetRect)
+  if (expandGhost) {
+    expandGhost.__projectPreviewExpandCard = card
+    card.setAttribute("data-project-preview-expand-ghosting", "true")
+  }
   if (exitMotion) runProjectPreviewExitGhost(exitMotion, current, { motionId, fade: true })
 
   let cleaned = false
@@ -6673,6 +6767,11 @@ function setProjectPreview(card, expanded) {
     if (motionId !== siteState.projectPreviewMotionId) return
     cleaned = true
     delete document.documentElement.dataset.projectPreviewTransition
+    if (expandGhost) {
+      expandGhost.remove()
+      siteState.projectPreviewExpandGhosts.delete(expandGhost)
+    }
+    card.removeAttribute("data-project-preview-expand-ghosting")
     clearProjectPreviewExpandMotion(card)
     refreshAfterProjectPreviewChange()
   }
@@ -6682,6 +6781,10 @@ function setProjectPreview(card, expanded) {
     cleanup()
   }
   card.addEventListener("animationend", handleAnimationEnd)
+  expandGhost?.addEventListener("transitionend", (event) => {
+    if (event.target !== expandGhost || event.propertyName !== "width") return
+    cleanup()
+  })
   window.setTimeout(() => {
     card.removeEventListener("animationend", handleAnimationEnd)
     cleanup()

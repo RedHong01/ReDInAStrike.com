@@ -276,7 +276,7 @@ function suppressHoverSnowDuringScroll(event) {
       if (card === retainedHoverCard) return
       if (cardStates.has(card)) return
       returnMutedHoverFromScroll(card)
-    })
+  })
   scheduleStationaryPointerHoverReconcile()
   scheduleVisibleMutedRestore(activeCatalog)
 }
@@ -419,6 +419,10 @@ function scheduleScrollRestoreForCard(card) {
 }
 
 function restoreMutedCardAtScrollEdge(activeCatalog) {
+  // Scroll/layout changes must never create a reveal on their own. This
+  // helper is retained for compatibility, but it may only proceed when the
+  // last known fine pointer is actually over a muted card.
+  if (!stationaryPointerHoverCard()) return
   if (
     !activeCatalog?.isConnected ||
     !activeCatalog.dataset.activeFilter ||

@@ -227,8 +227,8 @@ const PROJECT_EXPAND_MASK_FADE_MS = 260
 // Keep the paint-only colour wipe mounted for its full visual lifetime. The
 // CSS values are mirrored here so the state teardown never truncates a slow,
 // physical-looking edge motion.
-const PROJECT_PREVIEW_SURFACE_DURATION_MS = 820
-const PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS = 760
+const PROJECT_PREVIEW_SURFACE_DURATION_MS = 1080
+const PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS = 980
 const PROJECT_PREVIEW_EXIT_SOURCE_REVEAL_MS = 220
 const ROUTE_EXIT_SNOW_MAX_CELLS = 76000
 const ROUTE_EXIT_SNOW_MIN_COLUMNS = 144
@@ -6843,6 +6843,8 @@ function runProjectPreviewExitGhost(
       ghost.style.opacity = "0"
     })
   }
+  // The exit ghost uses the same 420ms stage motion as the existing expand
+  // surface; keep it mounted for a short settle buffer before teardown.
   window.setTimeout(cleanup, catalogFilterDuration(420) + 140)
 }
 
@@ -6920,7 +6922,28 @@ function setProjectPreview(card, expanded) {
   // The current preview can provide the next snapshot after the old one leaves.
   clearProjectPreviewExitGhosts()
 
+  // When switching directly between previews, preserve the outgoing expanded
+  // surface as a paint-only snapshot. The real card must still be committed
+  // immediately so the next preview can claim the layout, while the snapshot
+  // retracts back toward the old card's compact geometry.
+  const switchExitMotion = expanded && current && current !== card
+    ? createProjectPreviewExitGhost(current)
+    : null
+  if (switchExitMotion?.ghost) {
+    const outgoingCopy = switchExitMotion.ghost.querySelector(".project-preview-copy")
+    if (outgoingCopy) {
+      outgoingCopy.style.opacity = "1"
+      outgoingCopy.style.transform = "translate3d(0, 0, 0)"
+    }
+  }
+
   if (prefersReducedMotion()) {
+    // The snapshot is only needed for the animated handoff.
+    if (switchExitMotion?.ghost) {
+      releaseProjectPreviewExitSource(switchExitMotion.ghost)
+      switchExitMotion.ghost.remove()
+      siteState.projectPreviewExitGhosts.delete(switchExitMotion.ghost)
+    }
     commitProjectPreviewState(card, expanded)
     return
   }
@@ -6945,6 +6968,9 @@ function setProjectPreview(card, expanded) {
   prepareProjectPreviewExpandMotion(card)
   document.documentElement.dataset.projectPreviewTransition = "expanding"
   commitProjectPreviewState(card, expanded)
+  if (switchExitMotion) {
+    runProjectPreviewExitGhost(switchExitMotion, current, { fade: false })
+  }
   // The real media remains the paint anchor. Only the background/rules animate;
   // type is revealed after that surface has reached full bleed.
   window.setTimeout(() => {

@@ -6938,7 +6938,7 @@ function setProjectPreview(card, expanded) {
   card.removeAttribute("data-project-preview-collapsing")
   card.removeAttribute("data-project-preview-ready")
   const detailDrawer = activeProjectDetailDrawer()
-  if (detailDrawer && (!expanded || detailDrawer.card !== card)) {
+  if (detailDrawer && (!expanded || detailDrawer.card !== card) && !card.__projectPreviewCollapseWithDrawer) {
     closeProjectDetailDrawer({ immediate: true })
   }
 
@@ -7000,7 +7000,7 @@ function activeProjectDetailDrawer() {
     : null
 }
 
-function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {}) {
+function closeProjectDetailDrawer({ immediate = false, afterClose = null, onCloseStart = null } = {}) {
   const drawerState = activeProjectDetailDrawer()
   if (!drawerState) return
   cancelProjectPreviewAnchor()
@@ -7011,17 +7011,42 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
   // teardown (dismiss + preview collapse used to race this path).
   if (element.dataset.drawerState === "closing" && !immediate) return
   const shouldAnimate = !immediate && !reducedMotion
+  // Notify coordinated preview collapse before the drawer starts retracting.
+  // This lets both surfaces animate in parallel; waiting for drawer teardown
+  // before restoring the grid used to leave a visible pause in the old card
+  // column during rapid open/close clicks.
+  onCloseStart?.(card)
   // The card is a sticky secondary header while the article is open. On
   // compact layouts it may currently be compressed to only a title; animate
   // that height back to its natural preview size at the same time as the
   // drawer retracts so removing the sticky state cannot cause a second jump.
   if (shouldAnimate && card?.isConnected) {
+    // The preview can gain height while the drawer is open (lazy media and
+    // fonts commonly finish during that interval). The detail-header height
+    // captured at open time is therefore stale by close time. Measure the
+    // current natural preview height before entering the closing state so the
+    // sticky lead can interpolate to the real grid height instead of snapping
+    // when data-project-detail-open is removed.
+    const hadDetailOpen = card.hasAttribute("data-project-detail-open")
+    const hadHeaderCompressed = card.hasAttribute("data-project-detail-header-compressed")
+    const hadHeaderMinimized = card.hasAttribute("data-project-detail-header-minimized")
+    card.removeAttribute("data-project-detail-open")
+    card.removeAttribute("data-project-detail-header-compressed")
+    card.removeAttribute("data-project-detail-header-minimized")
+    const naturalPreviewHeight = card.getBoundingClientRect().height
+    if (hadDetailOpen) card.setAttribute("data-project-detail-open", "true")
+    if (hadHeaderCompressed) card.setAttribute("data-project-detail-header-compressed", "true")
+    if (hadHeaderMinimized) card.setAttribute("data-project-detail-header-minimized", "true")
+    if (Number.isFinite(naturalPreviewHeight) && naturalPreviewHeight > 0) {
+      setElementStyleProperty(card, "--project-detail-header-expanded-height", `${naturalPreviewHeight.toFixed(2)}px`)
+    }
     card.setAttribute("data-project-detail-header-closing", "true")
     card.removeAttribute("data-project-detail-header-minimized")
     void card.offsetHeight
     setElementStyleProperty(card, "--project-detail-header-progress", "0")
   }
   const finish = () => {
+    const coordinatedPreviewCollapse = card?.__projectPreviewCollapseWithDrawer === true
     drawerState.resizeObserver?.disconnect?.()
     element.style.removeProperty("max-height")
     element.remove()
@@ -7041,7 +7066,20 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
       card.style.removeProperty("--project-detail-header-pad")
     }
     if (siteState.projectDetailDrawer === drawerState) siteState.projectDetailDrawer = null
-    refreshAfterProjectPreviewChange()
+    if (coordinatedPreviewCollapse && card?.isConnected) {
+      // The visual retract started with the drawer. Commit the grid restore
+      // in this same teardown task, after the drawer is removed, so the
+      // browser never paints an intermediate row with a missing drawer slot.
+      window.clearTimeout(card.__projectPreviewCollapseTimer)
+      card.__projectPreviewCollapseTimer = 0
+      card.removeAttribute("data-project-preview-collapsing")
+      card.removeAttribute("data-project-preview-ready")
+      clearProjectPreviewExpandMotion(card)
+      clearProjectPreviewHeightLock(card)
+      commitProjectPreviewState(card, false)
+    } else {
+      refreshAfterProjectPreviewChange()
+    }
     afterClose?.(card)
   }
   if (shouldAnimate) {
@@ -7152,8 +7190,18 @@ function dismissProjectPreview(event) {
   const drawerState = activeProjectDetailDrawer()
   if (drawerState) {
     closeProjectDetailDrawer({
+      // Start the preview retract at the same time as the drawer retract.
+      // The drawer remains mounted for its own animation, while the card's
+      // source row is restored on the same timeline instead of one after the
+      // other (which read as a one-frame stall in rapid interactions).
+      onCloseStart: (card) => {
+        if (card?.isConnected && activeProjectPreview() === card) {
+          card.__projectPreviewCollapseWithDrawer = true
+          setProjectPreview(card, false)
+        }
+      },
       afterClose: (card) => {
-        if (card?.isConnected && activeProjectPreview() === card) setProjectPreview(card, false)
+        if (card) delete card.__projectPreviewCollapseWithDrawer
       },
     })
     return

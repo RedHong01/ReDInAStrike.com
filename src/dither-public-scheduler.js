@@ -21,7 +21,11 @@ import {
 } from "./dither-resize-snow.js?v=20260903-scrollperf2"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
-const PUBLIC_STYLE_VERSION = "8"
+// Keep the runtime style cache-busted when the handoff selectors change.  A
+// muted card must keep its original image painted until its replacement
+// dither canvas has produced a complete frame; hiding it at class-toggle time
+// creates a one-frame paper flash across the whole column.
+const PUBLIC_STYLE_VERSION = "9"
 const ROOT_MODE_ATTRIBUTE = "data-red-published-dither"
 const ACTIVE_COLOR_RETURN_ATTRIBUTE = "data-active-color-return"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
@@ -186,8 +190,18 @@ function ensurePublicStyles() {
       pointer-events: none;
       transition: opacity 90ms linear;
     }
+    /* Atomic image → dither handoff.  Classifying the card as muted happens
+       before renderCard() gets a chance to paint.  Keep the source image
+       visible during that pending window, then hide it in the same style
+       transaction that marks data-dither-ready. */
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
       .catalog[data-active-filter] .project-card.is-filter-muted .project-media > img {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
+      .catalog[data-active-filter] .project-card.is-filter-muted
+      .project-media[data-dither-ready="true"] > img {
       opacity: 0 !important;
       visibility: hidden !important;
     }
@@ -199,7 +213,8 @@ function ensurePublicStyles() {
     }
     html[${ROOT_MODE_ATTRIBUTE}]:not([${ROOT_MODE_ATTRIBUTE}="native"])
       .catalog[data-active-filter][data-filter-phase]
-      .project-card.is-filter-muted .project-media > img {
+      .project-card.is-filter-muted
+      .project-media[data-dither-ready="true"] > img {
       opacity: 0 !important;
       visibility: hidden !important;
     }

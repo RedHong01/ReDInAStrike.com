@@ -163,6 +163,12 @@
   --project-first-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
   --project-preview-duration: 420ms;
+  /* Keep the edge wipe slow enough to read as a physical colour bar moving
+     across the viewport. These values are mirrored by the JS teardown timer
+     so the state attribute is not removed before the paint animation settles. */
+  --project-preview-surface-duration: 820ms;
+  --project-preview-surface-retract-duration: 760ms;
+  --project-preview-surface-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --project-preview-exit-fade-duration: 180ms;
   --project-preview-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -1869,6 +1875,38 @@ body[data-layout-transition="true"] .about-section {
   transition: none;
 }
 
+/* A detail card remains the visual anchor while its article scrolls. Keep a
+   local colour fallback on the sticky card and reset the full-bleed surface
+   after the opening animation has settled; otherwise a long scroll can leave
+   the pseudo-element in a clipped/paint-skipped state and expose bare paper. */
+.project-card.is-project-preview[data-project-detail-open="true"] {
+  background: var(--preview-media-bg, var(--media-bg, var(--media-surface)));
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"]::before {
+  clip-path: inset(0);
+  animation: none !important;
+}
+
+/* At the minimum sticky-header height, retain the title/type but remove the
+   preview bitmap. The media box keeps the sampled project colour, so the
+   compact header remains a solid anchor without paying for image painting. */
+.project-card.is-project-preview[data-project-detail-header-minimized="true"] .project-media > img {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.project-card.is-project-preview[data-project-detail-header-minimized="true"] .project-media {
+  background: var(--preview-media-bg, var(--media-bg, var(--media-surface)));
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media > img {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-summary,
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-meta,
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-enter {
@@ -3387,6 +3425,9 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .project-row.has-project-preview > .project-card:not(.is-project-preview) {
     display: block;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .project-row.has-project-preview:not(:last-child):has(> .project-card:last-child:not(.is-project-preview))::after,
@@ -3824,7 +3865,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
 .project-row.has-project-preview > .project-card:not(.is-project-preview) {
   display: block;
+  /* Dither canvases can set their own visibility, which would bypass a
+     visibility:hidden parent and leave a ghost image in the neighboring
+     column. Opacity is inherited by compositing, so the entire sibling paint
+     tree is removed while the expanded surface owns the row. */
   visibility: hidden;
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -3893,41 +3939,63 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   z-index: 0;
   top: calc(-1 * var(--project-rule-card-gap));
   bottom: calc(-1 * var(--project-caption-rule-gap));
-  left: calc((100vw - 100%) / -2);
-  width: 100vw;
+  /* The pseudo-element is anchored to the card (not the row), so a
+     card-column percentage cannot calculate the content edge correctly.
+     Overscan both sides by one viewport and let the card's clip-path control
+     the reveal; this guarantees a true full-bleed surface at every column
+     width without exposing the neighboring card during the transition. */
+  left: -100vw;
+  width: 300vw;
   height: auto;
   background:
     linear-gradient(var(--preview-rule, var(--rule)), var(--preview-rule, var(--rule))) top / 100% var(--project-preview-rule-width) no-repeat,
     var(--preview-media-bg, var(--media-bg, var(--media-surface)));
-  clip-path: inset(0 0 0 100%);
-  animation: preview-surface-expand-left 560ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+  clip-path: inset(0);
+  animation: none !important;
   pointer-events: none;
 }
 
 .project-card.is-project-preview[data-card-side="right"]::before {
-  clip-path: inset(0 100% 0 0);
-  animation-name: preview-surface-expand-right !important;
+  clip-path: inset(0);
 }
 
-.project-card.is-project-preview[data-project-preview-collapsing="true"]::before {
-  animation-direction: reverse !important;
+.project-card.is-project-preview[data-project-preview-expanding="true"][data-card-side="left"]::before {
+  clip-path: inset(0 100% 0 0);
+  animation: preview-surface-expand-left var(--project-preview-surface-duration) var(--project-preview-surface-ease) both !important;
+}
+
+.project-card.is-project-preview[data-project-preview-expanding="true"][data-card-side="right"]::before {
+  clip-path: inset(0 0 0 100%);
+  animation: preview-surface-expand-right var(--project-preview-surface-duration) var(--project-preview-surface-ease) both !important;
+}
+
+.project-card.is-project-preview[data-project-preview-collapsing="true"][data-card-side="left"]::before {
+  animation: preview-surface-collapse-left var(--project-preview-surface-retract-duration) var(--project-preview-surface-ease) both !important;
+}
+
+.project-card.is-project-preview[data-project-preview-collapsing="true"][data-card-side="right"]::before {
+  animation: preview-surface-collapse-right var(--project-preview-surface-retract-duration) var(--project-preview-surface-ease) both !important;
 }
 
 .project-card.is-project-preview::after {
   z-index: 4;
-  left: calc((100vw - 100%) / -2);
+  left: -100vw;
   right: auto;
-  width: 100vw;
+  width: 300vw;
   bottom: calc(-1 * var(--project-caption-rule-gap));
   top: auto;
   height: var(--project-preview-rule-width);
   background: var(--preview-rule, var(--rule));
   transform-origin: center;
-  animation: preview-rule-expand 560ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+  animation: none !important;
+}
+
+.project-card.is-project-preview[data-project-preview-expanding="true"]::after {
+  animation: preview-rule-expand var(--project-preview-surface-duration) var(--project-preview-surface-ease) both !important;
 }
 
 .project-card.is-project-preview[data-project-preview-collapsing="true"]::after {
-  animation-direction: reverse !important;
+  animation: preview-rule-collapse var(--project-preview-surface-retract-duration) var(--project-preview-surface-ease) both !important;
 }
 
 .project-card.is-project-preview[data-project-preview-expanding="true"] .project-preview-copy {
@@ -3952,14 +4020,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 }
 
 @keyframes preview-surface-expand-left {
-  from { clip-path: inset(0 0 0 100%); }
-  65% { clip-path: inset(0 0 0 0); }
+  from { clip-path: inset(0 100% 0 0); }
   to { clip-path: inset(0 0 0 0); }
 }
 
 @keyframes preview-surface-expand-right {
-  from { clip-path: inset(0 100% 0 0); }
-  65% { clip-path: inset(0 0 0 0); }
+  from { clip-path: inset(0 0 0 100%); }
   to { clip-path: inset(0 0 0 0); }
 }
 
@@ -3968,12 +4034,37 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   to { transform: scaleX(1); }
 }
 
+@keyframes preview-surface-collapse-left {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 100% 0 0); }
+}
+
+@keyframes preview-surface-collapse-right {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 0 0 100%); }
+}
+
+@keyframes preview-rule-collapse {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
 @media (max-width: 980px), (orientation: portrait) {
   .project-row.has-project-preview {
     grid-template-columns: 1fr;
     row-gap: var(--project-caption-rule-gap);
     padding-top: var(--project-rule-card-gap);
     padding-bottom: var(--project-caption-rule-gap);
+  }
+
+  /* The compact layout stacks both cards in normal flow.  The desktop
+     anchor rule hides the non-active grid sibling to keep it from painting
+     over a full-bleed surface; retaining that visibility state here would
+     silently delete the next card while an article drawer is open. */
+  .project-row.has-project-preview > .project-card:not(.is-project-preview) {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .project-card.is-project-preview {
@@ -4054,5 +4145,65 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .footer-gallery-track {
     animation: none !important;
     transform: none !important;
+  }
+}
+
+/* Keep the expanded preview media at the same scale as its original card.
+   The earlier desktop inset rule shrank the image box by the edge padding once
+   the surface expanded. The media container already owns the source aspect
+   ratio, so the image fills that box while object-fit still preserves it. */
+@media (min-width: 981px) and (orientation: landscape) {
+  .project-card.is-project-preview[data-card-side="left"] .project-media > img,
+  .project-card.is-project-preview[data-card-side="right"] .project-media > img {
+    top: 0;
+    left: 0;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* The copy surface is already positioned at the content edge of the
+   opposite column. Reapplying --content-edge-pad here double-offsets the
+   type (especially as the logo grows at wide breakpoints). Keep the type on
+   the responsive logo/content baseline instead. */
+@media (min-width: 981px) and (orientation: landscape) {
+  .project-card.is-project-preview[data-card-side="left"] .project-preview-copy {
+    padding-right: 0;
+  }
+
+  .project-card.is-project-preview[data-card-side="right"] .project-preview-copy {
+    padding-left: 0;
+  }
+}
+
+/* Keep an opened lead's colour on the sticky card itself. The preview anchor
+   uses a transparent card so its overscanned pseudo-surface can wipe in from
+   an edge; once the lead is compressed, that paint layer can be clipped by a
+   containing boundary. A card-level colour fallback prevents a white flash
+   during long article scrolls without adding another animated layer. */
+.project-card.is-project-preview[data-project-detail-open="true"] {
+  background: var(--preview-media-bg, var(--media-bg, var(--media-surface)));
+}
+
+/* Compact sticky leads stop showing the source bitmap at minimum height. Keep
+   the media box/background so the colour remains continuous; clip-path removes
+   the image without a fade or a layout reflow. */
+@media (max-width: 980px), (orientation: portrait) {
+  .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-media {
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+  }
+
+  .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-media > img,
+  .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-media canvas {
+    visibility: hidden;
+  }
+
+  .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media {
+    clip-path: inset(0);
+    pointer-events: auto;
   }
 }

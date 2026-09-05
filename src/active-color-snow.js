@@ -2889,14 +2889,20 @@ function replayActiveColorSnow(inputConfig = runtimeConfig) {
 }
 
 function ensureHubExtension() {
-  if (!document.querySelector(".dither-lab")) return
+  if (!document.querySelector(".dither-lab")) return false
   if (!hubLoadPromise) {
     hubLoadPromise = import("./active-color-hub.js?v=20260905-perf1")
   }
+  // The hub is mounted directly under body. Once it exists, no later body
+  // mutation can make this loader discover anything new, so release the
+  // observer immediately instead of keeping a global subtree watch alive.
+  panelWatchObserver?.disconnect()
+  panelWatchObserver = null
+  return true
 }
 
 function watchForHub() {
-  ensureHubExtension()
+  if (ensureHubExtension()) return
   if (
     !("MutationObserver" in window) ||
     panelWatchObserver ||
@@ -2904,8 +2910,18 @@ function watchForHub() {
   ) {
     return
   }
-  panelWatchObserver = new MutationObserver(ensureHubExtension)
-  panelWatchObserver.observe(document.body, { childList: true, subtree: true })
+  panelWatchObserver = new MutationObserver((mutations) => {
+    const panelAdded = mutations.some((mutation) => [...mutation.addedNodes].some(
+      (node) => node instanceof Element && (
+        node.matches?.(".dither-lab") || node.querySelector?.(".dither-lab")
+      ),
+    ))
+    if (panelAdded) ensureHubExtension()
+  })
+  // dither-hub-core.mountPanel() appends the panel directly to body. Watch
+  // only that child list; observing every descendant made unrelated catalog
+  // and canvas mutations wake this loader on every frame.
+  panelWatchObserver.observe(document.body, { childList: true })
 }
 
 window.addEventListener("red:active-color-config", (event) => {

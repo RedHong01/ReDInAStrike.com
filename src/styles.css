@@ -4422,33 +4422,40 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 }
 
-/* Keep the expanded preview media at the same scale as its original card.
-   The earlier desktop inset rule shrank the image box by the edge padding once
-   the surface expanded. The media container already owns the source aspect
-   ratio, so the image fills that box while object-fit still preserves it. */
+/* Preserve the source card's desktop media geometry while the surface grows
+   to full bleed. The colour layer owns the expansion; the bitmap keeps the
+   content-edge inset and source aspect ratio so it does not become oversized. */
 @media (min-width: 981px) and (orientation: landscape) {
-  .project-card.is-project-preview[data-card-side="left"] .project-media > img,
-  .project-card.is-project-preview[data-card-side="right"] .project-media > img {
-    top: 0;
-    left: 0;
-    right: auto;
+  .project-card.is-project-preview .project-media > img {
+    top: var(--project-preview-content-block-pad);
     bottom: auto;
-    width: 100%;
-    height: 100%;
+    width: calc(100% - var(--content-edge-pad) - var(--project-card-column-gap) / 2);
+    height: calc(100% - var(--project-preview-content-block-pad) * 2);
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .project-card.is-project-preview[data-card-side="left"] .project-media > img {
+    left: var(--content-edge-pad);
+    right: auto;
+  }
+
+  .project-card.is-project-preview[data-card-side="right"] .project-media > img {
+    left: calc(var(--project-card-column-gap) / 2);
+    right: auto;
   }
 }
 
-/* The copy surface is already positioned at the content edge of the
-   opposite column. Reapplying --content-edge-pad here double-offsets the
-   type (especially as the logo grows at wide breakpoints). Keep the type on
-   the responsive logo/content baseline instead. */
+/* Keep the type on the same live content edge as the catalogue. The media
+   occupies the opposite half of the full-bleed surface, so the inset belongs
+   on the copy's outside edge and must track the header/logo geometry. */
 @media (min-width: 981px) and (orientation: landscape) {
   .project-card.is-project-preview[data-card-side="left"] .project-preview-copy {
-    padding-right: 0;
+    padding-right: var(--content-edge-pad);
   }
 
   .project-card.is-project-preview[data-card-side="right"] .project-preview-copy {
-    padding-left: 0;
+    padding-left: var(--content-edge-pad);
   }
 }
 
@@ -4719,25 +4726,27 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 }
 
-/* Keep the image inside a stable visual inset while the card expands.  The
-   coloured full-bleed surface remains owned by the card pseudo-element, so
-   reducing the bitmap cannot remove the edge-to-edge treatment. */
-.catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media > img {
-  top: var(--project-preview-media-inset);
-  right: var(--project-preview-media-inset);
-  bottom: var(--project-preview-media-inset);
-  left: var(--project-preview-media-inset);
-  width: calc(100% - var(--project-preview-media-inset) * 2);
-  height: calc(100% - var(--project-preview-media-inset) * 2);
-  transition:
-    top var(--responsive-duration) var(--responsive-ease),
-    right var(--responsive-duration) var(--responsive-ease),
-    bottom var(--responsive-duration) var(--responsive-ease),
-    left var(--responsive-duration) var(--responsive-ease),
-    width var(--responsive-duration) var(--responsive-ease),
-    height var(--responsive-duration) var(--responsive-ease),
-    opacity 360ms ease,
-    visibility 0s linear 360ms;
+/* Keep the image inside a stable visual inset while a compact preview
+   expands. The desktop two-column layout uses the source card's content-edge
+   geometry above; this symmetric inset is for the single-column breakpoints. */
+@media (max-width: 980px), (orientation: portrait) {
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media > img {
+    top: var(--project-preview-media-inset);
+    right: var(--project-preview-media-inset);
+    bottom: var(--project-preview-media-inset);
+    left: var(--project-preview-media-inset);
+    width: calc(100% - var(--project-preview-media-inset) * 2);
+    height: calc(100% - var(--project-preview-media-inset) * 2);
+    transition:
+      top var(--responsive-duration) var(--responsive-ease),
+      right var(--responsive-duration) var(--responsive-ease),
+      bottom var(--responsive-duration) var(--responsive-ease),
+      left var(--responsive-duration) var(--responsive-ease),
+      width var(--responsive-duration) var(--responsive-ease),
+      height var(--responsive-duration) var(--responsive-ease),
+      opacity 360ms ease,
+      visibility 0s linear 360ms;
+  }
 }
 
 /* At compact widths the expanded preview becomes a text-led colour panel.
@@ -5186,4 +5195,19 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .catalog .project-card.is-project-preview:not([data-project-detail-open="true"])[data-project-preview-header-seam="true"][data-project-preview-about-seam="true"]::after {
   opacity: 0 !important;
   background: transparent !important;
+}
+
+/* The settled ordinary-preview cascade is intentionally kept at the end of
+   this file: its generic padding shorthand otherwise wins over the earlier
+   edge-alignment rule.  Match that same state here and only replace the
+   outside inset, preserving the top/bottom/inner padding and the mobile
+   single-column layout. */
+@media (min-width: 981px) and (orientation: landscape) {
+  .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-card-side="left"] .project-preview-copy {
+    padding-right: var(--content-edge-pad);
+  }
+
+  .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-card-side="right"] .project-preview-copy {
+    padding-left: var(--content-edge-pad);
+  }
 }

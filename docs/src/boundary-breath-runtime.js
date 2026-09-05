@@ -67,6 +67,8 @@ function isMutedCardBase(card, targetCatalog) {
 function isMutedCard(card, targetCatalog) {
   return Boolean(
     isMutedCardBase(card, targetCatalog) &&
+    !card.classList.contains("is-muted-restore-intent") &&
+    !card.classList.contains("is-muted-restore-return") &&
     !cardHasRuntimeOwner(card, ACTIVE_COLOR_MOTION_ATTRIBUTE) &&
     !cardHasRuntimeOwner(card, ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) &&
     !cardHasRuntimeOwner(card, DITHER_RESIZE_MOTION_ATTRIBUTE),
@@ -76,6 +78,8 @@ function isMutedCard(card, targetCatalog) {
 function shouldKeepTrackedCard(card, targetCatalog) {
   return Boolean(
     isMutedCardBase(card, targetCatalog) &&
+    !card.classList.contains("is-muted-restore-intent") &&
+    !card.classList.contains("is-muted-restore-return") &&
     !cardHasRuntimeOwner(card, ACTIVE_COLOR_MOTION_ATTRIBUTE) &&
     !cardHasRuntimeOwner(card, ACTIVE_COLOR_COOLDOWN_ATTRIBUTE),
   )
@@ -398,6 +402,16 @@ function mutedClassChanged(mutation) {
   return before.has("is-filter-muted") !== target.classList.contains("is-filter-muted")
 }
 
+function restoreOwnershipClassChanged(mutation) {
+  const target = mutation.target
+  if (!(target instanceof Element) || !target.classList.contains("project-card")) return false
+  const before = new Set(String(mutation.oldValue || "").split(/\s+/).filter(Boolean))
+  return (
+    before.has("is-muted-restore-intent") !== target.classList.contains("is-muted-restore-intent") ||
+    before.has("is-muted-restore-return") !== target.classList.contains("is-muted-restore-return")
+  )
+}
+
 function structuralMutationNeedsSync(mutation) {
   if (mutation.type !== "childList") return false
   const nodes = [...mutation.addedNodes, ...mutation.removedNodes]
@@ -418,6 +432,9 @@ function catalogMutationNeedsFullSync(mutation, targetCatalog) {
 
 function catalogMutationCardTarget(mutation) {
   if (mutation.type !== "attributes") return null
+  if (mutation.attributeName === "class" && restoreOwnershipClassChanged(mutation)) {
+    return mutation.target
+  }
   if (
     mutation.target instanceof Element &&
     mutation.target.classList.contains("project-card") &&

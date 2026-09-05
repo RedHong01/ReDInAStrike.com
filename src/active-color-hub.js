@@ -325,9 +325,19 @@ function tryBind() {
 workingConfig = loadWorkingConfig()
 document.addEventListener("click", (event) => void interceptCombinedCopy(event), true)
 if (!tryBind()) {
-  const observer = new MutationObserver(() => {
-    if (!tryBind()) return
+  const observer = new MutationObserver((mutations) => {
+    const panelAdded = mutations.some((mutation) => [...mutation.addedNodes].some(
+      (node) => node instanceof Element && (
+        node.matches?.(".dither-lab") || node.querySelector?.(".dither-lab")
+      ),
+    ))
+    if (!panelAdded || !tryBind()) return
     observer.disconnect()
   })
-  observer.observe(document.documentElement, { childList: true, subtree: true })
+  // The dither hub mounts as a direct child of body. Keep a documentElement
+  // fallback only for the unusual case where this module runs before body is
+  // available; normal pages avoid a whole-document subtree observer.
+  const mountRoot = document.body
+  if (mountRoot) observer.observe(mountRoot, { childList: true })
+  else observer.observe(document.documentElement, { childList: true, subtree: true })
 }

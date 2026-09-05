@@ -819,6 +819,34 @@ function asset(path) {
   return `${base}${path.replace(/^\/+/, "")}`
 }
 
+// These WebP files were generated from the corresponding PNGs without any
+// pixel changes. Keep the PNG as the src fallback so the image remains a
+// direct child of .project-media and older browsers still get a usable source;
+// browsers with WebP support select the smaller candidate through srcset.
+const EXACT_WEBP_IMAGE_PAIRS = new Map([
+  ["assets/framer-live/alt-controller-2025-b.png", "assets/framer-live/alt-controller-2025-b.webp"],
+  ["assets/framer-live/game-prototype-2026.png", "assets/framer-live/game-prototype-2026.webp"],
+  ["assets/framer-live/my-fridge.png", "assets/framer-live/my-fridge.webp"],
+  ["assets/framer-live/narrative-doc-2025-a.png", "assets/framer-live/narrative-doc-2025-a.webp"],
+  ["assets/framer-live/ongoing-game-project.png", "assets/framer-live/ongoing-game-project.webp"],
+  ["assets/framer-live/serial-deminer.png", "assets/framer-live/serial-deminer.webp"],
+  ["assets/framer-live/service-game-ui-2026-a.png", "assets/framer-live/service-game-ui-2026-a.webp"],
+  ["assets/framer-live/uiux-prototype-2024.png", "assets/framer-live/uiux-prototype-2024.webp"],
+])
+
+function imageSourceAttrs(path) {
+  const sourcePath = String(path || "")
+  const sourceUrl = asset(sourcePath)
+  const queryStart = sourcePath.search(/[?#]/)
+  const basePath = queryStart === -1 ? sourcePath : sourcePath.slice(0, queryStart)
+  const suffix = queryStart === -1 ? "" : sourcePath.slice(queryStart)
+  const webpPath = EXACT_WEBP_IMAGE_PAIRS.get(basePath)
+
+  if (!webpPath) return `src="${escapeHtml(sourceUrl)}"`
+
+  return `src="${escapeHtml(sourceUrl)}" srcset="${escapeHtml(asset(`${webpPath}${suffix}`))} 1x"`
+}
+
 function hrefFor(path) {
   if (path === "/") return base
   const slug = path.replace(/^\/+/, "")
@@ -2586,7 +2614,7 @@ function projectLeadMarkup(project, { detail = false } = {}) {
     <section class="project-lead project-card is-project-preview" data-card-side="${side}" data-media-bg-mode="${project.mediaBackground ? "fixed" : "image"}" aria-label="${escapeHtml(leadLabel)}" style="${mediaStyle(project)}">
       <figure class="project-media${project.mediaBackground ? " has-media-background" : ""}">
         <img
-          src="${asset(project.image)}"
+          ${imageSourceAttrs(project.image)}
           alt="${escapeHtml(title)}"
           loading="eager"
           fetchpriority="high"
@@ -2626,7 +2654,7 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
     <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-card-side="${cardSide}" data-section="${escapeHtml(project.navHash)}" data-index="${index}" data-media-bg-mode="${mediaBackgroundMode}" aria-expanded="false" style="${mediaStyle(project)}"${mutedAttributes}>
       <figure class="project-media${mediaBackgroundClass}"${videoAttributes}>
         <img
-          src="${asset(project.image)}"
+          ${imageSourceAttrs(project.image)}
           alt="${escapeHtml(project.pageTitle)}"
           loading="${eagerImage ? "eager" : "lazy"}"
           fetchpriority="${fetchPriority}"
@@ -2823,7 +2851,7 @@ function galleryTile(project, index, isClone = false) {
     <a class="footer-gallery-tile" href="${hrefFor(project.path)}" style="${mediaStyle(project)}"${hiddenAttributes}>
       <figure class="footer-gallery-media${mediaBackgroundClass}">
         <img
-          src="${asset(project.image)}"
+          ${imageSourceAttrs(project.image)}
           alt="${escapeHtml(project.pageTitle)}"
           loading="${imageLoading}"
           fetchpriority="low"
@@ -3113,7 +3141,7 @@ function detailMarkup(project) {
         ></iframe>
       </figure>`
     : `<figure class="detail-screenshot">
-        <img src="${asset(project.image)}" alt="${escapeHtml(project.pageTitle)} full-page reference" loading="lazy" fetchpriority="low" decoding="async" />
+        <img ${imageSourceAttrs(project.image)} alt="${escapeHtml(project.pageTitle)} full-page reference" loading="lazy" fetchpriority="low" decoding="async" />
       </figure>`
 
   return `
@@ -3147,7 +3175,7 @@ function framerProjectDetailMarkup(project, detail) {
       <article class="framer-derived-shell" aria-label="${escapeHtml(detail.title)} project page">
         <section class="framer-derived-intro">
           <figure>
-            <img src="${asset(detail.leadImage)}" alt="${escapeHtml(detail.leadAlt)}" loading="eager" decoding="async" />
+            <img ${imageSourceAttrs(detail.leadImage)} alt="${escapeHtml(detail.leadAlt)}" loading="eager" decoding="async" />
           </figure>
           <div>
             <p>${bilingualText(detail.summary)}</p>
@@ -3161,7 +3189,7 @@ function framerProjectDetailMarkup(project, detail) {
 
         <section class="framer-derived-reference" aria-label="${escapeHtml(detail.title)} full page">
           <figure>
-            <img src="${asset(detail.routeImage)}" alt="${escapeHtml(detail.title)} Framer page capture" loading="lazy" decoding="async" />
+            <img ${imageSourceAttrs(detail.routeImage)} alt="${escapeHtml(detail.title)} Framer page capture" loading="lazy" decoding="async" />
           </figure>
         </section>
 
@@ -3193,7 +3221,7 @@ function caseImagePath(path) {
 function caseImage(path, alt, className = "") {
   return `
     <figure class="framer-case-image ${className}">
-      <img src="${asset(caseImagePath(path))}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" />
+      <img ${imageSourceAttrs(caseImagePath(path))} alt="${escapeHtml(alt)}" loading="lazy" decoding="async" />
     </figure>`
 }
 

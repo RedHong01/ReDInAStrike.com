@@ -224,10 +224,17 @@ try {
     await routes.waitForFunction(() => document.querySelector(".project-card.is-project-preview"))
     await routes.waitForFunction(() => !document.documentElement.hasAttribute("data-project-preview-transition"))
     await routes.evaluate(() => document.querySelector("[data-project-card]")?.click())
-    await routes.waitForFunction(() => document.querySelector(".detail-page"))
-    await routes.evaluate(() => history.back())
-    await routes.waitForFunction(() => document.querySelector(".catalog"))
-    await routes.waitForFunction(() => !document.documentElement.dataset.homeReturnTransition)
+    // The current SPA opens the second click as an in-place detail drawer;
+    // older versions navigated to a .detail-page route here. Exercise the
+    // live drawer contract so this leak check does not wait for a node that
+    // the current interaction model intentionally never mounts.
+    await routes.waitForFunction(() => document.querySelector(".project-detail-drawer"))
+    await routes.waitForFunction(() => ["open", "settled"].includes(
+      document.querySelector(".project-detail-drawer")?.dataset.drawerState,
+    ))
+    await routes.evaluate(() => document.querySelector(".project-card.is-project-preview")?.click())
+    await routes.waitForFunction(() => !document.querySelector(".project-detail-drawer"))
+    await routes.waitForFunction(() => !document.querySelector(".project-card.is-project-preview"))
     if (iteration === 0) {
       listenerAfterFirstRoute = await routes.evaluate(() => ({ ...window.__eventAudit.listenerAdds }))
     }

@@ -172,6 +172,7 @@ async function checkPaintedRules(page, card, label) {
       const headerStyle = headerRule ? getComputedStyle(headerRule) : null
       return {
         shared: element.hasAttribute("data-project-preview-header-seam"),
+        aboutShared: element.hasAttribute("data-project-preview-about-seam"),
         previewOpacity: getComputedStyle(element, "::before").opacity,
         headerHeight: Number.parseFloat(headerStyle?.height || "0"),
         headerOpacity: Number.parseFloat(headerStyle?.opacity || "0"),
@@ -181,6 +182,19 @@ async function checkPaintedRules(page, card, label) {
       assert.equal(seam.previewOpacity, "0", `${label}: preview yields shared header seam`)
       assert.equal(seam.headerHeight, 1, `${label}: header keeps its 1px rule`)
       assert(seam.headerOpacity > 0, `${label}: header rule remains visible`)
+      continue
+    }
+    if (edge === "bottom" && seam.aboutShared) {
+      const about = await page.locator(".about-card").first().evaluate((element) => {
+        const rule = getComputedStyle(element, "::before")
+        const rect = window.__auditRect.call(element)
+        return {
+          borderTop: rule.borderTopWidth,
+          top: rect.top,
+        }
+      })
+      assert.equal(about.borderTop, "1px", `${label}: About owns shared lower seam`)
+      assert(Math.abs(about.top - y) < 2, `${label}: About shared seam geometry`)
       continue
     }
     // Repaint only the rule in its opposite color. This proves its full width

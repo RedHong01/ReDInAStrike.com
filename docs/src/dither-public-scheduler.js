@@ -817,7 +817,9 @@ function queueMutedCards(catalog, cards, { restart = false } = {}) {
       state.pendingCards.delete(card)
       card.querySelector(".project-media")?.setAttribute("data-dither-ready", "true")
       state.perf.skippedUpToDate += 1
-      if (viewportDistance(card) <= revealMargin() && armReveal(card, catalog)) {
+      // Reuse the distance measured above; no card geometry changes during
+      // this queue pass, so a second synchronous layout read is redundant.
+      if (distance <= revealMargin() && armReveal(card, catalog)) {
         shouldRefreshReveal = true
       }
       continue
@@ -988,10 +990,16 @@ function requestSettledResizeRender(entries = null) {
 
 function requestLayoutSettleRender() {
   if (state.destroyed || !pageIsVisible() || !publishedIsGenerated()) return
-  const catalog = activeCatalog()
-  if (!catalog) return
-  const needsRender = [...catalog.querySelectorAll(".project-media")]
-    .some(mediaNeedsLogicalResize)
+  // ResizeObserver already maintains the current media set. Reusing it here
+  // avoids a full catalog query and array allocation on each delayed settle
+  // check after a layout transition.
+  let needsRender = false
+  for (const media of state.observedMedia) {
+    if (mediaNeedsLogicalResize(media)) {
+      needsRender = true
+      break
+    }
+  }
   if (needsRender) requestRender()
 }
 

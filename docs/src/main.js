@@ -2814,6 +2814,10 @@ function setupMediaDominantBackgrounds(root = document) {
 function galleryTile(project, index, isClone = false) {
   const hiddenAttributes = isClone ? ` aria-hidden="true" tabindex="-1"` : ""
   const mediaBackgroundClass = project.mediaBackground ? " has-media-background" : ""
+  // The gallery sits below the catalog and renders four repeated sets. Keep
+  // those images out of the critical request/decode path; the browser will
+  // still prefetch them as the footer approaches the viewport.
+  const imageLoading = "lazy"
 
   return `
     <a class="footer-gallery-tile" href="${hrefFor(project.path)}" style="${mediaStyle(project)}"${hiddenAttributes}>
@@ -2821,7 +2825,8 @@ function galleryTile(project, index, isClone = false) {
         <img
           src="${asset(project.image)}"
           alt="${escapeHtml(project.pageTitle)}"
-          loading="eager"
+          loading="${imageLoading}"
+          fetchpriority="low"
           decoding="async"
         />
       </figure>
@@ -3057,7 +3062,7 @@ function aboutMarkup() {
           </div>
         </div>
         <figure class="profile-portrait">
-          <img src="${asset("assets/figma-home/about-profile.png")}" alt="Red Wang portrait" />
+          <img src="${asset("assets/figma-home/about-profile.png")}" alt="Red Wang portrait" loading="lazy" fetchpriority="low" decoding="async" />
         </figure>
         <div class="profile-card">
           <h2 lang="zh-Hans">王紫鹏</h2>
@@ -3105,7 +3110,7 @@ function detailMarkup(project) {
         ></iframe>
       </figure>`
     : `<figure class="detail-screenshot">
-        <img src="${asset(project.image)}" alt="${escapeHtml(project.pageTitle)} full-page reference" />
+        <img src="${asset(project.image)}" alt="${escapeHtml(project.pageTitle)} full-page reference" loading="lazy" fetchpriority="low" decoding="async" />
       </figure>`
 
   return `
@@ -4427,7 +4432,7 @@ function animateFooterGalleryLoop(time) {
   siteState.galleryLoopFrame = requestAnimationFrame(animateFooterGalleryLoop)
 }
 
-function applyFooterComposition() {
+function applyFooterComposition(frameTime = null) {
   const { about } = siteState.dom
   if (about) {
     const pull = Math.max(0, siteState.aboutPull || 0)
@@ -4442,7 +4447,10 @@ function applyFooterComposition() {
     setElementStyleProperty(about, "--about-info-shift", `${shift.toFixed(2)}px`)
   }
   if (siteState.previewHeaderSeamCard?.isConnected) {
-    syncProjectPreviewSeams(readViewportBoundaryContext())
+    // Share the boundary snapshot with the other frame consumers. Without a
+    // timestamp the boundary helper has to repeat its DOM measurements for
+    // every footer animation tick.
+    syncProjectPreviewSeams(readViewportBoundaryContext(frameTime))
   }
   setFooterGalleryStyles(siteState.galleryReveal, siteState.galleryShift, siteState.galleryPocketHeight)
 }
@@ -4473,7 +4481,7 @@ function setFooterCompositionTargets(
     siteState.aboutPull = siteState.aboutTargetPull
     siteState.aboutCardOffset = siteState.aboutCardTargetOffset
     siteState.resumeCardOffset = siteState.resumeCardTargetOffset
-    applyFooterComposition()
+    applyFooterComposition(performance.now())
     return
   }
 
@@ -4605,11 +4613,11 @@ function animateFooterGallery(time) {
     siteState.galleryShift = 0
     siteState.galleryFrame = 0
     siteState.galleryLastFrameTime = 0
-    applyFooterComposition()
+    applyFooterComposition(time)
     return
   }
 
-  applyFooterComposition()
+  applyFooterComposition(time)
   siteState.galleryFrame = requestAnimationFrame(animateFooterGallery)
 }
 

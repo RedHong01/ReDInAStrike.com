@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Red Minion Pro";
-  src: url("../fonts/MinionPro-Regular.otf") format("opentype");
+  src: url("../fonts/MinionPro-Regular.woff2") format("woff2");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
@@ -8,7 +8,7 @@
 
 @font-face {
   font-family: "Red EB Garamond";
-  src: url("../fonts/EBGaramond-Regular.ttf") format("truetype");
+  src: url("../fonts/EBGaramond-Regular.woff2") format("woff2");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: "Red EB Garamond";
-  src: url("../fonts/EBGaramond-Italic.ttf") format("truetype");
+  src: url("../fonts/EBGaramond-Italic.woff2") format("woff2");
   font-style: italic;
   font-weight: 400;
   font-display: swap;
@@ -24,7 +24,7 @@
 
 @font-face {
   font-family: "Red Courier Prime";
-  src: url("../fonts/CourierPrime-Regular.ttf") format("truetype");
+  src: url("../fonts/CourierPrime-Regular.woff2") format("woff2");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
@@ -1876,6 +1876,8 @@ body[data-layout-transition="true"] .about-section {
    is sticky; the drawer stays in normal flow and scrolls behind it. */
 .project-card.is-project-preview[data-project-detail-open="true"] {
   position: sticky;
+  /* Match the historical working anchor: this value is updated from the
+     homepage header's live visual bottom on every header-progress frame. */
   top: var(--project-preview-sticky-top, var(--header-height));
   z-index: 28;
   height: calc(
@@ -1980,6 +1982,9 @@ body[data-layout-transition="true"] .about-section {
   /* Keep two tracks so the column collapse can interpolate instead of
      switching discretely from a two-column grid to a one-column grid. */
   grid-template-columns: minmax(0, 0fr) minmax(0, 1fr);
+  /* The compact header is the boundary of its own content. Prevent a
+     transitional text frame from painting into the homepage header above it. */
+  overflow: clip;
 }
 
 .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-media {
@@ -2031,7 +2036,6 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-summary,
-.project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-meta,
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-enter {
   max-height: 0;
   margin: 0;
@@ -2046,9 +2050,39 @@ body[data-layout-transition="true"] .about-section {
     transform 420ms var(--responsive-ease);
 }
 
+/* The title's secondary line is part of the compact header identity. Keep it
+   visible after the summary and affordance collapse, and let the title/meta
+   pair stay centered as one vertical block. */
+.project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-meta {
+  max-height: 100px;
+  margin: clamp(7px, 0.75vw, 12px) 0 0;
+  overflow: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0);
+}
+
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-copy {
   grid-template-rows: 1fr;
   align-content: center;
+  gap: 0;
+  transition: gap 420ms var(--responsive-ease), grid-template-rows 420ms var(--responsive-ease);
+}
+
+/* At the smallest header height the title and its subtitle must fit as one
+   centered block. Reduce only the title's display size and remove vertical
+   copy padding so the pair cannot rise above or clip through the sticky card. */
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-copy {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-head h2 {
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1;
+  transition:
+    font-size 420ms var(--responsive-ease),
+    transform 420ms var(--responsive-ease);
 }
 
 /* Restore the compact card's secondary metadata as the drawer retracts. A

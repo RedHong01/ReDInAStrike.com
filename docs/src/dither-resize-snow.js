@@ -396,7 +396,9 @@ function drawState(state, now) {
 
 function animationLoop(now) {
   animationFrame = 0
-  for (const state of [...activeStates]) drawState(state, now)
+  // drawState only removes finished/cancelled entries; iterate the Set
+  // directly to avoid allocating a snapshot on every animation frame.
+  for (const state of activeStates) drawState(state, now)
   if (activeStates.size) animationFrame = requestAnimationFrame(animationLoop)
 }
 

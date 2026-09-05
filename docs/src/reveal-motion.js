@@ -653,7 +653,9 @@ function drawState(state, now) {
 
 function animationLoop(now) {
   animationFrame = 0
-  for (const state of [...activeStates]) drawState(state, now)
+  // drawState only removes finished/cancelled entries; Set iteration remains
+  // valid while deleting the current item and avoids a per-frame snapshot.
+  for (const state of activeStates) drawState(state, now)
   if (activeStates.size) animationFrame = requestAnimationFrame(animationLoop)
 }
 
@@ -979,13 +981,12 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
   ensureBoundaryBuffers(state)
   const baseMetrics = boundaryMetrics(bounds)
   const spreadProgress = boundarySpreadProgress(state, now)
-  const metrics = spreadProgress < 1
-    ? {
-        ...baseMetrics,
-        // Keep the edge hold as the seed and grow only the inward depth.
-        depth: Math.max(0.001, baseMetrics.depth * spreadProgress),
-      }
-    : baseMetrics
+  // Keep the edge hold as the seed and grow only the inward depth. Mutate the
+  // fresh metrics object instead of allocating a second object every frame.
+  if (spreadProgress < 1) {
+    baseMetrics.depth = Math.max(0.001, baseMetrics.depth * spreadProgress)
+  }
+  const metrics = baseMetrics
   fillBoundaryTargets(state, rect, bounds, metrics)
   const field = advanceBoundaryField(state, now, options.immediate === true)
   const softness = pixelSoftness(config, "pixel-snow")
@@ -1121,7 +1122,9 @@ function viewportLoop(now) {
   let hasBoundaryTransition = false
   const states = forceScrollFrame || !viewportObserver ? viewportStates : viewportVisibleStates
 
-  for (const state of [...states]) {
+  // drawViewportState can remove the current state, but does not add new
+  // states; direct Set iteration avoids another per-frame snapshot allocation.
+  for (const state of states) {
     if (!viewportStates.has(state)) {
       viewportVisibleStates.delete(state)
       continue

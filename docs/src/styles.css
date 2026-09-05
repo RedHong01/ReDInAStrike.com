@@ -2090,6 +2090,29 @@ body[data-layout-transition="true"] .about-section {
   text-align: center;
 }
 
+/* At the minimum height the collapsed summary and affordance must stop
+   participating in the flex measure. Their borders/line boxes otherwise add
+   a few pixels below the title, which makes the title block overflow upward
+   into the homepage header. Keep the properties animatable while collapsing
+   their final footprint to zero. */
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-copy {
+  gap: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-summary,
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-enter {
+  flex: 0 0 0;
+  block-size: 0;
+  min-block-size: 0;
+  max-block-size: 0;
+  margin-block: 0 !important;
+  padding-block: 0 !important;
+  border-block-width: 0 !important;
+  overflow: hidden;
+}
+
 .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-head h2 {
   font-size: clamp(28px, 4vw, 40px);
   line-height: 1;
@@ -4455,6 +4478,24 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
    responsive rules have finished cascading; otherwise the bar remains while
    its title/subtitle are painted outside the viewport at the small breakpoint. */
 @media (max-width: 980px), (orientation: portrait) {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] {
+    width: 100vw !important;
+    margin-left: calc((100vw - 100%) / -2) !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 0;
+    background: var(--preview-media-bg, var(--media-bg, var(--media-surface, var(--paper))));
+  }
+
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: var(--preview-media-bg, var(--media-bg, var(--media-surface, var(--paper))));
+  }
+
   .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
     left: 0 !important;
     right: 0 !important;
@@ -4462,5 +4503,136 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     bottom: 0;
     width: 100%;
     inset-inline: 0;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    clip-path: inset(0) !important;
+    z-index: 3;
+  }
+}
+
+/* Detail headers use the original full-bleed card geometry.  The preview
+   surface-anchor block above is for ordinary catalogue cards; when the
+   drawer is open it must not turn the sticky header into a half-column block
+   with an absolutely positioned copy surface.  Keeping the card's own box
+   at the viewport edge makes its top boundary the same physical edge as the
+   homepage header at every header progress value. */
+.catalog .project-row.has-project-preview[data-project-detail-open="true"] {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  position: relative;
+  top: auto;
+  z-index: auto;
+  background: var(--paper);
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"] {
+  position: sticky;
+  top: var(--project-preview-sticky-top, var(--header-height));
+  width: 100vw;
+  margin-left: calc((100vw - 100%) / -2);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+  /* Keep the overscanned seam/pseudo-surface visible while the header is
+     expanded. The compact state below becomes its own paint boundary. */
+  overflow: visible;
+  clip-path: none;
+  background: var(--preview-media-bg, var(--media-bg, var(--media-surface, var(--paper))));
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  grid-row: 1;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
+  position: relative;
+  inset: auto;
+  width: auto;
+  min-width: 0;
+  height: 100%;
+  grid-row: 1;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="left"] .project-media {
+  grid-column: 1;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="left"] .project-preview-copy {
+  grid-column: 2;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="right"] .project-media {
+  grid-column: 2;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="right"] .project-preview-copy {
+  grid-column: 1;
+}
+
+/* At the minimum header height the type spans the complete bar, while the
+   media remains the background paint layer.  The zero-footprint summary and
+   affordance rules above then leave the title/subtitle as one centered block. */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-copy {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] {
+  /* The minimum header is the exact seam with the homepage header. Clip the
+     card only at this state so the copy and the overscanned surface cannot
+     paint back into the homepage header during the last transition frames. */
+  overflow: clip;
+  clip-path: inset(0);
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-copy {
+  /* Keep the centered title/type block off both edges of the compact bar.
+     The clamp leaves enough room at the tiny breakpoint while preserving a
+     visibly softer inset on desktop. */
+  padding-block: clamp(4px, 0.8vw, 8px) !important;
+}
+
+@media (min-width: 981px) and (orientation: landscape) {
+  .catalog .project-row.has-project-preview[data-project-detail-open="true"] > .project-card:not(.is-project-preview) {
+    display: none;
+  }
+}
+
+@media (max-width: 980px), (orientation: portrait) {
+  .catalog .project-row.has-project-preview[data-project-detail-open="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog .project-row.has-project-preview[data-project-detail-open="true"] > .project-card:not(.is-project-preview) {
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: clip;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media,
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
+    position: relative;
+    inset: auto;
+    width: 100%;
   }
 }

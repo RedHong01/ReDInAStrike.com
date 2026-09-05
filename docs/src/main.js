@@ -3723,6 +3723,15 @@ function requestProjectDetailHeaderUpdate() {
   }
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
+  if (card.__detailHeaderAnchoring) {
+    setElementStyleProperty(card, "--project-detail-header-progress", "0")
+    setElementStyleProperty(card, "--project-detail-header-expanded-height", `${openHeight.toFixed(2)}px`)
+    setElementStyleProperty(card, "--project-detail-header-min-height", `${compactHeight.toFixed(2)}px`)
+    setElementStyleProperty(card, "--project-detail-header-pad", "42px")
+    card.removeAttribute("data-project-detail-header-compressed")
+    card.removeAttribute("data-project-detail-header-minimized")
+    return
+  }
   const stickyStart = card.__detailHeaderStart - headerHeight
   const progress = clamp((scrollY - stickyStart) / Math.max(180, openHeight - compactHeight + headerHeight * 0.6), 0, 1)
   setElementStyleProperty(card, "--project-detail-header-progress", progress.toFixed(4))
@@ -6832,12 +6841,27 @@ function cancelProjectPreviewAnchor() {
  * header's own scroll pipeline.
  */
 function startProjectPreviewAnchor(card, sourceTop, headerHeight) {
-  if (!card?.isConnected || prefersReducedMotion()) return
-  if (!Number.isFinite(sourceTop) || !Number.isFinite(headerHeight)) return
+  if (!card?.isConnected) return
+  if (prefersReducedMotion()) {
+    card.__detailHeaderAnchoring = false
+    requestProjectDetailHeaderUpdate()
+    return
+  }
+  if (!Number.isFinite(sourceTop) || !Number.isFinite(headerHeight)) {
+    // Never leave the drawer header pinned at progress 0 if its anchor
+    // geometry becomes unavailable during a resize or route hand-off.
+    card.__detailHeaderAnchoring = false
+    requestProjectDetailHeaderUpdate()
+    return
+  }
 
   const startY = window.scrollY || window.pageYOffset || 0
   const targetY = clamp(startY + sourceTop - headerHeight, 0, pageMaxScrollY())
-  if (Math.abs(targetY - startY) <= 1.5) return
+  if (Math.abs(targetY - startY) <= 1.5) {
+    card.__detailHeaderAnchoring = false
+    requestProjectDetailHeaderUpdate()
+    return
+  }
 
   cancelProjectPreviewAnchor()
   const token = siteState.projectPreviewAnchorToken
@@ -6853,6 +6877,8 @@ function startProjectPreviewAnchor(card, sourceTop, headerHeight) {
     })
     if (progress >= 1) {
       siteState.projectPreviewAnchorFrame = 0
+      card.__detailHeaderAnchoring = false
+      requestProjectDetailHeaderUpdate()
       return
     }
     siteState.projectPreviewAnchorFrame = requestAnimationFrame(frame)
@@ -6978,6 +7004,7 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
   const drawerState = activeProjectDetailDrawer()
   if (!drawerState) return
   cancelProjectPreviewAnchor()
+  drawerState.card.__detailHeaderAnchoring = false
   const { element, card } = drawerState
   const reducedMotion = prefersReducedMotion()
   // A second caller must not turn an in-flight close into an immediate
@@ -7088,6 +7115,7 @@ function openProjectDetailDrawer(card, target) {
   card.setAttribute("data-project-detail-open", "true")
   card.setAttribute("aria-controls", drawer.id)
   card.setAttribute("aria-expanded", "true")
+  card.__detailHeaderAnchoring = true
   requestProjectDetailHeaderUpdate()
   refreshAfterProjectPreviewChange()
 

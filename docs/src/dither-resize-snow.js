@@ -15,7 +15,7 @@ import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260904-boundaryhandoff1"
+} from "./reveal-motion.js?v=20260904-edgespread1"
 import {
   sampleCurrentBinarySurface,
 } from "./binary-visible-surface.js?v=20260903-scrollperf2"

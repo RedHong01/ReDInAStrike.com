@@ -3738,11 +3738,13 @@ function requestProjectDetailHeaderUpdate() {
   setElementStyleProperty(card, "--project-detail-header-expanded-height", `${openHeight.toFixed(2)}px`)
   setElementStyleProperty(card, "--project-detail-header-min-height", `${compactHeight.toFixed(2)}px`)
   setElementStyleProperty(card, "--project-detail-header-pad", `${(8 + (1 - progress) * 34).toFixed(2)}px`)
-  card.toggleAttribute("data-project-detail-header-compressed", progress > 0.28)
+  if (progress > 0.28) card.setAttribute("data-project-detail-header-compressed", "true")
+  else card.removeAttribute("data-project-detail-header-compressed")
   // Keep the media paint until the header is genuinely at its minimum. This
   // gives the sticky card a stable hand-off point instead of hiding the image
   // as soon as the metadata starts collapsing.
-  card.toggleAttribute("data-project-detail-header-minimized", progress > 0.82)
+  if (progress > 0.82) card.setAttribute("data-project-detail-header-minimized", "true")
+  else card.removeAttribute("data-project-detail-header-minimized")
 }
 
 /**

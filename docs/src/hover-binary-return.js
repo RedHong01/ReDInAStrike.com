@@ -5,7 +5,7 @@ import {
   handoffViewportDitherBoundaryField,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260904-boundaryhandoff1"
+} from "./reveal-motion.js?v=20260904-edgespread1"
 import {
   drawBinaryBits,
   logicalGridForMedia,

@@ -1884,7 +1884,7 @@ body[data-layout-transition="true"] .about-section {
   );
   min-height: 0;
   overflow: visible;
-  transition: none;
+  transition: grid-template-columns 420ms var(--responsive-ease), height 760ms var(--responsive-ease);
   will-change: height;
 }
 
@@ -1892,7 +1892,9 @@ body[data-layout-transition="true"] .about-section {
    height before the open-state attributes are removed. This keeps compact
    layouts from snapping from the small inner header to the original card. */
 .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] {
-  transition: height 760ms var(--responsive-ease);
+  transition:
+    grid-template-columns 420ms var(--responsive-ease),
+    height 760ms var(--responsive-ease);
 }
 
 .project-card.is-project-preview[data-project-detail-open="true"] .project-media {
@@ -1903,7 +1905,42 @@ body[data-layout-transition="true"] .about-section {
 
 .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
   padding: var(--project-detail-header-pad, 20px);
-  transition: none;
+  transition:
+    padding 420ms var(--responsive-ease),
+    grid-template-rows 420ms var(--responsive-ease),
+    transform 420ms var(--responsive-ease),
+    opacity 260ms ease;
+}
+
+/* The detail header progressively removes its secondary type and summary.
+   Keep the remaining typography centered once those rows no longer occupy
+   space, and animate the text blocks as the layout changes instead of
+   snapping them into their compact positions. */
+.project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-head {
+  align-items: center;
+  justify-items: center;
+  gap: 0;
+  text-align: center;
+  transition:
+    gap 420ms var(--responsive-ease),
+    transform 420ms var(--responsive-ease);
+}
+
+.project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-head h2 {
+  justify-self: center;
+  text-align: center;
+  transform: translate3d(0, 0, 0);
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"] .project-preview-head h2,
+.project-card.is-project-preview[data-project-detail-open="true"] .project-preview-meta,
+.project-card.is-project-preview[data-project-detail-open="true"] .project-preview-summary,
+.project-card.is-project-preview[data-project-detail-open="true"] .project-preview-enter {
+  transition:
+    transform 420ms var(--responsive-ease),
+    opacity 260ms ease,
+    max-height 680ms var(--responsive-ease),
+    margin 680ms var(--responsive-ease);
 }
 
 /* A detail card remains the visual anchor while its article scrolls. Keep a
@@ -1926,6 +1963,53 @@ body[data-layout-transition="true"] .about-section {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
+  transition: opacity 260ms ease, visibility 0s linear 260ms;
+}
+
+.project-card.is-project-preview[data-project-detail-header-minimized="true"] .project-media canvas {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease, visibility 0s linear 260ms;
+}
+
+/* Once the sticky card reaches its minimum height, the image column no longer
+   contributes to the header layout. Let the copy span the full bar so a
+   title with no visible secondary type is centered in the entire header. */
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] {
+  /* Keep two tracks so the column collapse can interpolate instead of
+     switching discretely from a two-column grid to a one-column grid. */
+  grid-template-columns: minmax(0, 0fr) minmax(0, 1fr);
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-media {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-copy {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-items: center;
+  text-align: center;
+}
+
+/* Keep the title on the same full-width track while the drawer retracts.
+   The closing state removes the minimized attribute before teardown; retaining
+   this placement prevents the text from jumping back into one half of the
+   card before the height and surface animations finish. */
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-preview-copy {
+  grid-column: 1 / -1;
+  grid-row: 1;
 }
 
 .project-card.is-project-preview[data-project-detail-header-minimized="true"] .project-media {
@@ -1936,6 +2020,14 @@ body[data-layout-transition="true"] .about-section {
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
+  transition: opacity 260ms ease, visibility 0s linear;
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media canvas {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 260ms ease, visibility 0s linear;
 }
 
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-summary,
@@ -1946,6 +2038,12 @@ body[data-layout-transition="true"] .about-section {
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
+  transform: translate3d(0, -6px, 0);
+  transition:
+    max-height 680ms var(--responsive-ease),
+    margin 680ms var(--responsive-ease),
+    opacity 260ms ease,
+    transform 420ms var(--responsive-ease);
 }
 
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-copy {

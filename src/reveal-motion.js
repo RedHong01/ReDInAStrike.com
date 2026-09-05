@@ -770,6 +770,16 @@ function fillBoundaryTargets(state, rect, bounds, metrics) {
   )
 }
 
+function boundarySpreadProgress(state, now) {
+  const spread = state.boundarySpread
+  if (!spread) return 1
+
+  const raw = clamp((now - spread.startAt) / Math.max(1, spread.duration))
+  const progress = smooth01(raw)
+  if (raw >= 1) state.boundarySpread = null
+  return progress
+}
+
 function boundaryFieldRange(strengths) {
   let first = -1
   let last = -1
@@ -967,7 +977,15 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
   }
 
   ensureBoundaryBuffers(state)
-  const metrics = boundaryMetrics(bounds)
+  const baseMetrics = boundaryMetrics(bounds)
+  const spreadProgress = boundarySpreadProgress(state, now)
+  const metrics = spreadProgress < 1
+    ? {
+        ...baseMetrics,
+        // Keep the edge hold as the seed and grow only the inward depth.
+        depth: Math.max(0.001, baseMetrics.depth * spreadProgress),
+      }
+    : baseMetrics
   fillBoundaryTargets(state, rect, bounds, metrics)
   const field = advanceBoundaryField(state, now, options.immediate === true)
   const softness = pixelSoftness(config, "pixel-snow")
@@ -1186,9 +1204,7 @@ export function paintViewportDitherRevealNow(card, finalCanvas = null, inputConf
     now,
     viewportBoundsForCard(card, readViewportBoundaryContext()),
     true,
-    {
-    immediate: true,
-    },
+    { immediate: false },
   )
   if (animationStates.get(card) !== state) {
     return { ...fallback, reason: "state-cancelled" }
@@ -1227,6 +1243,7 @@ function createState(card, finalCanvas, config, grid, canvas, ctx, mode) {
     boundaryUploadRanges: [],
     boundaryRowsInitialized: false,
     lastBoundaryFieldAt: 0,
+    boundarySpread: null,
   }
 }
 
@@ -1269,6 +1286,18 @@ export function trackViewportDitherReveal(card, finalCanvas, inputConfig = null)
   canvas.style.visibility = "visible"
 
   const state = createState(card, finalCanvas, config, grid, canvas, ctx, "viewport")
+  // Seed the viewport reveal at the two edge holds. The target depth grows
+  // inward over the normal field duration instead of being filled in one
+  // frame when the dither canvas first becomes visible.
+  state.boundaryRowsInitialized = true
+  state.boundaryStrengths.fill(0)
+  state.boundaryTargetStrengths.fill(0)
+  const spreadStart = performance.now()
+  state.lastBoundaryFieldAt = spreadStart - 16
+  state.boundarySpread = {
+    startAt: spreadStart,
+    duration: boundaryFieldDuration(config),
+  }
   animationStates.set(card, state)
   viewportStates.add(state)
   trackViewportVisibility(state)

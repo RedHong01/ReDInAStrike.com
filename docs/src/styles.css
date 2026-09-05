@@ -4601,6 +4601,31 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   padding-block: clamp(4px, 0.8vw, 8px) !important;
 }
 
+/* A 320px card cannot fit the long project title at the desktop compact
+   scale. Keep the title on one line so the subtitle and the compact bar's
+   vertical padding remain visible together. */
+@media (max-width: 380px) {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-head h2 {
+    font-size: clamp(18px, 6vw, 23px);
+    line-height: 1;
+    white-space: nowrap;
+    transform: none;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-meta {
+    font-size: 12px;
+    line-height: 1.1;
+    margin-top: 4px;
+  }
+}
+
+/* The seam fallback keeps its horizontal overscan for full bleed, but its
+   vertical paint must begin at the detail card edge once the card is sticky. */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-preview-header-seam="true"]::after {
+  top: 0;
+  bottom: 0;
+}
+
 @media (min-width: 981px) and (orientation: landscape) {
   .catalog .project-row.has-project-preview[data-project-detail-open="true"] > .project-card:not(.is-project-preview) {
     display: none;

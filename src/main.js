@@ -7052,6 +7052,26 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null, onClos
   window.setTimeout(finish, PROJECT_DETAIL_DRAWER_CLOSE_MS)
 }
 
+/* Closing from the active preview link must retract the preview and the
+   drawer as one motion. The outside-dismiss path already does this; routing
+   the same action through a link used to remove only the drawer, leaving a
+   transparent is-project-preview card behind on compact layouts. */
+function closeProjectDetailWithPreview() {
+  const drawerState = activeProjectDetailDrawer()
+  if (!drawerState) return
+  closeProjectDetailDrawer({
+    onCloseStart: (card) => {
+      if (card?.isConnected && activeProjectPreview() === card) {
+        card.__projectPreviewCollapseWithDrawer = true
+        setProjectPreview(card, false)
+      }
+    },
+    afterClose: (card) => {
+      if (card) delete card.__projectPreviewCollapseWithDrawer
+    },
+  })
+}
+
 function openProjectDetailDrawer(card, target) {
   if (!card?.isConnected || !target?.path) return
   const project = routeMap.get(target.path)
@@ -7123,21 +7143,11 @@ function dismissProjectPreview(event) {
   // drawer and force an immediate close, cancelling the compact animation.
   const drawerState = activeProjectDetailDrawer()
   if (drawerState) {
-    closeProjectDetailDrawer({
-      // Start the preview retract at the same time as the drawer retract.
-      // The drawer remains mounted for its own animation, while the card's
-      // source row is restored on the same timeline instead of one after the
-      // other (which read as a one-frame stall in rapid interactions).
-      onCloseStart: (card) => {
-        if (card?.isConnected && activeProjectPreview() === card) {
-          card.__projectPreviewCollapseWithDrawer = true
-          setProjectPreview(card, false)
-        }
-      },
-      afterClose: (card) => {
-        if (card) delete card.__projectPreviewCollapseWithDrawer
-      },
-    })
+    // Start the preview retract at the same time as the drawer retract.
+    // The drawer remains mounted for its own animation, while the card's
+    // source row is restored on the same timeline instead of one after the
+    // other (which read as a one-frame stall in rapid interactions).
+    closeProjectDetailWithPreview()
     return
   }
   setProjectPreview(current, false)
@@ -7148,7 +7158,7 @@ function handleProjectPreviewKeydown(event) {
   if (activeProjectDetailDrawer()) {
     event.preventDefault()
     const drawerState = activeProjectDetailDrawer()
-    closeProjectDetailDrawer()
+    closeProjectDetailWithPreview()
     drawerState?.card?.focus?.({ preventScroll: true })
     return
   }
@@ -7203,7 +7213,7 @@ function handleRouteLinkClick(event) {
     event.preventDefault()
     event.stopPropagation()
     if (activeProjectDetailDrawer()?.card === projectCard) {
-      closeProjectDetailDrawer()
+      closeProjectDetailWithPreview()
       return
     }
     clearProjectPreviewExitGhosts()

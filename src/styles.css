@@ -5098,3 +5098,67 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     pointer-events: auto;
   }
 }
+
+/* -------------------------------------------------------------------------
+   Detail-header boundary contract
+
+   The historical surface-anchor cascade uses the preview card's pseudo
+   elements as an overscanned colour layer. That is useful while an ordinary
+   preview is being wiped in, but it makes a detail header's lower rule depend
+   on a half-column containing block (and can turn a one-pixel rule into a
+   full-height fallback). Once the drawer is open the card itself owns the
+   full-bleed surface, so give its two edges dedicated one-pixel rules.
+   ------------------------------------------------------------------------- */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"]::before,
+.catalog .project-card.is-project-preview[data-project-detail-open="true"]::after {
+  content: "";
+  display: block !important;
+  position: absolute;
+  left: 0 !important;
+  right: 0 !important;
+  width: auto !important;
+  height: var(--project-preview-rule-width, 1px) !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0;
+  padding: 0;
+  transform: none !important;
+  clip-path: none !important;
+  animation: none !important;
+  background: var(--preview-rule, var(--rule)) !important;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 1 !important;
+  transition: opacity 220ms ease;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"]::before {
+  top: 0 !important;
+  bottom: auto !important;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"]::after {
+  top: auto !important;
+  bottom: 0 !important;
+}
+
+/* The homepage header owns the exact shared top seam. Keep the card rule out
+   of that one-pixel join while leaving the card's own lower rule present. */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-preview-header-seam="true"]::before {
+  opacity: 0 !important;
+}
+
+/* At an exact About seam the About surface owns the shared lower stroke. The
+   detail card still keeps its rule everywhere else, including its minimized
+   sticky state. */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-preview-about-seam="true"]::after {
+  opacity: 0 !important;
+}
+
+/* The same About ownership rule applies to an ordinary preview. The card's
+   background is already explicit in the settled preview cascade, so hiding
+   this duplicate cannot remove the coloured surface. */
+.catalog .project-card.is-project-preview:not([data-project-detail-open="true"])[data-project-preview-header-seam="true"][data-project-preview-about-seam="true"]::after {
+  opacity: 0 !important;
+  background: transparent !important;
+}

@@ -560,6 +560,11 @@ const siteState = {
   galleryLayoutMetrics: null,
   galleryViewportLeft: null,
   headerVisualBottom: 0,
+  // The sticky detail seam is queried by both the header animation and the
+  // scroll-effects frame. Keep one measured value per layout state so those
+  // two paths do not force the same geometry read twice in one frame.
+  detailHeaderLiveBottom: 0,
+  detailHeaderLiveBottomDirty: true,
   catalogContentBottomDocument: null,
   catalogContentBottomHeaderHeight: null,
   catalogContentBottomDirty: true,
@@ -644,6 +649,7 @@ function refreshDomCache() {
   siteState.galleryLayoutDirty = true
   siteState.galleryLayoutMetrics = null
   siteState.galleryViewportLeft = null
+  siteState.detailHeaderLiveBottomDirty = true
   siteState.catalogContentBottomDocument = null
   siteState.catalogContentBottomHeaderHeight = null
   siteState.catalogContentBottomDirty = true
@@ -3682,6 +3688,11 @@ function applyHeaderProgress(progress, options = {}) {
   setRootStyleProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
   setRootStyleProperty("--project-preview-sticky-top", `${height.toFixed(2)}px`)
   siteState.headerVisualBottom = height
+  // Header progress already knows the intended painted bottom. Reuse it for
+  // the sticky detail seam; a native rect is only needed after a mount or a
+  // breakpoint change where the browser may have introduced a new offset.
+  siteState.detailHeaderLiveBottom = height
+  siteState.detailHeaderLiveBottomDirty = false
   syncHeaderFlowGap(height)
 
   const isCompact = progress > 0.7
@@ -3717,8 +3728,17 @@ function requestProjectDetailHeaderUpdate() {
   // state can be reached after the header animation has stopped writing its
   // custom property, leaving the old expanded value in the cascade. Reading
   // the live rect here corrects that stale frame without scrolling the page.
-  const headerRect = siteState.dom.header?.getBoundingClientRect?.()
-  const liveHeaderBottom = headerRect && Number.isFinite(headerRect.bottom) ? Math.max(0, headerRect.bottom) : 0
+  let liveHeaderBottom = Number.isFinite(siteState.detailHeaderLiveBottom)
+    ? Math.max(0, siteState.detailHeaderLiveBottom)
+    : 0
+  if (siteState.detailHeaderLiveBottomDirty || liveHeaderBottom <= 0) {
+    const headerRect = siteState.dom.header?.getBoundingClientRect?.()
+    liveHeaderBottom = headerRect && Number.isFinite(headerRect.bottom)
+      ? Math.max(0, headerRect.bottom)
+      : liveHeaderBottom
+    siteState.detailHeaderLiveBottom = liveHeaderBottom
+    siteState.detailHeaderLiveBottomDirty = false
+  }
   if (liveHeaderBottom > 0) {
     setRootStyleProperty("--project-preview-sticky-top", `${liveHeaderBottom.toFixed(2)}px`)
   }
@@ -6311,6 +6331,7 @@ function setupHeader() {
     // see the new width, not the previous one.
     siteState.headerMetricsWidth = -1
     siteState.headerMetrics = null
+    siteState.detailHeaderLiveBottomDirty = true
     // Set the transition state in the resize event itself, before the next
     // paint. Waiting for the coalesced RAF lets media-query layout changes
     // flash at their new breakpoint for one frame.

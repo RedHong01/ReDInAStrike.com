@@ -74,6 +74,12 @@ const motionReleaseFrames = new WeakMap()
 const boundaryCooldownTimers = new WeakMap()
 const hoverRestoreRetries = new WeakMap()
 const scrollRestoreRetries = new WeakMap()
+// Reuse the animation snapshot buffer. A fresh spread of activeStates on every
+// frame creates avoidable short-lived arrays while a category transition is
+// painting several canvases at once. The snapshot semantics are intentional:
+// drawState may remove a finished state (or enqueue another one), but those
+// changes should apply on the next frame.
+const activeStateFrameBuffer = []
 const fineHoverQuery = window.matchMedia?.("(any-hover: hover) and (any-pointer: fine)")
 
 let animationFrame = 0
@@ -429,26 +435,26 @@ function restoreMutedCardAtScrollEdge(activeCatalog) {
   const header = document.querySelector(".site-header")
   const headerBottom = header?.getBoundingClientRect?.().bottom || 0
   const edge = headerBottom + SCROLL_VISIBLE_RESTORE_EDGE_MARGIN
-  const candidates = [...activeCatalog.querySelectorAll(
-    ".project-card.is-filter-muted",
-  )]
-    .filter((card) => {
-      if (
-        card.classList.contains("is-project-preview") ||
-        card.classList.contains("is-muted-restore-intent") ||
-        card.matches(":hover, :focus-within") ||
-        cardStates.has(card)
-      ) {
-        return false
-      }
-      const rect = card.getBoundingClientRect()
-      return rect.bottom >= headerBottom && rect.top <= viewportHeight && rect.top <= edge
-    })
-    .sort((first, second) =>
-      first.getBoundingClientRect().top - second.getBoundingClientRect().top,
-    )
-
-  const card = candidates[0]
+  let card = null
+  let cardTop = Infinity
+  // This runs once after scrolling settles, so keep the same DOM-order tie
+  // behavior as the old stable sort while measuring each candidate only once.
+  for (const candidate of activeCatalog.querySelectorAll(".project-card.is-filter-muted")) {
+    if (
+      candidate.classList.contains("is-project-preview") ||
+      candidate.classList.contains("is-muted-restore-intent") ||
+      candidate.matches(":hover, :focus-within") ||
+      cardStates.has(candidate)
+    ) {
+      continue
+    }
+    const rect = candidate.getBoundingClientRect()
+    if (rect.bottom < headerBottom || rect.top > viewportHeight || rect.top > edge) continue
+    if (rect.top < cardTop) {
+      card = candidate
+      cardTop = rect.top
+    }
+  }
   if (card) scheduleScrollRestoreForCard(card)
 }
 
@@ -2205,7 +2211,9 @@ function drawState(state, now) {
 
 function animationLoop(now) {
   animationFrame = 0
-  for (const state of [...activeStates]) drawState(state, now)
+  activeStateFrameBuffer.length = 0
+  activeStates.forEach((state) => activeStateFrameBuffer.push(state))
+  for (const state of activeStateFrameBuffer) drawState(state, now)
   if (activeStates.size) animationFrame = requestAnimationFrame(animationLoop)
 }
 

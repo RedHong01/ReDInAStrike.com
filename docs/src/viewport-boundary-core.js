@@ -56,8 +56,17 @@ function livePreviewRect(expandedCard) {
  * under the header instead of pinning against it.
  */
 function previewMeetsHeaderEdge(cardRect, headerEdge) {
-  if (!cardRect) return false
-  return cardRect.top <= headerEdge + PREVIEW_HEADER_SEAM_EPSILON_PX
+  if (!cardRect || cardRect.width <= 0 || cardRect.height <= 0) return false
+
+  // A card that has already scrolled above the header is no longer sharing
+  // the header seam.  The previous `top <= edge + epsilon` test treated that
+  // entire region as shared, so the card kept its top rule hidden long after
+  // it had detached (and could also hide it while the card was still below the
+  // header on a non-sticky breakpoint).  Only suppress the card rule while
+  // the two painted edges are actually touching.
+  const topGap = cardRect.top - headerEdge
+  return Math.abs(topGap) <= PREVIEW_HEADER_SEAM_EPSILON_PX &&
+    cardRect.bottom >= headerEdge - PREVIEW_HEADER_SEAM_EPSILON_PX
 }
 
 function pinnedPreviewBoundary(expandedRow, cardRect, headerEdge, viewportBottom, expandedCard = null) {

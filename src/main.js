@@ -3061,7 +3061,10 @@ function aboutMarkup() {
           </div>
         </div>
         <figure class="profile-portrait">
-          <img src="${asset("assets/figma-home/about-profile.png")}" alt="Red Wang portrait" loading="lazy" fetchpriority="low" decoding="async" />
+          <picture>
+            <source type="image/webp" srcset="${asset("assets/figma-home/about-profile.webp")}" />
+            <img src="${asset("assets/figma-home/about-profile.png")}" alt="Red Wang portrait" loading="lazy" fetchpriority="low" decoding="async" width="631" height="1508" />
+          </picture>
         </figure>
         <div class="profile-card">
           <h2 lang="zh-Hans">王紫鹏</h2>
@@ -3143,7 +3146,7 @@ function framerProjectDetailMarkup(project, detail) {
       <article class="framer-derived-shell" aria-label="${escapeHtml(detail.title)} project page">
         <section class="framer-derived-intro">
           <figure>
-            <img src="${asset(detail.leadImage)}" alt="${escapeHtml(detail.leadAlt)}" loading="eager" />
+            <img src="${asset(detail.leadImage)}" alt="${escapeHtml(detail.leadAlt)}" loading="eager" decoding="async" />
           </figure>
           <div>
             <p>${bilingualText(detail.summary)}</p>
@@ -3157,7 +3160,7 @@ function framerProjectDetailMarkup(project, detail) {
 
         <section class="framer-derived-reference" aria-label="${escapeHtml(detail.title)} full page">
           <figure>
-            <img src="${asset(detail.routeImage)}" alt="${escapeHtml(detail.title)} Framer page capture" loading="lazy" />
+            <img src="${asset(detail.routeImage)}" alt="${escapeHtml(detail.title)} Framer page capture" loading="lazy" decoding="async" />
           </figure>
         </section>
 
@@ -3189,7 +3192,7 @@ function caseImagePath(path) {
 function caseImage(path, alt, className = "") {
   return `
     <figure class="framer-case-image ${className}">
-      <img src="${asset(caseImagePath(path))}" alt="${escapeHtml(alt)}" loading="lazy" />
+      <img src="${asset(caseImagePath(path))}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" />
     </figure>`
 }
 

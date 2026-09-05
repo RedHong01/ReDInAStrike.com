@@ -4613,6 +4613,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
      The clamp leaves enough room at the tiny breakpoint while preserving a
      visibly softer inset on desktop. */
   padding-block: clamp(4px, 0.8vw, 8px) !important;
+  padding-inline: clamp(14px, 3vw, 42px) !important;
 }
 
 /* A 320px card cannot fit the long project title at the desktop compact

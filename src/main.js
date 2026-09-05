@@ -6157,6 +6157,10 @@ function requestScrollEffectsUpdate(delta) {
 }
 
 function startResponsiveLayoutTransition() {
+  // A resize drag can emit dozens of events. Keep one transition window for
+  // the burst instead of restarting it on every event, which would leave the
+  // header perpetually animating and accumulate layout work.
+  if (document.body.dataset.layoutTransition === "true") return
   document.body.dataset.layoutTransition = "true"
   window.clearTimeout(siteState.layoutTransitionTimer)
   siteState.layoutTransitionTimer = window.setTimeout(() => {
@@ -6781,6 +6785,10 @@ function setProjectPreview(card, expanded) {
   const current = activeProjectPreview()
   if (expanded && current === card) return
   if (!expanded && current !== card) return
+  const detailDrawer = activeProjectDetailDrawer()
+  if (detailDrawer && (!expanded || detailDrawer.card !== card)) {
+    closeProjectDetailDrawer({ immediate: true })
+  }
 
   const motionId = siteState.projectPreviewMotionId + 1
   siteState.projectPreviewMotionId = motionId
@@ -6871,6 +6879,7 @@ function closeProjectDetailDrawer({ immediate = false } = {}) {
     element.remove()
     if (card?.isConnected) card.removeAttribute("data-project-detail-open")
     if (siteState.projectDetailDrawer === drawerState) siteState.projectDetailDrawer = null
+    refreshAfterProjectPreviewChange()
   }
   element.dataset.drawerState = immediate || prefersReducedMotion() ? "closed" : "closing"
   if (immediate || prefersReducedMotion()) {
@@ -6912,6 +6921,7 @@ function openProjectDetailDrawer(card, target) {
   const drawerState = { element: drawer, card, resizeObserver }
   siteState.projectDetailDrawer = drawerState
   card.setAttribute("data-project-detail-open", "true")
+  refreshAfterProjectPreviewChange()
 
   requestAnimationFrame(() => {
     if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
@@ -6933,7 +6943,9 @@ function handleProjectPreviewKeydown(event) {
   if (event.key !== "Escape") return
   if (activeProjectDetailDrawer()) {
     event.preventDefault()
+    const drawerState = activeProjectDetailDrawer()
     closeProjectDetailDrawer()
+    drawerState?.card?.focus?.({ preventScroll: true })
     return
   }
   const current = activeProjectPreview()
@@ -6978,6 +6990,7 @@ function handleRouteLinkClick(event) {
   if (projectCard && target.path !== routeFromLocation() && !projectCard.classList.contains("is-project-preview")) {
     event.preventDefault()
     event.stopPropagation()
+    closeProjectDetailDrawer({ immediate: true })
     setProjectPreview(projectCard, true)
     return
   }

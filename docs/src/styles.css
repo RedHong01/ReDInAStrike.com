@@ -706,6 +706,14 @@ body[data-layout-transition="true"] .project-row {
     grid-template-columns var(--responsive-duration) var(--responsive-ease);
 }
 
+body[data-layout-transition="true"] .project-row.has-project-preview {
+  transition:
+    top var(--responsive-duration) var(--responsive-ease),
+    gap var(--responsive-duration) var(--responsive-ease),
+    padding var(--responsive-duration) var(--responsive-ease),
+    grid-template-columns var(--responsive-duration) var(--responsive-ease);
+}
+
 body[data-layout-transition="true"] .project-card.is-project-preview .project-media img {
   transition:
     left var(--responsive-duration) var(--responsive-ease),
@@ -1482,6 +1490,130 @@ body[data-layout-transition="true"] .about-section {
   z-index: 9;
   transform: translate3d(0, calc(var(--about-pull-y) * -1), 0);
   will-change: transform;
+}
+
+/* About and Resume use the same directional drawer language as project
+   previews. Scroll down reveals information from its top edge; reversing the
+   scroll reverses the clip edge and the stagger without changing document
+   order or the underlying anchor geometry. */
+.about-section[data-drawer-direction="down"] {
+  --drawer-clip-start: 0 0 calc((1 - var(--about-info-reveal, 1)) * 100%) 0;
+}
+
+.about-section[data-drawer-direction="up"] {
+  --drawer-clip-start: calc((1 - var(--about-info-reveal, 1)) * 100%) 0 0 0;
+}
+
+.about-copy,
+.contact-copy,
+.profile-portrait,
+.profile-card,
+.resume-word,
+.resume-detail {
+  clip-path: inset(var(--drawer-clip-start, 0 0 0 0));
+  opacity: calc(0.5 + (var(--about-info-reveal, 1) * 0.5));
+  transform: translate3d(0, var(--about-info-shift, 0px), 0);
+  transition:
+    clip-path 420ms var(--responsive-ease),
+    opacity 300ms ease,
+    transform 420ms var(--responsive-ease);
+  will-change: clip-path, opacity, transform;
+}
+
+.contact-copy {
+  transition-delay: 42ms;
+}
+
+.profile-portrait {
+  transition-delay: 84ms;
+}
+
+.profile-card {
+  transition-delay: 126ms;
+}
+
+.resume-word {
+  transition-delay: 30ms;
+}
+
+.resume-detail {
+  transition-delay: 72ms;
+}
+
+.project-detail-drawer {
+  position: relative;
+  z-index: 16;
+  grid-column: 1 / -1;
+  width: 100vw;
+  max-height: 0;
+  margin-left: calc((100% - 100vw) / 2);
+  overflow: hidden;
+  overflow: clip;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition:
+    max-height 560ms var(--responsive-ease),
+    clip-path 560ms var(--responsive-ease),
+    opacity 260ms ease,
+    transform 560ms var(--responsive-ease);
+  will-change: max-height, clip-path, opacity, transform;
+}
+
+.project-detail-drawer[data-drawer-direction="up"] {
+  clip-path: inset(100% 0 0 0);
+  transform: translate3d(0, -18px, 0);
+}
+
+.project-detail-drawer[data-drawer-state="open"] {
+  max-height: var(--project-detail-drawer-height, 100000px);
+  clip-path: inset(0 0 0 0);
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.project-detail-drawer[data-drawer-state="closing"] {
+  max-height: 0;
+}
+
+.project-detail-drawer-inner {
+  min-height: 0;
+  padding-bottom: clamp(48px, 7vw, 112px);
+}
+
+/* The preview already supplies the lead surface; the drawer continues with
+   the project body so the second click feels like a deeper page unfolding. */
+.project-detail-drawer .project-lead {
+  display: none;
+}
+
+.project-detail-drawer .detail-shell,
+.project-detail-drawer .framer-derived-shell,
+.project-detail-drawer .framer-case-shell {
+  margin-top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-copy,
+  .contact-copy,
+  .profile-portrait,
+  .profile-card,
+  .resume-word,
+  .resume-detail {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+    transform: none;
+  }
+
+  .project-detail-drawer {
+    max-height: none;
+    clip-path: none;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
 .about-card,

@@ -153,7 +153,9 @@
     if (name === "--header-height") {
       const visualValue = quantizedPx(value, HEADER_HEIGHT_VISUAL_STEP_PX)
       setHeaderProperty("--header-height", visualValue, priority)
-      setRootProxy("--perf-layout-header-height", quantizedPx(value, LAYOUT_HEADER_BUCKET_PX), priority)
+      if (!window.__RED_LAYOUT_SURFACE_SYNC__) {
+        setRootProxy("--perf-layout-header-height", quantizedPx(value, LAYOUT_HEADER_BUCKET_PX), priority)
+      }
       return
     }
 

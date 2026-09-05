@@ -3379,6 +3379,39 @@ function render() {
   setupHoverEmbeds()
 }
 
+// The Figma capture runner needs deterministic, reloadable snapshots of the
+// same page states that users reach through scroll and interaction.
+function applyFigmaCaptureState() {
+  const state = new URLSearchParams(window.location.search).get("figma-state")
+  if (!state || !document.querySelector(".site-main")) return
+
+  if (state === "compact") {
+    const scrollTop = Math.min(420, Math.max(0, document.documentElement.scrollHeight - window.innerHeight))
+    window.scrollTo({ top: scrollTop, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: true })
+    return
+  }
+
+  if (state === "interaction") {
+    replaceCatalogFilterImmediately("interaction")
+    return
+  }
+
+  if (state === "expanded") {
+    const card = document.querySelector('[data-project-card][data-index="0"]')
+    if (card) {
+      commitProjectPreviewState(card, true)
+      card.scrollIntoView({ block: "start", behavior: "auto" })
+      syncScrollDrivenVisuals({ publishMoving: true })
+    }
+    return
+  }
+
+  if (state === "resume") {
+    scheduleScrollToPageSection("resume", { immediate: true, attempts: 2, delay: 0 })
+  }
+}
+
 /**
  * Snap a header height onto the same pixel grid the performance prelude uses
  * when it writes --header-height, so the painted header bottom, the sticky
@@ -6124,6 +6157,10 @@ function requestScrollEffectsUpdate(delta) {
 }
 
 function startResponsiveLayoutTransition() {
+  // A resize drag can emit dozens of events. Keep one transition window for
+  // the burst instead of restarting it on every event, which would leave the
+  // header perpetually animating and accumulate layout work.
+  if (document.body.dataset.layoutTransition === "true") return
   document.body.dataset.layoutTransition = "true"
   window.clearTimeout(siteState.layoutTransitionTimer)
   siteState.layoutTransitionTimer = window.setTimeout(() => {
@@ -6748,6 +6785,10 @@ function setProjectPreview(card, expanded) {
   const current = activeProjectPreview()
   if (expanded && current === card) return
   if (!expanded && current !== card) return
+  const detailDrawer = activeProjectDetailDrawer()
+  if (detailDrawer && (!expanded || detailDrawer.card !== card)) {
+    closeProjectDetailDrawer({ immediate: true })
+  }
 
   const motionId = siteState.projectPreviewMotionId + 1
   siteState.projectPreviewMotionId = motionId
@@ -6838,6 +6879,7 @@ function closeProjectDetailDrawer({ immediate = false } = {}) {
     element.remove()
     if (card?.isConnected) card.removeAttribute("data-project-detail-open")
     if (siteState.projectDetailDrawer === drawerState) siteState.projectDetailDrawer = null
+    refreshAfterProjectPreviewChange()
   }
   element.dataset.drawerState = immediate || prefersReducedMotion() ? "closed" : "closing"
   if (immediate || prefersReducedMotion()) {
@@ -6879,6 +6921,7 @@ function openProjectDetailDrawer(card, target) {
   const drawerState = { element: drawer, card, resizeObserver }
   siteState.projectDetailDrawer = drawerState
   card.setAttribute("data-project-detail-open", "true")
+  refreshAfterProjectPreviewChange()
 
   requestAnimationFrame(() => {
     if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
@@ -6900,7 +6943,9 @@ function handleProjectPreviewKeydown(event) {
   if (event.key !== "Escape") return
   if (activeProjectDetailDrawer()) {
     event.preventDefault()
+    const drawerState = activeProjectDetailDrawer()
     closeProjectDetailDrawer()
+    drawerState?.card?.focus?.({ preventScroll: true })
     return
   }
   const current = activeProjectPreview()
@@ -6945,6 +6990,7 @@ function handleRouteLinkClick(event) {
   if (projectCard && target.path !== routeFromLocation() && !projectCard.classList.contains("is-project-preview")) {
     event.preventDefault()
     event.stopPropagation()
+    closeProjectDetailDrawer({ immediate: true })
     setProjectPreview(projectCard, true)
     return
   }
@@ -7010,3 +7056,4 @@ window.addEventListener("red:public-dither-ready", (event) => {
 })
 window.addEventListener("popstate", handlePopState)
 render()
+applyFigmaCaptureState()

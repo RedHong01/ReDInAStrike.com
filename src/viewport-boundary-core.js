@@ -23,6 +23,10 @@ function viewportHeight() {
 }
 
 function headerBottom(viewportBottom) {
+  const visualBottom = window.__RED_HEADER_MOTION__?.snapshot?.()?.visualBottom
+  if (Number.isFinite(visualBottom) && visualBottom > 0) {
+    return clamp(visualBottom, 0, viewportBottom)
+  }
   const header = document.querySelector(".site-header")
   return clamp(header?.getBoundingClientRect?.().bottom || 0, 0, viewportBottom)
 }

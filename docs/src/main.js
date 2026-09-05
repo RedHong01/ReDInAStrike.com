@@ -722,6 +722,7 @@ function headerMotionSnapshot() {
     settledAt: siteState.headerMotionSettledAt,
     targetProgress: siteState.targetProgress,
     visualProgress: siteState.visualProgress,
+    visualBottom: siteState.headerVisualBottom,
   }
 }
 

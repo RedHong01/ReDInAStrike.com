@@ -943,6 +943,37 @@ body[data-layout-transition="true"] .about-section {
   opacity: 0;
 }
 
+/* The preview surface and its top rule share ::before.  When the preview
+   reaches the sticky header, the rule is intentionally suppressed above;
+   hiding that whole layer would also erase the full-bleed colour underneath
+   it because the anchor card itself is transparent.  Reuse ::after as a
+   paint-only fallback for that seam: keep the rule opacity contract on
+   ::before, while restoring the surface and its lower edge behind the media
+   and copy layers. */
+.project-card.is-project-preview[data-project-preview-header-seam="true"]::after {
+  opacity: 1;
+  z-index: 0;
+  top: calc(-1 * var(--project-rule-card-gap));
+  bottom: calc(-1 * var(--project-caption-rule-gap));
+  left: -100vw;
+  right: auto;
+  width: 300vw;
+  height: auto;
+  background:
+    linear-gradient(var(--preview-rule, var(--rule)), var(--preview-rule, var(--rule))) bottom / 100% var(--project-preview-rule-width) no-repeat,
+    var(--preview-media-bg, var(--media-bg, var(--media-surface)));
+  transform: none;
+  animation: none !important;
+  pointer-events: none;
+}
+
+/* If both boundaries coincide, About owns the lower stroke; retain only the
+   colour layer in the seam fallback. */
+.project-card.is-project-preview[data-project-preview-header-seam="true"][data-project-preview-about-seam="true"]::after {
+  opacity: 1;
+  background: var(--preview-media-bg, var(--media-bg, var(--media-surface)));
+}
+
 .project-card.is-project-preview::after {
   bottom: 0;
 }

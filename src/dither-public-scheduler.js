@@ -186,7 +186,11 @@ function ensurePublicStyles() {
       z-index: 5;
       display: block;
       background: var(--paper);
-      opacity: 1;
+      /* This layer used to cover the source image while the canvas was
+         pending, producing a paper flash on every preview click.  The source
+         stays visible until data-dither-ready is committed, so the cover is
+         only a paint fallback for an image that has no pixels yet. */
+      opacity: 0;
       pointer-events: none;
       transition: opacity 90ms linear;
     }
@@ -590,6 +594,12 @@ function renderOne(card, catalog, generation, tier) {
     cancelDitherResizeSnow(card)
     return false
   }
+  // The canvas has an opacity transition for hover restores.  During the
+  // initial image → dither handoff that transition would start from 0 while
+  // the source image is hidden, exposing a blank/paper frame.  Disable it for
+  // this single atomic commit, then restore the normal transition on the next
+  // frame so later interactions keep their easing.
+  canvas.style.transition = "none"
   canvas.dataset.active = "true"
   canvas.dataset.publishedMode = publishedMode()
   media?.setAttribute("data-dither-ready", "true")
@@ -597,6 +607,10 @@ function renderOne(card, catalog, generation, tier) {
   card.removeAttribute(CATEGORY_ENTER_DITHER_ATTRIBUTE)
   state.pendingCards.delete(card)
   playPreparedDitherResizeSnow(preparedSnow)
+  requestAnimationFrame(() => {
+    if (!canvas.isConnected || canvas.dataset.active !== "true") return
+    canvas.style.removeProperty("transition")
+  })
 
   if (viewportDistance(card) <= revealMargin()) {
     if (armReveal(card, catalog)) requestRevealRefresh()

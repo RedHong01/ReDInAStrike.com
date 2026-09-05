@@ -35,6 +35,14 @@ const TARGET_FRAME_MS = 1000 / 60
 const HOVER_SCROLL_SUPPRESS_MS = 260
 const HOVER_SCROLL_RECONCILE_PAD_MS = 34
 const HOVER_SCROLL_RETURN_CLASS_MS = 920
+// A muted card that sits at the leading edge of the viewport can otherwise
+// remain under the category snow indefinitely: hover is the only restore
+// trigger, while scrolling itself changes neither :hover nor focus state.
+// Reconcile one visible card after the scroll settles so the edge card can
+// leave that dead zone without turning every muted card into a full restore.
+const SCROLL_VISIBLE_RESTORE_PAD_MS = 48
+const SCROLL_VISIBLE_RESTORE_MAX_WAIT_MS = 900
+const SCROLL_VISIBLE_RESTORE_EDGE_MARGIN = 72
 const CATEGORY_READY_DEFER_STEP_MS = 9
 const CATEGORY_READY_DEFER_MAX_MS = 150
 const CATEGORY_BREATH_HOLD_MAX_RATIO = 0.36
@@ -65,6 +73,7 @@ const hoverCardsBound = new WeakSet()
 const motionReleaseFrames = new WeakMap()
 const boundaryCooldownTimers = new WeakMap()
 const hoverRestoreRetries = new WeakMap()
+const scrollRestoreRetries = new WeakMap()
 const fineHoverQuery = window.matchMedia?.("(any-hover: hover) and (any-pointer: fine)")
 
 let animationFrame = 0
@@ -79,6 +88,7 @@ let prewarmResumeTimer = 0
 let hoverScrollSuppressUntil = 0
 let lastHoverScrollCancelAt = 0
 let hoverScrollReconcileTimer = 0
+let scrollVisibleRestoreTimer = 0
 let lastFinePointerX = 0
 let lastFinePointerY = 0
 let finePointerKnown = false
@@ -262,6 +272,7 @@ function suppressHoverSnowDuringScroll(event) {
       returnMutedHoverFromScroll(card)
     })
   scheduleStationaryPointerHoverReconcile()
+  scheduleVisibleMutedRestore(activeCatalog)
 }
 
 function hoverSnowSuppressedByScroll() {
@@ -335,6 +346,129 @@ function returnMutedHoverFromScroll(card, state = cardStates.get(card)) {
   card.removeAttribute(RETURN_ATTRIBUTE)
   releaseMotionAfterFrames(card, 1, { cooldown: true })
   return false
+}
+
+function cancelScrollRestoreRetry(card) {
+  const retry = scrollRestoreRetries.get(card)
+  if (!retry) return false
+  if (retry.frame) cancelAnimationFrame(retry.frame)
+  scrollRestoreRetries.delete(card)
+  return true
+}
+
+function scheduleScrollRestoreForCard(card) {
+  if (!card?.isConnected || scrollRestoreRetries.has(card)) return false
+
+  const retry = {
+    frame: 0,
+    startedAt: performance.now(),
+  }
+
+  const finish = () => {
+    if (retry.frame) cancelAnimationFrame(retry.frame)
+    scrollRestoreRetries.delete(card)
+  }
+
+  const attempt = () => {
+    retry.frame = 0
+    const parentCatalog = card.closest(".catalog")
+    if (
+      !card.isConnected ||
+      !parentCatalog ||
+      parentCatalog.dataset.filterPhase ||
+      !card.classList.contains("is-filter-muted") ||
+      card.classList.contains("is-project-preview") ||
+      card.classList.contains("is-muted-restore-intent") ||
+      card.matches(":hover, :focus-within")
+    ) {
+      finish()
+      return
+    }
+
+    if (restoreSourceReady(card)) {
+      clearRestoreReady(card)
+      card.classList.remove("is-muted-restore-return")
+      card.classList.add("is-muted-restore-intent")
+      finish()
+      const started = playCard(card, "in", 0, runtimeConfig, {
+        mode: "restore",
+        reason: "scroll-visible",
+      })
+      if (!started) card.classList.remove("is-muted-restore-intent")
+      return
+    }
+
+    requestBinaryRestoreSource()
+    if (performance.now() - retry.startedAt >= SCROLL_VISIBLE_RESTORE_MAX_WAIT_MS) {
+      finish()
+      return
+    }
+    retry.frame = requestAnimationFrame(attempt)
+  }
+
+  scrollRestoreRetries.set(card, retry)
+  requestBinaryRestoreSource()
+  retry.frame = requestAnimationFrame(attempt)
+  return true
+}
+
+function restoreMutedCardAtScrollEdge(activeCatalog) {
+  if (
+    !activeCatalog?.isConnected ||
+    !activeCatalog.dataset.activeFilter ||
+    activeCatalog.dataset.filterPhase ||
+    !pageIsVisible()
+  ) {
+    return
+  }
+
+  const viewportHeight = Math.max(
+    window.innerHeight || 0,
+    document.documentElement.clientHeight || 0,
+  )
+  const header = document.querySelector(".site-header")
+  const headerBottom = header?.getBoundingClientRect?.().bottom || 0
+  const edge = headerBottom + SCROLL_VISIBLE_RESTORE_EDGE_MARGIN
+  const candidates = [...activeCatalog.querySelectorAll(
+    ".project-card.is-filter-muted",
+  )]
+    .filter((card) => {
+      if (
+        card.classList.contains("is-project-preview") ||
+        card.classList.contains("is-muted-restore-intent") ||
+        card.matches(":hover, :focus-within") ||
+        cardStates.has(card)
+      ) {
+        return false
+      }
+      const rect = card.getBoundingClientRect()
+      return rect.bottom >= headerBottom && rect.top <= viewportHeight && rect.top <= edge
+    })
+    .sort((first, second) =>
+      first.getBoundingClientRect().top - second.getBoundingClientRect().top,
+    )
+
+  const card = candidates[0]
+  if (card) scheduleScrollRestoreForCard(card)
+}
+
+function scheduleVisibleMutedRestore(activeCatalog = catalog) {
+  if (!activeCatalog?.isConnected || !activeCatalog.dataset.activeFilter) return
+  if (scrollVisibleRestoreTimer) window.clearTimeout(scrollVisibleRestoreTimer)
+
+  const wait = Math.max(
+    0,
+    hoverScrollSuppressUntil - performance.now(),
+  ) + SCROLL_VISIBLE_RESTORE_PAD_MS
+  scrollVisibleRestoreTimer = window.setTimeout(() => {
+    scrollVisibleRestoreTimer = 0
+    const remaining = hoverScrollSuppressUntil - performance.now()
+    if (remaining > 0) {
+      scheduleVisibleMutedRestore(activeCatalog)
+      return
+    }
+    restoreMutedCardAtScrollEdge(activeCatalog)
+  }, wait)
 }
 
 function pointerHoverSnowSuppressed(event) {

@@ -7089,6 +7089,16 @@ function openProjectDetailDrawer(card, target) {
   drawer.dataset.drawerState = "closed"
   drawer.dataset.drawerDirection = siteState.scrollDirection >= 0 ? "down" : "up"
   drawer.setAttribute("aria-label", `${project.pageTitle} project details`)
+  // The article is a continuation of the activated lead card.  It is a
+  // sibling in the DOM (so it cannot inherit the card's inline theme vars),
+  // therefore carry the resolved media colour across for the drawer surface
+  // blend instead of falling back to the plain homepage paper.
+  const cardStyle = window.getComputedStyle(card)
+  const detailTheme =
+    cardStyle.getPropertyValue("--preview-media-bg").trim() ||
+    cardStyle.getPropertyValue("--media-bg").trim() ||
+    cardStyle.getPropertyValue("--media-surface").trim()
+  if (detailTheme) drawer.style.setProperty("--project-detail-theme", detailTheme)
   drawer.innerHTML = `<div class="project-detail-drawer-inner">${projectDetailBodyMarkup(project)}</div>`
   // Keep the drawer immediately after the activated card. On compact layouts
   // the neighboring card remains in the same row, so inserting after the row

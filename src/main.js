@@ -11,7 +11,7 @@ import {
   boundaryVisibility,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260903-scrollperf2"
+} from "./viewport-boundary-core.js?v=20260904-drawer-header1"
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
@@ -35,6 +35,7 @@ const MEDIA_DOMINANT_ALPHA_MIN = 24
 const MEDIA_DOMINANT_CACHE_LIMIT = 96
 const MEDIA_EDGE_SAMPLE_RATIO = 0.08
 const MEDIA_EDGE_SAMPLE_MIN_PX = 2
+const PROJECT_DETAIL_DRAWER_CLOSE_MS = 760
 
 const projects = [
   {
@@ -3690,10 +3691,33 @@ function applyHeaderProgress(progress, options = {}) {
     siteState.navMetricKey = navMetricKey
     setupNavHoverSpacing()
   }
+  requestProjectDetailHeaderUpdate()
   requestLayoutEffectsUpdate({
     rules: siteState.hasProjectRuleTargets,
     footer: siteState.hasFooterGallery,
   })
+}
+
+function requestProjectDetailHeaderUpdate() {
+  const drawerState = activeProjectDetailDrawer()
+  const card = drawerState?.card
+  if (!card?.isConnected || !drawerState?.element || drawerState.element.dataset.drawerState === "closing") return
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  const headerHeight = Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
+  if (!Number.isFinite(card.__detailHeaderStart)) {
+    const rect = card.getBoundingClientRect()
+    card.__detailHeaderStart = rect.top + scrollY
+    card.__detailHeaderOpenHeight = Math.max(1, rect.height)
+  }
+  const openHeight = card.__detailHeaderOpenHeight
+  const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
+  const stickyStart = card.__detailHeaderStart - headerHeight
+  const progress = clamp((scrollY - stickyStart) / Math.max(180, openHeight - compactHeight + headerHeight * 0.6), 0, 1)
+  setElementStyleProperty(card, "--project-detail-header-progress", progress.toFixed(4))
+  setElementStyleProperty(card, "--project-detail-header-expanded-height", `${openHeight.toFixed(2)}px`)
+  setElementStyleProperty(card, "--project-detail-header-min-height", `${compactHeight.toFixed(2)}px`)
+  setElementStyleProperty(card, "--project-detail-header-pad", `${(8 + (1 - progress) * 34).toFixed(2)}px`)
+  card.toggleAttribute("data-project-detail-header-compressed", progress > 0.28)
 }
 
 /**
@@ -6170,6 +6194,7 @@ function requestScrollEffectsUpdate(delta) {
 
     if (!shouldSuppressHeaderScrollDelta(pendingDelta)) updateHeaderFromScroll(pendingDelta)
     if (!isHeaderMotionActive()) syncHeaderFlowGap()
+    requestProjectDetailHeaderUpdate()
     nudgeFooterGallery()
     markCatalogRuleScrollActivity(pendingDelta)
     requestLayoutEffectsUpdate({ rules: siteState.hasProjectRuleTargets })
@@ -6887,33 +6912,69 @@ function activeProjectDetailDrawer() {
     : null
 }
 
-function closeProjectDetailDrawer({ immediate = false } = {}) {
+function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {}) {
   const drawerState = activeProjectDetailDrawer()
   if (!drawerState) return
   const { element, card } = drawerState
+  const reducedMotion = prefersReducedMotion()
+  // A second caller must not turn an in-flight close into an immediate
+  // teardown (dismiss + preview collapse used to race this path).
+  if (element.dataset.drawerState === "closing" && !immediate) return
+  const shouldAnimate = !immediate && !reducedMotion
+  // The card is a sticky secondary header while the article is open. On
+  // compact layouts it may currently be compressed to only a title; animate
+  // that height back to its natural preview size at the same time as the
+  // drawer retracts so removing the sticky state cannot cause a second jump.
+  if (shouldAnimate && card?.isConnected) {
+    card.setAttribute("data-project-detail-header-closing", "true")
+    void card.offsetHeight
+    setElementStyleProperty(card, "--project-detail-header-progress", "0")
+  }
   const finish = () => {
     drawerState.resizeObserver?.disconnect?.()
+    element.style.removeProperty("max-height")
     element.remove()
     drawerState.row?.removeAttribute("data-project-detail-open")
     if (card?.isConnected) {
       card.removeAttribute("data-project-detail-open")
+      card.removeAttribute("data-project-detail-header-compressed")
+      card.removeAttribute("data-project-detail-header-closing")
+      delete card.__detailHeaderStart
+      delete card.__detailHeaderOpenHeight
       card.removeAttribute("aria-controls")
       card.setAttribute("aria-expanded", "true")
+      card.style.removeProperty("--project-detail-header-progress")
+      card.style.removeProperty("--project-detail-header-expanded-height")
+      card.style.removeProperty("--project-detail-header-min-height")
+      card.style.removeProperty("--project-detail-header-pad")
     }
     if (siteState.projectDetailDrawer === drawerState) siteState.projectDetailDrawer = null
     refreshAfterProjectPreviewChange()
+    afterClose?.(card)
   }
-  if (!immediate && !prefersReducedMotion() && element.dataset.drawerState === "settled") {
-    const height = element.firstElementChild?.scrollHeight || 0
+  if (shouldAnimate) {
+    const height = element.firstElementChild?.scrollHeight || element.getBoundingClientRect().height || 0
+    // A settled drawer intentionally uses max-height:none. CSS cannot
+    // interpolate from none to zero, so establish a concrete pixel start,
+    // enter the closing state, then release the inline value on the next
+    // frame to let the max-height transition run all the way to zero.
     element.style.setProperty("--project-detail-drawer-height", `${height}px`)
+    element.dataset.drawerState = "closing"
+    element.style.setProperty("max-height", `${height}px`)
     void element.offsetHeight
+    window.requestAnimationFrame(() => {
+      if (element.isConnected && element.dataset.drawerState === "closing") {
+        element.style.removeProperty("max-height")
+      }
+    })
+  } else {
+    element.dataset.drawerState = "closed"
   }
-  element.dataset.drawerState = immediate || prefersReducedMotion() ? "closed" : "closing"
-  if (immediate || prefersReducedMotion()) {
+  if (!shouldAnimate) {
     finish()
     return
   }
-  window.setTimeout(finish, 760)
+  window.setTimeout(finish, PROJECT_DETAIL_DRAWER_CLOSE_MS)
 }
 
 function openProjectDetailDrawer(card, target) {
@@ -6939,6 +7000,12 @@ function openProjectDetailDrawer(card, target) {
   // would place Pitchfork before Serial's full article instead of below it.
   card.after(drawer)
 
+  // Capture the natural expanded surface before the sticky inner-header
+  // selector applies its compressed height interpolation.
+  const detailHeaderRect = card.getBoundingClientRect()
+  card.__detailHeaderStart = detailHeaderRect.top + (window.scrollY || window.pageYOffset || 0)
+  card.__detailHeaderOpenHeight = Math.max(1, detailHeaderRect.height)
+
   const inner = drawer.firstElementChild
   inner?.querySelectorAll(".project-lead").forEach((lead) => lead.remove())
   row.setAttribute("data-project-detail-open", "true")
@@ -6956,6 +7023,7 @@ function openProjectDetailDrawer(card, target) {
   card.setAttribute("data-project-detail-open", "true")
   card.setAttribute("aria-controls", drawer.id)
   card.setAttribute("aria-expanded", "true")
+  requestProjectDetailHeaderUpdate()
   refreshAfterProjectPreviewChange()
 
   requestAnimationFrame(() => {
@@ -6975,7 +7043,18 @@ function dismissProjectPreview(event) {
   if (event.target?.closest?.(".project-detail-drawer")) return
   if (event.target?.closest?.(".site-header")) return
   if (event.target?.closest?.("[data-project-card]")) return
-  closeProjectDetailDrawer()
+  // Let the drawer finish its physical retract first. Calling
+  // setProjectPreview immediately afterwards used to see the still-mounted
+  // drawer and force an immediate close, cancelling the compact animation.
+  const drawerState = activeProjectDetailDrawer()
+  if (drawerState) {
+    closeProjectDetailDrawer({
+      afterClose: (card) => {
+        if (card?.isConnected && activeProjectPreview() === card) setProjectPreview(card, false)
+      },
+    })
+    return
+  }
   setProjectPreview(current, false)
 }
 

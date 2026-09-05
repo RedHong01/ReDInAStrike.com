@@ -60,21 +60,25 @@ function previewMeetsHeaderEdge(cardRect, headerEdge) {
   return cardRect.top <= headerEdge + PREVIEW_HEADER_SEAM_EPSILON_PX
 }
 
-function pinnedPreviewBoundary(expandedRow, cardRect, headerEdge, viewportBottom) {
+function pinnedPreviewBoundary(expandedRow, cardRect, headerEdge, viewportBottom, expandedCard = null) {
   if (!expandedRow || !cardRect) return null
-  if (getComputedStyle(expandedRow).position !== "sticky") return null
+  const rowSticky = getComputedStyle(expandedRow).position === "sticky"
+  const cardSticky = expandedCard?.dataset?.projectDetailOpen === "true" &&
+    getComputedStyle(expandedCard).position === "sticky"
+  if (!rowSticky && !cardSticky) return null
 
   const rowRect = expandedRow.getBoundingClientRect?.()
   if (!rowRect || rowRect.width <= 0 || rowRect.height <= 0) return null
 
-  const pinned =
-    rowRect.top <= headerEdge + PIN_EPSILON_PX &&
-    rowRect.bottom > headerEdge + PIN_EPSILON_PX &&
-    cardRect.top <= headerEdge + PIN_EPSILON_PX &&
-    cardRect.bottom > headerEdge + PIN_EPSILON_PX
+  const pinned = cardSticky
+    ? cardRect.top <= headerEdge + PIN_EPSILON_PX && cardRect.bottom > headerEdge + PIN_EPSILON_PX
+    : rowRect.top <= headerEdge + PIN_EPSILON_PX &&
+      rowRect.bottom > headerEdge + PIN_EPSILON_PX &&
+      cardRect.top <= headerEdge + PIN_EPSILON_PX &&
+      cardRect.bottom > headerEdge + PIN_EPSILON_PX
   if (!pinned) return null
 
-  return clamp(Math.max(rowRect.bottom, cardRect.bottom), 0, viewportBottom)
+  return clamp(cardSticky ? cardRect.bottom : Math.max(rowRect.bottom, cardRect.bottom), 0, viewportBottom)
 }
 
 /**
@@ -103,6 +107,7 @@ export function readViewportBoundaryContext(frameTime = null) {
     expandedRect,
     headerEdge,
     bottom,
+    expandedCard,
   )
 
   const context = {

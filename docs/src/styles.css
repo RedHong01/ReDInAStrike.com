@@ -792,6 +792,9 @@ body[data-layout-transition="true"] .about-section {
   height: 1px;
   background: var(--rule);
   transform: scaleX(var(--project-rule-weight, 1)) scaleX(var(--catalog-rule-scale, 1));
+  /* A zero-weight boundary can otherwise leave a one-pixel antialiasing
+     speck at the transform origin. Keep the inactive rule fully absent. */
+  opacity: clamp(0, calc(var(--project-rule-weight, 1) * 1000), 1);
   transform-origin: center;
   pointer-events: none;
   transition: transform var(--catalog-rule-transition-ms, 190ms) cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -968,6 +971,18 @@ body[data-layout-transition="true"] .about-section {
   will-change: clip-path;
 }
 
+/* The paint layer follows the card's reading direction: a left card opens
+   from the page's left edge, while a right card opens from the opposite edge.
+   Keeping the two insets in the animation (instead of a generic scale) also
+   preserves the full-bleed FLIP geometry used by the real card. */
+.project-card.is-project-preview[data-project-preview-expanding="true"][data-project-preview-motion-side="left"] {
+  animation-name: project-preview-stage-expand-left;
+}
+
+.project-card.is-project-preview[data-project-preview-expanding="true"][data-project-preview-motion-side="right"] {
+  animation-name: project-preview-stage-expand-right;
+}
+
 /* The open gesture is a horizontal FLIP between the card's original rect and
    the full-bleed preview rect. Keep the real card as the document anchor while
    this paint-only snapshot carries the visual expansion, so sticky/grid
@@ -993,7 +1008,18 @@ body[data-layout-transition="true"] .about-section {
     top 520ms var(--project-preview-ease),
     width 520ms var(--project-preview-ease),
     height 520ms var(--project-preview-ease);
-  will-change: left, top, width, height;
+  animation: project-preview-stage-expand var(--project-preview-duration) var(--project-preview-ease) both;
+  will-change: left, top, width, height, clip-path;
+}
+
+/* Geometry is FLIP'd from source to full bleed. The fixed ghost also uses a
+   clamped, side-aware wipe so the reading edge arrives first. */
+.project-preview-expand-ghost[data-project-preview-motion-side="left"] {
+  animation-name: project-preview-ghost-expand-left;
+}
+
+.project-preview-expand-ghost[data-project-preview-motion-side="right"] {
+  animation-name: project-preview-ghost-expand-right;
 }
 
 .project-preview-expand-ghost .project-media {
@@ -1002,8 +1028,8 @@ body[data-layout-transition="true"] .about-section {
 
 .project-preview-expand-ghost .project-preview-copy {
   transition:
-    opacity 360ms ease 55ms,
-    transform 520ms var(--project-preview-ease) 55ms;
+    opacity 300ms ease 480ms,
+    transform 520ms var(--project-preview-ease) 480ms;
 }
 
 .project-preview-expand-ghost:not([data-project-preview-expand-state="target"]) .project-preview-copy {
@@ -1046,6 +1072,14 @@ body[data-layout-transition="true"] .about-section {
   will-change: clip-path, opacity;
 }
 
+.project-card.project-preview-exit-ghost[data-project-preview-motion-side="left"] {
+  animation-name: project-preview-stage-retract-left;
+}
+
+.project-card.project-preview-exit-ghost[data-project-preview-motion-side="right"] {
+  animation-name: project-preview-stage-retract-right;
+}
+
 .project-card.project-preview-exit-ghost[data-project-preview-exit-mode="switching"] {
   animation: none;
   transition: opacity var(--project-preview-exit-fade-duration, 180ms) cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -1077,6 +1111,12 @@ body[data-layout-transition="true"] .about-section {
   min-width: 0;
   padding: clamp(38px, 4.65vw, 72px) clamp(32px, 6.6vw, 100px) clamp(30px, 3.5vw, 54px) clamp(28px, 3.2vw, 48px);
   animation: project-preview-copy-in var(--project-preview-duration) var(--project-preview-ease) both;
+  animation-delay: 480ms;
+}
+
+/* Let the full-bleed color and its boundary arrive before the type. */
+.project-card.is-project-preview[data-project-preview-expanding="true"] .project-preview-copy {
+  animation-delay: 480ms;
 }
 
 @media (min-width: 981px) and (orientation: landscape) {
@@ -1173,6 +1213,42 @@ body[data-layout-transition="true"] .about-section {
   }
 }
 
+@keyframes project-preview-stage-expand-left {
+  0% {
+    clip-path: inset(0 var(--project-preview-start-right, 0px) 0 var(--project-preview-start-left, 0px));
+  }
+  56% {
+    clip-path: inset(0 var(--project-preview-start-right, 0px) 0 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes project-preview-stage-expand-right {
+  0% {
+    clip-path: inset(0 var(--project-preview-start-right, 0px) 0 var(--project-preview-start-left, 0px));
+  }
+  56% {
+    clip-path: inset(0 0 0 var(--project-preview-start-left, 0px));
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes project-preview-ghost-expand-left {
+  0% { clip-path: inset(0 0 0 0); }
+  56% { clip-path: inset(0 var(--project-preview-ghost-start-right, 0px) 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes project-preview-ghost-expand-right {
+  0% { clip-path: inset(0 0 0 0); }
+  56% { clip-path: inset(0 0 0 var(--project-preview-ghost-start-left, 0px)); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
 @keyframes project-preview-stage-retract {
   from {
     clip-path: inset(0 0 0 0);
@@ -1185,6 +1261,78 @@ body[data-layout-transition="true"] .about-section {
       var(--project-preview-exit-left, 0px)
     );
   }
+}
+
+@keyframes project-preview-stage-retract-left {
+  0% {
+    clip-path: inset(0 0 0 0);
+  }
+  56% {
+    clip-path: inset(
+      var(--project-preview-exit-top, 0px)
+      var(--project-preview-exit-right, 0px)
+      var(--project-preview-exit-bottom, 0px)
+      0px
+    );
+  }
+  100% {
+    clip-path: inset(
+      var(--project-preview-exit-top, 0px)
+      var(--project-preview-exit-right, 0px)
+      var(--project-preview-exit-bottom, 0px)
+      var(--project-preview-exit-left, 0px)
+    );
+  }
+}
+
+@keyframes project-preview-stage-retract-right {
+  0% {
+    clip-path: inset(0 0 0 0);
+  }
+  56% {
+    clip-path: inset(
+      var(--project-preview-exit-top, 0px)
+      0px
+      var(--project-preview-exit-bottom, 0px)
+      var(--project-preview-exit-left, 0px)
+    );
+  }
+  100% {
+    clip-path: inset(
+      var(--project-preview-exit-top, 0px)
+      var(--project-preview-exit-right, 0px)
+      var(--project-preview-exit-bottom, 0px)
+      var(--project-preview-exit-left, 0px)
+    );
+  }
+}
+
+@keyframes project-preview-rule-expand {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes project-preview-rule-retract {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.project-card.is-project-preview[data-project-preview-expanding="true"]::after,
+.project-card.is-project-preview[data-project-preview-expanding="true"]::before {
+  transform-origin: center;
+  animation: project-preview-rule-expand 360ms cubic-bezier(0.22, 0.61, 0.36, 1) 110ms both;
+}
+
+.project-preview-expand-ghost::after,
+.project-preview-expand-ghost::before {
+  transform-origin: center;
+  animation: project-preview-rule-expand 360ms cubic-bezier(0.22, 0.61, 0.36, 1) 110ms both;
+}
+
+.project-card.project-preview-exit-ghost[data-project-preview-exiting="true"]::after,
+.project-card.project-preview-exit-ghost[data-project-preview-exiting="true"]::before {
+  transform-origin: center;
+  animation: project-preview-rule-retract 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 .catalog[data-filter-phase] .project-card {
@@ -1555,11 +1703,17 @@ body[data-layout-transition="true"] .about-section {
   opacity: 0;
   transform: translate3d(0, 18px, 0);
   transition:
-    max-height 560ms var(--responsive-ease),
-    clip-path 560ms var(--responsive-ease),
+    max-height 720ms var(--responsive-ease),
+    clip-path 720ms var(--responsive-ease),
     opacity 260ms ease,
-    transform 560ms var(--responsive-ease);
+    transform 720ms var(--responsive-ease);
   will-change: max-height, clip-path, opacity, transform;
+}
+
+/* The expanded card already owns the shared seam with its detail panel.
+   Keeping the drawer border here would paint the same horizontal rule twice. */
+.project-card.is-project-preview + .project-detail-drawer {
+  border-top: 0;
 }
 
 .project-detail-drawer[data-drawer-direction="up"] {
@@ -1594,6 +1748,23 @@ body[data-layout-transition="true"] .about-section {
 .project-detail-drawer-inner {
   min-height: 0;
   padding-bottom: clamp(48px, 7vw, 112px);
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  transition:
+    opacity 360ms ease 80ms,
+    transform 720ms var(--responsive-ease) 40ms;
+}
+
+.project-row.has-project-preview[data-project-detail-open="true"] {
+  position: relative;
+  top: auto;
+  z-index: auto;
+}
+
+.project-detail-drawer[data-drawer-state="open"] .project-detail-drawer-inner,
+.project-detail-drawer[data-drawer-state="settled"] .project-detail-drawer-inner {
+  opacity: 1;
+  transform: none;
 }
 
 /* The preview already supplies the lead surface; the drawer continues with
@@ -1623,6 +1794,12 @@ body[data-layout-transition="true"] .about-section {
   .project-detail-drawer {
     max-height: none;
     clip-path: none;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .project-detail-drawer-inner {
     opacity: 1;
     transform: none;
     transition: none;
@@ -3085,6 +3262,13 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     padding-bottom: var(--project-caption-rule-gap);
   }
 
+  /* The drawer is now a third grid item between the active card and its
+     sibling. Remove the row gap while it is open so the article does not
+     acquire two independent gaps around the inserted panel. */
+  .project-row.has-project-preview[data-project-detail-open="true"] {
+    row-gap: 0;
+  }
+
   .project-row.has-project-preview:first-child {
     padding-top: var(--project-first-card-gap);
   }
@@ -3104,6 +3288,30 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .project-card.is-project-preview + .project-card::before {
     display: none;
+  }
+
+  /* The detail drawer sits between the active card and its row sibling on
+     compact layouts. Restore the sibling's list spacing/rule even though it
+     is no longer a direct card-to-card sibling. */
+  .project-detail-drawer + .project-card:not(.is-project-preview) {
+    position: relative;
+    border-top: 0;
+    padding-top: var(--project-rule-card-gap);
+  }
+
+  .project-detail-drawer + .project-card:not(.is-project-preview)::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: var(--rule);
+    transform: scaleX(var(--card-rule-weight, 1)) scaleX(var(--catalog-rule-scale, 1));
+    transform-origin: center;
+    pointer-events: none;
+    transition: transform var(--catalog-rule-transition-ms, 190ms) cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
   }
 }
 

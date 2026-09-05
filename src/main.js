@@ -3385,6 +3385,25 @@ function applyFigmaCaptureState() {
   const state = new URLSearchParams(window.location.search).get("figma-state")
   if (!state || !document.querySelector(".site-main")) return
 
+  const about = document.querySelector(".about-section")
+  if (about) {
+    // Capture the settled layout, not the transient scroll-reveal opacity.
+    for (const [property, value] of [
+      ["--about-info-reveal", "1"],
+      ["--about-info-shift", "0px"],
+      ["--about-pull-y", "0px"],
+      ["--about-card-offset-y", "0px"],
+      ["--resume-card-offset-y", "0px"],
+    ]) about.style.setProperty(property, value)
+    about.querySelectorAll(".about-copy, .contact-copy, .profile-portrait, .profile-card, .resume-word, .resume-detail")
+      .forEach((element) => {
+        element.style.opacity = "1"
+        element.style.clipPath = "none"
+        element.style.transform = "none"
+        element.style.transition = "none"
+      })
+  }
+
   if (state === "compact") {
     const scrollTop = Math.min(420, Math.max(0, document.documentElement.scrollHeight - window.innerHeight))
     window.scrollTo({ top: scrollTop, left: 0, behavior: "auto" })
@@ -5735,6 +5754,10 @@ function commitCatalogFilterTransition(cycle) {
 
 function startCatalogFilterTransition() {
   clearProjectPreviewExitGhosts()
+  // A detail drawer owns a ResizeObserver and an expanded document subtree.
+  // Close it before replacing catalog rows so filtering cannot leave a stale
+  // observer or detached drawer state behind.
+  if (activeProjectDetailDrawer()) closeProjectDetailDrawer({ immediate: true })
   const catalog = document.querySelector(".catalog")
   if (!catalog) {
     siteState.catalogFilterCurrent = siteState.catalogFilterTarget
@@ -6423,6 +6446,10 @@ function syncProjectPreviewRows(card, expanded) {
 function prepareProjectPreviewExpandMotion(card) {
   if (!card) return
 
+  // Keep the originating side available to the paint-only transition layers.
+  // Geometry still comes from FLIP; this attribute only controls reveal order.
+  card.dataset.projectPreviewMotionSide = card.dataset.cardSide === "right" ? "right" : "left"
+
   const rect = card.getBoundingClientRect()
   const viewportWidth = Math.max(
     window.innerWidth || 0,
@@ -6496,6 +6523,7 @@ function createProjectPreviewExitGhost(card) {
   const sourceRow = card.closest(".project-row")
   const ghost = card.cloneNode(true)
   ghost.classList.add("project-preview-exit-ghost")
+  ghost.dataset.projectPreviewMotionSide = card.dataset.cardSide === "right" ? "right" : "left"
   ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
   ghost.setAttribute("aria-hidden", "true")
   ghost.setAttribute("tabindex", "-1")
@@ -6566,6 +6594,7 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect) {
   const ghost = card.cloneNode(true)
   const side = card.dataset.cardSide === "right" ? "right" : "left"
   ghost.classList.add("project-preview-expand-ghost")
+  ghost.dataset.projectPreviewMotionSide = side
   ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
   ghost.setAttribute("aria-hidden", "true")
   ghost.setAttribute("tabindex", "-1")
@@ -6601,6 +6630,11 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect) {
   ghost.style.setProperty("--project-preview-expand-target-top", `${targetRect.top}px`)
   ghost.style.setProperty("--project-preview-expand-target-width", `${targetRect.width}px`)
   ghost.style.setProperty("--project-preview-expand-target-height", `${targetRect.height}px`)
+  // The fixed paint layer starts at the source card's bounds. Keep its
+  // directional wipe in viewport coordinates, but clamp the initial insets
+  // to the source box so the first frame never clips the card away.
+  ghost.style.setProperty("--project-preview-ghost-start-left", `${clamp(sourceRect.left - targetRect.left, 0, sourceRect.width)}px`)
+  ghost.style.setProperty("--project-preview-ghost-start-right", `${clamp(targetRect.right - sourceRect.right, 0, sourceRect.width)}px`)
 
   document.body.appendChild(ghost)
   siteState.projectPreviewExpandGhosts.add(ghost)
@@ -6731,6 +6765,7 @@ function clearProjectPreviewExpandMotion(card) {
   if (!card) return
 
   card.removeAttribute("data-project-preview-expanding")
+  delete card.dataset.projectPreviewMotionSide
   card.style.removeProperty("--project-preview-start-left")
   card.style.removeProperty("--project-preview-start-right")
 }
@@ -6877,6 +6912,7 @@ function closeProjectDetailDrawer({ immediate = false } = {}) {
   const finish = () => {
     drawerState.resizeObserver?.disconnect?.()
     element.remove()
+    drawerState.row?.removeAttribute("data-project-detail-open")
     if (card?.isConnected) {
       card.removeAttribute("data-project-detail-open")
       card.removeAttribute("aria-controls")
@@ -6895,7 +6931,7 @@ function closeProjectDetailDrawer({ immediate = false } = {}) {
     finish()
     return
   }
-  window.setTimeout(finish, 620)
+  window.setTimeout(finish, 760)
 }
 
 function openProjectDetailDrawer(card, target) {
@@ -6910,15 +6946,20 @@ function openProjectDetailDrawer(card, target) {
   const row = card.closest(".project-row")
   if (!row) return
   const drawer = document.createElement("section")
-  drawer.className = "project-detail-drawer"
+  drawer.className = `project-detail-drawer${project.path === "/serialdeminer" ? " framer-case-page" : framerProjectDetails[project.path] ? " framer-derived-page" : ""}`
   drawer.id = `project-detail-drawer-${String(card.dataset.index || target.path.slice(1)).replace(/[^a-z0-9_-]+/gi, "-")}`
   drawer.dataset.drawerState = "closed"
   drawer.dataset.drawerDirection = siteState.scrollDirection >= 0 ? "down" : "up"
   drawer.setAttribute("aria-label", `${project.pageTitle} project details`)
   drawer.innerHTML = `<div class="project-detail-drawer-inner">${projectDetailBodyMarkup(project)}</div>`
-  row.after(drawer)
+  // Keep the drawer immediately after the activated card. On compact layouts
+  // the neighboring card remains in the same row, so inserting after the row
+  // would place Pitchfork before Serial's full article instead of below it.
+  card.after(drawer)
 
   const inner = drawer.firstElementChild
+  inner?.querySelectorAll(".project-lead").forEach((lead) => lead.remove())
+  row.setAttribute("data-project-detail-open", "true")
   const updateHeight = () => {
     if (inner) drawer.style.setProperty("--project-detail-drawer-height", `${inner.scrollHeight}px`)
   }
@@ -6928,7 +6969,7 @@ function openProjectDetailDrawer(card, target) {
     : null
   resizeObserver?.observe(inner)
 
-  const drawerState = { element: drawer, card, resizeObserver }
+  const drawerState = { element: drawer, card, row, resizeObserver }
   siteState.projectDetailDrawer = drawerState
   card.setAttribute("data-project-detail-open", "true")
   card.setAttribute("aria-controls", drawer.id)
@@ -6942,7 +6983,7 @@ function openProjectDetailDrawer(card, target) {
       if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
       drawer.dataset.drawerState = "settled"
       drawer.style.removeProperty("--project-detail-drawer-height")
-    }, prefersReducedMotion() ? 0 : 620)
+    }, prefersReducedMotion() ? 0 : 760)
   })
 }
 

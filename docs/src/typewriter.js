@@ -67,7 +67,8 @@ const RUNTIME_CANVAS_CLASSES = [
 ]
 
 function prefersReducedMotion() {
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+  const captureMode = new URLSearchParams(window.location.search).has("figma-state")
+  return captureMode || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
 }
 
 function ensureStyles() {

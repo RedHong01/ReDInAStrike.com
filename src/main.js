@@ -6820,6 +6820,10 @@ function setProjectPreview(card, expanded) {
   const current = activeProjectPreview()
   if (expanded && current === card) return
   if (!expanded && current !== card) return
+  window.clearTimeout(card.__projectPreviewCollapseTimer)
+  card.__projectPreviewCollapseTimer = 0
+  card.removeAttribute("data-project-preview-collapsing")
+  card.removeAttribute("data-project-preview-ready")
   const detailDrawer = activeProjectDetailDrawer()
   if (detailDrawer && (!expanded || detailDrawer.card !== card)) {
     closeProjectDetailDrawer({ immediate: true })
@@ -6837,56 +6841,34 @@ function setProjectPreview(card, expanded) {
   }
 
   if (!expanded) {
-    const exitMotion = createProjectPreviewExitGhost(card)
-    clearProjectPreviewExpandMotion(card)
-    clearProjectPreviewHeightLock(card)
+    // Keep the real card in its original grid cell while its surface retracts.
+    // Removing the preview class here would reflow the row before the physical
+    // retract could be seen, which was the source of the old relocation jump.
+    card.setAttribute("data-project-preview-collapsing", "true")
     document.documentElement.dataset.projectPreviewTransition = "exiting"
-    commitProjectPreviewState(card, expanded)
-    runProjectPreviewExitGhost(exitMotion, card, { clearTransition: true, motionId })
+    card.__projectPreviewCollapseTimer = window.setTimeout(() => {
+      if (!card.isConnected || motionId !== siteState.projectPreviewMotionId) return
+      card.removeAttribute("data-project-preview-collapsing")
+      clearProjectPreviewExpandMotion(card)
+      clearProjectPreviewHeightLock(card)
+      commitProjectPreviewState(card, false)
+      delete document.documentElement.dataset.projectPreviewTransition
+    }, 440)
     return
   }
 
-  const sourceRect = projectPreviewRect(card.getBoundingClientRect())
-  const exitMotion = current && current !== card ? createProjectPreviewExitGhost(current) : null
   prepareProjectPreviewExpandMotion(card)
-  document.documentElement.dataset.projectPreviewTransition = exitMotion ? "switching" : "expanding"
+  document.documentElement.dataset.projectPreviewTransition = "expanding"
   commitProjectPreviewState(card, expanded)
-  const targetRect = projectPreviewRect(card.getBoundingClientRect())
-  const expandGhost = createProjectPreviewExpandGhost(card, sourceRect, targetRect)
-  if (expandGhost) {
-    expandGhost.__projectPreviewExpandCard = card
-    card.setAttribute("data-project-preview-expand-ghosting", "true")
-  }
-  if (exitMotion) runProjectPreviewExitGhost(exitMotion, current, { motionId, fade: true })
-
-  let cleaned = false
-  const cleanup = () => {
-    if (cleaned) return
-    if (motionId !== siteState.projectPreviewMotionId) return
-    cleaned = true
-    delete document.documentElement.dataset.projectPreviewTransition
-    if (expandGhost) {
-      expandGhost.remove()
-      siteState.projectPreviewExpandGhosts.delete(expandGhost)
-    }
-    card.removeAttribute("data-project-preview-expand-ghosting")
-    clearProjectPreviewExpandMotion(card)
-    refreshAfterProjectPreviewChange()
-  }
-  const handleAnimationEnd = (event) => {
-    if (event.target !== card) return
-    card.removeEventListener("animationend", handleAnimationEnd)
-    cleanup()
-  }
-  card.addEventListener("animationend", handleAnimationEnd)
-  expandGhost?.addEventListener("transitionend", (event) => {
-    if (event.target !== expandGhost || event.propertyName !== "width") return
-    cleanup()
-  })
+  // The real media remains the paint anchor. Only the background/rules animate;
+  // type is revealed after that surface has reached full bleed.
   window.setTimeout(() => {
-    card.removeEventListener("animationend", handleAnimationEnd)
-    cleanup()
-  }, catalogFilterDuration(420) + 120)
+    if (motionId !== siteState.projectPreviewMotionId || !card.isConnected) return
+    card.removeAttribute("data-project-preview-expanding")
+    card.setAttribute("data-project-preview-ready", "true")
+    delete document.documentElement.dataset.projectPreviewTransition
+    refreshAfterProjectPreviewChange()
+  }, 560)
 }
 
 function projectDetailBodyMarkup(project) {

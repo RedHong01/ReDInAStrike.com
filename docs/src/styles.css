@@ -466,7 +466,10 @@ html[data-scroll-magnet="moving"] body {
   text-align: right;
   color: var(--muted);
   opacity: 0;
-  pointer-events: none;
+  /* Keep the expanded detail inside the nav's interactive hover corridor.
+     The element remains visibility-hidden while collapsed, so this does not
+     create an invisible blocker. */
+  pointer-events: auto;
   clip-path: inset(0 0 100% 100%);
   transform: translate3d(0, -8px, 0) scale(0.985);
   transform-origin: 100% 0;
@@ -1978,15 +1981,6 @@ body[data-layout-transition="true"] .about-section {
 /* Once the sticky card reaches its minimum height, the image column no longer
    contributes to the header layout. Let the copy span the full bar so a
    title with no visible secondary type is centered in the entire header. */
-.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] {
-  /* Keep two tracks so the column collapse can interpolate instead of
-     switching discretely from a two-column grid to a one-column grid. */
-  grid-template-columns: minmax(0, 0fr) minmax(0, 1fr);
-  /* The compact header is the boundary of its own content. Prevent a
-     transitional text frame from painting into the homepage header above it. */
-  overflow: clip;
-}
-
 .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-media {
   grid-column: 1;
   grid-row: 1;
@@ -2075,6 +2069,25 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-copy {
   padding-top: 0;
   padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  min-height: 0;
+}
+
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-head {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  gap: 0;
+  width: 100%;
+  min-height: 0;
+  text-align: center;
 }
 
 .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-head h2 {
@@ -3001,8 +3014,12 @@ body[data-header-compact="true"][data-nav-density="titles"] .nav-item {
 body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-active,
 body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed),
 body[data-header-compact="true"][data-nav-density="titles"] .nav-item:focus-visible {
-  min-width: var(--nav-detail-layout-width, var(--nav-title-width, 0px));
+  /* Keep the category hitboxes fixed while the detail remains an overlay.
+     Expanding flex width here moves sibling categories under a stationary
+     pointer and can create an enter/leave oscillation. */
+  min-width: var(--nav-title-width, 0px);
   margin-inline: 0;
+  z-index: 2;
 }
 
 /* A locked category keeps its detail visible without making the title jump out of the row. */
@@ -3029,6 +3046,26 @@ body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-act
 body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed) .nav-detail,
 body[data-header-compact="true"][data-nav-density="titles"] .nav-item:focus-visible .nav-detail {
   max-height: 18px;
+}
+
+/* The detail copy intentionally overflows to the left of its title. Extend
+   the active item's hit area to cover that overflow and the small animation
+   gap, without changing flex geometry or moving neighboring categories. */
+body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-active::after,
+body[data-header-compact="true"][data-nav-density="titles"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed)::after,
+body[data-header-compact="true"][data-nav-density="titles"] .nav-item:focus-visible::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: calc(100% + 1px);
+  right: 0;
+  width: var(--nav-detail-layout-width, var(--nav-title-width, 0px));
+  height: 32px;
+  pointer-events: auto;
+}
+
+body[data-header-compact="true"][data-nav-density="titles"] .nav-detail {
+  z-index: 1;
 }
 
 body[data-nav-density="mobile"] .header-inner,
@@ -3153,13 +3190,36 @@ body[data-header-compact="true"][data-nav-density="mobile"] .nav-item:focus-visi
 body[data-header-compact="true"][data-nav-density="tiny"] .nav-item.is-nav-active,
 body[data-header-compact="true"][data-nav-density="tiny"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed),
 body[data-header-compact="true"][data-nav-density="tiny"] .nav-item:focus-visible {
-  min-width: var(--nav-detail-layout-width, var(--nav-title-width, 0px));
+  /* The compact horizontal nav uses the same stable hitbox rule as titles. */
+  min-width: var(--nav-title-width, 0px);
   margin-inline: 0;
+  z-index: 2;
 }
 
 body[data-header-compact="true"][data-nav-density="mobile"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed),
 body[data-header-compact="true"][data-nav-density="tiny"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed) {
   min-width: var(--nav-title-width, 0px);
+}
+
+body[data-header-compact="true"][data-nav-density="mobile"] .nav-item.is-nav-active::after,
+body[data-header-compact="true"][data-nav-density="mobile"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed)::after,
+body[data-header-compact="true"][data-nav-density="mobile"] .nav-item:focus-visible::after,
+body[data-header-compact="true"][data-nav-density="tiny"] .nav-item.is-nav-active::after,
+body[data-header-compact="true"][data-nav-density="tiny"] .nav-item.is-nav-locked:not(.is-nav-lock-suppressed)::after,
+body[data-header-compact="true"][data-nav-density="tiny"] .nav-item:focus-visible::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: calc(100% + 1px);
+  right: 0;
+  width: var(--nav-detail-layout-width, var(--nav-title-width, 0px));
+  height: 32px;
+  pointer-events: auto;
+}
+
+body[data-header-compact="true"][data-nav-density="mobile"] .nav-detail,
+body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
+  z-index: 1;
 }
 
 body[data-header-compact="true"][data-nav-density="mobile"] .nav-title {
@@ -4387,4 +4447,20 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   transform: none;
   clip-path: none;
   pointer-events: auto;
+}
+
+/* The side-aware preview rules above intentionally move copy into the
+   neighbouring column on small catalogue cards. An opened detail header is a
+   single full-width bar, so those offsets must be cancelled after the
+   responsive rules have finished cascading; otherwise the bar remains while
+   its title/subtitle are painted outside the viewport at the small breakpoint. */
+@media (max-width: 980px), (orientation: portrait) {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
+    left: 0 !important;
+    right: 0 !important;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    inset-inline: 0;
+  }
 }

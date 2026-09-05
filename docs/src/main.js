@@ -36,11 +36,6 @@ const MEDIA_DOMINANT_CACHE_LIMIT = 96
 const MEDIA_EDGE_SAMPLE_RATIO = 0.08
 const MEDIA_EDGE_SAMPLE_MIN_PX = 2
 const PROJECT_DETAIL_DRAWER_CLOSE_MS = 760
-// Keep the expanded preview's original anchor movement in the same temporal
-// range as the surface reveal. This restores the old "card rises under the
-// header" gesture without bringing back the discarded paint ghost or route
-// transition.
-const PROJECT_PREVIEW_ANCHOR_MS = 720
 
 const projects = [
   {
@@ -578,8 +573,6 @@ const siteState = {
   projectPreviewMotionId: 0,
   projectPreviewExitGhosts: new Set(),
   projectPreviewExpandGhosts: new Set(),
-  projectPreviewAnchorFrame: 0,
-  projectPreviewAnchorToken: 0,
   scrollDirection: 1,
   projectDetailDrawer: null,
   catalogRuleScrollTimer: 0,
@@ -3720,6 +3713,15 @@ function requestProjectDetailHeaderUpdate() {
   const card = drawerState?.card
   if (!card?.isConnected || !drawerState?.element || drawerState.element.dataset.drawerState === "closing") return
   const scrollY = window.scrollY || window.pageYOffset || 0
+  // Keep the sticky hand-off tied to the header's painted edge. The compact
+  // state can be reached after the header animation has stopped writing its
+  // custom property, leaving the old expanded value in the cascade. Reading
+  // the live rect here corrects that stale frame without scrolling the page.
+  const headerRect = siteState.dom.header?.getBoundingClientRect?.()
+  const liveHeaderBottom = headerRect && Number.isFinite(headerRect.bottom) ? Math.max(0, headerRect.bottom) : 0
+  if (liveHeaderBottom > 0) {
+    setRootStyleProperty("--project-preview-sticky-top", `${liveHeaderBottom.toFixed(2)}px`)
+  }
   const headerHeight = Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
   if (!Number.isFinite(card.__detailHeaderStart)) {
     const rect = card.getBoundingClientRect()
@@ -3728,15 +3730,6 @@ function requestProjectDetailHeaderUpdate() {
   }
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
-  if (card.__detailHeaderAnchoring) {
-    setElementStyleProperty(card, "--project-detail-header-progress", "0")
-    setElementStyleProperty(card, "--project-detail-header-expanded-height", `${openHeight.toFixed(2)}px`)
-    setElementStyleProperty(card, "--project-detail-header-min-height", `${compactHeight.toFixed(2)}px`)
-    setElementStyleProperty(card, "--project-detail-header-pad", "42px")
-    card.removeAttribute("data-project-detail-header-compressed")
-    card.removeAttribute("data-project-detail-header-minimized")
-    return
-  }
   const stickyStart = card.__detailHeaderStart - headerHeight
   const progress = clamp((scrollY - stickyStart) / Math.max(180, openHeight - compactHeight + headerHeight * 0.6), 0, 1)
   setElementStyleProperty(card, "--project-detail-header-progress", progress.toFixed(4))
@@ -6071,6 +6064,13 @@ function setupNavHoverInteraction() {
 
   nav.addEventListener("pointerleave", (event) => {
     if (event.pointerType === "touch") return
+    // A detail line is an absolutely positioned child and can temporarily
+    // cross the nav boundary while its reveal/layout transition is running.
+    // Do not clear the active category while the pointer is still inside the
+    // nav hit region; otherwise the detail disappears and immediately causes
+    // another enter/leave cycle under a stationary pointer.
+    if (event.relatedTarget && nav.contains(event.relatedTarget)) return
+    if (nav.matches(":hover")) return
     clearTimer = window.setTimeout(clearActive, 130)
   })
 
@@ -6834,68 +6834,6 @@ function clearProjectPreviewHeightLock(card) {
   card?.style.removeProperty("--project-preview-start-height")
 }
 
-function cancelProjectPreviewAnchor() {
-  siteState.projectPreviewAnchorToken += 1
-  if (siteState.projectPreviewAnchorFrame) {
-    cancelAnimationFrame(siteState.projectPreviewAnchorFrame)
-  }
-  siteState.projectPreviewAnchorFrame = 0
-}
-
-/**
- * Reintroduce the original anchor gesture without changing the current
- * preview/drawer state machine: while the surface expands, move the document
- * so the card's captured top edge settles immediately below the live header.
- * The write is one RAF per frame and uses the same smoothstep curve as the
- * historical implementation, avoiding a native smooth-scroll race with the
- * header's own scroll pipeline.
- */
-function startProjectPreviewAnchor(card, sourceTop, headerHeight) {
-  if (!card?.isConnected) return
-  if (prefersReducedMotion()) {
-    card.__detailHeaderAnchoring = false
-    requestProjectDetailHeaderUpdate()
-    return
-  }
-  if (!Number.isFinite(sourceTop) || !Number.isFinite(headerHeight)) {
-    // Never leave the drawer header pinned at progress 0 if its anchor
-    // geometry becomes unavailable during a resize or route hand-off.
-    card.__detailHeaderAnchoring = false
-    requestProjectDetailHeaderUpdate()
-    return
-  }
-
-  const startY = window.scrollY || window.pageYOffset || 0
-  const targetY = clamp(startY + sourceTop - headerHeight, 0, pageMaxScrollY())
-  if (Math.abs(targetY - startY) <= 1.5) {
-    card.__detailHeaderAnchoring = false
-    requestProjectDetailHeaderUpdate()
-    return
-  }
-
-  cancelProjectPreviewAnchor()
-  const token = siteState.projectPreviewAnchorToken
-  const startedAt = performance.now()
-  const frame = (time) => {
-    if (token !== siteState.projectPreviewAnchorToken || !card.isConnected) return
-    const progress = clamp((time - startedAt) / PROJECT_PREVIEW_ANCHOR_MS, 0, 1)
-    const eased = smoothstep(progress)
-    window.scrollTo({
-      top: startY + (targetY - startY) * eased,
-      left: 0,
-      behavior: "auto",
-    })
-    if (progress >= 1) {
-      siteState.projectPreviewAnchorFrame = 0
-      card.__detailHeaderAnchoring = false
-      requestProjectDetailHeaderUpdate()
-      return
-    }
-    siteState.projectPreviewAnchorFrame = requestAnimationFrame(frame)
-  }
-  siteState.projectPreviewAnchorFrame = requestAnimationFrame(frame)
-}
-
 function commitProjectPreviewState(card, expanded) {
   const current = activeProjectPreview()
   const catalog = card.closest(".catalog")
@@ -6942,7 +6880,6 @@ function setProjectPreview(card, expanded) {
   const current = activeProjectPreview()
   if (expanded && current === card) return
   if (!expanded && current !== card) return
-  cancelProjectPreviewAnchor()
   window.clearTimeout(card.__projectPreviewCollapseTimer)
   card.__projectPreviewCollapseTimer = 0
   card.removeAttribute("data-project-preview-collapsing")
@@ -7013,8 +6950,6 @@ function activeProjectDetailDrawer() {
 function closeProjectDetailDrawer({ immediate = false, afterClose = null, onCloseStart = null } = {}) {
   const drawerState = activeProjectDetailDrawer()
   if (!drawerState) return
-  cancelProjectPreviewAnchor()
-  drawerState.card.__detailHeaderAnchoring = false
   const { element, card } = drawerState
   const reducedMotion = prefersReducedMotion()
   // A second caller must not turn an in-flight close into an immediate
@@ -7163,19 +7098,8 @@ function openProjectDetailDrawer(card, target) {
   card.setAttribute("data-project-detail-open", "true")
   card.setAttribute("aria-controls", drawer.id)
   card.setAttribute("aria-expanded", "true")
-  card.__detailHeaderAnchoring = true
   requestProjectDetailHeaderUpdate()
   refreshAfterProjectPreviewChange()
-
-  // The historical route transition first brought the already-expanded card
-  // up to the live header edge. Keep that hand-off when the current drawer
-  // architecture opens the inner page, without changing the preview expand
-  // gesture itself.
-  startProjectPreviewAnchor(
-    card,
-    detailHeaderRect.top,
-    siteState.headerVisualBottom || currentHeaderHeight(),
-  )
 
   requestAnimationFrame(() => {
     if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return

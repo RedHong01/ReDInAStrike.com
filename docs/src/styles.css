@@ -993,7 +993,9 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-preview-expand-ghost .project-preview-copy {
-  animation: project-preview-copy-in 520ms var(--project-preview-ease) 55ms both;
+  transition:
+    opacity 360ms ease 55ms,
+    transform 520ms var(--project-preview-ease) 55ms;
 }
 
 .project-preview-expand-ghost:not([data-project-preview-expand-state="target"]) .project-preview-copy {

@@ -567,6 +567,8 @@ const siteState = {
   projectPreviewMotionId: 0,
   projectPreviewExitGhosts: new Set(),
   projectPreviewExpandGhosts: new Set(),
+  scrollDirection: 1,
+  projectDetailDrawer: null,
   catalogRuleScrollTimer: 0,
   catalogRuleScrollActive: false,
 }
@@ -3377,6 +3379,39 @@ function render() {
   setupHoverEmbeds()
 }
 
+// The Figma capture runner needs deterministic, reloadable snapshots of the
+// same page states that users reach through scroll and interaction.
+function applyFigmaCaptureState() {
+  const state = new URLSearchParams(window.location.search).get("figma-state")
+  if (!state || !document.querySelector(".site-main")) return
+
+  if (state === "compact") {
+    const scrollTop = Math.min(420, Math.max(0, document.documentElement.scrollHeight - window.innerHeight))
+    window.scrollTo({ top: scrollTop, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: true })
+    return
+  }
+
+  if (state === "interaction") {
+    replaceCatalogFilterImmediately("interaction")
+    return
+  }
+
+  if (state === "expanded") {
+    const card = document.querySelector('[data-project-card][data-index="0"]')
+    if (card) {
+      commitProjectPreviewState(card, true)
+      card.scrollIntoView({ block: "start", behavior: "auto" })
+      syncScrollDrivenVisuals({ publishMoving: true })
+    }
+    return
+  }
+
+  if (state === "resume") {
+    scheduleScrollToPageSection("resume", { immediate: true, attempts: 2, delay: 0 })
+  }
+}
+
 /**
  * Snap a header height onto the same pixel grid the performance prelude uses
  * when it writes --header-height, so the painted header bottom, the sticky
@@ -4326,9 +4361,15 @@ function applyFooterComposition() {
   const { about } = siteState.dom
   if (about) {
     const pull = Math.max(0, siteState.aboutPull || 0)
+    const reveal = clamp(siteState.galleryReveal || 0, 0, 1)
+    const direction = siteState.scrollDirection >= 0 ? "down" : "up"
+    const shift = (1 - reveal) * 18 * (siteState.scrollDirection >= 0 ? 1 : -1)
+    about.dataset.drawerDirection = direction
     setElementStyleProperty(about, "--about-pull-y", `${pull.toFixed(2)}px`)
     setElementStyleProperty(about, "--about-card-offset-y", `${Math.max(0, siteState.aboutCardOffset || 0).toFixed(2)}px`)
     setElementStyleProperty(about, "--resume-card-offset-y", `${Math.max(0, siteState.resumeCardOffset || 0).toFixed(2)}px`)
+    setElementStyleProperty(about, "--about-info-reveal", reveal.toFixed(4))
+    setElementStyleProperty(about, "--about-info-shift", `${shift.toFixed(2)}px`)
   }
   if (siteState.previewHeaderSeamCard?.isConnected) {
     syncProjectPreviewSeams(readViewportBoundaryContext())
@@ -6092,6 +6133,10 @@ function updateHeaderFromScroll(delta) {
 
 function requestScrollEffectsUpdate(delta) {
   if (isHomeReturnTransitionActive()) return
+  if (Math.abs(delta) > 0.35) {
+    siteState.scrollDirection = delta > 0 ? 1 : -1
+    document.documentElement.dataset.drawerDirection = delta > 0 ? "down" : "up"
+  }
   siteState.pendingScrollDelta += delta
   if (siteState.scrollFrame) return
 
@@ -6179,6 +6224,10 @@ function setupHeader() {
     // see the new width, not the previous one.
     siteState.headerMetricsWidth = -1
     siteState.headerMetrics = null
+    // Set the transition state in the resize event itself, before the next
+    // paint. Waiting for the coalesced RAF lets media-query layout changes
+    // flash at their new breakpoint for one frame.
+    startResponsiveLayoutTransition()
     if (siteState.resizeFrame) return
     siteState.resizeFrame = requestAnimationFrame(() => {
       siteState.resizeFrame = 0
@@ -6187,7 +6236,6 @@ function setupHeader() {
       siteState.galleryViewportLeft = null
       invalidateCatalogHalftoneGeometry()
       invalidateCatalogContentBottom()
-      startResponsiveLayoutTransition()
       if (isHomeReturnTransitionActive()) {
         applyHomeReturnTransitionVisual()
       } else {
@@ -6428,6 +6476,7 @@ function normalProjectCardFallbackRect(card, sourceRect) {
 
 function createProjectPreviewExitGhost(card) {
   if (!card?.isConnected) return null
+  const side = card.dataset.cardSide === "right" ? "right" : "left"
 
   const rect = card.getBoundingClientRect()
   if (rect.width <= 0 || rect.height <= 0) return null
@@ -6531,7 +6580,13 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect) {
     image.loading = "eager"
     image.decoding = "async"
   })
-  ghost.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "false")
+  const copy = ghost.querySelector(".project-preview-copy")
+  copy?.setAttribute("aria-hidden", "false")
+  if (copy) {
+    copy.style.animation = "none"
+    copy.style.opacity = "0"
+    copy.style.transform = `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`
+  }
 
   ghost.style.setProperty("--project-preview-expand-origin", side === "right" ? "100% 50%" : "0% 50%")
   ghost.style.left = `${sourceRect.left}px`
@@ -6791,16 +6846,96 @@ function setProjectPreview(card, expanded) {
   }, catalogFilterDuration(420) + 120)
 }
 
+function projectDetailBodyMarkup(project) {
+  const fullMarkup = detailMarkup(project)
+  const mainStart = fullMarkup.indexOf("<main")
+  if (mainStart < 0) return fullMarkup
+  const bodyStart = fullMarkup.indexOf(">", mainStart)
+  const bodyEnd = fullMarkup.lastIndexOf("</main>")
+  if (bodyStart < 0 || bodyEnd <= bodyStart) return fullMarkup
+  return fullMarkup.slice(bodyStart + 1, bodyEnd)
+}
+
+function activeProjectDetailDrawer() {
+  return siteState.projectDetailDrawer?.element?.isConnected
+    ? siteState.projectDetailDrawer
+    : null
+}
+
+function closeProjectDetailDrawer({ immediate = false } = {}) {
+  const drawerState = activeProjectDetailDrawer()
+  if (!drawerState) return
+  const { element, card } = drawerState
+  const finish = () => {
+    drawerState.resizeObserver?.disconnect?.()
+    element.remove()
+    if (card?.isConnected) card.removeAttribute("data-project-detail-open")
+    if (siteState.projectDetailDrawer === drawerState) siteState.projectDetailDrawer = null
+  }
+  element.dataset.drawerState = immediate || prefersReducedMotion() ? "closed" : "closing"
+  if (immediate || prefersReducedMotion()) {
+    finish()
+    return
+  }
+  window.setTimeout(finish, 620)
+}
+
+function openProjectDetailDrawer(card, target) {
+  if (!card?.isConnected || !target?.path) return
+  const project = routeMap.get(target.path)
+  if (!project) return
+
+  const existing = activeProjectDetailDrawer()
+  if (existing?.card === card && existing.element.dataset.drawerState !== "closing") return
+  if (existing) closeProjectDetailDrawer({ immediate: true })
+
+  const row = card.closest(".project-row")
+  if (!row) return
+  const drawer = document.createElement("section")
+  drawer.className = "project-detail-drawer"
+  drawer.dataset.drawerState = "closed"
+  drawer.dataset.drawerDirection = siteState.scrollDirection >= 0 ? "down" : "up"
+  drawer.setAttribute("aria-label", `${project.pageTitle} project details`)
+  drawer.innerHTML = `<div class="project-detail-drawer-inner">${projectDetailBodyMarkup(project)}</div>`
+  row.after(drawer)
+
+  const inner = drawer.firstElementChild
+  const updateHeight = () => {
+    if (inner) drawer.style.setProperty("--project-detail-drawer-height", `${inner.scrollHeight}px`)
+  }
+  updateHeight()
+  const resizeObserver = typeof ResizeObserver === "function" && inner
+    ? new ResizeObserver(updateHeight)
+    : null
+  resizeObserver?.observe(inner)
+
+  const drawerState = { element: drawer, card, resizeObserver }
+  siteState.projectDetailDrawer = drawerState
+  card.setAttribute("data-project-detail-open", "true")
+
+  requestAnimationFrame(() => {
+    if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
+    drawer.dataset.drawerState = "open"
+  })
+}
+
 function dismissProjectPreview(event) {
   const current = activeProjectPreview()
   if (!current || current.contains(event.target)) return
+  if (event.target?.closest?.(".project-detail-drawer")) return
   if (event.target?.closest?.(".site-header")) return
   if (event.target?.closest?.("[data-project-card]")) return
+  closeProjectDetailDrawer()
   setProjectPreview(current, false)
 }
 
 function handleProjectPreviewKeydown(event) {
   if (event.key !== "Escape") return
+  if (activeProjectDetailDrawer()) {
+    event.preventDefault()
+    closeProjectDetailDrawer()
+    return
+  }
   const current = activeProjectPreview()
   if (!current) return
   event.preventDefault()
@@ -6850,13 +6985,12 @@ function handleRouteLinkClick(event) {
   if (projectCard && projectCard.classList.contains("is-project-preview") && target.path !== routeFromLocation()) {
     event.preventDefault()
     event.stopPropagation()
-    if (prefersReducedMotion()) {
-      clearProjectPreviewExitGhosts()
-      navigateRouteWithoutTransition(target.url)
+    if (activeProjectDetailDrawer()?.card === projectCard) {
+      closeProjectDetailDrawer()
       return
     }
     clearProjectPreviewExitGhosts()
-    startProjectExpandTransition(projectCard, target)
+    openProjectDetailDrawer(projectCard, target)
     return
   }
 
@@ -6909,3 +7043,4 @@ window.addEventListener("red:public-dither-ready", (event) => {
 })
 window.addEventListener("popstate", handlePopState)
 render()
+applyFigmaCaptureState()

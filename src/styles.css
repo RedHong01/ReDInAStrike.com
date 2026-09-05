@@ -169,7 +169,7 @@
   --project-first-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
   --project-preview-duration: 420ms;
-  --project-preview-media-inset: clamp(12px, 2vw, 32px);
+  --project-preview-media-inset: clamp(18px, 2.5vw, 36px);
   /* Keep the edge wipe slow enough to read as a physical colour bar moving
      across the viewport. These values are mirrored by the JS teardown timer
      so the state attribute is not removed before the paint animation settles. */
@@ -4818,76 +4818,6 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     opacity: 1 !important;
     pointer-events: auto;
     transition: opacity 260ms ease, visibility 0s linear;
-  }
-}
-
-/* The full-bleed mobile geometry is declared later in this file than the
-   state-specific compact preview rules above.  Reassert the two rows here so
-   an ordinary expanded preview cannot put its copy back into the media cell.
-   Detail-open headers are intentionally excluded: they use one shared bar
-   and hide only the bitmap layer. */
-@media (max-width: 980px), (orientation: portrait) {
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) {
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: var(--project-preview-mobile-media-height, calc(var(--content-width) * 9 / 16)) auto !important;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: none;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-preview-copy {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    position: relative !important;
-    inset: auto !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: clamp(236px, 44vw, 320px);
-  }
-
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) {
-    grid-template-rows: 0px auto !important;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media {
-    height: 0 !important;
-    min-height: 0 !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media > img,
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media canvas {
-    visibility: hidden;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) {
-    grid-template-rows: var(--project-preview-mobile-media-height, calc(var(--content-width) * 9 / 16)) auto !important;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media {
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    opacity: 1;
-    overflow: hidden !important;
-    pointer-events: auto;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media > img,
-  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media canvas {
-    visibility: visible;
-    opacity: 1;
-    pointer-events: auto;
   }
 }
 

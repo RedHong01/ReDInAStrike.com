@@ -1,9 +1,9 @@
-import { ACTIVE_COLOR_PRESETS, PUBLISHED_ACTIVE_COLOR_CONFIG } from "./active-color-default.js?v=20260830-finesignal1"
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260830-adaptivegrid1"
+import { ACTIVE_COLOR_PRESETS, PUBLISHED_ACTIVE_COLOR_CONFIG } from "./active-color-default.js?v=20260905-perf1"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 import {
   logicalGridForMedia,
   logicalGridFromCanvas,
-} from "./binary-surface-core.js?v=20260830-perfaudit1"
+} from "./binary-surface-core.js?v=20260905-perf1"
 
 const STYLE_ID = "red-binary-pixel-handoff-style"
 const STYLE_VERSION = "2"

@@ -1,8 +1,8 @@
 import {
   PUBLISHED_MOTION_CONFIG,
   sanitizeMotionConfig,
-} from "./motion-default.js"
-import "./motion-hub.js?v=20260901-perf1"
+} from "./motion-default.js?v=20260905-perf1"
+import "./motion-hub.js?v=20260905-perf1"
 
 let motion = sanitizeMotionConfig(window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG)
 let bodyObserver = null

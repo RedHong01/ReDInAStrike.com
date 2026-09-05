@@ -1,4 +1,4 @@
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 
 const generated = Boolean(PUBLISHED_DITHER_CONFIG?.mode && PUBLISHED_DITHER_CONFIG.mode !== "native")
 const BYPASSED_CLASS = "project-halftone-bypassed"

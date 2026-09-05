@@ -1,4 +1,4 @@
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 import {
   CONTROL_GROUPS,
   DITHER_MODES,
@@ -10,7 +10,7 @@ import {
   renderCard,
   resetSampleCache,
   sanitizeConfig,
-} from "./dither-engine.js"
+} from "./dither-engine.js?v=20260905-perf1"
 
 const WORKING_CONFIG_KEY = "red-dither-working-config-v2"
 const PRESETS_KEY = "red-dither-presets-v2"

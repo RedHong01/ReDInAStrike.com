@@ -1,24 +1,24 @@
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260901-perfpass2"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
+import { renderCard } from "./dither-engine.js?v=20260905-perf1"
 import {
   captureViewportDitherBoundaryField,
   handoffViewportDitherBoundaryField,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260904-edgespread1"
+} from "./reveal-motion.js?v=20260905-perf1"
 import {
   drawBinaryBits,
   logicalGridForMedia,
   readBinaryColors,
   sampleBinaryCanvas,
-} from "./binary-surface-core.js?v=20260830-perfaudit1"
+} from "./binary-surface-core.js?v=20260905-perf1"
 import {
   activeBinarySurfaceCanvas,
   activeBoundaryCanvas,
   canvasHasPixels,
   sampleCompositeBinaryBits,
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260903-scrollperf2"
+} from "./binary-visible-surface.js?v=20260905-perf1"
 
 const STYLE_ID = "red-hover-binary-return-style"
 const CANVAS_CLASS = "dither-hover-return-snow-canvas"

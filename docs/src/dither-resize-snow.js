@@ -9,16 +9,16 @@ import {
   sampleBinaryCanvas,
   smooth01,
   writeBinaryPixel,
-} from "./binary-surface-core.js?v=20260830-perfaudit1"
-import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js"
+} from "./binary-surface-core.js?v=20260905-perf1"
+import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js?v=20260905-perf1"
 import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260904-edgespread1"
+} from "./reveal-motion.js?v=20260905-perf1"
 import {
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260903-scrollperf2"
+} from "./binary-visible-surface.js?v=20260905-perf1"
 
 const STYLE_ID = "red-dither-resize-snow-style"
 const STYLE_VERSION = "2"

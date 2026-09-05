@@ -7,7 +7,7 @@ import {
   decodeActiveColorConfig,
   encodeActiveColorConfig,
   sanitizeActiveColorConfig,
-} from "./active-color-default.js"
+} from "./active-color-default.js?v=20260905-perf1"
 
 const WORKING_KEY = "red-active-color-working-config-v1"
 let workingConfig = null
@@ -178,9 +178,9 @@ async function copyText(text) {
 
 async function getCombinedConfig() {
   const [{ PUBLISHED_DITHER_CONFIG }, engine, motion] = await Promise.all([
-    import("./dither-default.js"),
-    import("./dither-engine.js"),
-    import("./motion-default.js"),
+    import("./dither-default.js?v=20260905-perf1"),
+    import("./dither-engine.js?v=20260905-perf1"),
+    import("./motion-default.js?v=20260905-perf1"),
   ])
 
   const params = new URLSearchParams(location.search)

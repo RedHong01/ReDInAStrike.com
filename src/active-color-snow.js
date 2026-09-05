@@ -2,16 +2,16 @@ import {
   PUBLISHED_ACTIVE_COLOR_CONFIG,
   decodeActiveColorConfig,
   sanitizeActiveColorConfig,
-} from "./active-color-default.js"
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+} from "./active-color-default.js?v=20260905-perf1"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 import {
   logicalGridForMedia,
-} from "./binary-surface-core.js?v=20260904-categoryperf1"
+} from "./binary-surface-core.js?v=20260905-perf1"
 import {
   activeBoundaryCanvas,
   pixelsFromBinaryBits,
   sampleCurrentBinarySurface,
-} from "./binary-visible-surface.js?v=20260904-categoryperf1"
+} from "./binary-visible-surface.js?v=20260905-perf1"
 
 const STYLE_ID = "red-active-color-snow-style"
 const STYLE_VERSION = "7"
@@ -2879,7 +2879,7 @@ function replayActiveColorSnow(inputConfig = runtimeConfig) {
 function ensureHubExtension() {
   if (!document.querySelector(".dither-lab")) return
   if (!hubLoadPromise) {
-    hubLoadPromise = import("./active-color-hub.js?v=20260901-categorybreath1")
+    hubLoadPromise = import("./active-color-hub.js?v=20260905-perf1")
   }
 }
 

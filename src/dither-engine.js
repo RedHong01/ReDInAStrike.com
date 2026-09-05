@@ -2,7 +2,7 @@ import {
   isBinaryDitherMode,
   resolveBinarySurfaceGrid,
   logicalGridForMedia,
-} from "./binary-surface-core.js?v=20260830-perfaudit1"
+} from "./binary-surface-core.js?v=20260905-perf1"
 
 export const DITHER_MODES = [
   ["native", "Native Dot"],

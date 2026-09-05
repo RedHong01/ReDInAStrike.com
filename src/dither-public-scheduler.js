@@ -1,16 +1,16 @@
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import { renderCard } from "./dither-engine.js?v=20260901-perfpass2"
-import { boundaryRevealMotionConfig } from "./motion-default.js"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
+import { renderCard } from "./dither-engine.js?v=20260905-perf1"
+import { boundaryRevealMotionConfig } from "./motion-default.js?v=20260905-perf1"
 import {
   binaryGridNeedsUpdate,
-} from "./binary-surface-core.js?v=20260830-perfaudit1"
+} from "./binary-surface-core.js?v=20260905-perf1"
 import {
   cancelReveal,
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
   resetViewportDitherRevealSequence,
   trackViewportDitherReveal,
-} from "./reveal-motion.js?v=20260904-edgespread1"
+} from "./reveal-motion.js?v=20260905-perf1"
 import {
   DITHER_RESIZE_MOTION_ATTRIBUTE,
   DITHER_RESIZE_SNOW_CLASS,
@@ -18,7 +18,7 @@ import {
   playPreparedDitherResizeSnow,
   prepareDitherInitialSnow,
   prepareDitherResizeSnow,
-} from "./dither-resize-snow.js?v=20260903-scrollperf2"
+} from "./dither-resize-snow.js?v=20260905-perf1"
 
 const PUBLIC_STYLE_ID = "red-dither-public-runtime-style"
 // Keep the runtime style cache-busted when the handoff selectors change.  A

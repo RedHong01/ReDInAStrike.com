@@ -1,16 +1,16 @@
-import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
+import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js?v=20260905-perf1"
 import {
   binaryBitsFromPixels,
   hash01,
   logicalGridForMedia,
   readBinaryColors,
   smooth01,
-} from "./binary-surface-core.js?v=20260904-categoryperf1"
+} from "./binary-surface-core.js?v=20260905-perf1"
 import {
   boundaryMetrics,
   boundaryStrength,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260903-scrollperf2"
+} from "./viewport-boundary-core.js?v=20260905-perf1"
 
 const BINARY_SOURCE_SELECTOR =
   '.dither-preview-canvas[data-active="true"], .project-halftone'

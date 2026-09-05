@@ -4,14 +4,14 @@ import {
   constrainBinaryGridSize,
   readBinaryColors,
   smooth01,
-} from "./binary-surface-core.js"
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
+} from "./binary-surface-core.js?v=20260905-perf1"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 import {
   boundaryMetrics,
   boundaryVisibility,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260904-drawer-header1"
+} from "./viewport-boundary-core.js?v=20260905-perf1"
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },

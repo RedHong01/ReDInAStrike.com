@@ -9,7 +9,7 @@ import {
   decodeMotionConfig,
   encodeMotionConfig,
   sanitizeMotionConfig,
-} from "./motion-default.js"
+} from "./motion-default.js?v=20260905-perf1"
 
 const MOTION_WORKING_KEY = "red-motion-working-config-v2"
 const LEGACY_MOTION_WORKING_KEY = "red-motion-working-config-v1"
@@ -240,8 +240,8 @@ function applyRevealPreset(panel, presetId) {
 
 async function getCombinedConfig() {
   const [{ PUBLISHED_DITHER_CONFIG }, engine] = await Promise.all([
-    import("./dither-default.js"),
-    import("./dither-engine.js"),
+    import("./dither-default.js?v=20260905-perf1"),
+    import("./dither-engine.js?v=20260905-perf1"),
   ])
   const params = new URLSearchParams(location.search)
   const shared = params.get("ditherConfig")

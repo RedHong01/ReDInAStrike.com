@@ -1,15 +1,15 @@
-import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js"
-import "./native-halftone-bypass.js?v=20260829-batch2"
-import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260904-noflash1"
-import "./layout-surface-sync.js?v=20260904-layoutsmooth1"
+import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
+import "./native-halftone-bypass.js?v=20260905-perf1"
+import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260905-perf1"
+import "./layout-surface-sync.js?v=20260905-perf1"
 // Register the preset before the motion listeners so the first category change
 // can use Fine Signal even when it happens immediately after page load.
-import "./fine-signal-preset-runtime.js?v=20260902-finesignal1"
-import "./active-color-snow.js?v=20260905-compact-preview1"
-import "./hover-binary-return.js?v=20260904-edgespread1"
-import "./active-color-replay-dedupe.js?v=20260829-activecolor2"
-import "./active-color-transition-bridge.js?v=20260829-activecolor2"
-import "./binary-pixel-handoff.js?v=20260903-hoverclick1"
+import "./fine-signal-preset-runtime.js?v=20260905-perf1"
+import "./active-color-snow.js?v=20260905-perf1"
+import "./hover-binary-return.js?v=20260905-perf1"
+import "./active-color-replay-dedupe.js?v=20260905-perf1"
+import "./active-color-transition-bridge.js?v=20260905-perf1"
+import "./binary-pixel-handoff.js?v=20260905-perf1"
 
 const params = new URLSearchParams(window.location.search)
 const autoOpen =
@@ -50,7 +50,7 @@ async function loadCore() {
       destroyPublicDitherRuntime?.()
       window.__RED_DITHER_PUBLIC_RUNTIME__?.destroy?.()
       await ensureCss()
-      const module = await import("./dither-hub-entry.js")
+      const module = await import("./dither-hub-entry.js?v=20260905-perf1")
       coreLoaded = true
       return module
     })()

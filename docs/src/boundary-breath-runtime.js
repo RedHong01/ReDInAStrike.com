@@ -1,4 +1,4 @@
-import { boundaryRevealMotionConfig } from "./motion-default.js"
+import { boundaryRevealMotionConfig } from "./motion-default.js?v=20260905-perf1"
 
 const OWNER = "breath8"
 const ACTIVE_COLOR_MOTION_ATTRIBUTE = "data-active-color-motion"
@@ -31,7 +31,7 @@ let overlayObserver = null
 
 function ensureRevealApi() {
   if (!revealModulePromise) {
-    revealModulePromise = import("./reveal-motion.js?v=20260904-edgespread1").then((module) => {
+    revealModulePromise = import("./reveal-motion.js?v=20260905-perf1").then((module) => {
       revealApi = {
         refresh: module.refreshViewportDitherReveals,
         track: module.trackViewportDitherReveal,

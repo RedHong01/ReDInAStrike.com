@@ -1,9 +1,9 @@
-import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js"
+import { PUBLISHED_MOTION_CONFIG, sanitizeMotionConfig } from "./motion-default.js?v=20260905-perf1"
 import {
   BINARY_MOTION_DEFAULTS,
   constrainBinaryGridSize,
   logicalGridFromCanvas,
-} from "./binary-surface-core.js?v=20260830-perfaudit1"
+} from "./binary-surface-core.js?v=20260905-perf1"
 import {
   BOUNDARY_DEPTH_MAX_PX,
   BOUNDARY_HOLD_MAX_PX,
@@ -11,7 +11,7 @@ import {
   boundaryStrength,
   readViewportBoundaryContext,
   viewportBoundsForCard,
-} from "./viewport-boundary-core.js?v=20260903-scrollperf2"
+} from "./viewport-boundary-core.js?v=20260905-perf1"
 
 const STYLE_ID = "red-dither-reveal-motion-style"
 const CANVAS_CLASS = "dither-reveal-canvas"

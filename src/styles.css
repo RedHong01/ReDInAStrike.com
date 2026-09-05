@@ -4568,6 +4568,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
   position: relative;
   inset: auto;
+  left: auto;
+  right: auto;
   width: auto;
   min-width: 0;
   height: 100%;
@@ -4670,6 +4672,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
     position: relative;
     inset: auto;
+    left: auto;
+    right: auto;
     width: 100%;
   }
 }
@@ -4817,6 +4821,76 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 }
 
+/* The full-bleed mobile geometry is declared later in this file than the
+   state-specific compact preview rules above.  Reassert the two rows here so
+   an ordinary expanded preview cannot put its copy back into the media cell.
+   Detail-open headers are intentionally excluded: they use one shared bar
+   and hide only the bitmap layer. */
+@media (max-width: 980px), (orientation: portrait) {
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: var(--project-preview-mobile-media-height, calc(var(--content-width) * 9 / 16)) auto !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-preview-copy {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: clamp(236px, 44vw, 320px);
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) {
+    grid-template-rows: 0px auto !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media {
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media canvas {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) {
+    grid-template-rows: var(--project-preview-mobile-media-height, calc(var(--content-width) * 9 / 16)) auto !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    opacity: 1;
+    overflow: hidden !important;
+    pointer-events: auto;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media canvas {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 /* Match typography to the compressed height before the minimized attribute is
    reached.  This keeps the title inside the shrinking card throughout the
    transition instead of clipping the old 48px line at its upper edge. */
@@ -4880,6 +4954,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   padding-bottom: 0;
   z-index: 15;
   background: var(--paper);
+}
+
+@media (min-width: 981px) and (orientation: landscape) {
+  .project-row.has-project-preview:not([data-project-detail-open="true"]) > .project-card:not(.is-project-preview) {
+    display: none;
+  }
 }
 
 .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"]) {
@@ -4985,6 +5065,13 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     padding-bottom: var(--project-caption-rule-gap);
   }
 
+  .project-row.has-project-preview:not([data-project-detail-open="true"]) > .project-card:not(.is-project-preview) {
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"]) {
     width: 100vw;
     margin-left: calc((100vw - 100%) / -2);
@@ -4994,8 +5081,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"]) .project-media,
   .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"]) .project-preview-copy {
-    grid-column: 1;
-    grid-row: 1;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
   }
 
   .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"]) .project-preview-copy {
@@ -5009,5 +5096,74 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-project-preview-ready="true"] .project-preview-copy {
     clip-path: inset(0);
+  }
+}
+
+/* Final mobile cascade: the reconciliation block above restores full-bleed
+   geometry, but an ordinary active preview still needs separate media and
+   copy rows.  Keep this after that block so its state rules win without
+   touching the shared one-cell detail header. */
+@media (max-width: 980px), (orientation: portrait) {
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: var(--project-preview-mobile-media-height, calc(var(--content-width) * 9 / 16)) auto !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-preview-copy {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: clamp(236px, 44vw, 320px);
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) {
+    grid-template-rows: 0px auto !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media {
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media canvas {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) {
+    grid-template-rows: var(--project-preview-mobile-media-height, calc(var(--content-width) * 9 / 16)) auto !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    opacity: 1;
+    overflow: hidden !important;
+    pointer-events: auto;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media canvas {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
 }

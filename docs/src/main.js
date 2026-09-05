@@ -6877,9 +6877,18 @@ function closeProjectDetailDrawer({ immediate = false } = {}) {
   const finish = () => {
     drawerState.resizeObserver?.disconnect?.()
     element.remove()
-    if (card?.isConnected) card.removeAttribute("data-project-detail-open")
+    if (card?.isConnected) {
+      card.removeAttribute("data-project-detail-open")
+      card.removeAttribute("aria-controls")
+      card.setAttribute("aria-expanded", "true")
+    }
     if (siteState.projectDetailDrawer === drawerState) siteState.projectDetailDrawer = null
     refreshAfterProjectPreviewChange()
+  }
+  if (!immediate && !prefersReducedMotion() && element.dataset.drawerState === "settled") {
+    const height = element.firstElementChild?.scrollHeight || 0
+    element.style.setProperty("--project-detail-drawer-height", `${height}px`)
+    void element.offsetHeight
   }
   element.dataset.drawerState = immediate || prefersReducedMotion() ? "closed" : "closing"
   if (immediate || prefersReducedMotion()) {
@@ -6902,6 +6911,7 @@ function openProjectDetailDrawer(card, target) {
   if (!row) return
   const drawer = document.createElement("section")
   drawer.className = "project-detail-drawer"
+  drawer.id = `project-detail-drawer-${String(card.dataset.index || target.path.slice(1)).replace(/[^a-z0-9_-]+/gi, "-")}`
   drawer.dataset.drawerState = "closed"
   drawer.dataset.drawerDirection = siteState.scrollDirection >= 0 ? "down" : "up"
   drawer.setAttribute("aria-label", `${project.pageTitle} project details`)
@@ -6921,11 +6931,18 @@ function openProjectDetailDrawer(card, target) {
   const drawerState = { element: drawer, card, resizeObserver }
   siteState.projectDetailDrawer = drawerState
   card.setAttribute("data-project-detail-open", "true")
+  card.setAttribute("aria-controls", drawer.id)
+  card.setAttribute("aria-expanded", "true")
   refreshAfterProjectPreviewChange()
 
   requestAnimationFrame(() => {
     if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
     drawer.dataset.drawerState = "open"
+    window.setTimeout(() => {
+      if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
+      drawer.dataset.drawerState = "settled"
+      drawer.style.removeProperty("--project-detail-drawer-height")
+    }, prefersReducedMotion() ? 0 : 620)
   })
 }
 

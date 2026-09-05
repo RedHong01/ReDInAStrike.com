@@ -1574,6 +1574,19 @@ body[data-layout-transition="true"] .about-section {
   transform: translate3d(0, 0, 0);
 }
 
+/* Once the drawer has finished opening, it becomes ordinary document flow.
+   The measured height is only an opening aid; keeping it as a permanent cap
+   would turn a full project page into a short clipped panel when media or
+   fonts finish loading later. */
+.project-detail-drawer[data-drawer-state="settled"] {
+  max-height: none;
+  overflow: visible;
+  clip-path: none;
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
 .project-detail-drawer[data-drawer-state="closing"] {
   max-height: 0;
 }

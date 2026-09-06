@@ -173,7 +173,7 @@
   /* Keep the edge wipe slow enough to read as a physical colour bar moving
      across the viewport. These values are mirrored by the JS teardown timer
      so the state attribute is not removed before the paint animation settles. */
-  --project-preview-surface-duration: 1080ms;
+  --project-preview-surface-duration: 720ms;
   --project-preview-surface-retract-duration: 980ms;
   --project-preview-surface-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --project-preview-exit-fade-duration: 180ms;

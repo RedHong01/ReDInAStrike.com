@@ -227,7 +227,7 @@ const PROJECT_EXPAND_MASK_FADE_MS = 260
 // Keep the paint-only colour wipe mounted for its full visual lifetime. The
 // CSS values are mirrored here so the state teardown never truncates a slow,
 // physical-looking edge motion.
-const PROJECT_PREVIEW_SURFACE_DURATION_MS = 1080
+const PROJECT_PREVIEW_SURFACE_DURATION_MS = 720
 const PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS = 980
 const PROJECT_PREVIEW_EXIT_SOURCE_REVEAL_MS = 220
 const ROUTE_EXIT_SNOW_MAX_CELLS = 76000
@@ -2626,7 +2626,7 @@ function projectLeadMarkup(project, { detail = false } = {}) {
           <h2>${escapeHtml(title)}</h2>
           <p class="project-preview-meta">${escapeHtml(project.displayTitle)}<br />${escapeHtml(project.date)}</p>
         </div>
-        <p class="project-preview-summary">${escapeHtml(projectPreviewSummary(project))}</p>
+        <p class="project-preview-summary" data-typewriter-skip>${escapeHtml(projectPreviewSummary(project))}</p>
         <span class="project-preview-enter">${detail ? "Scroll to view project ↓" : "Click again to view project ↗"}</span>
       </div>
     </section>`
@@ -2671,7 +2671,7 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
           <h2>${escapeHtml(project.pageTitle)}</h2>
           <p class="project-preview-meta" data-typewriter-skip>${escapeHtml(project.displayTitle)}<br />${escapeHtml(project.date)}</p>
         </div>
-        <p class="project-preview-summary">${escapeHtml(projectPreviewSummary(project))}</p>
+        <p class="project-preview-summary" data-typewriter-skip>${escapeHtml(projectPreviewSummary(project))}</p>
         <span class="project-preview-enter" data-typewriter-skip>Click again to view project ↗</span>
       </div>
     </a>`

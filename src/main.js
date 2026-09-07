@@ -238,12 +238,15 @@ const PROJECT_EXPAND_MIN_MS = 420
 const PROJECT_EXPAND_MAX_MS = 780
 const PROJECT_EXPAND_DISTANCE_RATIO = 0.34
 const PROJECT_EXPAND_MASK_FADE_MS = 260
+const PROJECT_PREVIEW_EXPAND_SETTLE_MS = 180
+const PROJECT_PREVIEW_EXPAND_MOBILE_SURFACE_MS = 560
 // Keep the paint-only colour wipe mounted for its full visual lifetime. The
 // CSS values are mirrored here so the state teardown never truncates a slow,
 // physical-looking edge motion.
 const PROJECT_PREVIEW_SURFACE_DURATION_MS = 720
-const PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS = 980
+const PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS = 420
 const PROJECT_PREVIEW_EXIT_SOURCE_REVEAL_MS = 220
+const PROJECT_PREVIEW_EXIT_FADE_MS = 180
 const ROUTE_EXIT_SNOW_MAX_CELLS = 76000
 const ROUTE_EXIT_SNOW_MIN_COLUMNS = 144
 const ROUTE_EXIT_SNOW_SOFTNESS = 0.105
@@ -590,6 +593,7 @@ const siteState = {
   mediaBackgroundImageBound: new WeakSet(),
   mediaBackgroundCache: new Map(),
   projectPreviewMotionId: 0,
+  projectPreviewTransitionIntent: null,
   projectPreviewExitGhosts: new Set(),
   projectPreviewExpandGhosts: new Set(),
   projectPreviewAnchorFrame: 0,
@@ -6867,6 +6871,91 @@ function normalProjectCardFallbackRect(card, sourceRect) {
   }
 }
 
+function clearProjectPreviewExpandGhostState(card) {
+  if (!card) return
+
+  clearProjectPreviewExpandMotion(card)
+  card.removeAttribute("data-project-preview-expanding")
+  delete card.__projectPreviewExpandToken
+
+  const ghost = card.__projectPreviewExpandGhost
+  if (ghost) {
+    siteState.projectPreviewExpandGhosts.delete(ghost)
+    window.clearTimeout(ghost.__projectPreviewExpandSettleTimer)
+    ghost.__projectPreviewExpandSettleTimer = 0
+    ghost.__projectPreviewExpandSettled = false
+    if (ghost.__projectPreviewExpandSettleHandler) {
+      ghost.removeEventListener("transitionend", ghost.__projectPreviewExpandSettleHandler)
+      ghost.__projectPreviewExpandSettleHandler = null
+    }
+  }
+  if (ghost && ghost.isConnected) ghost.remove()
+  card.__projectPreviewExpandGhost = null
+  card.removeAttribute("data-project-preview-expand-ghosting")
+}
+
+function parseDurationMs(value) {
+  if (typeof value !== "string") return NaN
+  const trimmed = value.trim()
+  if (!trimmed) return NaN
+  const match = trimmed.match(/^([+-]?\d*\.?\d+)(ms|s)$/)
+  if (!match) return Number.NaN
+  const number = Number.parseFloat(match[1])
+  if (!Number.isFinite(number)) return Number.NaN
+  return match[2] === "s" ? number * 1000 : number
+}
+
+function projectPreviewSurfaceDurationMs() {
+  const cssValue = parseDurationMs(
+    getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-duration"),
+  )
+  if (Number.isFinite(cssValue) && cssValue > 0) return cssValue
+  return PROJECT_PREVIEW_SURFACE_DURATION_MS
+}
+
+function projectPreviewSurfaceRetractDurationMs() {
+  const cssValue = parseDurationMs(
+    getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-retract-duration"),
+  )
+  if (Number.isFinite(cssValue) && cssValue > 0) return cssValue
+  return PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS
+}
+
+function projectPreviewExitFadeDurationMs() {
+  const cssValue = parseDurationMs(
+    getComputedStyle(document.documentElement).getPropertyValue("--project-preview-exit-fade-duration"),
+  )
+  if (Number.isFinite(cssValue) && cssValue > 0) return cssValue
+  return PROJECT_PREVIEW_EXIT_FADE_MS
+}
+
+function scheduleProjectPreviewTransitionIntent(card, expanded) {
+  if (!card?.isConnected) return
+  siteState.projectPreviewTransitionIntent = {
+    card,
+    expanded: Boolean(expanded),
+  }
+}
+
+function flushProjectPreviewTransitionIntent() {
+  const intent = siteState.projectPreviewTransitionIntent
+  if (!intent) return
+  siteState.projectPreviewTransitionIntent = null
+
+  const next = intent.card
+  if (!next?.isConnected) return
+
+  const current = activeProjectPreview()
+  if (intent.expanded) {
+    if (current === next) return
+    setProjectPreview(next, true)
+    return
+  }
+
+  if (current !== next) return
+  setProjectPreview(next, false)
+}
+
 function createProjectPreviewExitGhost(card) {
   if (!card?.isConnected) return null
   const side = card.dataset.cardSide === "right" ? "right" : "left"
@@ -6950,8 +7039,20 @@ function projectPreviewRect(rect) {
  * as the accessible target; the snapshot only hides the layout reflow that
  * would otherwise read as a jump.
  */
-function createProjectPreviewExpandGhost(card, sourceRect, targetRect) {
+function projectPreviewExpandSurfaceDurationMs() {
+  const mobile = window.matchMedia("(max-width: 700px), (orientation: portrait)").matches
+  return mobile ? PROJECT_PREVIEW_EXPAND_MOBILE_SURFACE_MS : projectPreviewSurfaceDurationMs()
+}
+
+function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled) {
   if (!card?.isConnected || !sourceRect || !targetRect) return null
+
+  const surfaceDuration = projectPreviewExpandSurfaceDurationMs()
+  const startLeft = clamp(sourceRect.left - targetRect.left, 0, targetRect.width)
+  const startRight = clamp(targetRect.right - sourceRect.right, 0, targetRect.width)
+  const copyDelay = Math.round(surfaceDuration * 0.44)
+  const copyDuration = Math.min(460, Math.max(220, Math.round(surfaceDuration * 0.68)))
+  const surfaceEase = getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease"
 
   const ghost = card.cloneNode(true)
   const side = card.dataset.cardSide === "right" ? "right" : "left"
@@ -6981,35 +7082,67 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect) {
     copy.style.animation = "none"
     copy.style.opacity = "0"
     copy.style.transform = `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`
+    copy.style.willChange = "opacity, transform"
   }
 
   ghost.style.setProperty("--project-preview-expand-origin", side === "right" ? "100% 50%" : "0% 50%")
-  ghost.style.left = `${sourceRect.left}px`
-  ghost.style.top = `${sourceRect.top}px`
-  ghost.style.width = `${sourceRect.width}px`
-  ghost.style.height = `${sourceRect.height}px`
-  ghost.style.setProperty("--project-preview-expand-target-left", `${targetRect.left}px`)
-  ghost.style.setProperty("--project-preview-expand-target-top", `${targetRect.top}px`)
-  ghost.style.setProperty("--project-preview-expand-target-width", `${targetRect.width}px`)
-  ghost.style.setProperty("--project-preview-expand-target-height", `${targetRect.height}px`)
-  // The fixed paint layer starts at the source card's bounds. Keep its
-  // directional wipe in viewport coordinates, but clamp the initial insets
-  // to the source box so the first frame never clips the card away.
-  ghost.style.setProperty("--project-preview-ghost-start-left", `${clamp(sourceRect.left - targetRect.left, 0, sourceRect.width)}px`)
-  ghost.style.setProperty("--project-preview-ghost-start-right", `${clamp(targetRect.right - sourceRect.right, 0, sourceRect.width)}px`)
+  ghost.style.setProperty("--project-preview-ghost-start-top", "0px")
+  ghost.style.setProperty("--project-preview-ghost-start-right", `${startRight}px`)
+  ghost.style.setProperty("--project-preview-ghost-start-bottom", "0px")
+  ghost.style.setProperty("--project-preview-ghost-start-left", `${startLeft}px`)
+  ghost.style.left = `${targetRect.left}px`
+  ghost.style.top = `${targetRect.top}px`
+  ghost.style.width = `${targetRect.width}px`
+  ghost.style.height = `${targetRect.height}px`
+  ghost.style.setProperty(
+    "--project-preview-copy-delay",
+    `${copyDelay}ms`,
+  )
+  ghost.style.setProperty(
+    "--project-preview-copy-duration",
+    `${copyDuration}ms`,
+  )
+  ghost.style.setProperty("--project-preview-copy-ease", surfaceEase)
+  ghost.style.setProperty("--project-preview-surface-duration", `${surfaceDuration}ms`)
+  ghost.style.clipPath = `inset(0px ${startRight}px 0px ${startLeft}px)`
+  ghost.style.willChange = "clip-path"
+  ghost.__projectPreviewExpandCard = card
+  ghost.__projectPreviewExpandToken = card.__projectPreviewExpandToken
+  ghost.__projectPreviewExpandSettleHandler = (event) => {
+    if (
+      event.target !== ghost ||
+      !["clip-path", "-webkit-clip-path"].includes(event.propertyName)
+    ) return
+    if (!ghost.isConnected) return
+    if (!card.isConnected || ghost.__projectPreviewExpandSettled) return
+    if (ghost.__projectPreviewExpandToken !== card.__projectPreviewExpandToken) return
+    ghost.__projectPreviewExpandSettled = true
+    ghost.__projectPreviewExpandSettleTimer = 0
+    ghost.removeEventListener("transitionend", ghost.__projectPreviewExpandSettleHandler)
+    if (onSettled) onSettled()
+  }
+  ghost.__projectPreviewExpandSettleTimer = window.setTimeout(() => {
+    if (!ghost.isConnected) return
+    if (!card.isConnected || ghost.__projectPreviewExpandSettled) return
+    if (ghost.__projectPreviewExpandToken !== card.__projectPreviewExpandToken) return
+    ghost.__projectPreviewExpandSettled = true
+    ghost.removeEventListener("transitionend", ghost.__projectPreviewExpandSettleHandler)
+    ghost.__projectPreviewExpandSettleTimer = 0
+    onSettled?.()
+  }, surfaceDuration + PROJECT_PREVIEW_EXPAND_SETTLE_MS)
+  ghost.__projectPreviewExpandSettleHandler && ghost.addEventListener("transitionend", ghost.__projectPreviewExpandSettleHandler)
 
   document.body.appendChild(ghost)
   siteState.projectPreviewExpandGhosts.add(ghost)
+  card.__projectPreviewExpandGhost = ghost
   // Force the source-sized snapshot to paint before the target geometry is
-  // applied. This makes the expansion a continuous horizontal gesture.
+  // applied. This makes the expansion reveal stay composited and avoid a blank
+  // start frame.
   void ghost.offsetWidth
   window.requestAnimationFrame(() => {
     if (!ghost.isConnected) return
     ghost.dataset.projectPreviewExpandState = "target"
-    ghost.style.left = `${targetRect.left}px`
-    ghost.style.top = `${targetRect.top}px`
-    ghost.style.width = `${targetRect.width}px`
-    ghost.style.height = `${targetRect.height}px`
+    ghost.style.clipPath = "inset(0px 0px 0px 0px)"
     if (copy) {
       copy.style.opacity = "1"
       copy.style.transform = "translate3d(0, 0, 0)"
@@ -7042,11 +7175,15 @@ function applyProjectPreviewExitTarget(exitMotion, targetCard) {
 }
 
 function clearProjectPreviewExitGhosts() {
+  siteState.projectPreviewTransitionIntent = null
   for (const ghost of [...siteState.projectPreviewExpandGhosts]) {
     ghost.__projectPreviewExpandCard?.removeAttribute("data-project-preview-expand-ghosting")
     ghost.remove()
   }
   siteState.projectPreviewExpandGhosts.clear()
+  document.querySelectorAll(".project-card.is-project-preview[data-project-preview-expand-ghosting='true']").forEach((card) => {
+    clearProjectPreviewExpandGhostState(card)
+  })
   if (!siteState.projectPreviewExitGhosts.size) return
   for (const ghost of [...siteState.projectPreviewExitGhosts]) {
     releaseProjectPreviewExitSource(ghost)
@@ -7120,9 +7257,12 @@ function runProjectPreviewExitGhost(
       ghost.style.opacity = "0"
     })
   }
-  // The exit ghost uses the same 420ms stage motion as the existing expand
-  // surface; keep it mounted for a short settle buffer before teardown.
-  window.setTimeout(cleanup, catalogFilterDuration(420) + 140)
+  const exitTransitionMs = fade
+    ? projectPreviewExitFadeDurationMs()
+    : projectPreviewSurfaceDurationMs()
+  // Keep exit snapshots mounted for a short settle buffer so late geometry
+  // updates never pop through before reveal/collapse reaches visual rest.
+  window.setTimeout(cleanup, catalogFilterDuration(exitTransitionMs + 140))
 }
 
 function clearProjectPreviewExpandMotion(card) {
@@ -7136,6 +7276,16 @@ function clearProjectPreviewExpandMotion(card) {
 
 function clearProjectPreviewHeightLock(card) {
   card?.style.removeProperty("--project-preview-start-height")
+}
+
+function finalizeProjectPreviewExpand(card, motionId) {
+  if (!card?.isConnected || motionId !== siteState.projectPreviewMotionId) return
+
+  clearProjectPreviewExpandGhostState(card)
+  card.setAttribute("data-project-preview-ready", "true")
+  delete document.documentElement.dataset.projectPreviewTransition
+  refreshAfterProjectPreviewChange()
+  flushProjectPreviewTransitionIntent()
 }
 
 function cancelProjectPreviewAnchor() {
@@ -7199,7 +7349,7 @@ function commitProjectPreviewState(card, expanded) {
     current.classList.remove("is-project-preview")
     current.setAttribute("aria-expanded", "false")
     current.querySelector(".project-preview-copy")?.setAttribute("aria-hidden", "true")
-    clearProjectPreviewExpandMotion(current)
+    clearProjectPreviewExpandGhostState(current)
     clearProjectPreviewHeightLock(current)
   }
 
@@ -7221,6 +7371,22 @@ function setProjectPreview(card, expanded) {
   const current = activeProjectPreview()
   if (expanded && current === card) return
   if (!expanded && current !== card) return
+
+  const previewTransition = document.documentElement.dataset.projectPreviewTransition
+  const isTransitioning = previewTransition === "expanding" || previewTransition === "exiting"
+  if (isTransitioning) {
+    if (expanded && current !== card) {
+      scheduleProjectPreviewTransitionIntent(card, true)
+      return
+    }
+    if (!expanded && current === card) {
+      scheduleProjectPreviewTransitionIntent(card, false)
+      return
+    }
+  } else {
+    siteState.projectPreviewTransitionIntent = null
+  }
+
   cancelProjectPreviewAnchor()
   window.clearTimeout(card.__projectPreviewCollapseTimer)
   card.__projectPreviewCollapseTimer = 0
@@ -7235,6 +7401,7 @@ function setProjectPreview(card, expanded) {
   siteState.projectPreviewMotionId = motionId
   // Rapid preview changes must never accumulate outgoing full-bleed layers.
   // The current preview can provide the next snapshot after the old one leaves.
+  clearProjectPreviewExpandGhostState(card)
   clearProjectPreviewExitGhosts()
 
   // When switching directly between previews, preserve the outgoing expanded
@@ -7251,15 +7418,22 @@ function setProjectPreview(card, expanded) {
       outgoingCopy.style.transform = "translate3d(0, 0, 0)"
     }
   }
+  const releaseSwitchExitMotion = () => {
+    if (!switchExitMotion?.ghost) return
+    releaseProjectPreviewExitSource(switchExitMotion.ghost)
+    switchExitMotion.ghost.remove()
+    siteState.projectPreviewExitGhosts.delete(switchExitMotion.ghost)
+  }
 
   if (prefersReducedMotion()) {
     // The snapshot is only needed for the animated handoff.
-    if (switchExitMotion?.ghost) {
-      releaseProjectPreviewExitSource(switchExitMotion.ghost)
-      switchExitMotion.ghost.remove()
-      siteState.projectPreviewExitGhosts.delete(switchExitMotion.ghost)
-    }
+    releaseSwitchExitMotion()
     commitProjectPreviewState(card, expanded)
+    if (expanded) {
+      clearProjectPreviewExpandGhostState(card)
+      card.setAttribute("data-project-preview-ready", "true")
+    }
+    flushProjectPreviewTransitionIntent()
     return
   }
 
@@ -7276,25 +7450,45 @@ function setProjectPreview(card, expanded) {
       clearProjectPreviewHeightLock(card)
       commitProjectPreviewState(card, false)
       delete document.documentElement.dataset.projectPreviewTransition
-    }, PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS)
+      flushProjectPreviewTransitionIntent()
+    }, projectPreviewSurfaceRetractDurationMs())
+    return
+  }
+  card.__projectPreviewExpandToken = 0
+
+  const sourceRect = projectPreviewRect(card.getBoundingClientRect())
+  if (!sourceRect) {
+    releaseSwitchExitMotion()
+    commitProjectPreviewState(card, true)
+    finalizeProjectPreviewExpand(card, motionId)
     return
   }
 
   prepareProjectPreviewExpandMotion(card)
+  card.__projectPreviewExpandToken = motionId
+  card.setAttribute("data-project-preview-expand-ghosting", "true")
   document.documentElement.dataset.projectPreviewTransition = "expanding"
   commitProjectPreviewState(card, expanded)
   if (switchExitMotion) {
-    runProjectPreviewExitGhost(switchExitMotion, current, { fade: false })
+    runProjectPreviewExitGhost(switchExitMotion, current, { fade: true })
   }
-  // The real media remains the paint anchor. Only the background/rules animate;
-  // type is revealed after that surface has reached full bleed.
-  window.setTimeout(() => {
-    if (motionId !== siteState.projectPreviewMotionId || !card.isConnected) return
-    card.removeAttribute("data-project-preview-expanding")
-    card.setAttribute("data-project-preview-ready", "true")
-    delete document.documentElement.dataset.projectPreviewTransition
-    refreshAfterProjectPreviewChange()
-  }, PROJECT_PREVIEW_SURFACE_DURATION_MS)
+
+  requestAnimationFrame(() => {
+    if (!card.isConnected || motionId !== siteState.projectPreviewMotionId) return
+    const targetRect = projectPreviewRect(card.getBoundingClientRect())
+    if (!targetRect) {
+      finalizeProjectPreviewExpand(card, motionId)
+      return
+    }
+
+    const ghost = createProjectPreviewExpandGhost(card, sourceRect, targetRect, () => {
+      finalizeProjectPreviewExpand(card, motionId)
+    })
+    if (!ghost) {
+      finalizeProjectPreviewExpand(card, motionId)
+      return
+    }
+  })
 }
 
 function projectDetailBodyMarkup(project) {

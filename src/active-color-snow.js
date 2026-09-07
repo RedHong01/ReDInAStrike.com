@@ -1829,20 +1829,22 @@ function restoreImageHandoffAlpha(state, index, col, row, handoffProgress, frame
 
 function finishState(state) {
   activeStates.delete(state)
+  if (cardStates.get(state.card) !== state) return
 
   if (state.mode === "restore-reverse") {
     clearRestoreReady(state.card)
     const hoverBinaryReturn = window.__RED_HOVER_BINARY_RETURN__
     const handoffStarted = hoverBinaryReturn?.play?.(state.card) === true
-    if (handoffStarted) {
-      hoverBinaryReturn?.suppressNextReturnHandoff?.(state.card, 220)
-    }
     const source = handoffStarted ? state.hiddenSource : exposeRestoreSource(state.card)
     state.handoffFrame = requestAnimationFrame(() => {
+      state.handoffFrame = 0
+      if (cardStates.get(state.card) !== state) return
       if (state.canvas.isConnected) state.canvas.remove()
       cardStates.delete(state.card)
       state.card.removeAttribute(RETURN_ATTRIBUTE)
       state.cleanupFrame = requestAnimationFrame(() => {
+        state.cleanupFrame = 0
+        if (cardStates.has(state.card)) return
         clearRestoreSourceInline(source)
         releaseMotionAfterFrames(state.card, handoffStarted ? 0 : 2, {
           cooldown: !handoffStarted,

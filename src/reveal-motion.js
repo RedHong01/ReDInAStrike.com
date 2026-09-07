@@ -882,6 +882,9 @@ export function handoffViewportDitherBoundaryField(
     state.boundaryTargetStrengths.set(target.strengths)
   }
   state.boundaryRowsInitialized = true
+  // This field already exists in the visible hover-return snapshot. A newly
+  // tracked canvas must not replay its first-reveal depth growth on handoff.
+  state.boundarySpread = null
   state.lastBoundaryFieldAt = target.now
   state.boundaryRowKinds.fill(255)
   state.boundaryUploadRanges.length = 0

@@ -1,4 +1,5 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
+import { boundaryRevealMotionConfig } from "./motion-default.js?v=20260905-perf1"
 import { renderCard } from "./dither-engine.js?v=20260905-perf1"
 import {
   captureViewportDitherBoundaryField,
@@ -30,12 +31,12 @@ const HANDOFF_ATTRIBUTE = "data-hover-binary-return"
 const STABLE_TIMEOUT_MS = 900
 const BOUNDARY_SYNC_TIMEOUT_MS = 180
 const SCROLL_DELTA_EPSILON_PX = 1.5
-const HOVER_RETURN_REPLAY_GUARD_MS = 220
 
 const snapshots = new WeakMap()
 const states = new WeakMap()
-const hoverReturnGuards = new WeakMap()
-const hoverReturnGuardTimers = new WeakMap()
+// A return is consumed once per hover/focus cycle, independent of frame rate
+// and how long the other surface owners take to release their attributes.
+const consumedReturns = new WeakSet()
 
 let appObserver = null
 let catalogObserver = null
@@ -273,7 +274,6 @@ async function syncBoundarySurface(state) {
 
 async function prepareCurrentViewportTarget(state) {
   if (!isCurrentState(state)) {
-    cancelState(state.card)
     return
   }
 
@@ -297,12 +297,11 @@ async function prepareCurrentViewportTarget(state) {
 
   await syncBoundarySurface(state)
   if (!isCurrentState(state)) {
-    cancelState(state.card)
     return
   }
 
   if (!currentRevealCanvas(state.card)) {
-    trackViewportDitherReveal(state.card, finalCanvas, window.__RED_MOTION_CONFIG__ || null)
+    trackViewportDitherReveal(state.card, finalCanvas, boundaryRevealMotionConfig())
   }
   const didScroll = scrollChangedSince(state.snapshot)
   const handoff = handoffViewportDitherBoundaryField(
@@ -326,7 +325,6 @@ function waitForViewportStable(state) {
   const check = () => {
     state.waitFrame = 0
     if (!state.card.isConnected || states.get(state.card) !== state) {
-      cancelState(state.card)
       return
     }
 
@@ -364,50 +362,21 @@ function canStartReturnHandoff(card) {
     card?.isConnected &&
       card.matches?.(":hover") === false &&
       card.matches?.(":focus-within") === false &&
-      !hoverReturnGuards.has(card) &&
+      !consumedReturns.has(card) &&
       card.classList.contains("is-filter-muted") &&
       returning &&
       !card.classList.contains("is-muted-restore-intent"),
   )
 }
 
-function suppressNextHoverBinaryReturn(card, guardMs = HOVER_RETURN_REPLAY_GUARD_MS) {
-  if (!card?.isConnected) return
-  const holdMs = Math.max(0, Math.round(guardMs))
-  if (!Number.isFinite(holdMs) || holdMs <= 0) return
-
-  const until = performance.now() + holdMs
-  hoverReturnGuards.set(card, until)
-
-  const prior = hoverReturnGuardTimers.get(card)
-  if (prior) window.clearTimeout(prior)
-  const timer = window.setTimeout(() => {
-    const expiry = hoverReturnGuards.get(card)
-    if (expiry <= performance.now()) {
-      hoverReturnGuards.delete(card)
-      hoverReturnGuardTimers.delete(card)
-    }
-  }, holdMs + 24)
-  hoverReturnGuardTimers.set(card, timer)
-}
-
-function clearHoverBinaryReturnSuppression(card) {
-  if (!card) return
-  hoverReturnGuards.delete(card)
-  const timer = hoverReturnGuardTimers.get(card)
-  if (timer) window.clearTimeout(timer)
-  hoverReturnGuardTimers.delete(card)
-}
-
-function isHoverBinaryReturnSuppressed(card) {
-  const expiry = hoverReturnGuards.get(card)
-  if (!Number.isFinite(expiry)) return false
-  if (performance.now() < expiry) return true
-  clearHoverBinaryReturnSuppression(card)
-  return false
+function captureHoverSnapshot(card) {
+  consumedReturns.delete(card)
+  return captureSnapshot(card)
 }
 
 function startHoverReturnHandoff(card) {
+  if (states.has(card)) return true
+  if (consumedReturns.has(card)) return false
   if (prefersReducedMotion() || !canStartReturnHandoff(card)) {
     snapshots.delete(card)
     return false
@@ -450,6 +419,7 @@ function startHoverReturnHandoff(card) {
     waitFrame: 0,
   }
   states.set(card, state)
+  consumedReturns.add(card)
   drawBinaryBits(ctx, imageData, framePixels, oldBits, paper, ink)
 
   // Hold the pre-hover visible state until the canonical boundary owner is
@@ -470,7 +440,6 @@ function handleReturnMutation(mutation) {
   if (
     mutation.oldValue === "true" &&
     !states.has(card) &&
-    !isHoverBinaryReturnSuppressed(card) &&
     canStartReturnHandoff(card)
   ) {
     startHoverReturnHandoff(card)
@@ -528,7 +497,7 @@ function captureOnPointerOver(event) {
   const card = cardFromPointerEvent(event)
   if (!card) return
   cancelState(card)
-  captureSnapshot(card)
+  captureHoverSnapshot(card)
 }
 
 function captureOnFocusIn(event) {
@@ -538,7 +507,7 @@ function captureOnFocusIn(event) {
   if (!card) return
   if (event.relatedTarget instanceof Node && card.contains(event.relatedTarget)) return
   cancelState(card)
-  captureSnapshot(card)
+  captureHoverSnapshot(card)
 }
 
 function start() {
@@ -548,10 +517,9 @@ function start() {
   document.addEventListener("focusin", captureOnFocusIn, true)
 
   window.__RED_HOVER_BINARY_RETURN__ = {
-    capture: captureSnapshot,
+    capture: captureHoverSnapshot,
     play: startHoverReturnHandoff,
     cancel: cancelState,
-    suppressNextReturnHandoff: suppressNextHoverBinaryReturn,
   }
 }
 

@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hover return regression</title>
+<style>
+  body { margin: 0; font: 14px monospace; }
+  iframe { border: 0; display: block; position: fixed; inset: 0; }
+  pre { white-space: pre-wrap; position: relative; z-index: 1;
+    background: white; max-height: 120px; overflow: auto; pointer-events: none; }
+</style>
+<pre id="results">Running hover-return regression…</pre>
+<iframe title="Portfolio under test"></iframe>
+<script>
+  // Open this page through the existing local server. Only the fixture loads
+  // the diagnostic module; the production page has no test hooks.
+  const frame = document.querySelector('iframe')
+  const sizes = [[360, 800], [520, 900], [700, 900], [768, 1024],
+    [980, 900], [981, 800], [1180, 900], [1280, 900], [1920, 1080]]
+  const reports = []
+  let index = 0
+  const show = current => {
+    document.querySelector('#results').textContent = JSON.stringify({
+      done: index === sizes.length,
+      passed: reports.every(report => report.errors.length === 0),
+      reports, current,
+    }, null, 2)
+  }
+  const next = () => {
+    if (index === sizes.length) { show(null); return }
+    const [width, height] = sizes[index]
+    frame.style.width = `${width}px`
+    frame.style.height = `${height}px`
+    frame.src = `/#ongoing`
+  }
+  frame.onload = () => {
+    const script = frame.contentDocument.createElement('script')
+    script.type = 'module'
+    script.src = '/scripts/hover-return-browser-audit.js'
+    frame.contentDocument.body.append(script)
+  }
+  window.addEventListener('message', event => {
+    if (event.origin !== location.origin || event.source !== frame.contentWindow || !event.data?.hoverAudit) return
+    const report = event.data.hoverAudit
+    if (report.done) {
+      reports.push(report)
+      index++
+      // A new document resets motion owners between breakpoint fixtures.
+      frame.src = 'about:blank'
+      frame.onload = () => {
+        frame.onload = () => {
+          const script = frame.contentDocument.createElement('script')
+          script.type = 'module'
+          script.src = '/scripts/hover-return-browser-audit.js'
+          frame.contentDocument.body.append(script)
+        }
+        next()
+      }
+    }
+    show(report.done ? null : report)
+  })
+  next()
+</script>

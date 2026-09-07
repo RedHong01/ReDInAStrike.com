@@ -34,7 +34,7 @@
     const [width, height] = sizes[index]
     frame.style.width = `${width}px`
     frame.style.height = `${height}px`
-    frame.src = `/#ongoing`
+    frame.src = `/?regressionRun=${index}#ongoing`
   }
   frame.onload = () => {
     const script = frame.contentDocument.createElement('script')
@@ -48,17 +48,8 @@
     if (report.done) {
       reports.push(report)
       index++
-      // A new document resets motion owners between breakpoint fixtures.
-      frame.src = 'about:blank'
-      frame.onload = () => {
-        frame.onload = () => {
-          const script = frame.contentDocument.createElement('script')
-          script.type = 'module'
-          script.src = '/scripts/hover-return-browser-audit.js'
-          frame.contentDocument.body.append(script)
-        }
-        next()
-      }
+      // A new query starts a fresh document at the next fixture size.
+      next()
     }
     show(report.done ? null : report)
   })

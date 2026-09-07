@@ -179,6 +179,8 @@
      so the state attribute is not removed before the paint animation settles. */
   --project-preview-surface-duration: 720ms;
   --project-preview-surface-retract-duration: 420ms;
+  --project-detail-open-duration: 640ms;
+  --project-detail-close-duration: 520ms;
   --project-preview-surface-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --project-preview-exit-fade-duration: 180ms;
   --project-preview-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -1170,7 +1172,7 @@ body[data-layout-transition="true"] .about-section {
   gap: clamp(24px, 2.5vw, 40px);
   min-width: 0;
   padding: clamp(38px, 4.65vw, 72px) clamp(32px, 6.6vw, 100px) clamp(30px, 3.5vw, 54px) clamp(28px, 3.2vw, 48px);
-  animation: project-preview-copy-in var(--project-preview-duration) var(--project-preview-ease) both;
+  animation: none;
   animation-delay: 480ms;
 }
 
@@ -1755,7 +1757,8 @@ body[data-layout-transition="true"] .about-section {
   z-index: 16;
   grid-column: 1 / -1;
   width: 100vw;
-  max-height: 0;
+  height: 0;
+  max-height: none;
   margin-left: calc((100% - 100vw) / 2);
   overflow: hidden;
   overflow: clip;
@@ -1770,15 +1773,11 @@ body[data-layout-transition="true"] .about-section {
      border box prevents a collapsed drawer's bottom border from being
      mistaken for the next card's top divider during compact reflow. */
   border-bottom: 0;
-  clip-path: inset(0 0 100% 0);
-  opacity: 0;
-  transform: translate3d(0, 18px, 0);
-  transition:
-    max-height 720ms var(--responsive-ease),
-    clip-path 720ms var(--responsive-ease),
-    opacity 260ms ease,
-    transform 720ms var(--responsive-ease);
-  will-change: max-height, clip-path, opacity, transform;
+  clip-path: none;
+  opacity: 1;
+  transform: none;
+  transition: none;
+  overflow-anchor: none;
 }
 
 /* One explicit boundary marks the end of the article. A pseudo-element is
@@ -1803,16 +1802,8 @@ body[data-layout-transition="true"] .about-section {
   border-top: 0;
 }
 
-.project-detail-drawer[data-drawer-direction="up"] {
-  clip-path: inset(100% 0 0 0);
-  transform: translate3d(0, -18px, 0);
-}
-
 .project-detail-drawer[data-drawer-state="open"] {
-  max-height: var(--project-detail-drawer-height, 100000px);
-  clip-path: inset(0 0 0 0);
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+  height: auto;
 }
 
 /* Once the drawer has finished opening, it becomes ordinary document flow.
@@ -1820,6 +1811,7 @@ body[data-layout-transition="true"] .about-section {
    would turn a full project page into a short clipped panel when media or
    fonts finish loading later. */
 .project-detail-drawer[data-drawer-state="settled"] {
+  height: auto;
   max-height: none;
   overflow: visible;
   clip-path: none;
@@ -1829,17 +1821,17 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-detail-drawer[data-drawer-state="closing"] {
-  max-height: 0;
+  height: 0;
 }
 
 .project-detail-drawer-inner {
   min-height: 0;
   padding-bottom: clamp(48px, 7vw, 112px);
   opacity: 0;
-  transform: translate3d(0, 24px, 0);
+  transform: translate3d(0, 12px, 0);
   transition:
-    opacity 360ms ease 80ms,
-    transform 720ms var(--responsive-ease) 40ms;
+    opacity 240ms ease,
+    transform 420ms var(--project-preview-surface-ease);
 }
 
 .project-row.has-project-preview[data-project-detail-open="true"] {
@@ -5001,7 +4993,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   gap: clamp(24px, 2.5vw, 40px);
   padding: clamp(38px, 4.65vw, 72px) clamp(32px, 6.6vw, 100px) clamp(30px, 3.5vw, 54px) clamp(28px, 3.2vw, 48px);
   clip-path: inset(0 100% 0 0);
-  animation: project-preview-copy-in var(--project-preview-duration) var(--project-preview-ease) both;
+  animation: none;
 }
 
 .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-card-side="left"] .project-media,
@@ -5252,6 +5244,21 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-card-side="right"] .project-preview-copy {
     padding-left: var(--content-edge-pad);
   }
+}
+
+/* The live card owns the surface until it settles. Freeze responsive layout
+   transitions during measurement so its destination cannot move underneath. */
+.project-card[data-project-preview-motion],
+.project-card[data-project-preview-motion] *,
+.project-card[data-project-preview-motion]::before,
+.project-card[data-project-preview-motion]::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+.project-card[data-project-preview-motion] {
+  will-change: clip-path, transform;
+  overflow-anchor: none;
 }
 
 /* -------------------------------------------------------------------------

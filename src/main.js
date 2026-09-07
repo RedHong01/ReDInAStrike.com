@@ -35,7 +35,6 @@ const MEDIA_DOMINANT_ALPHA_MIN = 24
 const MEDIA_DOMINANT_CACHE_LIMIT = 96
 const MEDIA_EDGE_SAMPLE_RATIO = 0.08
 const MEDIA_EDGE_SAMPLE_MIN_PX = 2
-const PROJECT_DETAIL_DRAWER_CLOSE_MS = 760
 // Keep the original edge-to-header anchor motion in the same temporal range as
 // the surface reveal so the full-bleed expansion still reads as physically
 // rising out of the viewport edge.
@@ -238,8 +237,6 @@ const PROJECT_EXPAND_MIN_MS = 420
 const PROJECT_EXPAND_MAX_MS = 780
 const PROJECT_EXPAND_DISTANCE_RATIO = 0.34
 const PROJECT_EXPAND_MASK_FADE_MS = 260
-const PROJECT_PREVIEW_EXPAND_SETTLE_MS = 180
-const PROJECT_PREVIEW_EXPAND_MOBILE_SURFACE_MS = 560
 // Keep the paint-only colour wipe mounted for its full visual lifetime. The
 // CSS values are mirrored here so the state teardown never truncates a slow,
 // physical-looking edge motion.
@@ -595,7 +592,6 @@ const siteState = {
   projectPreviewMotionId: 0,
   projectPreviewTransitionIntent: null,
   projectPreviewExitGhosts: new Set(),
-  projectPreviewExpandGhosts: new Set(),
   projectPreviewAnchorFrame: 0,
   projectPreviewAnchorToken: 0,
   scrollDirection: 1,
@@ -6881,25 +6877,11 @@ function normalProjectCardFallbackRect(card, sourceRect) {
 
 function clearProjectPreviewExpandGhostState(card) {
   if (!card) return
-
+  const motion = card.__projectPreviewMotion
+  card.__projectPreviewMotion = null
+  motion?.animations.forEach((animation) => animation.cancel())
+  card.removeAttribute("data-project-preview-motion")
   clearProjectPreviewExpandMotion(card)
-  card.removeAttribute("data-project-preview-expanding")
-  delete card.__projectPreviewExpandToken
-
-  const ghost = card.__projectPreviewExpandGhost
-  if (ghost) {
-    siteState.projectPreviewExpandGhosts.delete(ghost)
-    window.clearTimeout(ghost.__projectPreviewExpandSettleTimer)
-    ghost.__projectPreviewExpandSettleTimer = 0
-    ghost.__projectPreviewExpandSettled = false
-    if (ghost.__projectPreviewExpandSettleHandler) {
-      ghost.removeEventListener("transitionend", ghost.__projectPreviewExpandSettleHandler)
-      ghost.__projectPreviewExpandSettleHandler = null
-    }
-  }
-  if (ghost && ghost.isConnected) ghost.remove()
-  card.__projectPreviewExpandGhost = null
-  card.removeAttribute("data-project-preview-expand-ghosting")
 }
 
 function parseDurationMs(value) {
@@ -6937,31 +6919,28 @@ function projectPreviewExitFadeDurationMs() {
   return PROJECT_PREVIEW_EXIT_FADE_MS
 }
 
-function scheduleProjectPreviewTransitionIntent(card, expanded) {
+function scheduleProjectPreviewTransitionIntent(card, expanded, target = null) {
   if (!card?.isConnected) return
-  siteState.projectPreviewTransitionIntent = {
-    card,
-    expanded: Boolean(expanded),
-  }
+  siteState.projectPreviewTransitionIntent = { card, expanded: Boolean(expanded), target }
 }
 
 function flushProjectPreviewTransitionIntent() {
   const intent = siteState.projectPreviewTransitionIntent
-  if (!intent) return
+  if (!intent || document.documentElement.dataset.projectPreviewTransition ||
+      activeProjectDetailDrawer()?.element.dataset.drawerState === "closing") return
   siteState.projectPreviewTransitionIntent = null
-
-  const next = intent.card
-  if (!next?.isConnected) return
-
-  const current = activeProjectPreview()
-  if (intent.expanded) {
-    if (current === next) return
-    setProjectPreview(next, true)
-    return
+  if (!intent.card.isConnected) return
+  if (intent.expanded && activeProjectPreview() !== intent.card) {
+    setProjectPreview(intent.card, true)
+    if (intent.target) {
+      scheduleProjectPreviewTransitionIntent(intent.card, true, intent.target)
+      flushProjectPreviewTransitionIntent()
+    }
+  } else if (intent.target) {
+    openProjectDetailDrawer(intent.card, intent.target)
+  } else if (!intent.expanded) {
+    setProjectPreview(intent.card, false)
   }
-
-  if (current !== next) return
-  setProjectPreview(next, false)
 }
 
 function createProjectPreviewExitGhost(card) {
@@ -7041,123 +7020,80 @@ function projectPreviewRect(rect) {
   }
 }
 
-/**
- * Keep the source card painted while the row changes shape, then grow a
- * preview snapshot from that exact edge. The real card stays in the document
- * as the accessible target; the snapshot only hides the layout reflow that
- * would otherwise read as a jump.
- */
-function projectPreviewExpandSurfaceDurationMs() {
-  const mobile = window.matchMedia("(max-width: 700px), (orientation: portrait)").matches
-  return mobile ? PROJECT_PREVIEW_EXPAND_MOBILE_SURFACE_MS : projectPreviewSurfaceDurationMs()
+// Measure the bitmap itself, so FLIP uses a uniform scale even when its
+// containing box changes aspect ratio. Text and the surface never scale.
+function projectPreviewImageRect(card) {
+  const image = card.querySelector(".project-media > img")
+  if (!image) return null
+  const rect = image.getBoundingClientRect()
+  if (!rect.width || !rect.height) return null
+  const style = getComputedStyle(image)
+  const contain = style.objectFit === "contain"
+  const cover = style.objectFit === "cover"
+  if ((!contain && !cover) || !image.naturalWidth || !image.naturalHeight) return projectPreviewRect(rect)
+  const scale = Math[contain ? "min" : "max"](rect.width / image.naturalWidth, rect.height / image.naturalHeight)
+  const width = image.naturalWidth * scale
+  const height = image.naturalHeight * scale
+  const position = style.objectPosition.split(" ")
+  const offset = (value, space) => value.endsWith("%") ? space * parseFloat(value) / 100 : parseFloat(value) || 0
+  return { left: rect.left + offset(position[0], rect.width - width), top: rect.top + offset(position[1] || "50%", rect.height - height), width, height }
 }
 
-function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled) {
-  if (!card?.isConnected || !sourceRect || !targetRect) return null
-
-  const surfaceDuration = projectPreviewExpandSurfaceDurationMs()
-  const startLeft = clamp(sourceRect.left - targetRect.left, 0, targetRect.width)
-  const startRight = clamp(targetRect.right - sourceRect.right, 0, targetRect.width)
-  const copyDelay = Math.round(surfaceDuration * 0.44)
-  const copyDuration = Math.min(460, Math.max(220, Math.round(surfaceDuration * 0.68)))
-  const surfaceEase = getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease"
-
-  const ghost = card.cloneNode(true)
-  const side = card.dataset.cardSide === "right" ? "right" : "left"
-  ghost.classList.add("project-preview-expand-ghost")
-  ghost.dataset.projectPreviewMotionSide = side
-  ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
-  ghost.setAttribute("aria-hidden", "true")
-  ghost.setAttribute("tabindex", "-1")
-  ghost.removeAttribute("href")
-  ghost.removeAttribute("id")
-  ghost.removeAttribute("data-project-card")
-  ghost.removeAttribute("data-project-preview-expanding")
-  ghost.removeAttribute("data-project-preview-exiting")
-  ghost.removeAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE)
-  ghost.removeAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE)
-  ghost.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
-  ghost.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"))
-  ghost.querySelectorAll(".dither-preview-canvas, .dither-reveal-canvas, .project-halftone, iframe")
-    .forEach((element) => element.remove())
-  ghost.querySelectorAll(".project-media img").forEach((image) => {
-    image.loading = "eager"
-    image.decoding = "async"
-  })
-  const copy = ghost.querySelector(".project-preview-copy")
-  copy?.setAttribute("aria-hidden", "false")
+function runProjectPreviewMotion(card, from, to, { expanding, imageFrom, imageTo, onSettled }) {
+  const duration = expanding ? projectPreviewSurfaceDurationMs() : projectPreviewSurfaceRetractDurationMs()
+  const easing = getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease"
+  const base = expanding ? to : from
+  const compact = expanding ? from : to
+  const inset = `inset(0px ${Math.max(0, base.right - compact.right)}px ${Math.max(0, base.height - compact.height)}px ${Math.max(0, compact.left - base.left)}px)`
+  const shift = `translateY(${compact.top - base.top}px)`
+  const frames = [{ clipPath: inset, transform: shift }, { clipPath: "inset(0px 0px 0px 0px)", transform: "translateY(0px)" }]
+  if (!expanding) frames.reverse()
+  const motion = { animations: [] }
+  card.__projectPreviewMotion = motion
+  const animate = (element, keyframes, timing = {}) => {
+    const animation = element.animate(keyframes, { duration, easing, fill: "both", ...timing })
+    motion.animations.push(animation)
+    return animation
+  }
+  const surface = animate(card, frames)
+  const copy = card.querySelector(".project-preview-copy")
   if (copy) {
-    copy.style.animation = "none"
-    copy.style.opacity = "0"
-    copy.style.transform = `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`
-    copy.style.willChange = "opacity, transform"
+    const frames = [{ opacity: 0, transform: `translateX(${card.dataset.cardSide === "right" ? -12 : 12}px)` }, { opacity: 1, transform: "translateX(0px)" }]
+    if (!expanding) frames.reverse()
+    animate(copy, frames, { delay: expanding ? duration * 0.12 : 0, duration: duration * (expanding ? 0.68 : 0.45) })
   }
-
-  ghost.style.setProperty("--project-preview-expand-origin", side === "right" ? "100% 50%" : "0% 50%")
-  ghost.style.setProperty("--project-preview-ghost-start-top", "0px")
-  ghost.style.setProperty("--project-preview-ghost-start-right", `${startRight}px`)
-  ghost.style.setProperty("--project-preview-ghost-start-bottom", "0px")
-  ghost.style.setProperty("--project-preview-ghost-start-left", `${startLeft}px`)
-  ghost.style.left = `${targetRect.left}px`
-  ghost.style.top = `${targetRect.top}px`
-  ghost.style.width = `${targetRect.width}px`
-  ghost.style.height = `${targetRect.height}px`
-  ghost.style.setProperty(
-    "--project-preview-copy-delay",
-    `${copyDelay}ms`,
-  )
-  ghost.style.setProperty(
-    "--project-preview-copy-duration",
-    `${copyDuration}ms`,
-  )
-  ghost.style.setProperty("--project-preview-copy-ease", surfaceEase)
-  ghost.style.setProperty("--project-preview-surface-duration", `${surfaceDuration}ms`)
-  ghost.style.clipPath = `inset(0px ${startRight}px 0px ${startLeft}px)`
-  ghost.style.willChange = "clip-path"
-  ghost.__projectPreviewExpandCard = card
-  ghost.__projectPreviewExpandToken = card.__projectPreviewExpandToken
-  ghost.__projectPreviewExpandSettleHandler = (event) => {
-    if (
-      event.target !== ghost ||
-      !["clip-path", "-webkit-clip-path"].includes(event.propertyName)
-    ) return
-    if (!ghost.isConnected) return
-    if (!card.isConnected || ghost.__projectPreviewExpandSettled) return
-    if (ghost.__projectPreviewExpandToken !== card.__projectPreviewExpandToken) return
-    ghost.__projectPreviewExpandSettled = true
-    ghost.__projectPreviewExpandSettleTimer = 0
-    ghost.removeEventListener("transitionend", ghost.__projectPreviewExpandSettleHandler)
-    if (onSettled) onSettled()
+  const image = card.querySelector(".project-media > img")
+  if (image && imageFrom && imageTo) {
+    const resting = expanding ? imageTo : imageFrom
+    const moved = expanding ? imageFrom : imageTo
+    const scale = moved.width / resting.width
+    const box = image.getBoundingClientRect()
+    const dx = moved.left - box.left - (resting.left - box.left) * scale
+    const dy = moved.top - box.top - (resting.top - box.top) * scale - (compact.top - base.top)
+    const transform = `translate(${dx}px, ${dy}px) scale(${scale})`
+    animate(image, expanding
+      ? [{ transformOrigin: "0 0", transform }, { transformOrigin: "0 0", transform: "none" }]
+      : [{ transformOrigin: "0 0", transform: "none" }, { transformOrigin: "0 0", transform }])
   }
-  ghost.__projectPreviewExpandSettleTimer = window.setTimeout(() => {
-    if (!ghost.isConnected) return
-    if (!card.isConnected || ghost.__projectPreviewExpandSettled) return
-    if (ghost.__projectPreviewExpandToken !== card.__projectPreviewExpandToken) return
-    ghost.__projectPreviewExpandSettled = true
-    ghost.removeEventListener("transitionend", ghost.__projectPreviewExpandSettleHandler)
-    ghost.__projectPreviewExpandSettleTimer = 0
-    onSettled?.()
-  }, surfaceDuration + PROJECT_PREVIEW_EXPAND_SETTLE_MS)
-  ghost.__projectPreviewExpandSettleHandler && ghost.addEventListener("transitionend", ghost.__projectPreviewExpandSettleHandler)
+  surface.finished.then(() => {
+    if (card.__projectPreviewMotion !== motion) return
+    // Commit final layout while the last frame still covers it. Removing all
+    // effects in this same task makes the handoff invisible to the renderer.
+    onSettled()
+    if (card.__projectPreviewMotion === motion) clearProjectPreviewExpandGhostState(card)
+  }).catch(() => {}) // Cancellation belongs to the next interaction.
+}
 
-  document.body.appendChild(ghost)
-  siteState.projectPreviewExpandGhosts.add(ghost)
-  card.__projectPreviewExpandGhost = ghost
-  // Force the source-sized snapshot to paint before the target geometry is
-  // applied. This makes the expansion reveal stay composited and avoid a blank
-  // start frame.
-  void ghost.offsetWidth
-  window.requestAnimationFrame(() => {
-    if (!ghost.isConnected) return
-    ghost.dataset.projectPreviewExpandState = "target"
-    ghost.style.clipPath = "inset(0px 0px 0px 0px)"
-    if (copy) {
-      copy.style.opacity = "1"
-      copy.style.transform = "translate3d(0, 0, 0)"
-    }
-  })
-
-  return ghost
+function measureCollapsedProjectPreview(card) {
+  const row = card.closest(".project-row")
+  const rowPreview = row?.classList.contains("has-project-preview")
+  card.classList.remove("is-project-preview")
+  if (rowPreview) row.classList.remove("has-project-preview")
+  const rect = projectPreviewRect(card.getBoundingClientRect())
+  const image = projectPreviewImageRect(card)
+  card.classList.add("is-project-preview")
+  if (rowPreview) row.classList.add("has-project-preview")
+  return { rect, image }
 }
 
 function validPreviewTargetRect(rect) {
@@ -7184,18 +7120,12 @@ function applyProjectPreviewExitTarget(exitMotion, targetCard) {
 
 function clearProjectPreviewExitGhosts() {
   siteState.projectPreviewTransitionIntent = null
-  for (const ghost of [...siteState.projectPreviewExpandGhosts]) {
-    ghost.__projectPreviewExpandCard?.removeAttribute("data-project-preview-expand-ghosting")
-    ghost.remove()
-  }
-  siteState.projectPreviewExpandGhosts.clear()
-  document.querySelectorAll(".project-card.is-project-preview[data-project-preview-expand-ghosting='true']").forEach((card) => {
-    clearProjectPreviewExpandGhostState(card)
-  })
-  if (!siteState.projectPreviewExitGhosts.size) return
+  document.querySelectorAll("[data-project-preview-motion]").forEach(clearProjectPreviewExpandGhostState)
+  delete document.documentElement.dataset.projectPreviewTransition
   for (const ghost of [...siteState.projectPreviewExitGhosts]) {
+    ghost.__projectPreviewExitCleanup?.()
     releaseProjectPreviewExitSource(ghost)
-    ghost?.remove()
+    ghost.remove()
   }
   siteState.projectPreviewExitGhosts.clear()
 }
@@ -7377,126 +7307,54 @@ function commitProjectPreviewState(card, expanded) {
 function setProjectPreview(card, expanded) {
   if (!card?.isConnected) return
   const current = activeProjectPreview()
-  if (expanded && current === card) return
-  if (!expanded && current !== card) return
-
-  const previewTransition = document.documentElement.dataset.projectPreviewTransition
-  const isTransitioning = previewTransition === "expanding" || previewTransition === "exiting"
-  if (isTransitioning) {
-    if (expanded && current !== card) {
-      scheduleProjectPreviewTransitionIntent(card, true)
-      return
-    }
-    if (!expanded && current === card) {
-      scheduleProjectPreviewTransitionIntent(card, false)
-      return
-    }
-  } else {
-    siteState.projectPreviewTransitionIntent = null
-  }
-
-  cancelProjectPreviewAnchor()
-  window.clearTimeout(card.__projectPreviewCollapseTimer)
-  card.__projectPreviewCollapseTimer = 0
-  card.removeAttribute("data-project-preview-collapsing")
-  card.removeAttribute("data-project-preview-ready")
-  const detailDrawer = activeProjectDetailDrawer()
-  if (detailDrawer && (!expanded || detailDrawer.card !== card) && !card.__projectPreviewCollapseWithDrawer) {
-    closeProjectDetailDrawer({ immediate: true })
-  }
-
-  const motionId = siteState.projectPreviewMotionId + 1
-  siteState.projectPreviewMotionId = motionId
-  // Rapid preview changes must never accumulate outgoing full-bleed layers.
-  // The current preview can provide the next snapshot after the old one leaves.
-  clearProjectPreviewExpandGhostState(card)
-  clearProjectPreviewExitGhosts()
-
-  // When switching directly between previews, preserve the outgoing expanded
-  // surface as a paint-only snapshot. The real card must still be committed
-  // immediately so the next preview can claim the layout, while the snapshot
-  // retracts back toward the old card's compact geometry.
-  const switchExitMotion = expanded && current && current !== card
-    ? createProjectPreviewExitGhost(current)
-    : null
-  if (switchExitMotion?.ghost) {
-    const outgoingCopy = switchExitMotion.ghost.querySelector(".project-preview-copy")
-    if (outgoingCopy) {
-      outgoingCopy.style.opacity = "1"
-      outgoingCopy.style.transform = "translate3d(0, 0, 0)"
-    }
-  }
-  const releaseSwitchExitMotion = () => {
-    if (!switchExitMotion?.ghost) return
-    releaseProjectPreviewExitSource(switchExitMotion.ghost)
-    switchExitMotion.ghost.remove()
-    siteState.projectPreviewExitGhosts.delete(switchExitMotion.ghost)
-  }
-
-  if (prefersReducedMotion()) {
-    // The snapshot is only needed for the animated handoff.
-    releaseSwitchExitMotion()
-    commitProjectPreviewState(card, expanded)
-    if (expanded) {
-      clearProjectPreviewExpandGhostState(card)
-      card.setAttribute("data-project-preview-ready", "true")
-    }
-    flushProjectPreviewTransitionIntent()
+  const transition = document.documentElement.dataset.projectPreviewTransition
+  if (transition === "expanding" || transition === "exiting" ||
+      activeProjectDetailDrawer()?.element.dataset.drawerState === "closing") {
+    scheduleProjectPreviewTransitionIntent(card, expanded)
     return
   }
+  if (expanded ? current === card : current !== card) return
+  cancelProjectPreviewAnchor()
+  const drawer = activeProjectDetailDrawer()
+  if (drawer && (!expanded || drawer.card !== card)) closeProjectDetailDrawer({ immediate: true })
+  const motionId = ++siteState.projectPreviewMotionId
+  clearProjectPreviewExitGhosts()
+  const outgoing = expanded && current && current !== card && !prefersReducedMotion()
+    ? createProjectPreviewExitGhost(current) : null
 
+  // Disable legacy geometry transitions before either measurement. The live
+  // surface owns every frame, including the first and final one.
+  card.setAttribute("data-project-preview-motion", expanded ? "expanding" : "collapsing")
+  const from = projectPreviewRect(card.getBoundingClientRect())
+  const imageFrom = projectPreviewImageRect(card)
   if (!expanded) {
-    // Keep the real card in its original grid cell while its surface retracts.
-    // Removing the preview class here would reflow the row before the physical
-    // retract could be seen, which was the source of the old relocation jump.
-    card.setAttribute("data-project-preview-collapsing", "true")
-    document.documentElement.dataset.projectPreviewTransition = "exiting"
-    card.__projectPreviewCollapseTimer = window.setTimeout(() => {
-      if (!card.isConnected || motionId !== siteState.projectPreviewMotionId) return
-      card.removeAttribute("data-project-preview-collapsing")
-      clearProjectPreviewExpandMotion(card)
+    const target = measureCollapsedProjectPreview(card)
+    const finish = () => {
+      clearProjectPreviewExpandGhostState(card)
       clearProjectPreviewHeightLock(card)
+      card.removeAttribute("data-project-preview-ready")
       commitProjectPreviewState(card, false)
       delete document.documentElement.dataset.projectPreviewTransition
       flushProjectPreviewTransitionIntent()
-    }, projectPreviewSurfaceRetractDurationMs())
+    }
+    if (prefersReducedMotion() || !from || !target.rect) { finish(); return }
+    document.documentElement.dataset.projectPreviewTransition = "exiting"
+    runProjectPreviewMotion(card, from, target.rect, { expanding: false, imageFrom, imageTo: target.image, onSettled: finish })
     return
   }
-  card.__projectPreviewExpandToken = 0
 
-  const sourceRect = projectPreviewRect(card.getBoundingClientRect())
-  if (!sourceRect) {
-    releaseSwitchExitMotion()
-    commitProjectPreviewState(card, true)
+  if (from) card.style.setProperty("--project-preview-start-height", `${from.height}px`)
+  card.setAttribute("data-project-preview-ready", "true")
+  commitProjectPreviewState(card, true)
+  const to = projectPreviewRect(card.getBoundingClientRect())
+  const imageTo = projectPreviewImageRect(card)
+  if (outgoing) runProjectPreviewExitGhost(outgoing, current, { fade: true, motionId })
+  if (prefersReducedMotion() || !from || !to) {
     finalizeProjectPreviewExpand(card, motionId)
     return
   }
-
-  prepareProjectPreviewExpandMotion(card)
-  card.__projectPreviewExpandToken = motionId
-  card.setAttribute("data-project-preview-expand-ghosting", "true")
   document.documentElement.dataset.projectPreviewTransition = "expanding"
-  commitProjectPreviewState(card, expanded)
-  if (switchExitMotion) {
-    runProjectPreviewExitGhost(switchExitMotion, current, { fade: true })
-  }
-
-  requestAnimationFrame(() => {
-    if (!card.isConnected || motionId !== siteState.projectPreviewMotionId) return
-    const targetRect = projectPreviewRect(card.getBoundingClientRect())
-    if (!targetRect) {
-      finalizeProjectPreviewExpand(card, motionId)
-      return
-    }
-
-    const ghost = createProjectPreviewExpandGhost(card, sourceRect, targetRect, () => {
-      finalizeProjectPreviewExpand(card, motionId)
-    })
-    if (!ghost) {
-      finalizeProjectPreviewExpand(card, motionId)
-      return
-    }
-  })
+  runProjectPreviewMotion(card, from, to, { expanding: true, imageFrom, imageTo, onSettled: () => finalizeProjectPreviewExpand(card, motionId) })
 }
 
 function projectDetailBodyMarkup(project) {
@@ -7515,133 +7373,74 @@ function activeProjectDetailDrawer() {
     : null
 }
 
-function closeProjectDetailDrawer({ immediate = false, afterClose = null, onCloseStart = null } = {}) {
-  const drawerState = activeProjectDetailDrawer()
-  if (!drawerState) return
-  cancelProjectPreviewAnchor()
-  const { element, card } = drawerState
-  const reducedMotion = prefersReducedMotion()
-  // A second caller must not turn an in-flight close into an immediate
-  // teardown (dismiss + preview collapse used to race this path).
-  if (element.dataset.drawerState === "closing" && !immediate) return
-  const shouldAnimate = !immediate && !reducedMotion
-  // Notify coordinated preview collapse before the drawer starts retracting.
-  // This lets both surfaces animate in parallel; waiting for drawer teardown
-  // before restoring the grid used to leave a visible pause in the old card
-  // column during rapid open/close clicks.
-  onCloseStart?.(card)
-  cancelProjectDetailScrollMotion()
-  clearProjectDetailHeaderMotion()
-  // The card is a sticky secondary header while the article is open. On
-  // compact layouts it may currently be compressed to only a title; animate
-  // that height back to its natural preview size at the same time as the
-  // drawer retracts so removing the sticky state cannot cause a second jump.
-  if (shouldAnimate && card?.isConnected) {
-    // The preview can gain height while the drawer is open (lazy media and
-    // fonts commonly finish during that interval). The detail-header height
-    // captured at open time is therefore stale by close time. Measure the
-    // current natural preview height before entering the closing state so the
-    // sticky lead can interpolate to the real grid height instead of snapping
-    // when data-project-detail-open is removed.
-    const hadDetailOpen = card.hasAttribute("data-project-detail-open")
-    const hadHeaderCompressed = card.hasAttribute("data-project-detail-header-compressed")
-    const hadHeaderMinimized = card.hasAttribute("data-project-detail-header-minimized")
-    card.removeAttribute("data-project-detail-open")
-    card.removeAttribute("data-project-detail-header-compressed")
-    card.removeAttribute("data-project-detail-header-minimized")
-    const naturalPreviewHeight = card.getBoundingClientRect().height
-    if (hadDetailOpen) card.setAttribute("data-project-detail-open", "true")
-    if (hadHeaderCompressed) card.setAttribute("data-project-detail-header-compressed", "true")
-    if (hadHeaderMinimized) card.setAttribute("data-project-detail-header-minimized", "true")
-    if (Number.isFinite(naturalPreviewHeight) && naturalPreviewHeight > 0) {
-      setElementStyleProperty(card, "--project-detail-header-expanded-height", `${naturalPreviewHeight.toFixed(2)}px`)
-    }
-    card.setAttribute("data-project-detail-header-closing", "true")
-    card.removeAttribute("data-project-detail-header-minimized")
-    void card.offsetHeight
-    setElementStyleProperty(card, "--project-detail-header-progress", "0")
-    setElementStyleProperty(card, "--project-detail-header-ease", "0")
-  }
-  const finish = () => {
-    const coordinatedPreviewCollapse = card?.__projectPreviewCollapseWithDrawer === true
-    drawerState.resizeObserver?.disconnect?.()
-    element.style.removeProperty("max-height")
-    element.remove()
-    drawerState.row?.removeAttribute("data-project-detail-open")
-    if (card?.isConnected) {
-      card.removeAttribute("data-project-detail-open")
-      card.removeAttribute("data-project-detail-header-compressed")
-      card.removeAttribute("data-project-detail-header-minimized")
-      card.removeAttribute("data-project-detail-header-closing")
-      delete card.__detailHeaderStart
-      delete card.__detailHeaderOpenHeight
-      card.removeAttribute("aria-controls")
-      card.setAttribute("aria-expanded", "true")
-      card.style.removeProperty("--project-detail-header-progress")
-      card.style.removeProperty("--project-detail-header-ease")
-      card.style.removeProperty("--project-detail-header-expanded-height")
-      card.style.removeProperty("--project-detail-header-min-height")
-      card.style.removeProperty("--project-detail-header-pad")
-    }
-    if (siteState.projectDetailDrawer === drawerState) siteState.projectDetailDrawer = null
-    if (coordinatedPreviewCollapse && card?.isConnected) {
-      // The visual retract started with the drawer. Commit the grid restore
-      // in this same teardown task, after the drawer is removed, so the
-      // browser never paints an intermediate row with a missing drawer slot.
-      window.clearTimeout(card.__projectPreviewCollapseTimer)
-      card.__projectPreviewCollapseTimer = 0
-      card.removeAttribute("data-project-preview-collapsing")
-      card.removeAttribute("data-project-preview-ready")
-      clearProjectPreviewExpandMotion(card)
-      clearProjectPreviewHeightLock(card)
-      commitProjectPreviewState(card, false)
-    } else {
-      refreshAfterProjectPreviewChange()
-    }
-    afterClose?.(card)
-  }
-  if (shouldAnimate) {
-    const height = element.firstElementChild?.scrollHeight || element.getBoundingClientRect().height || 0
-    // A settled drawer intentionally uses max-height:none. CSS cannot
-    // interpolate from none to zero, so establish a concrete pixel start,
-    // enter the closing state, then release the inline value on the next
-    // frame to let the max-height transition run all the way to zero.
-    element.style.setProperty("--project-detail-drawer-height", `${height}px`)
-    element.dataset.drawerState = "closing"
-    element.style.setProperty("max-height", `${height}px`)
-    void element.offsetHeight
-    window.requestAnimationFrame(() => {
-      if (element.isConnected && element.dataset.drawerState === "closing") {
-        element.style.removeProperty("max-height")
-      }
-    })
-  } else {
-    element.dataset.drawerState = "closed"
-  }
-  if (!shouldAnimate) {
+// One cancellable height animation owns the drawer. The inner article keeps
+// its natural layout; clipping is supplied by overflow, not a second wipe.
+function animateProjectDetailDrawer(state, opening, finish) {
+  const { element } = state
+  const startHeight = element.getBoundingClientRect().height
+  state.heightAnimation?.cancel()
+  state.heightAnimation = null
+  element.dataset.drawerState = opening ? "open" : "closing"
+  if (prefersReducedMotion()) { finish(); return }
+  const height = opening ? element.firstElementChild.scrollHeight : 0
+  const property = opening ? "--project-detail-open-duration" : "--project-detail-close-duration"
+  const css = getComputedStyle(element)
+  const duration = parseDurationMs(css.getPropertyValue(property)) || (opening ? 640 : 520)
+  const easing = css.getPropertyValue("--project-preview-surface-ease").trim() || "ease"
+  const animation = element.animate([{ height: `${startHeight}px` }, { height: `${height}px` }], { duration, easing, fill: "both" })
+  state.heightAnimation = animation
+  state.openStartHeight = startHeight
+  state.openTargetHeight = height
+  animation.finished.then(() => {
+    if (siteState.projectDetailDrawer !== state || state.heightAnimation !== animation) return
+    // finish establishes auto/removed layout before the held effect is released.
     finish()
-    return
-  }
-  window.setTimeout(finish, PROJECT_DETAIL_DRAWER_CLOSE_MS)
+    animation.cancel()
+    if (state.heightAnimation === animation) state.heightAnimation = null
+  }).catch(() => {})
 }
 
-/* Closing from the active preview link must retract the preview and the
-   drawer as one motion. The outside-dismiss path already does this; routing
-   the same action through a link used to remove only the drawer, leaving a
-   transparent is-project-preview card behind on compact layouts. */
+function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {}) {
+  const state = activeProjectDetailDrawer()
+  if (!state) return
+  const { element, card } = state
+  if (element.dataset.drawerState === "closing" && !immediate) return
+  cancelProjectPreviewAnchor()
+  cancelProjectDetailScrollMotion()
+  clearProjectDetailHeaderMotion()
+  state.resizeObserver?.disconnect()
+  const finish = () => {
+    if (siteState.projectDetailDrawer !== state) return
+    state.heightAnimation?.cancel()
+    element.remove()
+    state.row?.removeAttribute("data-project-detail-open")
+    if (card?.isConnected) {
+      for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "aria-controls"]) card.removeAttribute(attribute)
+      delete card.__detailHeaderStart
+      delete card.__detailHeaderOpenHeight
+      for (const name of ["progress", "ease", "expanded-height", "min-height", "pad"]) card.style.removeProperty(`--project-detail-header-${name}`)
+      card.setAttribute("aria-expanded", "true")
+    }
+    siteState.projectDetailDrawer = null
+    refreshAfterProjectPreviewChange()
+    afterClose?.(card)
+    if (!immediate) flushProjectPreviewTransitionIntent()
+  }
+  if (immediate) { finish(); return }
+  // Keep the sticky lead's current footprint until the article is gone. The
+  // caller scrolls the lead to its expanded position before closing, so no
+  // competing grid/height restoration needs to run over the drawer motion.
+  animateProjectDetailDrawer(state, false, finish)
+}
+
 function closeProjectDetailWithPreview() {
-  const drawerState = activeProjectDetailDrawer()
-  if (!drawerState) return
-  closeProjectDetailDrawer({
-    onCloseStart: (card) => {
-      if (card?.isConnected && activeProjectPreview() === card) {
-        card.__projectPreviewCollapseWithDrawer = true
-        setProjectPreview(card, false)
-      }
-    },
-    afterClose: (card) => {
-      if (card) delete card.__projectPreviewCollapseWithDrawer
-    },
+  const state = activeProjectDetailDrawer()
+  if (!state || state.element.dataset.drawerState === "closing") return
+  smoothScrollProjectDetailCardToTop(state.card, () => {
+    if (activeProjectDetailDrawer() !== state) return
+    closeProjectDetailDrawer({ afterClose: (card) => {
+      if (!siteState.projectPreviewTransitionIntent) setProjectPreview(card, false)
+    } })
   })
 }
 
@@ -7748,9 +7547,14 @@ function openProjectDetailDrawer(card, target) {
   inner?.querySelectorAll(".project-lead").forEach((lead) => lead.remove())
   row.setAttribute("data-project-detail-open", "true")
   const updateHeight = () => {
-    if (inner) drawer.style.setProperty("--project-detail-drawer-height", `${inner.scrollHeight}px`)
+    const state = siteState.projectDetailDrawer
+    if (!inner || state?.element !== drawer || drawer.dataset.drawerState !== "open" || !state.heightAnimation) return
+    const height = inner.scrollHeight
+    if (Math.abs(height - state.openTargetHeight) < 1) return
+    state.openTargetHeight = height
+    state.heightAnimation.effect.setKeyframes([{ height: `${state.openStartHeight}px` }, { height: `${height}px` }])
   }
-  updateHeight()
+
   const resizeObserver = typeof ResizeObserver === "function" && inner
     ? new ResizeObserver((entries) => {
       if (entries.some((entry) => entry.target === inner)) updateHeight()
@@ -7793,18 +7597,13 @@ function openProjectDetailDrawer(card, target) {
     })
   }
 
-  requestAnimationFrame(() => {
-    if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
-    drawer.dataset.drawerState = "open"
-    window.setTimeout(() => {
-      if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
-      drawer.dataset.drawerState = "settled"
-      drawer.style.removeProperty("--project-detail-drawer-height")
-      // The opening transform is gone now, so the article's own rect gives the
-      // anchor without the layout-offset detour.
-      syncProjectDetailHeaderAnchor(card, drawer)
-      requestProjectDetailHeaderUpdate()
-    }, prefersReducedMotion() ? 0 : 760)
+  // Establish the closed height before starting. A rapid close can now take
+  // over from the exact current height, including the very first frame.
+  animateProjectDetailDrawer(drawerState, true, () => {
+    if (drawer.dataset.drawerState !== "open") return
+    drawer.dataset.drawerState = "settled"
+    syncProjectDetailHeaderAnchor(card, drawer)
+    requestProjectDetailHeaderUpdate()
   })
 }
 
@@ -7868,13 +7667,14 @@ function handleRouteLinkClick(event) {
   }
 
   const projectCard = link.closest?.("[data-project-card]") || null
-  if (
-    projectCard &&
-    document.documentElement.hasAttribute("data-project-preview-transition") &&
-    projectCard.classList.contains("is-project-preview")
-  ) {
+  if (projectCard && (document.documentElement.hasAttribute("data-project-preview-transition") ||
+      activeProjectDetailDrawer()?.element.dataset.drawerState === "closing")) {
     event.preventDefault()
     event.stopPropagation()
+    const sameIntent = siteState.projectPreviewTransitionIntent?.card === projectCard
+    const wantsDetail = sameIntent || (activeProjectPreview() === projectCard &&
+      document.documentElement.dataset.projectPreviewTransition !== "exiting")
+    scheduleProjectPreviewTransitionIntent(projectCard, true, wantsDetail ? target : null)
     return
   }
   if (projectCard && target.path !== routeFromLocation() && !projectCard.classList.contains("is-project-preview")) {

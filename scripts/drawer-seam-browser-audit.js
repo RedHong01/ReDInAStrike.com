@@ -1,5 +1,7 @@
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
-const frame = () => new Promise(requestAnimationFrame);
+// Observe after all animation callbacks for this frame, rather than ahead of
+// the scroll coordinator in the same rAF queue.
+const frame = () => new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
 const result={width:innerWidth,cases:[],errors:[]};
 const report=()=>parent.postMessage({drawerAudit:result},location.origin);
 const wait=async predicate=>{for(let i=0;i<600;i++){if(predicate())return;await frame()}throw Error('timed out')};

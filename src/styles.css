@@ -1087,6 +1087,17 @@ body[data-layout-transition="true"] .about-section {
    interpolation. The reading edge is already represented by the source clone
    orientation and can stay visually aligned with the live card side. */
 .project-preview-expand-ghost .project-media {
+  height: 100% !important;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+}
+
+.project-preview-expand-ghost {
+  grid-template-rows: minmax(0, 1fr) !important;
+}
+
+.project-preview-expand-ghost .project-preview-copy {
+  height: 100% !important;
   min-height: 0 !important;
 }
 
@@ -1536,6 +1547,17 @@ body[data-layout-transition="true"] .about-section {
   justify-content: space-between;
   gap: clamp(14px, 5.65%, 28px);
   padding-top: var(--project-media-caption-gap);
+  /* Keep the caption slot independent from the number of wrapped lines.
+     Rows use the bottom edge of their tallest card as the rule anchor; when
+     a title wraps on only one side, letting that side grow the grid made the
+     next rule drift by exactly one line-height. Reserve the two-line slot
+     that the catalogue already needs, while still allowing unusually long
+     titles to grow beyond it. This gives the preview FLIP a stable media
+     center without changing the visible type treatment. */
+  min-height: calc(
+    var(--project-media-caption-gap) +
+    (2 * var(--project-caption-leading))
+  );
   font-family: var(--type-subtitle-font);
   font-size: var(--project-caption-size);
   line-height: var(--project-caption-leading);
@@ -5236,7 +5258,30 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
    shared seam instead of pushing the compact bar down. */
 .catalog .project-row.has-project-preview[data-project-detail-open="true"] {
   padding-top: var(--project-rule-card-gap);
+  /* Extend the sticky containing block through the compact header's final
+     overlap with the drawer. The negative margin keeps the next homepage row
+     at the same document position, while the padding gives native sticky
+     positioning enough runway to stay pinned until the drawer reaches the
+     shared site-header seam. */
   padding-bottom: 0;
+  margin-bottom: calc(-1 * var(--project-detail-sticky-tail, 0px));
+}
+
+/* The sticky card's containing block ends at the row's content edge. Keep an
+   explicit, in-flow tail after the drawer so the card can remain pinned until
+   the drawer itself has crossed the shared header seam. The row's matching
+   negative margin keeps the next catalogue row at its original document
+   position without turning the tail into a detached overlay. */
+.catalog .project-row.has-project-preview[data-project-detail-open="true"] > .project-detail-sticky-tail {
+  display: block;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: var(--project-detail-sticky-tail, 0px);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
 }
 
 /* The homepage header owns the exact shared top seam. Keep the card rule out

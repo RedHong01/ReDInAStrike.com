@@ -3861,6 +3861,22 @@ function requestProjectDetailHeaderUpdate() {
   syncProjectDetailHeaderAnchor(card, drawerState.element)
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
+  // A sticky element is constrained by the bottom edge of its containing row.
+  // The drawer is the last flow child of that row, so without a tail the
+  // browser releases the compact header as soon as the drawer's bottom edge
+  // reaches the header's bottom edge. Keep one compact-header height of
+  // containment after the drawer and cancel it with an equal negative margin
+  // so the following catalogue rhythm does not move.
+  const detailRow = drawerState.row
+  if (detailRow?.isConnected) {
+    // The live card keeps an explicit margin-bottom equal to the height it
+    // gives back while collapsing. Padding on the row is outside the sticky
+    // containing block's content edge, so it cannot delay release. An
+    // in-flow tail after the drawer does: its height restores the full open
+    // header footprint and the row's equal negative margin preserves the
+    // following catalogue position.
+    detailRow.style.setProperty("--project-detail-sticky-tail", `${openHeight.toFixed(2)}px`)
+  }
   const stickyStart = card.__detailHeaderStart - headerHeight
   // The lead collapses like a surface with a physical edge: one pixel of
   // scroll removes exactly one pixel of its height, so its painted bottom
@@ -7058,6 +7074,16 @@ function createProjectPreviewExitGhost(card) {
       try { clone.getContext("2d")?.drawImage(original, 0, 0) } catch {}
     }
   })
+  // Image edge/size values depend on the live layout proxy (the header/logo
+  // edge can continue settling during the wipe). Do not freeze those values
+  // on a body-level snapshot; the normal preview selectors can resolve them
+  // again as the live card changes.
+  const snapshotImage = ghost.querySelector(".project-media > img")
+  if (snapshotImage) {
+    for (const name of ["width", "height", "min-width", "min-height", "max-width", "max-height", "left", "right", "top", "bottom", "inset", "aspect-ratio"]) {
+      snapshotImage.style.removeProperty(name)
+    }
+  }
   // The snapshot copy starts with the source card's resolved styles, but the
   // reverse gesture is owned by the exit-ghost keyframes. Remove the copied
   // root animation/clip declarations or their `!important` inline values win
@@ -7152,6 +7178,34 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
 
   const ghost = card.cloneNode(true)
   const cardStyle = getComputedStyle(card)
+  // The expand snapshot is moved to <body>, so catalogue-scoped selectors no
+  // longer participate in its destination layout. Capture the resolved card
+  // geometry while it is still in the catalogue (copy padding, grid tracks,
+  // media sizing, and typography onto the clone) before giving the snapshot
+  // its fixed viewport box below. Without this, the copy's padding and the
+  // media's aspect-ratio fall back to the generic rules for a body child and
+  // the final handoff has a second fit/relocate.
+  const originals = [card, ...card.querySelectorAll("*")]
+  const clones = [ghost, ...ghost.querySelectorAll("*")]
+  const snapshotProperties = [
+    "display", "position", "box-sizing", "width", "height", "min-width", "min-height", "max-width", "max-height",
+    "padding", "margin", "grid-template-columns", "grid-template-rows", "grid-auto-rows", "grid-column", "grid-row", "gap",
+    "align-items", "align-content", "align-self", "justify-items", "justify-content", "justify-self", "flex", "flex-direction",
+    "font-family", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "color", "background",
+    "background-color", "background-image", "object-fit", "object-position", "aspect-ratio", "transform-origin", "top", "right",
+    "bottom", "left", "opacity", "visibility", "overflow", "clip-path", "z-index",
+  ]
+  originals.forEach((original, index) => {
+    const clone = clones[index]
+    if (!clone) return
+    const style = getComputedStyle(original)
+    snapshotProperties.forEach((name) => clone.style.setProperty(name, style.getPropertyValue(name), "important"))
+    clone.style.setProperty("animation", "none", "important")
+    clone.style.setProperty("transition", "none", "important")
+    if (original instanceof HTMLCanvasElement) {
+      try { clone.getContext("2d")?.drawImage(original, 0, 0) } catch {}
+    }
+  })
   ghost.classList.add("project-preview-expand-ghost")
   ghost.dataset.projectPreviewMotionSide = side
   ghost.setAttribute("aria-hidden", "true")
@@ -7175,13 +7229,24 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     image.decoding = "async"
   })
 
+  // Root geometry is owned by the fixed snapshot below. Keep the copied
+  // descendant geometry, especially the preview-copy padding and grid tracks.
+  for (const name of [
+    "position", "left", "top", "right", "bottom", "width", "height", "min-height", "max-height", "margin",
+    "opacity", "visibility", "transition", "animation", "clip-path",
+  ]) ghost.style.removeProperty(name)
+
   const copy = ghost.querySelector(".project-preview-copy")
   copy?.setAttribute("aria-hidden", "false")
   if (copy) {
-    copy.style.animation = "none"
-    copy.style.clipPath = "inset(0)"
-    copy.style.opacity = "0"
-    copy.style.transform = `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`
+    copy.style.setProperty("animation", "none", "important")
+    copy.style.setProperty("clip-path", "inset(0)", "important")
+    copy.style.setProperty("opacity", "0", "important")
+    copy.style.setProperty("transform", `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`, "important")
+    // The resolved-style snapshot disables every transition while the clone
+    // is detached from the catalogue. Restore the copy's dedicated fade/slide
+    // transition so its type still arrives after the horizontal surface.
+    copy.style.removeProperty("transition")
   }
 
   ghost.style.left = `${viewportLeft}px`
@@ -7216,6 +7281,28 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
 
   let settled = false
   let settling = false
+  let syncFrame = 0
+  const syncGhostToLiveCard = () => {
+    syncFrame = 0
+    if (settled || !ghost.isConnected || !card.isConnected) return
+    // The real card remains the document/sticky anchor while the snapshot is
+    // painted. Header progress, font settling, and responsive row reflow can
+    // move that anchor by a few pixels after the first measurement. Follow
+    // that change as a transform on the snapshot instead of changing its
+    // layout box; this keeps the edge clip and the image FLIP uninterrupted
+    // and makes the final handoff land on the exact live rect.
+    const liveRect = card.getBoundingClientRect()
+    const baseTop = targetRect.top
+    const baseHeight = Math.max(1, targetRect.height)
+    const baseWidth = Math.max(1, targetRect.width)
+    const scaleX = liveRect.width > 0 ? liveRect.width / baseWidth : 1
+    const scaleY = liveRect.height > 0 ? liveRect.height / baseHeight : 1
+    const dx = Number.isFinite(liveRect.left) ? liveRect.left - targetRect.left : 0
+    const dy = Number.isFinite(liveRect.top) ? liveRect.top - baseTop : 0
+    ghost.style.transformOrigin = "50% 0"
+    ghost.style.transform = `translate3d(${dx.toFixed(3)}px, ${dy.toFixed(3)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`
+    syncFrame = window.requestAnimationFrame(syncGhostToLiveCard)
+  }
   const detach = () => {
     ghost.removeEventListener("transitionend", onTransitionEnd)
     window.clearTimeout(ghost.__projectPreviewExpandCleanupTimer)
@@ -7225,6 +7312,10 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     if (settled) return
     settled = true
     detach()
+    if (syncFrame) {
+      window.cancelAnimationFrame(syncFrame)
+      syncFrame = 0
+    }
     imageAnimation?.cancel()
     imageAnimation = null
     siteState.projectPreviewExpandGhosts.delete(ghost)
@@ -7252,6 +7343,9 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   card.__projectPreviewExpandGhost = ghost
   siteState.projectPreviewExpandGhosts.add(ghost)
   document.body.appendChild(ghost)
+  // Start after the clone has entered the document so the first correction is
+  // based on the same painted target geometry used by the image FLIP.
+  syncFrame = window.requestAnimationFrame(syncGhostToLiveCard)
   if (ghostImage && imageFrom?.width > 0 && imageFrom?.height > 0) {
     const targetImage = projectPreviewImageRect(ghost)
     const imageBox = ghostImage.getBoundingClientRect()
@@ -7285,8 +7379,8 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
       )
     }
     if (copy) {
-      copy.style.opacity = "1"
-      copy.style.transform = "translate3d(0, 0, 0)"
+      copy.style.setProperty("opacity", "1", "important")
+      copy.style.setProperty("transform", "translate3d(0, 0, 0)", "important")
     }
   })
 
@@ -7684,7 +7778,6 @@ function setProjectPreview(card, expanded) {
   card.setAttribute("data-project-preview-expand-ghosting", "true")
   commitProjectPreviewState(card, true, { refresh: false })
   const to = projectPreviewRect(card.getBoundingClientRect())
-  const imageTo = projectPreviewImageRect(card)
   // Keep the outgoing preview mounted as a physical snapshot and retract it
   // toward the card's original edge. Fading it out here made a second click
   // read as an abrupt disappearance instead of the reverse of the opening
@@ -7697,7 +7790,19 @@ function setProjectPreview(card, expanded) {
   document.documentElement.dataset.projectPreviewTransition = "expanding"
   window.requestAnimationFrame(() => {
     if (!card.isConnected || motionId !== siteState.projectPreviewMotionId) return
-    const ghost = createProjectPreviewExpandGhost(card, from, to, imageFrom, () => finalizeProjectPreviewExpand(card, motionId))
+    // Header progress and the row's sticky hand-off can settle in the same
+    // frame as the catalog reflow. Re-read the live destination immediately
+    // before mounting the fixed snapshot; using the earlier measurement lets
+    // the ghost finish a few pixels away from the real card and exposes a
+    // last-frame vertical jump when it is removed.
+    const liveTarget = projectPreviewRect(card.getBoundingClientRect()) || to
+    const ghost = createProjectPreviewExpandGhost(
+      card,
+      from,
+      liveTarget,
+      imageFrom,
+      () => finalizeProjectPreviewExpand(card, motionId),
+    )
     if (!ghost) finalizeProjectPreviewExpand(card, motionId)
   })
 }
@@ -7759,6 +7864,8 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
     state.heightAnimation?.cancel()
     element.remove()
     state.row?.removeAttribute("data-project-detail-open")
+    state.stickyTail?.remove()
+    state.row?.style.removeProperty("--project-detail-sticky-tail")
     if (card?.isConnected) {
       for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "aria-controls"]) card.removeAttribute(attribute)
       delete card.__detailHeaderStart
@@ -7884,6 +7991,11 @@ function openProjectDetailDrawer(card, target) {
   // the neighboring card remains in the same row, so inserting after the row
   // would place Pitchfork before Serial's full article instead of below it.
   card.after(drawer)
+  const stickyTail = document.createElement("div")
+  stickyTail.className = "project-detail-sticky-tail"
+  stickyTail.setAttribute("aria-hidden", "true")
+  stickyTail.setAttribute("role", "presentation")
+  drawer.after(stickyTail)
 
   // Capture the natural expanded surface before the sticky inner-header
   // selector applies its compressed height interpolation.
@@ -7916,7 +8028,7 @@ function openProjectDetailDrawer(card, target) {
   const catalog = card.closest(".catalog")
   if (catalog) resizeObserver?.observe(catalog)
 
-  const drawerState = { element: drawer, card, row, resizeObserver }
+  const drawerState = { element: drawer, card, row, stickyTail, resizeObserver }
   siteState.projectDetailDrawer = drawerState
   card.setAttribute("data-project-detail-open", "true")
   card.setAttribute("aria-controls", drawer.id)

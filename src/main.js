@@ -3862,11 +3862,10 @@ function requestProjectDetailHeaderUpdate() {
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
   // A sticky element is constrained by the bottom edge of its containing row.
-  // The drawer is the last flow child of that row, so without a tail the
-  // browser releases the compact header as soon as the drawer's bottom edge
-  // reaches the header's bottom edge. Keep one compact-header height of
-  // containment after the drawer and cancel it with an equal negative margin
-  // so the following catalogue rhythm does not move.
+  // The drawer's in-flow tail restores the full open-header footprint, so the
+  // browser releases the compact header only after the drawer crosses the
+  // shared site-header seam. The row's equal negative margin preserves the
+  // following catalogue rhythm.
   const detailRow = drawerState.row
   if (detailRow?.isConnected) {
     // The live card keeps an explicit margin-bottom equal to the height it
@@ -7178,6 +7177,11 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
 
   const ghost = card.cloneNode(true)
   const cardStyle = getComputedStyle(card)
+  const sourceCopy = card.querySelector(".project-preview-copy")
+  const sourceCopyStyle = sourceCopy ? getComputedStyle(sourceCopy) : null
+  const sourceCopyPadding = sourceCopyStyle
+    ? Object.fromEntries(["top", "right", "bottom", "left"].map((sideName) => [sideName, sourceCopyStyle.getPropertyValue(`padding-${sideName}`)]))
+    : null
   // The expand snapshot is moved to <body>, so catalogue-scoped selectors no
   // longer participate in its destination layout. Capture the resolved card
   // geometry while it is still in the catalogue (copy padding, grid tracks,
@@ -7239,6 +7243,23 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   const copy = ghost.querySelector(".project-preview-copy")
   copy?.setAttribute("aria-hidden", "false")
   if (copy) {
+    // Keep the measured vertical and inner insets so the detached clone has
+    // the same type block, but let the outside edge continue to follow the
+    // live content-edge proxy. Clearing the shorthand alone would fall back
+    // to the generic body-level preview padding and cause a vertical jump.
+    copy.style.removeProperty("padding")
+    if (sourceCopyPadding) {
+      for (const sideName of ["top", "right", "bottom", "left"]) {
+        const edgeName = side === "right" ? "left" : "right"
+        if (sideName === edgeName) continue
+        copy.style.setProperty(`padding-${sideName}`, sourceCopyPadding[sideName], "important")
+      }
+      copy.style.setProperty(
+        `padding-${side === "right" ? "left" : "right"}`,
+        "var(--content-edge-pad)",
+        "important",
+      )
+    }
     copy.style.setProperty("animation", "none", "important")
     copy.style.setProperty("clip-path", "inset(0)", "important")
     copy.style.setProperty("opacity", "0", "important")
@@ -7247,6 +7268,13 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     // is detached from the catalogue. Restore the copy's dedicated fade/slide
     // transition so its type still arrives after the horizontal surface.
     copy.style.removeProperty("transition")
+  }
+
+  // The live card is hidden while the paint snapshot owns the transition.
+  // Its resolved `visibility:hidden` must not be copied into the visible
+  // snapshot descendants.
+  for (const node of [ghost.querySelector(".project-media"), ghost.querySelector(".project-media > img"), copy]) {
+    node?.style.removeProperty("visibility")
   }
 
   ghost.style.left = `${viewportLeft}px`
@@ -7343,9 +7371,11 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   card.__projectPreviewExpandGhost = ghost
   siteState.projectPreviewExpandGhosts.add(ghost)
   document.body.appendChild(ghost)
-  // Start after the clone has entered the document so the first correction is
-  // based on the same painted target geometry used by the image FLIP.
-  syncFrame = window.requestAnimationFrame(syncGhostToLiveCard)
+  // Apply the first root correction synchronously after the clone enters the
+  // document. Measuring the image before this correction makes its FLIP use a
+  // different coordinate frame from the one painted on the first RAF, which
+  // is the small vertical hop visible at the opening edge.
+  syncGhostToLiveCard()
   if (ghostImage && imageFrom?.width > 0 && imageFrom?.height > 0) {
     const targetImage = projectPreviewImageRect(ghost)
     const imageBox = ghostImage.getBoundingClientRect()
@@ -7901,7 +7931,10 @@ function captureProjectDetailSwitchAnchor(drawerState) {
   const rowAnchor = drawerState.row.nextElementSibling?.classList?.contains("project-row")
     ? drawerState.row.nextElementSibling
     : null
-  const fallbackAnchor = drawerState.element?.nextElementSibling || drawerState.card
+  const next = drawerState.element?.nextElementSibling
+  const fallbackAnchor = next?.classList?.contains("project-detail-sticky-tail")
+    ? next.nextElementSibling || drawerState.card
+    : next || drawerState.card
   const element = rowAnchor || fallbackAnchor
   const rect = element?.getBoundingClientRect?.()
   if (!element || !rect || !Number.isFinite(rect.top)) return null

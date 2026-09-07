@@ -3784,13 +3784,13 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   /* The detail drawer sits between the active card and its row sibling on
      compact layouts. Restore the sibling's list spacing/rule even though it
      is no longer a direct card-to-card sibling. */
-  .project-detail-drawer + .project-card:not(.is-project-preview) {
+  .project-detail-sticky-tail + .project-card:not(.is-project-preview) {
     position: relative;
     border-top: 0;
     padding-top: var(--project-rule-card-gap);
   }
 
-  .project-detail-drawer + .project-card:not(.is-project-preview)::before {
+  .project-detail-sticky-tail + .project-card:not(.is-project-preview)::before {
     content: "";
     position: absolute;
     left: 0;
@@ -4458,7 +4458,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     bottom: 0;
   }
 
-  .project-detail-drawer + .project-card:not(.is-project-preview)::before {
+  .project-detail-sticky-tail + .project-card:not(.is-project-preview)::before {
     display: none;
   }
 }

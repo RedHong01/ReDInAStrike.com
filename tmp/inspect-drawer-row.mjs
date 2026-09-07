@@ -17,7 +17,7 @@ await card.click()
 await page.waitForTimeout(900)
 await card.click()
 await page.waitForTimeout(1000)
-for (const y of [8000, 8100, 8200, 8250, 8300, 8350, 8400, 8450, 8500, 8600]) {
+for (const y of [10000, 10500, 11000, 11500, 12000, 12500, 13000, 13500]) {
   await page.evaluate((v) => window.scrollTo(0, v), y)
   await page.waitForTimeout(120)
   const sample = await page.evaluate(() => {

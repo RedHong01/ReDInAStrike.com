@@ -15,6 +15,8 @@
   const frame = document.querySelector('iframe')
   const sizes = [[360, 800], [520, 900], [700, 900], [768, 1024],
     [980, 900], [981, 800], [1180, 900], [1280, 900], [1920, 1080]]
+  const requestedWidth = Number(new URLSearchParams(location.search).get('width'))
+  if (requestedWidth) sizes.splice(0, sizes.length, [requestedWidth, 900])
   const reports = []
   let index = 0
   const show = current => {

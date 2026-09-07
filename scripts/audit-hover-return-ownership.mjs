@@ -7,6 +7,8 @@ import * as motion from "../src/motion-default.js"
 // Run the production ownership and boundary-field code with a small canvas/DOM
 // fixture. No browser, server, external package, or wall-clock delay is required.
 const failures = []
+// Optional: --baseline=19ea87b proves the assertions reject the old behavior.
+const baseline = process.argv.find(arg => arg.startsWith("--baseline="))?.split("=")[1]
 async function check(name, run) {
   try {
     await run()
@@ -18,8 +20,8 @@ async function check(name, run) {
 }
 
 async function loadSource(filename, globals, expose) {
-  const input = process.argv.includes("--baseline")
-    ? execFileSync("git", ["show", `HEAD:src/${filename}`], { encoding: "utf8" })
+  const input = baseline
+    ? execFileSync("git", ["show", `${baseline}:src/${filename}`], { encoding: "utf8" })
     : await readFile(new URL(`../src/${filename}`, import.meta.url), "utf8")
   const source = input
     .replace(/^import[\s\S]*?from\s+"[^"\n]+"\s*\n/gm, "")
@@ -188,6 +190,75 @@ for (const [width, height] of [[390, 844], [768, 1024], [1280, 900], [1920, 1080
       "a stationary following frame must not grow boundary depth again")
   })
 }
+
+await check("one handoff per interaction and stale async work cannot cancel the next one", async () => {
+  let nextFrame = 0
+  const fixtureSnapshot = { cols: 4, rows: 4, bits: new Uint8Array(16) }
+  const attributes = new Map()
+  const classes = new Set(["project-card", "is-filter-muted", "is-muted-restore-return"])
+  let overlay
+  const card = {
+    isConnected: true,
+    classList: { contains: name => classes.has(name) },
+    matches: () => false,
+    getAttribute: name => attributes.get(name) ?? null,
+    setAttribute: (name, value) => attributes.set(name, value),
+    removeAttribute: name => attributes.delete(name),
+    querySelector: selector => selector === ".project-media" ? { querySelector: () => null } : overlay,
+    finalCanvas: { dataset: {}, width: 4, height: 4 },
+  }
+  const globals = {
+    document: { readyState: "loading", addEventListener() {} },
+    window: { matchMedia: () => ({ matches: false }), dispatchEvent() {} },
+    requestAnimationFrame: () => ++nextFrame,
+    cancelAnimationFrame() {}, performance: { now: () => 1000 },
+    ImageData: class { constructor(data) { this.data = data } },
+    CustomEvent: class {},
+    PUBLISHED_DITHER_CONFIG: {},
+    fixtureSnapshot,
+    fixtureOverlay: () => {
+      overlay = { style: {}, getContext: () => ({ drawImage() {} }), remove() {} }
+      return overlay
+    },
+    logicalGridForMedia: () => ({ cols: 4, rows: 4 }),
+    readBinaryColors: () => ({ paper: [], ink: [] }),
+    drawBinaryBits() {}, renderCard() {},
+    activeBinarySurfaceCanvas: card => card.finalCanvas,
+    canvasHasPixels: () => true,
+    binaryGridNeedsUpdate: () => false,
+  }
+  const api = await loadSource("hover-binary-return.js", globals, `
+    ensureOverlay = fixtureOverlay;
+    captureSnapshot = card => { snapshots.set(card, fixtureSnapshot); return fixtureSnapshot; };
+    globalThis.__audit = {
+      capture: typeof captureHoverSnapshot === "function" ? captureHoverSnapshot : captureSnapshot,
+      start: startHoverReturnHandoff, finish: finishOwnerHandoff,
+      cancel: cancelState, prepare: prepareCurrentViewportTarget,
+      setSync: callback => { syncBoundarySurface = callback; },
+      state: card => states.get(card)
+    };
+  `)
+  api.capture(card)
+  assert.equal(api.start(card), true)
+  const first = api.state(card)
+  assert.equal(api.start(card), true, "duplicate request acknowledges the existing handoff")
+  assert.equal(api.state(card), first, "duplicate request must not replace the active handoff")
+  await api.finish(first)
+  assert.equal(api.start(card), false, "completed interaction remains consumed without a timer")
+  api.capture(card)
+  assert.equal(api.start(card), true, "new hover starts a new interaction")
+  const stale = api.state(card)
+  let releaseSync
+  api.setSync(() => new Promise(resolve => { releaseSync = resolve }))
+  const preparation = api.prepare(stale)
+  api.cancel(card)
+  api.capture(card)
+  assert.equal(api.start(card), true)
+  const latest = api.state(card)
+  releaseSync(true)
+  await preparation
+  assert.equal(api.state(card), latest, "old async completion leaves the new visible owner intact")
+})
 
 if (failures.length) {
   console.error(`${failures.length} hover return regression checks failed`)

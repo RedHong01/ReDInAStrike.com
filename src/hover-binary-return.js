@@ -9,9 +9,10 @@ import {
 } from "./reveal-motion.js?v=20260905-perf1"
 import {
   drawBinaryBits,
+  binaryGridNeedsUpdate,
+  binaryBitsFromPixels,
   logicalGridForMedia,
   readBinaryColors,
-  sampleBinaryCanvas,
 } from "./binary-surface-core.js?v=20260905-perf1"
 import {
   activeBinarySurfaceCanvas,
@@ -170,6 +171,18 @@ function captureSnapshot(card) {
   const canvas = bitsCanvas(bits, cols, rows, paper, ink)
   if (!canvas) return null
 
+  // Keep the actual raster as well as its binary classification. Quantizing
+  // the edge snow and applying its mask a second time changes pixels at the
+  // moment the return overlay gives the surface back to the boundary owner.
+  const boundaryCanvas = currentRevealCanvas(card)
+  const boundaryField = captureViewportDitherBoundaryField(card)
+  if (boundaryField && boundaryCanvas) {
+    const ctx = canvas.getContext("2d")
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(source, 0, 0, cols, rows)
+    ctx.drawImage(boundaryCanvas, 0, 0, cols, rows)
+  }
+
   const snapshot = {
     canvas,
     bits,
@@ -178,7 +191,7 @@ function captureSnapshot(card) {
     source: source.dataset.ditherSource || "",
     mode: source.dataset.ditherMode || PUBLISHED_DITHER_CONFIG?.mode || "",
     signature: source.dataset.ditherRenderSignature || "",
-    boundaryField: captureViewportDitherBoundaryField(card),
+    boundaryField,
     scrollPosition: scrollPosition(),
     capturedAt: performance.now(),
   }
@@ -186,12 +199,22 @@ function captureSnapshot(card) {
   return snapshot
 }
 
-function snapshotBitsForGrid(snapshot, cols, rows, paper, ink) {
-  if (!snapshot) return null
-  if (snapshot.cols === cols && snapshot.rows === rows && snapshot.bits?.length === cols * rows) {
-    return Uint8Array.from(snapshot.bits)
+function capturedReturnSurface(card, cols, rows) {
+  const snapshot = snapshots.get(card)
+  if (!snapshot?.canvas) return null
+  const canvas = document.createElement("canvas")
+  canvas.width = cols
+  canvas.height = rows
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })
+  if (!ctx) return null
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(snapshot.canvas, 0, 0, cols, rows)
+  const pixels = ctx.getImageData(0, 0, cols, rows).data
+  const { paper, ink } = readBinaryColors()
+  return {
+    pixels,
+    bits: binaryBitsFromPixels(pixels, cols * rows, paper, ink),
   }
-  return sampleBinaryCanvas(snapshot.canvas, cols, rows, paper, ink)
 }
 
 function ensureOverlay(card, cols, rows) {
@@ -236,23 +259,6 @@ function waitForMs(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
-function nextFrames(count, callback) {
-  let remaining = Math.max(0, count | 0)
-  const step = () => {
-    if (remaining <= 0) {
-      callback()
-      return
-    }
-    remaining -= 1
-    requestAnimationFrame(step)
-  }
-  requestAnimationFrame(step)
-}
-
-function waitFrames(count) {
-  return new Promise((resolve) => nextFrames(count, resolve))
-}
-
 async function syncBoundarySurface(state) {
   const breath = window.__RED_BOUNDARY_BREATH__
   const sync =
@@ -280,8 +286,17 @@ async function prepareCurrentViewportTarget(state) {
   // Keep the handoff overlay opaque while the canonical static surface and
   // viewport boundary are rebuilt underneath it. The full static card is
   // never exposed between active-color and edge clipping.
-  renderCard(state.card, PUBLISHED_DITHER_CONFIG)
-  const finalCanvas = sourceCanvas(state.card)
+  let finalCanvas = sourceCanvas(state.card)
+  const media = state.card.querySelector(".project-media")
+  const image = media?.querySelector("img")
+  if (
+    !canvasHasPixels(finalCanvas) ||
+    binaryGridNeedsUpdate(finalCanvas, media, PUBLISHED_DITHER_CONFIG) ||
+    finalCanvas.dataset.ditherSource !== (image?.currentSrc || image?.src || "")
+  ) {
+    renderCard(state.card, PUBLISHED_DITHER_CONFIG)
+    finalCanvas = sourceCanvas(state.card)
+  }
   if (!canvasHasPixels(finalCanvas)) {
     state.handoff = {
       ready: false,
@@ -340,11 +355,8 @@ function waitForViewportStable(state) {
 
 async function finishOwnerHandoff(state) {
   if (!isCurrentState(state)) return
-  // The snapshot never redraws a target. It remains the visible owner for one
-  // painted frame while the canonical boundary surface is ready underneath.
-  await waitFrames(1)
-  if (!isCurrentState(state)) return
-
+  // The canonical canvas was painted synchronously under this overlay. Swap
+  // in the same task; extra painted frames would freeze the restored image.
   state.canvas.remove()
   state.card.removeAttribute(HANDOFF_ATTRIBUTE)
   states.delete(state.card)
@@ -370,7 +382,15 @@ function canStartReturnHandoff(card) {
 }
 
 function captureHoverSnapshot(card) {
+  // Scroll can begin another hover without a native pointerover. Give both
+  // entry paths the same cancellation before starting the new return cycle.
+  const keepSnapshot = activeColorStillSettling(card)
+  const previous = snapshots.get(card)
+  cancelState(card, { keepSnapshot })
   consumedReturns.delete(card)
+  // During a rapid re-entry the binary layer is hidden or detached. Its
+  // original raster is still the return target; do not recapture a fallback.
+  if (keepSnapshot && previous) return previous
   return captureSnapshot(card)
 }
 
@@ -388,9 +408,6 @@ function startHoverReturnHandoff(card) {
   if (!snapshot || !media) return false
 
   const { cols, rows } = logicalGridForMedia(media, PUBLISHED_DITHER_CONFIG)
-  const { paper, ink } = readBinaryColors()
-  const oldBits = snapshotBitsForGrid(snapshot, cols, rows, paper, ink)
-  if (!oldBits) return false
 
   const canvas = ensureOverlay(card, cols, rows)
   const ctx = canvas?.getContext("2d", { alpha: true })
@@ -401,18 +418,12 @@ function startHoverReturnHandoff(card) {
   canvas.style.visibility = "visible"
   card.setAttribute(HANDOFF_ATTRIBUTE, "true")
 
-  const framePixels = new Uint8ClampedArray(oldBits.length * 4)
-  const imageData = new ImageData(framePixels, cols, rows)
   const state = {
     card,
     canvas,
     ctx,
     cols,
     rows,
-    paper,
-    ink,
-    framePixels,
-    imageData,
     snapshot,
     handoff: null,
     phase: "hold-visible-snapshot",
@@ -420,7 +431,7 @@ function startHoverReturnHandoff(card) {
   }
   states.set(card, state)
   consumedReturns.add(card)
-  drawBinaryBits(ctx, imageData, framePixels, oldBits, paper, ink)
+  ctx.drawImage(snapshot.canvas, 0, 0, cols, rows)
 
   // Hold the pre-hover visible state until the canonical boundary owner is
   // ready. This overlay never runs a second pixel transition.
@@ -496,7 +507,6 @@ function captureOnPointerOver(event) {
   if (event.pointerType === "touch") return
   const card = cardFromPointerEvent(event)
   if (!card) return
-  cancelState(card)
   captureHoverSnapshot(card)
 }
 
@@ -506,7 +516,6 @@ function captureOnFocusIn(event) {
   const card = target.closest(".project-card.is-filter-muted")
   if (!card) return
   if (event.relatedTarget instanceof Node && card.contains(event.relatedTarget)) return
-  cancelState(card)
   captureHoverSnapshot(card)
 }
 
@@ -518,6 +527,7 @@ function start() {
 
   window.__RED_HOVER_BINARY_RETURN__ = {
     capture: captureHoverSnapshot,
+    surface: capturedReturnSurface,
     play: startHoverReturnHandoff,
     cancel: cancelState,
   }

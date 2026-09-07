@@ -240,7 +240,7 @@ const PROJECT_EXPAND_MASK_FADE_MS = 260
 // Keep the paint-only colour wipe mounted for its full visual lifetime. The
 // CSS values are mirrored here so the state teardown never truncates a slow,
 // physical-looking edge motion.
-const PROJECT_PREVIEW_SURFACE_DURATION_MS = 720
+const PROJECT_PREVIEW_SURFACE_DURATION_MS = 1100
 const PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS = 420
 const PROJECT_PREVIEW_EXIT_SOURCE_REVEAL_MS = 220
 const PROJECT_PREVIEW_EXIT_FADE_MS = 180
@@ -591,6 +591,7 @@ const siteState = {
   mediaBackgroundCache: new Map(),
   projectPreviewMotionId: 0,
   projectPreviewTransitionIntent: null,
+  projectPreviewExpandGhosts: new Set(),
   projectPreviewExitGhosts: new Set(),
   projectPreviewAnchorFrame: 0,
   projectPreviewAnchorToken: 0,
@@ -844,27 +845,56 @@ function asset(path) {
   return `${base}${path.replace(/^\/+/, "")}`
 }
 
-// These WebP files were generated from the corresponding PNGs without any
-// pixel changes. Keep the PNG as the src fallback so the image remains a
-// direct child of .project-media and older browsers still get a usable source;
-// browsers with WebP support select the smaller candidate through srcset.
+// Every WebP below was re-encoded from the listed source at identical pixel
+// dimensions. The twelve palette PNGs are lossless and decode byte-for-byte
+// identically (verified mean/max channel delta 0/0), so the dither engine's
+// getImageData palette derivation is unaffected. The three JPEG sources are
+// lossy re-encodes, measured through Chrome's own decoder as mean/max channel
+// delta: pitchfork 0.61/17, youtube-pjbu-hq 1.91/21, narrative-doc-2025-b
+// 3.13/65. None is dithered stipple art — narrative-doc-2025-b is a halftone
+// poster over heavy film grain, where the delta is grain reshuffling rather
+// than structural loss (checked at 3x on the densest halftone region: diamonds
+// sharp, no ringing, no chroma fringing). The snow engine quantizes to 9-28
+// palette levels on a downsampled grid, so none of this can surface.
+// Keep the original as the src fallback so the image remains a direct child of
+// .project-media and older browsers still get a usable source; browsers with
+// WebP support select the smaller candidate through srcset.
 const EXACT_WEBP_IMAGE_PAIRS = new Map([
+  ["assets/framer-live/alt-controller-2025-a.png", "assets/framer-live/alt-controller-2025-a.webp"],
   ["assets/framer-live/alt-controller-2025-b.png", "assets/framer-live/alt-controller-2025-b.webp"],
+  ["assets/framer-live/alt-controller-2025-c.png", "assets/framer-live/alt-controller-2025-c.webp"],
+  ["assets/framer-live/analog-game.png", "assets/framer-live/analog-game.webp"],
   ["assets/framer-live/game-prototype-2026.png", "assets/framer-live/game-prototype-2026.webp"],
   ["assets/framer-live/my-fridge.png", "assets/framer-live/my-fridge.webp"],
   ["assets/framer-live/narrative-doc-2025-a.png", "assets/framer-live/narrative-doc-2025-a.webp"],
+  ["assets/framer-live/narrative-doc-2025-b.jpeg", "assets/framer-live/narrative-doc-2025-b.webp"],
   ["assets/framer-live/ongoing-game-project.png", "assets/framer-live/ongoing-game-project.webp"],
+  ["assets/framer-live/pitchfork.jpg", "assets/framer-live/pitchfork.webp"],
   ["assets/framer-live/serial-deminer.png", "assets/framer-live/serial-deminer.webp"],
   ["assets/framer-live/service-game-ui-2026-a.png", "assets/framer-live/service-game-ui-2026-a.webp"],
+  ["assets/framer-live/service-game-ui-2026-b.png", "assets/framer-live/service-game-ui-2026-b.webp"],
   ["assets/framer-live/uiux-prototype-2024.png", "assets/framer-live/uiux-prototype-2024.webp"],
+  ["assets/framer-live/youtube-pjbu-hq.jpg", "assets/framer-live/youtube-pjbu-hq.webp"],
+])
+
+// Sources whose original file is unfit to ship as the no-WebP fallback. The
+// narrative-doc-2025-b master is a 1,562,396 B CMYK press export carrying a
+// 557,168 B "U.S. Web Coated (SWOP) v2" profile; the .opt.jpeg beside it is the
+// same 789x1024 frame converted to sRGB through that profile at relative
+// colorimetric intent (what Chrome itself does) and weighs 273,244 B. Swap only
+// the src here — the srcset WebP above still wins wherever it is supported, and
+// the untouched master stays on disk as the archival original.
+const OPTIMIZED_FALLBACK_IMAGE_PAIRS = new Map([
+  ["assets/framer-live/narrative-doc-2025-b.jpeg", "assets/framer-live/narrative-doc-2025-b.opt.jpeg"],
 ])
 
 function imageSourceAttrs(path) {
   const sourcePath = String(path || "")
-  const sourceUrl = asset(sourcePath)
   const queryStart = sourcePath.search(/[?#]/)
   const basePath = queryStart === -1 ? sourcePath : sourcePath.slice(0, queryStart)
   const suffix = queryStart === -1 ? "" : sourcePath.slice(queryStart)
+  const fallbackPath = OPTIMIZED_FALLBACK_IMAGE_PAIRS.get(basePath) || basePath
+  const sourceUrl = asset(`${fallbackPath}${suffix}`)
   const webpPath = EXACT_WEBP_IMAGE_PAIRS.get(basePath)
 
   if (!webpPath) return `src="${escapeHtml(sourceUrl)}"`
@@ -6881,6 +6911,17 @@ function clearProjectPreviewExpandGhostState(card) {
   const motion = card.__projectPreviewMotion
   card.__projectPreviewMotion = null
   motion?.animations.forEach((animation) => animation.cancel())
+  const ghost = card.__projectPreviewExpandGhost
+  if (ghost) {
+    window.clearTimeout(ghost.__projectPreviewExpandCleanupTimer)
+    ghost.__projectPreviewExpandCleanupTimer = 0
+    ghost.__projectPreviewExpandCleanup?.()
+    ghost.__projectPreviewExpandCleanup = null
+    siteState.projectPreviewExpandGhosts.delete(ghost)
+    ghost.remove()
+  }
+  card.__projectPreviewExpandGhost = null
+  card.removeAttribute("data-project-preview-expand-ghosting")
   motion?.nodes?.forEach((node) => node.remove())
   card.removeAttribute("data-project-preview-motion")
   clearProjectPreviewExpandMotion(card)
@@ -7037,6 +7078,124 @@ function projectPreviewRect(rect) {
   }
 }
 
+// Keep the opening surface at one fixed geometry while the catalog row changes
+// to its expanded layout. Only the horizontal clip moves: the source card's
+// leading edge stays on the side it occupies and the reveal travels all the
+// way to the opposite viewport edge.
+function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled) {
+  if (!card?.isConnected || !sourceRect || !targetRect) return null
+
+  const side = card.dataset.cardSide === "right" ? "right" : "left"
+  const duration = projectPreviewSurfaceDurationMs()
+  const startLeft = side === "right"
+    ? clamp(sourceRect.left - targetRect.left, 0, targetRect.width)
+    : 0
+  const startRight = side === "left"
+    ? clamp(targetRect.right - sourceRect.right, 0, targetRect.width)
+    : 0
+
+  const ghost = card.cloneNode(true)
+  const cardStyle = getComputedStyle(card)
+  ghost.classList.add("project-preview-expand-ghost")
+  ghost.dataset.projectPreviewMotionSide = side
+  ghost.setAttribute("aria-hidden", "true")
+  ghost.setAttribute("tabindex", "-1")
+  ghost.removeAttribute("href")
+  ghost.removeAttribute("id")
+  ghost.removeAttribute("data-project-card")
+  ghost.removeAttribute("data-project-preview-ready")
+  ghost.removeAttribute("data-project-preview-expanding")
+  ghost.removeAttribute("data-project-preview-motion")
+  ghost.removeAttribute("data-project-preview-expand-ghosting")
+  ghost.removeAttribute(PROJECT_PREVIEW_ACTIVE_ATTRIBUTE)
+  ghost.removeAttribute(PROJECT_PREVIEW_FILTER_MUTED_ATTRIBUTE)
+  ghost.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
+  ghost.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"))
+  ghost
+    .querySelectorAll(".dither-preview-canvas, .dither-reveal-canvas, .project-halftone, iframe")
+    .forEach((element) => element.remove())
+  ghost.querySelectorAll(".project-media img").forEach((image) => {
+    image.loading = "eager"
+    image.decoding = "async"
+  })
+
+  const copy = ghost.querySelector(".project-preview-copy")
+  copy?.setAttribute("aria-hidden", "false")
+  if (copy) {
+    copy.style.animation = "none"
+    copy.style.clipPath = "inset(0)"
+    copy.style.opacity = "0"
+    copy.style.transform = `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`
+  }
+
+  ghost.style.left = `${targetRect.left}px`
+  ghost.style.top = `${targetRect.top}px`
+  ghost.style.width = `${targetRect.width}px`
+  ghost.style.height = `${targetRect.height}px`
+  // The snapshot is moved out of `.catalog`, so reapply the resolved surface
+  // instead of relying on custom properties that were inherited from that
+  // containing tree.
+  ghost.style.background = cardStyle.background
+  ghost.style.color = cardStyle.color
+  ghost.querySelector(".project-media")?.style.setProperty("background", cardStyle.backgroundColor)
+  ghost.style.setProperty("--project-preview-ghost-start-top", "0px")
+  ghost.style.setProperty("--project-preview-ghost-start-right", `${startRight}px`)
+  ghost.style.setProperty("--project-preview-ghost-start-bottom", "0px")
+  ghost.style.setProperty("--project-preview-ghost-start-left", `${startLeft}px`)
+  ghost.style.setProperty("--project-preview-surface-duration", `${duration}ms`)
+  ghost.style.setProperty("--project-preview-copy-delay", `${Math.round(duration * 0.28)}ms`)
+  ghost.style.setProperty("--project-preview-copy-duration", `${Math.round(duration * 0.5)}ms`)
+  ghost.style.clipPath = `inset(0px ${startRight}px 0px ${startLeft}px)`
+  ghost.style.willChange = "clip-path"
+
+  let settled = false
+  const detach = () => {
+    ghost.removeEventListener("transitionend", onTransitionEnd)
+    window.clearTimeout(ghost.__projectPreviewExpandCleanupTimer)
+    ghost.__projectPreviewExpandCleanupTimer = 0
+  }
+  const cleanup = () => {
+    if (settled) return
+    settled = true
+    detach()
+    siteState.projectPreviewExpandGhosts.delete(ghost)
+    if (card.__projectPreviewExpandGhost === ghost) card.__projectPreviewExpandGhost = null
+    ghost.remove()
+  }
+  const settle = () => {
+    if (settled) return
+    cleanup()
+    onSettled?.()
+  }
+  const onTransitionEnd = (event) => {
+    if (event.target !== ghost || !["clip-path", "-webkit-clip-path"].includes(event.propertyName)) return
+    settle()
+  }
+
+  ghost.__projectPreviewExpandCleanup = cleanup
+  ghost.__projectPreviewExpandCard = card
+  card.__projectPreviewExpandGhost = ghost
+  siteState.projectPreviewExpandGhosts.add(ghost)
+  document.body.appendChild(ghost)
+  ghost.addEventListener("transitionend", onTransitionEnd)
+  ghost.__projectPreviewExpandCleanupTimer = window.setTimeout(settle, duration + 160)
+
+  // Force the source-sized clip to paint before releasing it toward the full
+  // target. This makes the first visible frame the requested side origin.
+  void ghost.offsetWidth
+  window.requestAnimationFrame(() => {
+    if (!ghost.isConnected || settled) return
+    ghost.dataset.projectPreviewExpandState = "target"
+    ghost.style.clipPath = "inset(0px)"
+    if (copy) {
+      copy.style.opacity = "1"
+      copy.style.transform = "translate3d(0, 0, 0)"
+    }
+  })
+
+  return ghost
+}
+
 // Measure the bitmap itself, so FLIP uses a uniform scale even when its
 // containing box changes aspect ratio. Text and the surface never scale.
 function projectPreviewImageRect(card) {
@@ -7061,10 +7220,23 @@ function runProjectPreviewMotion(card, from, to, { expanding, imageFrom, imageTo
   const easing = getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease"
   const base = expanding ? to : from
   const compact = expanding ? from : to
-  const inset = `inset(0px ${Math.max(0, base.right - compact.right)}px ${Math.max(0, base.height - compact.height)}px ${Math.max(0, compact.left - base.left)}px)`
-  const shift = `translateY(${compact.top - base.top}px)`
-  const frames = [{ clipPath: inset, transform: shift }, { clipPath: "inset(0px 0px 0px 0px)", transform: "translateY(0px)" }]
-  if (!expanding) frames.reverse()
+  const side = card?.dataset?.cardSide === "right" ? "right" : "left"
+  // Opening is a directional full-bleed wipe. The leading edge stays flush
+  // with the side the source card occupies while the surface grows toward the
+  // opposite edge. The old two-sided inset made the first frame a small box
+  // between both card edges, which read as a corner-originating pop.
+  const expandInset = side === "right"
+    ? `inset(0px 0px 0px ${Math.max(0, compact.left - base.left)}px)`
+    : `inset(0px ${Math.max(0, base.right - compact.right)}px 0px 0px)`
+  const collapseInset = `inset(0px ${Math.max(0, base.right - compact.right)}px ${Math.max(0, base.height - compact.height)}px ${Math.max(0, compact.left - base.left)}px)`
+  const inset = expanding ? expandInset : collapseInset
+  const expandShift = "translateY(0px)"
+  const collapseShift = `translateY(${compact.top - base.top}px)`
+  const frames = [{ clipPath: inset, transform: expanding ? expandShift : collapseShift }, { clipPath: "inset(0px 0px 0px 0px)", transform: expandShift }]
+  if (!expanding) {
+    frames[0] = { clipPath: "inset(0px 0px 0px 0px)", transform: "translateY(0px)" }
+    frames[1] = { clipPath: collapseInset, transform: collapseShift }
+  }
   const motion = { animations: [], nodes: [] }
   card.__projectPreviewMotion = motion
   const animate = (element, keyframes, timing = {}) => {
@@ -7152,6 +7324,12 @@ function applyProjectPreviewExitTarget(exitMotion, targetCard) {
 function clearProjectPreviewExitGhosts() {
   siteState.projectPreviewTransitionIntent = null
   document.querySelectorAll("[data-project-preview-motion]").forEach(clearProjectPreviewExpandGhostState)
+  for (const ghost of [...siteState.projectPreviewExpandGhosts]) {
+    ghost.__projectPreviewExpandCleanup?.()
+    ghost.__projectPreviewExpandCard?.removeAttribute("data-project-preview-expand-ghosting")
+    ghost.remove()
+  }
+  siteState.projectPreviewExpandGhosts.clear()
   delete document.documentElement.dataset.projectPreviewTransition
   for (const ghost of [...siteState.projectPreviewExitGhosts]) {
     ghost.__projectPreviewExitCleanup?.()
@@ -7379,8 +7557,9 @@ function setProjectPreview(card, expanded) {
     return
   }
 
-  if (from) card.style.setProperty("--project-preview-start-height", `${from.height}px`)
-  card.setAttribute("data-project-preview-ready", "true")
+  clearProjectPreviewHeightLock(card)
+  card.removeAttribute("data-project-preview-ready")
+  card.setAttribute("data-project-preview-expand-ghosting", "true")
   commitProjectPreviewState(card, true)
   const to = projectPreviewRect(card.getBoundingClientRect())
   const imageTo = projectPreviewImageRect(card)
@@ -7390,7 +7569,11 @@ function setProjectPreview(card, expanded) {
     return
   }
   document.documentElement.dataset.projectPreviewTransition = "expanding"
-  runProjectPreviewMotion(card, from, to, { expanding: true, imageFrom, imageTo, onSettled: () => finalizeProjectPreviewExpand(card, motionId) })
+  window.requestAnimationFrame(() => {
+    if (!card.isConnected || motionId !== siteState.projectPreviewMotionId) return
+    const ghost = createProjectPreviewExpandGhost(card, from, to, () => finalizeProjectPreviewExpand(card, motionId))
+    if (!ghost) finalizeProjectPreviewExpand(card, motionId)
+  })
 }
 
 function projectDetailBodyMarkup(project) {

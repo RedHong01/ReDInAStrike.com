@@ -36,7 +36,8 @@
     <link rel="mask-icon" href="./public/favicon.svg" color="#454545" />
     <!-- LOCAL_FAVICON_END -->
     <!-- BUILD_FAVICONS -->
-    <link rel="stylesheet" href="%BASE%src/styles.css?v=20260905-compact-preview2" />
+    <link rel="preload" as="font" type="font/woff2" href="%BASE%fonts/EBGaramond-Regular.woff2" crossorigin />
+    <link rel="stylesheet" href="%BASE%src/styles.css?v=20260907-preview-origin2" />
     <link rel="stylesheet" href="%BASE%src/performance.css?v=20260902-responsive1" />
     <link rel="stylesheet" href="%BASE%src/nav-state.css?v=20260830-navrestore1" />
   </head>
@@ -45,12 +46,12 @@
     <script>
       document.body.dataset.base = new URL(document.body.dataset.base || "./", window.location.href).href
     </script>
-    <script src="%BASE%figma-capture.js" async></script>
+    <script src="%BASE%figma-capture-loader.js?v=20260907-figmalazy1" defer></script>
     <script src="%BASE%src/performance-prelude.js?v=20260904-layoutsmooth1"></script>
     <script src="%BASE%src/scroll-frame-runtime.js?v=20260903-scrollframe1"></script>
     <script src="%BASE%src/project-metadata-prelude.js"></script>
     <script src="%BASE%src/about-nav.js?v=20260831-about1"></script>
-    <script type="module" src="%BASE%src/main.js?v=20260905-compact-preview2"></script>
+    <script type="module" src="%BASE%src/main.js?v=20260907-preview-origin1"></script>
     <script type="module" src="%BASE%src/detail-drawer-seam-runtime.js?v=20260907-seam1"></script>
     <script type="module" src="%BASE%src/typewriter.js?v=20260901-perf1"></script>
     <script src="%BASE%src/nav-spacing-guard.js?v=20260901-perfpass4"></script>

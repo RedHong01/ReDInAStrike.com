@@ -174,14 +174,14 @@
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
   --project-preview-duration: 420ms;
   --project-preview-media-inset: clamp(18px, 2.5vw, 36px);
-  /* Keep the edge wipe slow enough to read as a physical colour bar moving
-     across the viewport. These values are mirrored by the JS teardown timer
-     so the state attribute is not removed before the paint animation settles. */
-  --project-preview-surface-duration: 720ms;
+  /* Keep the edge wipe visible as a physical colour bar moving across the
+     viewport. The gentler curve avoids front-loading almost the whole travel
+     into the first frames, which made the last part read as a small tail. */
+  --project-preview-surface-duration: 1100ms;
   --project-preview-surface-retract-duration: 420ms;
   --project-detail-open-duration: 640ms;
   --project-detail-close-duration: 520ms;
-  --project-preview-surface-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --project-preview-surface-ease: cubic-bezier(0.42, 0, 0.58, 1);
   --project-preview-exit-fade-duration: 180ms;
   --project-preview-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -1100,7 +1100,7 @@ body[data-layout-transition="true"] .about-section {
 
 @media (max-width: 700px), (orientation: portrait) {
   :root {
-    --project-preview-surface-duration: 560ms;
+    --project-preview-surface-duration: 900ms;
   }
 }
 

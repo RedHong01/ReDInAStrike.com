@@ -49,6 +49,7 @@ const projects = [
     navHash: "game",
     image: "assets/framer-live/serial-deminer.png",
     imageFit: "contain",
+    imageScale: 0.90,
     mediaBackground: "#f4a000",
   },
   {
@@ -240,10 +241,10 @@ const PROJECT_EXPAND_MASK_FADE_MS = 260
 // Keep the paint-only colour wipe mounted for its full visual lifetime. The
 // CSS values are mirrored here so the state teardown never truncates a slow,
 // physical-looking edge motion.
-const PROJECT_PREVIEW_SURFACE_DURATION_MS = 1100
-const PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS = 420
-const PROJECT_PREVIEW_EXIT_SOURCE_REVEAL_MS = 220
-const PROJECT_PREVIEW_EXIT_FADE_MS = 180
+const PROJECT_PREVIEW_SURFACE_DURATION_MS = 740
+const PROJECT_PREVIEW_SURFACE_RETRACT_DURATION_MS = 280
+const PROJECT_PREVIEW_EXIT_SOURCE_REVEAL_MS = 150
+const PROJECT_PREVIEW_EXIT_FADE_MS = 120
 const ROUTE_EXIT_SNOW_MAX_CELLS = 76000
 const ROUTE_EXIT_SNOW_MIN_COLUMNS = 144
 const ROUTE_EXIT_SNOW_SOFTNESS = 0.105
@@ -591,6 +592,8 @@ const siteState = {
   mediaBackgroundCache: new Map(),
   projectPreviewMotionId: 0,
   projectPreviewTransitionIntent: null,
+  projectPreviewRefreshFrame: 0,
+  projectPreviewRefreshPending: false,
   projectPreviewExpandGhosts: new Set(),
   projectPreviewExitGhosts: new Set(),
   projectPreviewAnchorFrame: 0,
@@ -2628,6 +2631,7 @@ function mediaStyle(project) {
     "--media-aspect: 16 / 9",
     `--image-fit: ${project.imageFit || "cover"}`,
     `--image-position: ${project.imagePosition || "center center"}`,
+    `--image-scale: ${project.imageScale ?? 1}`,
     `--preview-image-fit: ${project.previewImageFit || "contain"}`,
     `--preview-image-position: ${project.previewImagePosition || project.imagePosition || "center center"}`,
     `--media-bg: ${background}`,
@@ -5595,6 +5599,16 @@ function parseObjectPositionRatio(value) {
   return { x, y }
 }
 
+function readImageDisplayScale(style) {
+  if (!style) return 1
+  const raw =
+    typeof style.getPropertyValue === "function"
+      ? style.getPropertyValue("--image-scale")
+      : style.imageScale
+  const scale = Number.parseFloat(String(raw ?? "").trim())
+  return Number.isFinite(scale) && scale > 0 ? scale : 1
+}
+
 function getHalftoneImageRect(img, cssWidth, cssHeight, styleOverride = null) {
   if (!img.naturalWidth || !img.naturalHeight) return null
 
@@ -5619,6 +5633,12 @@ function getHalftoneImageRect(img, cssWidth, cssHeight, styleOverride = null) {
   } else if (fit === "none") {
     width = imageWidth
     height = imageHeight
+  }
+
+  const displayScale = readImageDisplayScale(computed)
+  if (displayScale !== 1) {
+    width *= displayScale
+    height *= displayScale
   }
 
   const position = parseObjectPositionRatio(computed.objectPosition)
@@ -5648,11 +5668,13 @@ function ensureProjectHalftoneSource(img, cssWidth, cssHeight, paperColor) {
       base: descriptorBase,
       objectFit: computed.objectFit,
       objectPosition: computed.objectPosition,
+      imageScale: computed.getPropertyValue("--image-scale").trim() || "1",
     }
     descriptor.key = [
       descriptorBase,
       descriptor.objectFit,
       descriptor.objectPosition,
+      descriptor.imageScale,
     ].join("|")
     img.__projectHalftoneSourceDescriptor = descriptor
   }
@@ -6814,14 +6836,32 @@ function syncProjectPreviewFilterState(catalog, activeCard) {
   window.__RED_DITHER_PUBLIC_RUNTIME__?.render?.()
 }
 
+function scheduleProjectPreviewRefresh() {
+  if (siteState.projectPreviewRefreshFrame || !siteState.projectPreviewRefreshPending) return
+  siteState.projectPreviewRefreshFrame = requestAnimationFrame(() => {
+    siteState.projectPreviewRefreshFrame = 0
+    if (!siteState.projectPreviewRefreshPending) return
+    // A transition owns the paint layer until its final frame. The caller will
+    // schedule this again after the handoff, so no rule/footer pass can repaint
+    // underneath a still-moving snapshot.
+    if (document.documentElement.dataset.projectPreviewTransition) return
+    siteState.projectPreviewRefreshPending = false
+    window.__RED_SCROLL_MAGNET__?.refresh?.()
+    requestLayoutEffectsUpdate({ rules: true, footer: true })
+  })
+}
+
 function refreshAfterProjectPreviewChange() {
   window.dispatchEvent(new Event("red:layout-geometry-invalidated"))
   invalidateRuleGeometry()
   invalidateCatalogContentBottom()
   siteState.galleryLayoutDirty = true
+  siteState.projectPreviewRefreshPending = true
+  // Stop the old scroll target immediately, but defer its re-measurement until
+  // the preview handoff has settled. Re-measuring here is one of the sources of
+  // the visible end-of-motion refresh.
   window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: 760 })
-  window.__RED_SCROLL_MAGNET__?.refresh?.()
-  requestLayoutEffectsUpdate({ rules: true, footer: true })
+  scheduleProjectPreviewRefresh()
 }
 
 function clearProjectPreviewRowState(catalog) {
@@ -7018,7 +7058,14 @@ function createProjectPreviewExitGhost(card) {
       try { clone.getContext("2d")?.drawImage(original, 0, 0) } catch {}
     }
   })
-  for (const name of ["position", "left", "top", "right", "bottom", "width", "height", "margin", "opacity", "transition"]) ghost.style.removeProperty(name)
+  // The snapshot copy starts with the source card's resolved styles, but the
+  // reverse gesture is owned by the exit-ghost keyframes. Remove the copied
+  // root animation/clip declarations or their `!important` inline values win
+  // over the retract animation and the old card simply vanishes.
+  for (const name of [
+    "position", "left", "top", "right", "bottom", "width", "height", "margin",
+    "opacity", "transition", "animation", "clip-path",
+  ]) ghost.style.removeProperty(name)
   ghost.classList.add("project-preview-exit-ghost")
   ghost.dataset.projectPreviewMotionSide = card.dataset.cardSide === "right" ? "right" : "left"
   ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
@@ -7082,17 +7129,26 @@ function projectPreviewRect(rect) {
 // to its expanded layout. Only the horizontal clip moves: the source card's
 // leading edge stays on the side it occupies and the reveal travels all the
 // way to the opposite viewport edge.
-function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled) {
+function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom, onSettled) {
   if (!card?.isConnected || !sourceRect || !targetRect) return null
 
   const side = card.dataset.cardSide === "right" ? "right" : "left"
   const duration = projectPreviewSurfaceDurationMs()
-  const startLeft = side === "right"
-    ? clamp(sourceRect.left - targetRect.left, 0, targetRect.width)
-    : 0
-  const startRight = side === "left"
-    ? clamp(targetRect.right - sourceRect.right, 0, targetRect.width)
-    : 0
+  // The snapshot is fixed to the viewport, so its travel must use the actual
+  // viewport edge rather than the catalog's scrollbar-inset content box.
+  // This keeps the leading edge flush with the screen even when the row itself
+  // is narrower or sticky.
+  const viewportWidth = Math.max(
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0,
+    1,
+  )
+  const viewportLeft = 0
+  // Start with a zero-width clip at the leading viewport edge. Keeping the
+  // source card's old half-width here makes the moving edge begin in the
+  // middle of the screen, even though the fixed edge is already at the side.
+  const startLeft = side === "right" ? viewportWidth : 0
+  const startRight = side === "left" ? viewportWidth : 0
 
   const ghost = card.cloneNode(true)
   const cardStyle = getComputedStyle(card)
@@ -7128,10 +7184,11 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled
     copy.style.transform = `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`
   }
 
-  ghost.style.left = `${targetRect.left}px`
+  ghost.style.left = `${viewportLeft}px`
   ghost.style.top = `${targetRect.top}px`
-  ghost.style.width = `${targetRect.width}px`
+  ghost.style.width = `${viewportWidth}px`
   ghost.style.height = `${targetRect.height}px`
+  ghost.style.setProperty("z-index", "80", "important")
   // The snapshot is moved out of `.catalog`, so reapply the resolved surface
   // instead of relying on custom properties that were inherited from that
   // containing tree.
@@ -7148,7 +7205,17 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled
   ghost.style.clipPath = `inset(0px ${startRight}px 0px ${startLeft}px)`
   ghost.style.willChange = "clip-path"
 
+  // The clone already has the expanded grid geometry. Reapply the source
+  // bitmap geometry as a FLIP transform so the thumbnail does not snap into
+  // the destination column when the bar is mounted. The target image rect is
+  // measured after the clone enters the document because its containing block
+  // is now the viewport-sized ghost rather than the catalog card.
+  const ghostImage = ghost.querySelector(".project-media > img")
+  let imageAnimation = null
+  let imageStartTransform = "none"
+
   let settled = false
+  let settling = false
   const detach = () => {
     ghost.removeEventListener("transitionend", onTransitionEnd)
     window.clearTimeout(ghost.__projectPreviewExpandCleanupTimer)
@@ -7158,14 +7225,22 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled
     if (settled) return
     settled = true
     detach()
+    imageAnimation?.cancel()
+    imageAnimation = null
     siteState.projectPreviewExpandGhosts.delete(ghost)
     if (card.__projectPreviewExpandGhost === ghost) card.__projectPreviewExpandGhost = null
     ghost.remove()
   }
   const settle = () => {
-    if (settled) return
-    cleanup()
-    onSettled?.()
+    if (settled || settling) return
+    settling = true
+    // Detach first so a final style pass cannot race a second transitionend.
+    // The finalizer may keep the ghost for one paint while the real card is
+    // committed underneath it; this is the visual handoff that prevents the
+    // last-frame flash.
+    detach()
+    const deferCleanup = onSettled?.() === true
+    if (!deferCleanup) cleanup()
   }
   const onTransitionEnd = (event) => {
     if (event.target !== ghost || !["clip-path", "-webkit-clip-path"].includes(event.propertyName)) return
@@ -7177,6 +7252,19 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled
   card.__projectPreviewExpandGhost = ghost
   siteState.projectPreviewExpandGhosts.add(ghost)
   document.body.appendChild(ghost)
+  if (ghostImage && imageFrom?.width > 0 && imageFrom?.height > 0) {
+    const targetImage = projectPreviewImageRect(ghost)
+    const imageBox = ghostImage.getBoundingClientRect()
+    if (targetImage && imageBox.width > 0 && imageBox.height > 0) {
+      const scale = imageFrom.width / targetImage.width
+      const dx = imageFrom.left - imageBox.left - (targetImage.left - imageBox.left) * scale
+      const dy = imageFrom.top - imageBox.top - (targetImage.top - imageBox.top) * scale
+      imageStartTransform = `translate(${dx}px, ${dy}px) scale(${scale})`
+      ghostImage.style.transformOrigin = "0 0"
+      ghostImage.style.transform = imageStartTransform
+      ghostImage.style.willChange = "transform"
+    }
+  }
   ghost.addEventListener("transitionend", onTransitionEnd)
   ghost.__projectPreviewExpandCleanupTimer = window.setTimeout(settle, duration + 160)
 
@@ -7187,6 +7275,15 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, onSettled
     if (!ghost.isConnected || settled) return
     ghost.dataset.projectPreviewExpandState = "target"
     ghost.style.clipPath = "inset(0px)"
+    if (ghostImage && imageStartTransform !== "none") {
+      imageAnimation = ghostImage.animate(
+        [
+          { transform: imageStartTransform },
+          { transform: "none" },
+        ],
+        { duration, easing: getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease", fill: "both" },
+      )
+    }
     if (copy) {
       copy.style.opacity = "1"
       copy.style.transform = "translate3d(0, 0, 0)"
@@ -7228,10 +7325,15 @@ function runProjectPreviewMotion(card, from, to, { expanding, imageFrom, imageTo
   const expandInset = side === "right"
     ? `inset(0px 0px 0px ${Math.max(0, compact.left - base.left)}px)`
     : `inset(0px ${Math.max(0, base.right - compact.right)}px 0px 0px)`
-  const collapseInset = `inset(0px ${Math.max(0, base.right - compact.right)}px ${Math.max(0, base.height - compact.height)}px ${Math.max(0, compact.left - base.left)}px)`
+  const collapseInset = side === "right"
+    ? `inset(0px 0px 0px ${Math.max(0, compact.left - base.left)}px)`
+    : `inset(0px ${Math.max(0, base.right - compact.right)}px 0px 0px)`
   const inset = expanding ? expandInset : collapseInset
   const expandShift = "translateY(0px)"
-  const collapseShift = `translateY(${compact.top - base.top}px)`
+  // The surface stays on one horizontal track in both directions. A vertical
+  // FLIP offset here is what made the otherwise horizontal bar read as a
+  // top-to-bottom drop.
+  const collapseShift = "translateY(0px)"
   const frames = [{ clipPath: inset, transform: expanding ? expandShift : collapseShift }, { clipPath: "inset(0px 0px 0px 0px)", transform: expandShift }]
   if (!expanding) {
     frames[0] = { clipPath: "inset(0px 0px 0px 0px)", transform: "translateY(0px)" }
@@ -7272,7 +7374,8 @@ function runProjectPreviewMotion(card, from, to, { expanding, imageFrom, imageTo
     const scale = moved.width / resting.width
     const box = image.getBoundingClientRect()
     const dx = moved.left - box.left - (resting.left - box.left) * scale
-    const dy = moved.top - box.top - (resting.top - box.top) * scale - (compact.top - base.top)
+    const cardDeltaY = expanding ? 0 : compact.top - base.top
+    const dy = moved.top - box.top - (resting.top - box.top) * scale - cardDeltaY
     const transform = `translate(${dx}px, ${dy}px) scale(${scale})`
     animate(image, expanding
       ? [{ transformOrigin: "0 0", transform }, { transformOrigin: "0 0", transform: "none" }]
@@ -7408,7 +7511,7 @@ function runProjectPreviewExitGhost(
   }
   const exitTransitionMs = fade
     ? projectPreviewExitFadeDurationMs()
-    : projectPreviewSurfaceDurationMs()
+    : projectPreviewSurfaceRetractDurationMs()
   // Keep exit snapshots mounted for a short settle buffer so late geometry
   // updates never pop through before reveal/collapse reaches visual rest.
   ghost.__projectPreviewExitCleanupTimer = window.setTimeout(cleanup, catalogFilterDuration(exitTransitionMs + 80))
@@ -7430,11 +7533,29 @@ function clearProjectPreviewHeightLock(card) {
 function finalizeProjectPreviewExpand(card, motionId) {
   if (!card?.isConnected || motionId !== siteState.projectPreviewMotionId) return
 
-  clearProjectPreviewExpandGhostState(card)
+  const ghost = card.__projectPreviewExpandGhost
   card.setAttribute("data-project-preview-ready", "true")
+  card.removeAttribute("data-project-preview-expand-ghosting")
   delete document.documentElement.dataset.projectPreviewTransition
   refreshAfterProjectPreviewChange()
   flushProjectPreviewTransitionIntent()
+  if (ghost?.isConnected) {
+    // Let the committed card and the coalesced rule/footer layout pass paint
+    // under the still-complete snapshot. The layout pass itself schedules one
+    // more frame, so a single RAF cleanup still exposed its repaint; the
+    // second RAF keeps the handoff covered through that frame.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (card.isConnected && motionId === siteState.projectPreviewMotionId) {
+          clearProjectPreviewExpandGhostState(card)
+        } else {
+          ghost.__projectPreviewExpandCleanup?.()
+        }
+      })
+    })
+    return true
+  }
+  clearProjectPreviewExpandGhostState(card)
 }
 
 function cancelProjectPreviewAnchor() {
@@ -7477,7 +7598,7 @@ function startProjectPreviewAnchor(card, sourceTop, headerHeight) {
   siteState.projectPreviewAnchorFrame = requestAnimationFrame(frame)
 }
 
-function commitProjectPreviewState(card, expanded) {
+function commitProjectPreviewState(card, expanded, { refresh = true } = {}) {
   const current = activeProjectPreview()
   const catalog = card.closest(".catalog")
   const retainsHoverMotion =
@@ -7515,7 +7636,7 @@ function commitProjectPreviewState(card, expanded) {
   catalog?.toggleAttribute("data-project-preview", expanded)
   if (expanded) syncProjectPreviewFilterState(catalog, card)
   else clearProjectPreviewFilterState(catalog)
-  refreshAfterProjectPreviewChange()
+  if (refresh) refreshAfterProjectPreviewChange()
 }
 
 function setProjectPreview(card, expanded) {
@@ -7547,8 +7668,9 @@ function setProjectPreview(card, expanded) {
       clearProjectPreviewExpandGhostState(card)
       clearProjectPreviewHeightLock(card)
       card.removeAttribute("data-project-preview-ready")
-      commitProjectPreviewState(card, false)
+      commitProjectPreviewState(card, false, { refresh: false })
       delete document.documentElement.dataset.projectPreviewTransition
+      refreshAfterProjectPreviewChange()
       flushProjectPreviewTransitionIntent()
     }
     if (prefersReducedMotion() || !from || !target.rect) { finish(); return }
@@ -7560,10 +7682,14 @@ function setProjectPreview(card, expanded) {
   clearProjectPreviewHeightLock(card)
   card.removeAttribute("data-project-preview-ready")
   card.setAttribute("data-project-preview-expand-ghosting", "true")
-  commitProjectPreviewState(card, true)
+  commitProjectPreviewState(card, true, { refresh: false })
   const to = projectPreviewRect(card.getBoundingClientRect())
   const imageTo = projectPreviewImageRect(card)
-  if (outgoing) runProjectPreviewExitGhost(outgoing, current, { fade: true, motionId })
+  // Keep the outgoing preview mounted as a physical snapshot and retract it
+  // toward the card's original edge. Fading it out here made a second click
+  // read as an abrupt disappearance instead of the reverse of the opening
+  // gesture.
+  if (outgoing) runProjectPreviewExitGhost(outgoing, current, { fade: false, motionId })
   if (prefersReducedMotion() || !from || !to) {
     finalizeProjectPreviewExpand(card, motionId)
     return
@@ -7571,7 +7697,7 @@ function setProjectPreview(card, expanded) {
   document.documentElement.dataset.projectPreviewTransition = "expanding"
   window.requestAnimationFrame(() => {
     if (!card.isConnected || motionId !== siteState.projectPreviewMotionId) return
-    const ghost = createProjectPreviewExpandGhost(card, from, to, () => finalizeProjectPreviewExpand(card, motionId))
+    const ghost = createProjectPreviewExpandGhost(card, from, to, imageFrom, () => finalizeProjectPreviewExpand(card, motionId))
     if (!ghost) finalizeProjectPreviewExpand(card, motionId)
   })
 }

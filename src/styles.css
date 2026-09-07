@@ -172,17 +172,17 @@
   --project-rule-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-first-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
-  --project-preview-duration: 420ms;
+  --project-preview-duration: 280ms;
   --project-preview-media-inset: clamp(18px, 2.5vw, 36px);
   /* Keep the edge wipe visible as a physical colour bar moving across the
      viewport. The gentler curve avoids front-loading almost the whole travel
      into the first frames, which made the last part read as a small tail. */
-  --project-preview-surface-duration: 1100ms;
-  --project-preview-surface-retract-duration: 420ms;
+  --project-preview-surface-duration: 740ms;
+  --project-preview-surface-retract-duration: 280ms;
   --project-detail-open-duration: 640ms;
   --project-detail-close-duration: 520ms;
   --project-preview-surface-ease: cubic-bezier(0.42, 0, 0.58, 1);
-  --project-preview-exit-fade-duration: 180ms;
+  --project-preview-exit-fade-duration: 120ms;
   --project-preview-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --nav-detail-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -1058,7 +1058,10 @@ body[data-layout-transition="true"] .about-section {
 
 .project-preview-expand-ghost {
   position: fixed !important;
-  z-index: 70;
+  /* The sticky project row paints a paper backdrop at z-index 15. Keep the
+     transition snapshot above that backdrop or the opening edge disappears
+     behind white for its first frames. */
+  z-index: 80 !important;
   display: grid !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -1100,7 +1103,7 @@ body[data-layout-transition="true"] .about-section {
 
 @media (max-width: 700px), (orientation: portrait) {
   :root {
-    --project-preview-surface-duration: 900ms;
+    --project-preview-surface-duration: 600ms;
   }
 }
 
@@ -1129,21 +1132,23 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-exiting="true"] {
-  animation: project-preview-stage-retract var(--project-preview-duration) var(--project-preview-ease) both;
+  /* `.is-project-preview` disables the live card animation with !important;
+     the snapshot must explicitly win that rule while it retracts. */
+  animation: project-preview-stage-retract var(--project-preview-surface-retract-duration) var(--project-preview-ease) both !important;
   will-change: clip-path, opacity;
   opacity: 1;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-motion-side="left"] {
-  animation-name: project-preview-stage-retract-left;
+  animation-name: project-preview-stage-retract-left !important;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-motion-side="right"] {
-  animation-name: project-preview-stage-retract-right;
+  animation-name: project-preview-stage-retract-right !important;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-exit-mode="switching"] {
-  animation: none;
+  animation: none !important;
   transition: opacity var(--project-preview-exit-fade-duration, 180ms) cubic-bezier(0.22, 0.61, 0.36, 1);
   transition-delay: 0ms;
   will-change: opacity;
@@ -1389,14 +1394,32 @@ body[data-layout-transition="true"] .about-section {
 
 .project-preview-expand-ghost::after,
 .project-preview-expand-ghost::before {
-  transform-origin: center;
-  animation: project-preview-rule-expand 360ms cubic-bezier(0.22, 0.61, 0.36, 1) 110ms both;
+  /* The parent clip-path already carries the full surface from the viewport
+     edge. A second scale animation from the center made the rules look like
+     the bar was growing out of the middle, so keep them at full width and let
+     the same edge wipe reveal them. */
+  transform-origin: left center;
+  transform: none !important;
+  animation: none !important;
+}
+
+.project-preview-expand-ghost[data-project-preview-motion-side="right"]::after,
+.project-preview-expand-ghost[data-project-preview-motion-side="right"]::before {
+  transform-origin: right center;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-exiting="true"]::after,
 .project-card.project-preview-exit-ghost[data-project-preview-exiting="true"]::before {
-  transform-origin: center;
-  animation: project-preview-rule-retract 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  /* The exit surface already carries the reverse edge clip. A second rule
+     scale would reintroduce a center-origin shrink at the end of a switch. */
+  transform-origin: left center;
+  transform: none !important;
+  animation: none !important;
+}
+
+.project-card.project-preview-exit-ghost[data-project-preview-motion-side="right"][data-project-preview-exiting="true"]::after,
+.project-card.project-preview-exit-ghost[data-project-preview-motion-side="right"][data-project-preview-exiting="true"]::before {
+  transform-origin: right center;
 }
 
 .catalog[data-filter-phase] .project-card {
@@ -1493,6 +1516,12 @@ body[data-layout-transition="true"] .about-section {
 .project-media img {
   object-fit: var(--image-fit, cover);
   object-position: var(--image-position, center center);
+}
+
+/* Optional per-project thumbnail scale (e.g. Serial Deminer logo at 85%). */
+.catalog .project-card:not(.is-project-preview) .project-media > img {
+  transform: scale(var(--image-scale, 1));
+  transform-origin: center center;
 }
 
 .hover-video {

@@ -3862,10 +3862,10 @@ function requestProjectDetailHeaderUpdate() {
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
   // A sticky element is constrained by the bottom edge of its containing row.
-  // The drawer's in-flow tail restores the full open-header footprint, so the
-  // browser releases the compact header only after the drawer crosses the
-  // shared site-header seam. The row's equal negative margin preserves the
-  // following catalogue rhythm.
+  // The drawer's in-flow tail plus the following compact sibling restore the
+  // full open-header footprint. The sibling is visually lifted by the same
+  // amount, so the browser releases the compact header only after the drawer
+  // crosses the shared site-header seam while the catalogue rhythm stays put.
   const detailRow = drawerState.row
   if (detailRow?.isConnected) {
     // The live card keeps an explicit margin-bottom equal to the height it
@@ -3874,7 +3874,22 @@ function requestProjectDetailHeaderUpdate() {
     // in-flow tail after the drawer does: its height restores the full open
     // header footprint and the row's equal negative margin preserves the
     // following catalogue position.
-    detailRow.style.setProperty("--project-detail-sticky-tail", `${openHeight.toFixed(2)}px`)
+    const previousSibling = drawerState.stickySibling
+    const sibling = [...detailRow.children].find((child) =>
+      child !== drawerState.card &&
+      !child.classList.contains("project-detail-drawer") &&
+      !child.classList.contains("project-detail-sticky-tail") &&
+      child.classList.contains("project-card") &&
+      getComputedStyle(child).display !== "none",
+    )
+    if (previousSibling && previousSibling !== sibling) {
+      previousSibling.style.removeProperty("--project-detail-sibling-lift")
+    }
+    const siblingHeight = sibling?.getBoundingClientRect?.().height || 0
+    const tailHeight = Math.max(0, openHeight - siblingHeight)
+    detailRow.style.setProperty("--project-detail-sticky-tail", `${tailHeight.toFixed(2)}px`)
+    if (sibling) sibling.style.setProperty("--project-detail-sibling-lift", `${tailHeight.toFixed(2)}px`)
+    drawerState.stickySibling = sibling || null
   }
   const stickyStart = card.__detailHeaderStart - headerHeight
   // The lead collapses like a surface with a physical edge: one pixel of
@@ -7092,6 +7107,18 @@ function createProjectPreviewExitGhost(card) {
     "opacity", "transition", "animation", "clip-path",
   ]) ghost.style.removeProperty(name)
   ghost.classList.add("project-preview-exit-ghost")
+  // The snapshot still carries the source card's `is-project-preview` class.
+  // That later catalogue rule sets `position: relative`, which would make an
+  // absolute document-coordinate ghost participate in the body flow and move
+  // it thousands of pixels below the viewport when the outgoing card is
+  // switched. Reassert the detached layer's containing mode after the class
+  // is added so its top/left variables remain document coordinates.
+  ghost.style.setProperty("position", "absolute", "important")
+  ghost.style.setProperty("left", "var(--project-preview-ghost-left, 0px)", "important")
+  ghost.style.setProperty("top", "var(--project-preview-ghost-top, 0px)", "important")
+  ghost.style.setProperty("width", "var(--project-preview-ghost-width, 100vw)", "important")
+  ghost.style.setProperty("height", "var(--project-preview-ghost-height, auto)", "important")
+  ghost.style.setProperty("margin", "0px", "important")
   ghost.dataset.projectPreviewMotionSide = card.dataset.cardSide === "right" ? "right" : "left"
   ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
   ghost.setAttribute("aria-hidden", "true")
@@ -7154,21 +7181,20 @@ function projectPreviewRect(rect) {
 // to its expanded layout. Only the horizontal clip moves: the source card's
 // leading edge stays on the side it occupies and the reveal travels all the
 // way to the opposite viewport edge.
-function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom, onSettled) {
+function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom, imageSourceState, onSettled) {
   if (!card?.isConnected || !sourceRect || !targetRect) return null
 
   const side = card.dataset.cardSide === "right" ? "right" : "left"
   const duration = projectPreviewSurfaceDurationMs()
-  // The snapshot is fixed to the viewport, so its travel must use the actual
-  // viewport edge rather than the catalog's scrollbar-inset content box.
-  // This keeps the leading edge flush with the screen even when the row itself
-  // is narrower or sticky.
-  const viewportWidth = Math.max(
-    document.documentElement.clientWidth || 0,
-    window.innerWidth || 0,
-    1,
-  )
-  const viewportLeft = 0
+  // The snapshot and the live expanded card must share one coordinate frame.
+  // A classic scrollbar makes `innerWidth` wider than the layout viewport,
+  // while the full-bleed card can itself begin a fractional amount left of
+  // the client area (`50% - 50vw`).  Using a synthetic `left: 0 / width: 100vw`
+  // root therefore leaves a small horizontal handoff at the final frame. Use
+  // the measured destination box as the fixed root instead; its leading edge
+  // is already the same physical edge the settled bar paints.
+  const viewportLeft = Number.isFinite(targetRect.left) ? targetRect.left : 0
+  const viewportWidth = Math.max(Number.isFinite(targetRect.width) ? targetRect.width : 0, 1)
   // Start with a zero-width clip at the leading viewport edge. Keeping the
   // source card's old half-width here makes the moving edge begin in the
   // middle of the screen, even though the fixed edge is already at the side.
@@ -7210,6 +7236,23 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
       try { clone.getContext("2d")?.drawImage(original, 0, 0) } catch {}
     }
   })
+  const snapshotImage = ghost.querySelector(".project-media > img")
+  const clearSnapshotImageGeometry = () => {
+    if (!snapshotImage) return
+    for (const name of ["width", "height", "min-width", "min-height", "max-width", "max-height", "left", "right", "top", "bottom", "inset", "aspect-ratio"]) {
+      snapshotImage.style.removeProperty(name)
+    }
+  }
+  clearSnapshotImageGeometry()
+  if (snapshotImage) {
+    // CSSOM may serialize the copied edge longhands back into an `inset`
+    // declaration. Reset the detached image block and retain only its fit
+    // settings; the live preview rules own its size and edge.
+    const imageStyle = getComputedStyle(card.querySelector(".project-media > img"))
+    snapshotImage.removeAttribute("style")
+    snapshotImage.style.setProperty("object-fit", imageStyle.objectFit, "important")
+    snapshotImage.style.setProperty("object-position", imageStyle.objectPosition, "important")
+  }
   ghost.classList.add("project-preview-expand-ghost")
   ghost.dataset.projectPreviewMotionSide = side
   ghost.setAttribute("aria-hidden", "true")
@@ -7304,8 +7347,17 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   // measured after the clone enters the document because its containing block
   // is now the viewport-sized ghost rather than the catalog card.
   const ghostImage = ghost.querySelector(".project-media > img")
+  const sourceImageFit = imageSourceState?.fit || ""
+  const sourceImagePosition = imageSourceState?.position || "50% 50%"
+  let targetImageFit = ""
+  let targetImagePosition = "50% 50%"
+  let imageFitChanges = false
+  let targetImageLayer = null
+  let targetImageAnimation = null
   let imageAnimation = null
   let imageStartTransform = "none"
+  let ghostScaleX = 1
+  let ghostScaleY = 1
 
   let settled = false
   let settling = false
@@ -7313,6 +7365,11 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   const syncGhostToLiveCard = () => {
     syncFrame = 0
     if (settled || !ghost.isConnected || !card.isConnected) return
+    // The snapshot loop above writes four edge longhands with !important;
+    // browsers serialize those as an `inset` shorthand on the clone. Clear
+    // them again on every sync pass so the live content-edge proxy can size
+    // the bitmap instead of leaving a stale first-frame width behind.
+    clearSnapshotImageGeometry()
     // The real card remains the document/sticky anchor while the snapshot is
     // painted. Header progress, font settling, and responsive row reflow can
     // move that anchor by a few pixels after the first measurement. Follow
@@ -7325,9 +7382,14 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     const baseWidth = Math.max(1, targetRect.width)
     const scaleX = liveRect.width > 0 ? liveRect.width / baseWidth : 1
     const scaleY = liveRect.height > 0 ? liveRect.height / baseHeight : 1
+    ghostScaleX = Number.isFinite(scaleX) && scaleX > 0 ? scaleX : 1
+    ghostScaleY = Number.isFinite(scaleY) && scaleY > 0 ? scaleY : 1
     const dx = Number.isFinite(liveRect.left) ? liveRect.left - targetRect.left : 0
     const dy = Number.isFinite(liveRect.top) ? liveRect.top - baseTop : 0
-    ghost.style.transformOrigin = "50% 0"
+    // Anchor the correction at the same leading edge used by the clip. A
+    // centered origin would move both edges when the live width settles (and
+    // is especially visible when a scrollbar makes the target fractional).
+    ghost.style.transformOrigin = "0 0"
     ghost.style.transform = `translate3d(${dx.toFixed(3)}px, ${dy.toFixed(3)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`
     syncFrame = window.requestAnimationFrame(syncGhostToLiveCard)
   }
@@ -7346,6 +7408,8 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     }
     imageAnimation?.cancel()
     imageAnimation = null
+    targetImageAnimation?.cancel()
+    targetImageAnimation = null
     siteState.projectPreviewExpandGhosts.delete(ghost)
     if (card.__projectPreviewExpandGhost === ghost) card.__projectPreviewExpandGhost = null
     ghost.remove()
@@ -7380,10 +7444,23 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     const targetImage = projectPreviewImageRect(ghost)
     const imageBox = ghostImage.getBoundingClientRect()
     if (targetImage && imageBox.width > 0 && imageBox.height > 0) {
-      const scale = imageFrom.width / targetImage.width
-      const dx = imageFrom.left - imageBox.left - (targetImage.left - imageBox.left) * scale
-      const dy = imageFrom.top - imageBox.top - (targetImage.top - imageBox.top) * scale
-      imageStartTransform = `translate(${dx}px, ${dy}px) scale(${scale})`
+      if (imageFitChanges && imageSourceState?.element) {
+        const sourceBox = imageSourceState.element
+        const scaleX = sourceBox.width / imageBox.width
+        const scaleY = sourceBox.height / imageBox.height
+        const dx = (sourceBox.left - imageBox.left) / ghostScaleX
+        const dy = (sourceBox.top - imageBox.top) / ghostScaleY
+        imageStartTransform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`
+      } else {
+        const scale = imageFrom.width / targetImage.width
+        // The image transform lives inside the root correction transform. Its
+        // local translation is therefore divided by the root scale; otherwise
+        // a settling root multiplies the FLIP offset a second time and the
+        // bitmap starts several pixels away from the clicked thumbnail.
+        const dx = (imageFrom.left - imageBox.left - (targetImage.left - imageBox.left) * scale) / ghostScaleX
+        const dy = (imageFrom.top - imageBox.top - (targetImage.top - imageBox.top) * scale) / ghostScaleY
+        imageStartTransform = `translate(${dx}px, ${dy}px) scale(${scale})`
+      }
       ghostImage.style.transformOrigin = "0 0"
       ghostImage.style.transform = imageStartTransform
       ghostImage.style.willChange = "transform"
@@ -7400,13 +7477,28 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     ghost.dataset.projectPreviewExpandState = "target"
     ghost.style.clipPath = "inset(0px)"
     if (ghostImage && imageStartTransform !== "none") {
-      imageAnimation = ghostImage.animate(
-        [
+      const imageFrames = imageFitChanges
+        ? [
+          { transform: imageStartTransform, opacity: 1, offset: 0 },
+          { transform: "none", opacity: 1, offset: 0.68 },
+          { transform: "none", opacity: 0, offset: 1 },
+        ]
+        : [
           { transform: imageStartTransform },
           { transform: "none" },
-        ],
+        ]
+      imageAnimation = ghostImage.animate(imageFrames,
         { duration, easing: getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease", fill: "both" },
       )
+      if (targetImageLayer) {
+        targetImageAnimation = targetImageLayer.animate(
+          [
+            { opacity: 0, offset: 0.64 },
+            { opacity: 1, offset: 1 },
+          ],
+          { duration, easing: getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease", fill: "both" },
+        )
+      }
     }
     if (copy) {
       copy.style.setProperty("opacity", "1", "important")
@@ -7427,13 +7519,31 @@ function projectPreviewImageRect(card) {
   const style = getComputedStyle(image)
   const contain = style.objectFit === "contain"
   const cover = style.objectFit === "cover"
-  if ((!contain && !cover) || !image.naturalWidth || !image.naturalHeight) return projectPreviewRect(rect)
+  // A cover image paints outside its element and clips that overflow. The
+  // visible source is therefore the element box, not the larger natural
+  // bitmap rectangle; using the latter makes a cover→contain opening start
+  // several pixels above/aside from the clicked thumbnail. Contain still
+  // benefits from the tighter natural-bitmap rect because its letterbox is
+  // part of the visible layout.
+  if (!contain || !image.naturalWidth || !image.naturalHeight) return projectPreviewRect(rect)
   const scale = Math[contain ? "min" : "max"](rect.width / image.naturalWidth, rect.height / image.naturalHeight)
   const width = image.naturalWidth * scale
   const height = image.naturalHeight * scale
   const position = style.objectPosition.split(" ")
   const offset = (value, space) => value.endsWith("%") ? space * parseFloat(value) / 100 : parseFloat(value) || 0
   return { left: rect.left + offset(position[0], rect.width - width), top: rect.top + offset(position[1] || "50%", rect.height - height), width, height }
+}
+
+function projectPreviewImageState(card) {
+  const image = card?.querySelector?.(".project-media > img")
+  if (!image) return null
+  const style = getComputedStyle(image)
+  return {
+    visual: projectPreviewImageRect(card),
+    element: projectPreviewRect(image.getBoundingClientRect()),
+    fit: style.objectFit.trim().toLowerCase(),
+    position: style.objectPosition.trim() || "50% 50%",
+  }
 }
 
 function runProjectPreviewMotion(card, from, to, { expanding, imageFrom, imageTo, onSettled }) {
@@ -7785,7 +7895,8 @@ function setProjectPreview(card, expanded) {
   // surface owns every frame, including the first and final one.
   card.setAttribute("data-project-preview-motion", expanded ? "expanding" : "collapsing")
   const from = projectPreviewRect(card.getBoundingClientRect())
-  const imageFrom = projectPreviewImageRect(card)
+  const imageSourceState = expanded ? projectPreviewImageState(card) : null
+  const imageFrom = imageSourceState?.visual || projectPreviewImageRect(card)
   if (!expanded) {
     const target = measureCollapsedProjectPreview(card)
     const finish = () => {
@@ -7831,6 +7942,7 @@ function setProjectPreview(card, expanded) {
       from,
       liveTarget,
       imageFrom,
+      imageSourceState,
       () => finalizeProjectPreviewExpand(card, motionId),
     )
     if (!ghost) finalizeProjectPreviewExpand(card, motionId)
@@ -7895,6 +8007,7 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
     element.remove()
     state.row?.removeAttribute("data-project-detail-open")
     state.stickyTail?.remove()
+    state.stickySibling?.style.removeProperty("--project-detail-sibling-lift")
     state.row?.style.removeProperty("--project-detail-sticky-tail")
     if (card?.isConnected) {
       for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "aria-controls"]) card.removeAttribute(attribute)

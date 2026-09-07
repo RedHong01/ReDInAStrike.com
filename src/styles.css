@@ -3788,6 +3788,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     position: relative;
     border-top: 0;
     padding-top: var(--project-rule-card-gap);
+    top: calc(-1 * var(--project-detail-sibling-lift, 0px));
   }
 
   .project-detail-sticky-tail + .project-card:not(.is-project-preview)::before {
@@ -5282,6 +5283,16 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   padding: 0;
   background: transparent;
   pointer-events: none;
+}
+
+/* On stacked layouts the row tail is an invisible sticky runway. Keep the
+   row's divider on the visible sibling's bottom edge instead of leaving it
+   below the runway by the tail height. The active lead's own bottom rule
+   remains the seam above the drawer. */
+@media (max-width: 980px), (orientation: portrait) {
+  .catalog .project-row.has-project-preview[data-project-detail-open="true"]::after {
+    bottom: var(--project-detail-sticky-tail, 0px);
+  }
 }
 
 /* The homepage header owns the exact shared top seam. Keep the card rule out

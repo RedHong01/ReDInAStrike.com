@@ -7,11 +7,16 @@ const base = process.argv[2] || "http://localhost:5173"
 const width = Number(process.argv[3] || 1280)
 const height = Number(process.argv[4] || 900)
 const cardIndex = String(process.argv[5] || "0")
+const forceGutter = process.argv[6] === "gutter"
 const browser = await chromium.launch({ headless: true })
 const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 })
 await page.goto(`${base}/?inspect=motion#game`, { waitUntil: "domcontentloaded" })
 await page.locator(".site-main").waitFor()
 await page.evaluate(() => document.fonts.ready)
+if (forceGutter) {
+  await page.addStyleTag({ content: "html { scrollbar-gutter: stable; } body { overflow-y: scroll; }" })
+  await page.waitForTimeout(80)
+}
 const card = page.locator(`[data-project-card][data-index="${cardIndex}"]`)
 await card.scrollIntoViewIfNeeded()
 const before = await card.evaluate((e) => { const r=e.getBoundingClientRect(), m=e.querySelector('.project-media').getBoundingClientRect(), img=e.querySelector('.project-media img'), i=img.getBoundingClientRect(), s=getComputedStyle(img); return {card:r.toJSON(),media:m.toJSON(),image:i.toJSON(),imageStyle:{width:s.width,height:s.height,left:s.left,right:s.right,top:s.top,bottom:s.bottom,transform:s.transform,objectFit:s.objectFit},natural:{width:img.naturalWidth,height:img.naturalHeight},viewport:{innerWidth,clientWidth:document.documentElement.clientWidth,bodyClientWidth:document.body.clientWidth},scrollY} })

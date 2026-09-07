@@ -6,7 +6,12 @@ import { extname, join, normalize, resolve } from "node:path"
 const root = resolve(process.argv[2] || ".")
 const port = Number(process.argv[3] || process.env.PORT || 5173)
 const htmlPath = join(root, "index.html")
-const faviconVersion = "20260824"
+
+// Single source of truth: read it from build.mjs so dev and build never drift.
+// scripts/dev-server.py reads the same constant the same way.
+const faviconVersion =
+  (await readFile(join(import.meta.dirname, "scripts", "build.mjs"), "utf8"))
+    .match(/faviconVersion\s*=\s*"([^"]+)"/)?.[1] ?? "20260904"
 
 const mime = {
   ".html": "text/html; charset=utf-8",

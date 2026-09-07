@@ -4,11 +4,33 @@ This is a GitHub-ready static code version of the current Framer site.
 
 ## Local
 
+Double-click **`~/Applications/ReDInAStrikE.app`** (drag it to the Dock once and
+it is a single click from then on). It guarantees exactly one local server and
+opens the site in your default browser — reusing the existing tab rather than
+piling up new ones.
+
+The app serves the working tree directly, so whatever is saved in `src/` and
+`public/` is what you see; no build step is involved.
+
+From the terminal:
+
 ```bash
-npm run dev
+./scripts/serve-local.sh            # start/reuse the server, then open the window
+./scripts/serve-local.sh --status   # what is running right now
+./scripts/serve-local.sh --stop     # stop every local server for this project
+./scripts/make-mac-app.sh           # rebuild the .app (after moving the project
+                                    # or changing public/favicon.svg)
 ```
 
-Open `http://127.0.0.1:5173`.
+Environment overrides: `REDINASTRIKE_PORT` (default `5173`) and
+`REDINASTRIKE_BROWSER` (`default` | `safari` | `chrome` | `system`). Chrome gets
+a true chrome-less `--app` window; Safari has no such mode, so it opens a normal
+window — use Safari's **File → Add to Dock** if you want a chrome-less web app.
+
+`npm run dev` still runs the original node server on the same port, if node is
+installed. The app deliberately uses `scripts/dev-server.py` instead, which
+needs nothing beyond the python3 that ships with macOS; both render identical
+HTML.
 
 ## Build
 

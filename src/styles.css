@@ -160,6 +160,10 @@
   --type-preview-title-leading: 1.03;
   --project-preview-rule-width: 1px;
   --project-preview-content-block-pad: clamp(18px, 2.1vw, 32px);
+  /* Outer inset the expanded preview's image keeps from the card's right
+     edge in the wide-compact band. Mirrors the copy's own outer padding so
+     type and bitmap share one margin. */
+  --project-preview-compact-media-inset: clamp(32px, 6.6vw, 100px);
   --project-caption-size: var(--type-subtitle-size);
   --project-caption-leading: var(--type-subtitle-leading);
   --project-caption-step: var(--project-caption-leading);
@@ -345,8 +349,12 @@ img {
 
 html[data-header-motion="moving"],
 html[data-scroll-magnet="moving"],
+html[data-project-detail-motion="moving"],
+html[data-project-detail-scroll-motion="moving"],
 html[data-header-motion="moving"] body,
-html[data-scroll-magnet="moving"] body {
+html[data-scroll-magnet="moving"] body,
+html[data-project-detail-motion="moving"] body,
+html[data-project-detail-scroll-motion="moving"] body {
   overflow-anchor: none;
 }
 
@@ -1225,10 +1233,24 @@ body[data-layout-transition="true"] .about-section {
 
 .project-preview-meta {
   margin: clamp(7px, 0.75vw, 12px) 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(2px, 0.2vw, 4px);
   font-family: var(--type-subtitle-font);
   font-size: var(--project-caption-size);
   line-height: var(--project-caption-leading);
   white-space: normal;
+}
+
+.project-preview-meta-subtitle,
+.project-preview-meta-date {
+  display: block;
+  min-width: 0;
+}
+
+.project-preview-meta-date {
+  white-space: nowrap;
 }
 
 .project-preview-summary {
@@ -1899,9 +1921,20 @@ body[data-layout-transition="true"] .about-section {
     (1 - var(--project-detail-header-progress, 0)) * var(--project-detail-header-expanded-height, 420px) +
     var(--project-detail-header-progress, 0) * var(--project-detail-header-min-height, 88px)
   );
+  /* The collapse is paint-only: every pixel the lead gives up is handed back
+     to the grid as margin, so its flow footprint stays the full preview
+     height. Without this the article below rose at twice the scroll speed and
+     dived under the lead; with it, the lead's bottom edge and the article's
+     top edge travel together — one pixel of scroll, one pixel of shrink (see
+     the 1:1 mapping in requestProjectDetailHeaderUpdate) — so the collapsing
+     header never covers copy the reader is scrolling toward. */
+  margin-bottom: calc(
+    var(--project-detail-header-progress, 0) *
+    (var(--project-detail-header-expanded-height, 420px) - var(--project-detail-header-min-height, 88px))
+  );
   min-height: 0;
   overflow: visible;
-  transition: grid-template-columns 420ms var(--responsive-ease), height 760ms var(--responsive-ease);
+  transition: grid-template-columns 180ms var(--responsive-ease);
   will-change: height;
 }
 
@@ -1911,7 +1944,8 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] {
   transition:
     grid-template-columns 420ms var(--responsive-ease),
-    height 760ms var(--responsive-ease);
+    height 760ms var(--responsive-ease),
+    margin-bottom 760ms var(--responsive-ease);
 }
 
 .project-card.is-project-preview[data-project-detail-open="true"] .project-media {
@@ -1923,10 +1957,10 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
   padding: var(--project-detail-header-pad, 20px);
   transition:
-    padding 420ms var(--responsive-ease),
-    grid-template-rows 420ms var(--responsive-ease),
-    transform 420ms var(--responsive-ease),
-    opacity 260ms ease;
+    padding 180ms var(--responsive-ease),
+    grid-template-rows 180ms var(--responsive-ease),
+    transform 180ms var(--responsive-ease),
+    opacity 140ms ease;
 }
 
 /* The detail header progressively removes its secondary type and summary.
@@ -1939,8 +1973,8 @@ body[data-layout-transition="true"] .about-section {
   gap: 0;
   text-align: center;
   transition:
-    gap 420ms var(--responsive-ease),
-    transform 420ms var(--responsive-ease);
+    gap 180ms var(--responsive-ease),
+    transform 180ms var(--responsive-ease);
 }
 
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-head h2 {
@@ -1954,10 +1988,10 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-summary,
 .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-enter {
   transition:
-    transform 420ms var(--responsive-ease),
-    opacity 260ms ease,
-    max-height 680ms var(--responsive-ease),
-    margin 680ms var(--responsive-ease);
+    transform 180ms var(--responsive-ease),
+    opacity 140ms ease,
+    max-height 220ms var(--responsive-ease),
+    margin 220ms var(--responsive-ease);
 }
 
 /* A detail card remains the visual anchor while its article scrolls. Keep a
@@ -2050,10 +2084,10 @@ body[data-layout-transition="true"] .about-section {
   pointer-events: none;
   transform: translate3d(0, -6px, 0);
   transition:
-    max-height 680ms var(--responsive-ease),
-    margin 680ms var(--responsive-ease),
-    opacity 260ms ease,
-    transform 420ms var(--responsive-ease);
+    max-height 220ms var(--responsive-ease),
+    margin 220ms var(--responsive-ease),
+    opacity 140ms ease,
+    transform 180ms var(--responsive-ease);
 }
 
 /* The title's secondary line is part of the compact header identity. Keep it
@@ -2072,7 +2106,7 @@ body[data-layout-transition="true"] .about-section {
   grid-template-rows: 1fr;
   align-content: center;
   gap: 0;
-  transition: gap 420ms var(--responsive-ease), grid-template-rows 420ms var(--responsive-ease);
+  transition: gap 180ms var(--responsive-ease), grid-template-rows 180ms var(--responsive-ease);
 }
 
 /* At the smallest header height the title and its subtitle must fit as one
@@ -2102,6 +2136,19 @@ body[data-layout-transition="true"] .about-section {
   text-align: center;
 }
 
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-meta {
+  align-self: center;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  gap: clamp(8px, 1vw, 14px);
+  margin-top: clamp(4px, 0.5vw, 6px);
+  max-width: 100%;
+  white-space: nowrap;
+  font-size: clamp(10px, 1.05vw, 13px);
+  line-height: 1;
+}
+
 /* At the minimum height the collapsed summary and affordance must stop
    participating in the flex measure. Their borders/line boxes otherwise add
    a few pixels below the title, which makes the title block overflow upward
@@ -2129,8 +2176,8 @@ body[data-layout-transition="true"] .about-section {
   font-size: clamp(28px, 4vw, 40px);
   line-height: 1;
   transition:
-    font-size 420ms var(--responsive-ease),
-    transform 420ms var(--responsive-ease);
+    font-size 180ms var(--responsive-ease),
+    transform 180ms var(--responsive-ease);
 }
 
 /* Restore the compact card's secondary metadata as the drawer retracts. A
@@ -4572,9 +4619,9 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   min-height: 0;
-  /* Keep the overscanned seam/pseudo-surface visible while the header is
-     expanded. The compact state below becomes its own paint boundary. */
-  overflow: visible;
+  /* Clip the sticky lead to its own seam so the preview surface cannot leave
+     a stray strip behind while the drawer scrolls underneath it. */
+  overflow: clip;
   clip-path: none;
   background: var(--preview-media-bg, var(--media-bg, var(--media-surface, var(--paper))));
 }
@@ -4597,6 +4644,14 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   min-width: 0;
   height: 100%;
   grid-row: 1;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media img {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="left"] .project-media {
@@ -4651,9 +4706,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 
   .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-meta {
-    font-size: 12px;
-    line-height: 1.1;
-    margin-top: 4px;
+    font-size: clamp(10px, 1.05vw, 12px);
+    line-height: 1;
   }
 }
 
@@ -4682,23 +4736,46 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     pointer-events: auto;
   }
 
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] {
-    grid-template-columns: minmax(0, 1fr);
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: clamp(12px, 2.2vw, 20px);
+    align-items: start;
     overflow: clip;
   }
 
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media,
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
-    grid-column: 1;
-    grid-row: 1;
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) .project-media {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: end;
+    align-self: start;
+    width: clamp(84px, 23vw, 150px);
+    height: auto;
+    min-height: 0;
+    aspect-ratio: var(--media-aspect, 16 / 9);
   }
 
-.catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) .project-media > img {
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) .project-preview-copy {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
     position: relative;
     inset: auto;
     left: auto;
     right: auto;
-    width: 100%;
+    top: auto;
+    bottom: auto;
+    width: auto;
+    min-width: 0;
+    align-self: start;
+    justify-self: stretch;
+    visibility: visible !important;
+    opacity: 1 !important;
+    clip-path: none !important;
+    z-index: 2;
   }
 }
 
@@ -4823,27 +4900,6 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     visibility: visible;
     opacity: 1;
     pointer-events: auto;
-  }
-}
-
-/* A detail-open compact header is a single solid bar. Keep the media box for
-   the theme colour/full-bleed geometry but remove its bitmap at the moment the
-   drawer opens, so the copy cannot sit on top of a second image layer. */
-@media (max-width: 980px), (orientation: portrait) {
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media > img,
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media canvas {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none;
-    transition: opacity 360ms ease, visibility 0s linear 360ms;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media > img,
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media canvas {
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto;
-    transition: opacity 260ms ease, visibility 0s linear;
   }
 }
 
@@ -5209,5 +5265,84 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
   .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-card-side="right"] .project-preview-copy {
     padding-left: var(--content-edge-pad);
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Wide-compact preview media
+
+   The mobile cascade above collapses the expanded card's media row to zero
+   and hands the whole surface to the copy. That is correct for a phone, where
+   two columns would leave neither the image nor the type a usable measure,
+   but the same rules also cover every window from 701px up to the 981px
+   desktop breakpoint and both tablet orientations — and there the image did
+   not shrink, it disappeared outright.
+
+   Restore a two-column preview across that band. Unlike the desktop layout,
+   the side is fixed rather than alternating: at this width the copy already
+   starts at the left page gutter for every card (see the compact padding
+   rules), so the image belongs opposite it on the right, where it reads as
+   one consistent column instead of jumping sides card to card.
+
+   Geometry: the image is contained inside the right column, pinned to the
+   same outer inset the copy uses for its own right padding, and centered on
+   the card's vertical axis with the shared content block pad — so it keeps an
+   appropriate size instead of being squeezed into a corner.
+
+   This block is deliberately last in the file: the mobile cascade it corrects
+   uses the same specificity and !important, so source order is what decides.
+------------------------------------------------------------------------- */
+@media (min-width: 701px) and (max-width: 980px), (min-width: 701px) and (orientation: portrait) {
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]),
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]),
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-preview-copy,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-preview-copy,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-preview-copy {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    opacity: 1 !important;
+    overflow: hidden !important;
+    pointer-events: auto;
+  }
+
+  /* Absolutely positioned replaced elements resolve `auto` sizes from their
+     intrinsic dimensions, not from their offsets, so the box is given an
+     explicit measure the same way the desktop rule does. `right` anchors it
+     to the outer inset; object-position keeps the bitmap on that edge when a
+     portrait source does not fill the box. */
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media > img {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto;
+    left: auto;
+    right: var(--project-preview-compact-media-inset);
+    top: var(--project-preview-content-block-pad);
+    bottom: auto;
+    width: calc(100% - var(--project-preview-compact-media-inset));
+    height: calc(100% - var(--project-preview-content-block-pad) * 2);
+    object-fit: contain;
+    object-position: right center;
   }
 }

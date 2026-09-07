@@ -36,6 +36,10 @@ const MEDIA_DOMINANT_CACHE_LIMIT = 96
 const MEDIA_EDGE_SAMPLE_RATIO = 0.08
 const MEDIA_EDGE_SAMPLE_MIN_PX = 2
 const PROJECT_DETAIL_DRAWER_CLOSE_MS = 760
+// Keep the original edge-to-header anchor motion in the same temporal range as
+// the surface reveal so the full-bleed expansion still reads as physically
+// rising out of the viewport edge.
+const PROJECT_PREVIEW_ANCHOR_MS = 720
 
 const projects = [
   {
@@ -210,6 +214,12 @@ const BINARY_HANDOFF_SKIP_ATTRIBUTE = "data-binary-handoff-skip"
 // Ignore tiny jitter-frame weight changes so subpixel boundary drift does not
 // continuously flip transition direction while scrolling.
 const PROJECT_RULE_WEIGHT_UPDATE_EPSILON = 0.004
+// How quickly the sticky lead's interior catches up with the edge that the
+// scroll has already moved. ~90ms of trail: enough for the copy to read as
+// settling rather than snapping, short enough that it is finished by the time
+// a reader stops scrolling.
+const PROJECT_DETAIL_HEADER_EASE_SPEED = 11
+const PROJECT_DETAIL_HEADER_EASE_EPSILON = 0.001
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const SECTION_SCROLL_MIN_MS = 620
 const SECTION_SCROLL_MAX_MS = 1380
@@ -578,8 +588,19 @@ const siteState = {
   projectPreviewMotionId: 0,
   projectPreviewExitGhosts: new Set(),
   projectPreviewExpandGhosts: new Set(),
+  projectPreviewAnchorFrame: 0,
+  projectPreviewAnchorToken: 0,
   scrollDirection: 1,
   projectDetailDrawer: null,
+  projectDetailHeaderProgress: Number.NaN,
+  projectDetailHeaderEase: Number.NaN,
+  projectDetailHeaderEaseFrame: 0,
+  projectDetailHeaderEaseTime: 0,
+  projectDetailHeaderOpenHeight: 0,
+  projectDetailHeaderCompactHeight: 0,
+  projectDetailHeaderStickyStart: 0,
+  projectDetailScrollFrame: 0,
+  projectDetailScrollToken: 0,
   catalogRuleScrollTimer: 0,
   catalogRuleScrollActive: false,
 }
@@ -2624,7 +2645,10 @@ function projectLeadMarkup(project, { detail = false } = {}) {
       <div class="project-preview-copy">
         <div class="project-preview-head">
           <h2>${escapeHtml(title)}</h2>
-          <p class="project-preview-meta">${escapeHtml(project.displayTitle)}<br />${escapeHtml(project.date)}</p>
+          <p class="project-preview-meta">
+            <span class="project-preview-meta-subtitle">${escapeHtml(project.displayTitle)}</span>
+            <span class="project-preview-meta-date">${escapeHtml(project.date)}</span>
+          </p>
         </div>
         <p class="project-preview-summary" data-typewriter-skip>${escapeHtml(projectPreviewSummary(project))}</p>
         <span class="project-preview-enter">${detail ? "Scroll to view project ↓" : "Click again to view project ↗"}</span>
@@ -2669,7 +2693,10 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
       <div class="project-preview-copy" aria-hidden="true">
         <div class="project-preview-head">
           <h2>${escapeHtml(project.pageTitle)}</h2>
-          <p class="project-preview-meta" data-typewriter-skip>${escapeHtml(project.displayTitle)}<br />${escapeHtml(project.date)}</p>
+          <p class="project-preview-meta" data-typewriter-skip>
+            <span class="project-preview-meta-subtitle">${escapeHtml(project.displayTitle)}</span>
+            <span class="project-preview-meta-date">${escapeHtml(project.date)}</span>
+          </p>
         </div>
         <p class="project-preview-summary" data-typewriter-skip>${escapeHtml(projectPreviewSummary(project))}</p>
         <span class="project-preview-enter" data-typewriter-skip>Click again to view project ↗</span>
@@ -3774,7 +3801,14 @@ function requestProjectDetailHeaderUpdate() {
   if (liveHeaderBottom > 0) {
     setRootStyleProperty("--project-preview-sticky-top", `${liveHeaderBottom.toFixed(2)}px`)
   }
-  const headerHeight = Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
+  // Measure the travel from the same edge the card is pinned to. The sticky
+  // top above is the header's live painted bottom, while headerVisualBottom
+  // is the value the header animation last intended; when the two disagree
+  // the collapse starts that many pixels before the card actually reaches the
+  // seam, and the lead ends up floating that far above the article.
+  const headerHeight = liveHeaderBottom > 0
+    ? liveHeaderBottom
+    : Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
   if (!Number.isFinite(card.__detailHeaderStart)) {
     const rect = card.getBoundingClientRect()
     card.__detailHeaderStart = rect.top + scrollY
@@ -3783,18 +3817,222 @@ function requestProjectDetailHeaderUpdate() {
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
   const stickyStart = card.__detailHeaderStart - headerHeight
-  const progress = clamp((scrollY - stickyStart) / Math.max(180, openHeight - compactHeight + headerHeight * 0.6), 0, 1)
+  // The lead collapses like a surface with a physical edge: one pixel of
+  // scroll removes exactly one pixel of its height, so its painted bottom
+  // stays welded to the top of the article copy instead of sliding over it.
+  // The card holds its full flow footprint while it shrinks (styles.css
+  // backfills the shortfall as margin), which is what makes this 1:1 mapping
+  // land on the seam rather than pulling the article up twice as fast.
+  const headerTravel = Math.max(1, openHeight - compactHeight)
+  const progress = clamp((scrollY - stickyStart) / headerTravel, 0, 1)
+
+  if (siteState.projectDetailHeaderCard && siteState.projectDetailHeaderCard !== card) {
+    clearProjectDetailHeaderMotion()
+  }
+
+  siteState.projectDetailHeaderCard = card
+  siteState.projectDetailHeaderOpenHeight = openHeight
+  siteState.projectDetailHeaderCompactHeight = compactHeight
+  siteState.projectDetailHeaderStickyStart = stickyStart
+  // The scroll position is the animation for the edge itself: nothing is eased
+  // between it and the painted height. Following the scroll through a spring
+  // used to let a fast flick outrun the collapse, leaving the lead tall over
+  // copy it should have already uncovered, and easing back on the way up would
+  // open a paper gap above the article now that the flow footprint no longer
+  // tracks the animated height. The interior is a different matter: it settles
+  // toward the same state a beat behind the edge, so the bar reads as a
+  // surface being compressed rather than a layout snapping between two sizes.
+  siteState.projectDetailHeaderProgress = progress
+  if (prefersReducedMotion() || !Number.isFinite(siteState.projectDetailHeaderEase)) {
+    siteState.projectDetailHeaderEase = progress
+  }
+  applyProjectDetailHeaderProgress(card, progress, siteState.projectDetailHeaderEase, openHeight, compactHeight)
+  if (
+    !siteState.projectDetailHeaderEaseFrame &&
+    Math.abs(progress - siteState.projectDetailHeaderEase) >= PROJECT_DETAIL_HEADER_EASE_EPSILON
+  ) {
+    siteState.projectDetailHeaderEaseTime = 0
+    siteState.projectDetailHeaderEaseFrame = requestAnimationFrame(easeProjectDetailHeaderInterior)
+  }
+}
+
+/**
+ * Carry the interior of the sticky lead toward the progress the edge has
+ * already reached. Only the padding and the copy/media state changes ride this
+ * value; the card's own height stays welded to the scroll, so the softer
+ * settle never costs the article any of its first lines.
+ */
+function easeProjectDetailHeaderInterior(time) {
+  siteState.projectDetailHeaderEaseFrame = 0
+  const drawerState = activeProjectDetailDrawer()
+  const card = drawerState?.card
+  if (!card?.isConnected || !drawerState?.element || drawerState.element.dataset.drawerState === "closing") {
+    clearProjectDetailHeaderMotion()
+    return
+  }
+
+  const target = siteState.projectDetailHeaderProgress
+  if (!Number.isFinite(target)) return
+
+  const elapsed = siteState.projectDetailHeaderEaseTime
+    ? Math.min(0.05, (time - siteState.projectDetailHeaderEaseTime) / 1000)
+    : 1 / 60
+  siteState.projectDetailHeaderEaseTime = time
+
+  const amount = 1 - Math.exp(-PROJECT_DETAIL_HEADER_EASE_SPEED * elapsed)
+  let ease = siteState.projectDetailHeaderEase + (target - siteState.projectDetailHeaderEase) * amount
+  if (Math.abs(target - ease) < PROJECT_DETAIL_HEADER_EASE_EPSILON) ease = target
+  siteState.projectDetailHeaderEase = ease
+
+  applyProjectDetailHeaderProgress(
+    card,
+    target,
+    ease,
+    siteState.projectDetailHeaderOpenHeight,
+    siteState.projectDetailHeaderCompactHeight,
+  )
+
+  if (ease === target) {
+    siteState.projectDetailHeaderEaseTime = 0
+    return
+  }
+  siteState.projectDetailHeaderEaseFrame = requestAnimationFrame(easeProjectDetailHeaderInterior)
+}
+
+function clearProjectDetailHeaderMotion() {
+  if (siteState.projectDetailHeaderEaseFrame) {
+    cancelAnimationFrame(siteState.projectDetailHeaderEaseFrame)
+    siteState.projectDetailHeaderEaseFrame = 0
+  }
+  siteState.projectDetailHeaderEaseTime = 0
+  siteState.projectDetailHeaderEase = Number.NaN
+  siteState.projectDetailHeaderProgress = Number.NaN
+  siteState.projectDetailHeaderCard = null
+  siteState.projectDetailHeaderOpenHeight = 0
+  siteState.projectDetailHeaderCompactHeight = 0
+  siteState.projectDetailHeaderStickyStart = 0
+}
+
+function applyProjectDetailHeaderProgress(card, progress, ease, openHeight, compactHeight) {
+  if (!card?.isConnected) return
+  // `progress` is the edge: it is the scroll, expressed as height. `ease`
+  // trails it by about a tenth of a second and carries everything that only
+  // affects paint inside that edge.
   setElementStyleProperty(card, "--project-detail-header-progress", progress.toFixed(4))
+  setElementStyleProperty(card, "--project-detail-header-ease", ease.toFixed(4))
   setElementStyleProperty(card, "--project-detail-header-expanded-height", `${openHeight.toFixed(2)}px`)
   setElementStyleProperty(card, "--project-detail-header-min-height", `${compactHeight.toFixed(2)}px`)
-  setElementStyleProperty(card, "--project-detail-header-pad", `${(8 + (1 - progress) * 34).toFixed(2)}px`)
-  if (progress > 0.28) card.setAttribute("data-project-detail-header-compressed", "true")
+  setElementStyleProperty(card, "--project-detail-header-pad", `${(8 + (1 - ease) * 34).toFixed(2)}px`)
+  // Both state changes keep a small dead band around their threshold so a
+  // reader resting mid-collapse cannot make the copy flicker between its two
+  // arrangements.
+  const compressed = card.hasAttribute("data-project-detail-header-compressed")
+  if (ease > (compressed ? 0.18 : 0.24)) card.setAttribute("data-project-detail-header-compressed", "true")
   else card.removeAttribute("data-project-detail-header-compressed")
   // Keep the media paint until the header is genuinely at its minimum. This
   // gives the sticky card a stable hand-off point instead of hiding the image
   // as soon as the metadata starts collapsing.
-  if (progress > 0.82) card.setAttribute("data-project-detail-header-minimized", "true")
+  const minimized = card.hasAttribute("data-project-detail-header-minimized")
+  if (ease > (minimized ? 0.64 : 0.7)) card.setAttribute("data-project-detail-header-minimized", "true")
   else card.removeAttribute("data-project-detail-header-minimized")
+}
+
+function beginProjectDetailMotion() {
+  document.documentElement.dataset.projectDetailMotion = "moving"
+}
+
+function endProjectDetailMotion() {
+  delete document.documentElement.dataset.projectDetailMotion
+}
+
+function beginProjectDetailScrollMotion() {
+  document.documentElement.dataset.projectDetailScrollMotion = "moving"
+}
+
+function endProjectDetailScrollMotion() {
+  delete document.documentElement.dataset.projectDetailScrollMotion
+}
+
+function cancelProjectDetailScrollMotion() {
+  if (siteState.projectDetailScrollFrame) {
+    cancelAnimationFrame(siteState.projectDetailScrollFrame)
+    siteState.projectDetailScrollFrame = 0
+  }
+  siteState.projectDetailScrollToken += 1
+  endProjectDetailScrollMotion()
+}
+
+function projectDetailScrollDuration(distance) {
+  if (prefersReducedMotion()) return 1
+  return clamp(180 + Math.abs(distance) * 0.22, 180, 560)
+}
+
+function projectDetailHeaderStartY(card) {
+  if (!card?.isConnected) return null
+  if (!Number.isFinite(card.__detailHeaderStart)) {
+    const rect = card.getBoundingClientRect()
+    const scrollY = window.scrollY || window.pageYOffset || 0
+    card.__detailHeaderStart = rect.top + scrollY
+    card.__detailHeaderOpenHeight = Math.max(1, rect.height)
+  }
+  if (!Number.isFinite(card.__detailHeaderStart)) return null
+  const headerHeight = Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
+  return Math.max(0, card.__detailHeaderStart - headerHeight)
+}
+
+function smoothScrollProjectDetailCardToTop(card, onComplete) {
+  const targetY = projectDetailHeaderStartY(card)
+  if (!Number.isFinite(targetY)) {
+    onComplete?.()
+    return
+  }
+
+  const startY = window.scrollY || window.pageYOffset || 0
+  const distance = targetY - startY
+  const duration = projectDetailScrollDuration(distance)
+  cancelProjectDetailScrollMotion()
+  beginProjectDetailScrollMotion()
+
+  if (Math.abs(distance) <= 1.5 || duration <= 1) {
+    window.scrollTo({ top: targetY, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: false })
+    requestProjectDetailHeaderUpdate()
+    endProjectDetailScrollMotion()
+    onComplete?.()
+    return
+  }
+
+  const token = siteState.projectDetailScrollToken + 1
+  siteState.projectDetailScrollToken = token
+  const startedAt = performance.now()
+
+  const finish = () => {
+    if (token !== siteState.projectDetailScrollToken) return
+    siteState.projectDetailScrollFrame = 0
+    syncScrollDrivenVisuals({ publishMoving: false })
+    requestProjectDetailHeaderUpdate()
+    endProjectDetailScrollMotion()
+    onComplete?.()
+  }
+
+  const frame = (time) => {
+    if (token !== siteState.projectDetailScrollToken) return
+    const raw = clamp((time - startedAt) / duration, 0, 1)
+    const eased = smoothstep(raw)
+    const nextY = clamp(startY + (distance * eased), 0, pageMaxScrollY())
+    window.scrollTo({ top: nextY, left: 0, behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: true })
+    requestProjectDetailHeaderUpdate()
+
+    if (raw >= 1) {
+      finish()
+      return
+    }
+
+    siteState.projectDetailScrollFrame = requestAnimationFrame(frame)
+  }
+
+  siteState.projectDetailScrollFrame = requestAnimationFrame(frame)
 }
 
 /**
@@ -6889,6 +7127,43 @@ function clearProjectPreviewHeightLock(card) {
   card?.style.removeProperty("--project-preview-start-height")
 }
 
+function cancelProjectPreviewAnchor() {
+  siteState.projectPreviewAnchorToken += 1
+  if (siteState.projectPreviewAnchorFrame) {
+    cancelAnimationFrame(siteState.projectPreviewAnchorFrame)
+  }
+  siteState.projectPreviewAnchorFrame = 0
+}
+
+function startProjectPreviewAnchor(card, sourceTop, headerHeight) {
+  if (!card?.isConnected || prefersReducedMotion()) return
+  if (!Number.isFinite(sourceTop) || !Number.isFinite(headerHeight)) return
+
+  const startY = window.scrollY || window.pageYOffset || 0
+  const targetY = clamp(startY + sourceTop - headerHeight, 0, pageMaxScrollY())
+  if (Math.abs(targetY - startY) <= 1.5) return
+
+  cancelProjectPreviewAnchor()
+  const token = siteState.projectPreviewAnchorToken
+  const startedAt = performance.now()
+  const frame = (time) => {
+    if (token !== siteState.projectPreviewAnchorToken || !card.isConnected) return
+    const progress = clamp((time - startedAt) / PROJECT_PREVIEW_ANCHOR_MS, 0, 1)
+    const eased = smoothstep(progress)
+    window.scrollTo({
+      top: startY + (targetY - startY) * eased,
+      left: 0,
+      behavior: "auto",
+    })
+    if (progress >= 1) {
+      siteState.projectPreviewAnchorFrame = 0
+      return
+    }
+    siteState.projectPreviewAnchorFrame = requestAnimationFrame(frame)
+  }
+  siteState.projectPreviewAnchorFrame = requestAnimationFrame(frame)
+}
+
 function commitProjectPreviewState(card, expanded) {
   const current = activeProjectPreview()
   const catalog = card.closest(".catalog")
@@ -6935,6 +7210,7 @@ function setProjectPreview(card, expanded) {
   const current = activeProjectPreview()
   if (expanded && current === card) return
   if (!expanded && current !== card) return
+  cancelProjectPreviewAnchor()
   window.clearTimeout(card.__projectPreviewCollapseTimer)
   card.__projectPreviewCollapseTimer = 0
   card.removeAttribute("data-project-preview-collapsing")
@@ -7029,6 +7305,7 @@ function activeProjectDetailDrawer() {
 function closeProjectDetailDrawer({ immediate = false, afterClose = null, onCloseStart = null } = {}) {
   const drawerState = activeProjectDetailDrawer()
   if (!drawerState) return
+  cancelProjectPreviewAnchor()
   const { element, card } = drawerState
   const reducedMotion = prefersReducedMotion()
   // A second caller must not turn an in-flight close into an immediate
@@ -7040,6 +7317,8 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null, onClos
   // before restoring the grid used to leave a visible pause in the old card
   // column during rapid open/close clicks.
   onCloseStart?.(card)
+  cancelProjectDetailScrollMotion()
+  clearProjectDetailHeaderMotion()
   // The card is a sticky secondary header while the article is open. On
   // compact layouts it may currently be compressed to only a title; animate
   // that height back to its natural preview size at the same time as the
@@ -7068,6 +7347,7 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null, onClos
     card.removeAttribute("data-project-detail-header-minimized")
     void card.offsetHeight
     setElementStyleProperty(card, "--project-detail-header-progress", "0")
+    setElementStyleProperty(card, "--project-detail-header-ease", "0")
   }
   const finish = () => {
     const coordinatedPreviewCollapse = card?.__projectPreviewCollapseWithDrawer === true
@@ -7085,6 +7365,7 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null, onClos
       card.removeAttribute("aria-controls")
       card.setAttribute("aria-expanded", "true")
       card.style.removeProperty("--project-detail-header-progress")
+      card.style.removeProperty("--project-detail-header-ease")
       card.style.removeProperty("--project-detail-header-expanded-height")
       card.style.removeProperty("--project-detail-header-min-height")
       card.style.removeProperty("--project-detail-header-pad")
@@ -7151,6 +7432,34 @@ function closeProjectDetailWithPreview() {
   })
 }
 
+function captureProjectDetailSwitchAnchor(drawerState) {
+  if (!drawerState?.row?.isConnected) return null
+  const rowAnchor = drawerState.row.nextElementSibling?.classList?.contains("project-row")
+    ? drawerState.row.nextElementSibling
+    : null
+  const fallbackAnchor = drawerState.element?.nextElementSibling || drawerState.card
+  const element = rowAnchor || fallbackAnchor
+  const rect = element?.getBoundingClientRect?.()
+  if (!element || !rect || !Number.isFinite(rect.top)) return null
+  return { element, top: rect.top }
+}
+
+function restoreProjectDetailSwitchAnchor(anchor) {
+  if (!anchor?.element?.isConnected) return
+  const rect = anchor.element.getBoundingClientRect?.()
+  if (!rect || !Number.isFinite(rect.top)) return
+  const delta = rect.top - anchor.top
+  if (Math.abs(delta) <= 0.5) return
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  window.scrollTo({
+    top: clamp(scrollY + delta, 0, pageMaxScrollY()),
+    left: 0,
+    behavior: "auto",
+  })
+  syncScrollDrivenVisuals({ publishMoving: false })
+  requestProjectDetailHeaderUpdate()
+}
+
 function openProjectDetailDrawer(card, target) {
   if (!card?.isConnected || !target?.path) return
   const project = routeMap.get(target.path)
@@ -7158,10 +7467,16 @@ function openProjectDetailDrawer(card, target) {
 
   const existing = activeProjectDetailDrawer()
   if (existing?.card === card && existing.element.dataset.drawerState !== "closing") return
+  const switchingDrawer = existing && existing.card !== card
+  const switchAnchor = switchingDrawer ? captureProjectDetailSwitchAnchor(existing) : null
+  if (switchingDrawer) beginProjectDetailMotion()
   if (existing) closeProjectDetailDrawer({ immediate: true })
 
   const row = card.closest(".project-row")
-  if (!row) return
+  if (!row) {
+    if (switchingDrawer) endProjectDetailMotion()
+    return
+  }
   const drawer = document.createElement("section")
   drawer.className = `project-detail-drawer${project.path === "/serialdeminer" ? " framer-case-page" : framerProjectDetails[project.path] ? " framer-derived-page" : ""}`
   drawer.id = `project-detail-drawer-${String(card.dataset.index || target.path.slice(1)).replace(/[^a-z0-9_-]+/gi, "-")}`
@@ -7209,6 +7524,21 @@ function openProjectDetailDrawer(card, target) {
   card.setAttribute("aria-expanded", "true")
   requestProjectDetailHeaderUpdate()
   refreshAfterProjectPreviewChange()
+
+  startProjectPreviewAnchor(
+    card,
+    detailHeaderRect.top,
+    siteState.headerVisualBottom || currentHeaderHeight(),
+  )
+
+  if (switchingDrawer) {
+    window.requestAnimationFrame(() => {
+      if (drawer.isConnected && siteState.projectDetailDrawer === drawerState) {
+        if (switchAnchor) restoreProjectDetailSwitchAnchor(switchAnchor)
+      }
+      endProjectDetailMotion()
+    })
+  }
 
   requestAnimationFrame(() => {
     if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
@@ -7293,8 +7623,19 @@ function handleRouteLinkClick(event) {
   if (projectCard && target.path !== routeFromLocation() && !projectCard.classList.contains("is-project-preview")) {
     event.preventDefault()
     event.stopPropagation()
+    const existingDrawer = activeProjectDetailDrawer()
+    const switchAnchor = existingDrawer ? captureProjectDetailSwitchAnchor(existingDrawer) : null
+    if (existingDrawer) beginProjectDetailMotion()
     closeProjectDetailDrawer({ immediate: true })
     setProjectPreview(projectCard, true)
+    if (existingDrawer) {
+      window.requestAnimationFrame(() => {
+        if (projectCard.isConnected && activeProjectPreview() === projectCard) {
+          if (switchAnchor) restoreProjectDetailSwitchAnchor(switchAnchor)
+        }
+        endProjectDetailMotion()
+      })
+    }
     return
   }
 
@@ -7302,11 +7643,30 @@ function handleRouteLinkClick(event) {
     event.preventDefault()
     event.stopPropagation()
     if (activeProjectDetailDrawer()?.card === projectCard) {
-      closeProjectDetailWithPreview()
+      smoothScrollProjectDetailCardToTop(projectCard, () => {
+        if (activeProjectDetailDrawer()?.card !== projectCard) return
+        closeProjectDetailDrawer()
+      })
       return
     }
     clearProjectPreviewExitGhosts()
     openProjectDetailDrawer(projectCard, target)
+    return
+  }
+
+  if (
+    projectCard &&
+    projectCard.classList.contains("is-project-preview") &&
+    activeProjectDetailDrawer()?.card === projectCard &&
+    activeProjectDetailDrawer()?.element?.dataset.drawerState !== "closing" &&
+    target.path === routeFromLocation()
+  ) {
+    event.preventDefault()
+    event.stopPropagation()
+    smoothScrollProjectDetailCardToTop(projectCard, () => {
+      if (activeProjectDetailDrawer()?.card !== projectCard) return
+      closeProjectDetailDrawer()
+    })
     return
   }
 

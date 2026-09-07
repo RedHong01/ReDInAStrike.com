@@ -30,9 +30,12 @@ const HANDOFF_ATTRIBUTE = "data-hover-binary-return"
 const STABLE_TIMEOUT_MS = 900
 const BOUNDARY_SYNC_TIMEOUT_MS = 180
 const SCROLL_DELTA_EPSILON_PX = 1.5
+const HOVER_RETURN_REPLAY_GUARD_MS = 220
 
 const snapshots = new WeakMap()
 const states = new WeakMap()
+const hoverReturnGuards = new WeakMap()
+const hoverReturnGuardTimers = new WeakMap()
 
 let appObserver = null
 let catalogObserver = null
@@ -359,12 +362,49 @@ function canStartReturnHandoff(card) {
     card?.getAttribute?.(RETURN_ATTRIBUTE) === "true"
   return Boolean(
     card?.isConnected &&
+      card.matches?.(":hover") === false &&
+      card.matches?.(":focus-within") === false &&
+      !hoverReturnGuards.has(card) &&
       card.classList.contains("is-filter-muted") &&
       returning &&
-      !card.classList.contains("is-muted-restore-intent") &&
-      !card.matches(":hover") &&
-      !card.matches(":focus-within"),
+      !card.classList.contains("is-muted-restore-intent"),
   )
+}
+
+function suppressNextHoverBinaryReturn(card, guardMs = HOVER_RETURN_REPLAY_GUARD_MS) {
+  if (!card?.isConnected) return
+  const holdMs = Math.max(0, Math.round(guardMs))
+  if (!Number.isFinite(holdMs) || holdMs <= 0) return
+
+  const until = performance.now() + holdMs
+  hoverReturnGuards.set(card, until)
+
+  const prior = hoverReturnGuardTimers.get(card)
+  if (prior) window.clearTimeout(prior)
+  const timer = window.setTimeout(() => {
+    const expiry = hoverReturnGuards.get(card)
+    if (expiry <= performance.now()) {
+      hoverReturnGuards.delete(card)
+      hoverReturnGuardTimers.delete(card)
+    }
+  }, holdMs + 24)
+  hoverReturnGuardTimers.set(card, timer)
+}
+
+function clearHoverBinaryReturnSuppression(card) {
+  if (!card) return
+  hoverReturnGuards.delete(card)
+  const timer = hoverReturnGuardTimers.get(card)
+  if (timer) window.clearTimeout(timer)
+  hoverReturnGuardTimers.delete(card)
+}
+
+function isHoverBinaryReturnSuppressed(card) {
+  const expiry = hoverReturnGuards.get(card)
+  if (!Number.isFinite(expiry)) return false
+  if (performance.now() < expiry) return true
+  clearHoverBinaryReturnSuppression(card)
+  return false
 }
 
 function startHoverReturnHandoff(card) {
@@ -430,6 +470,7 @@ function handleReturnMutation(mutation) {
   if (
     mutation.oldValue === "true" &&
     !states.has(card) &&
+    !isHoverBinaryReturnSuppressed(card) &&
     canStartReturnHandoff(card)
   ) {
     startHoverReturnHandoff(card)
@@ -510,6 +551,7 @@ function start() {
     capture: captureSnapshot,
     play: startHoverReturnHandoff,
     cancel: cancelState,
+    suppressNextReturnHandoff: suppressNextHoverBinaryReturn,
   }
 }
 

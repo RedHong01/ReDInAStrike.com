@@ -4747,7 +4747,9 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     grid-column: 2 !important;
     grid-row: 1 !important;
     justify-self: end;
-    align-self: start;
+    align-self: center;
+    margin-top: clamp(6px, 1.6vw, 12px);
+    margin-right: clamp(12px, 3vw, 24px);
     width: clamp(84px, 23vw, 150px);
     height: auto;
     min-height: 0;

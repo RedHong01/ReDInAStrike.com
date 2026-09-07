@@ -1832,7 +1832,11 @@ function finishState(state) {
 
   if (state.mode === "restore-reverse") {
     clearRestoreReady(state.card)
-    const handoffStarted = window.__RED_HOVER_BINARY_RETURN__?.play?.(state.card) === true
+    const hoverBinaryReturn = window.__RED_HOVER_BINARY_RETURN__
+    const handoffStarted = hoverBinaryReturn?.play?.(state.card) === true
+    if (handoffStarted) {
+      hoverBinaryReturn?.suppressNextReturnHandoff?.(state.card, 220)
+    }
     const source = handoffStarted ? state.hiddenSource : exposeRestoreSource(state.card)
     state.handoffFrame = requestAnimationFrame(() => {
       if (state.canvas.isConnected) state.canvas.remove()

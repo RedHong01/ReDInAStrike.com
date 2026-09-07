@@ -3806,10 +3806,11 @@ function requestProjectDetailHeaderUpdate() {
     setRootStyleProperty("--project-preview-sticky-top", `${liveHeaderBottom.toFixed(2)}px`)
   }
   // Measure the travel from the same edge the card is pinned to. The sticky
-  // top above is the header's live painted bottom, while headerVisualBottom
-  // is the value the header animation last intended; when the two disagree
-  // the collapse starts that many pixels before the card actually reaches the
-  // seam, and the lead ends up floating that far above the article.
+  // top written just above is the header's live painted bottom, while
+  // headerVisualBottom is the height the header animation last intended; while
+  // the header is mid-collapse the two can be a frame apart, and any
+  // difference between the pin and the travel's origin shows up as a gap under
+  // the lead or as copy hidden behind it.
   const headerHeight = liveHeaderBottom > 0
     ? liveHeaderBottom
     : Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)

@@ -200,40 +200,37 @@ chrome_window_alive() {
 }
 
 open_safari() {
-  # Focus an existing tab on this URL, otherwise open one new window.
-  if osascript - "$URL" >/dev/null 2>&1 <<'APPLESCRIPT'
+  # `open -a Safari <url>` focuses an existing tab on that exact URL instead of
+  # duplicating it, and raises its window — which AppleScript cannot reliably do
+  # (`set index of w to 1` is ignored, and AXRaise needs Accessibility access).
+  # So: find any already-open tab on this origin and hand ITS url to `open`,
+  # which keeps the user on the subpage they were reading. Read-only AppleScript
+  # here; if it is unavailable we just open the root URL.
+  local existing
+  existing="$(osascript - "$URL" 2>/dev/null <<'APPLESCRIPT'
 on run argv
-  set targetURL to item 1 of argv
+  set origin to item 1 of argv
   tell application "Safari"
-    activate
-    set found to false
-    try
-      repeat with w in windows
-        try
-          repeat with t in tabs of w
-            if (URL of t as string) starts with targetURL then
-              set current tab of w to t
-              set index of w to 1
-              set found to true
-              exit repeat
-            end if
-          end repeat
-        end try
-        if found then exit repeat
-      end repeat
-    end try
-    if not found then
-      make new document with properties {URL:targetURL}
-    end if
+    repeat with w in windows
+      try
+        repeat with t in tabs of w
+          if (URL of t as string) starts with origin then return (URL of t as string)
+        end repeat
+      end try
+    end repeat
   end tell
+  return ""
 end run
 APPLESCRIPT
-  then
-    say "  已在 Safari 中打开/切回"
-    return 0
+)"
+
+  if [ -n "$existing" ]; then
+    say "  切回已打开的页面: ${existing}"
+    open -a Safari "$existing"
+  else
+    say "  在 Safari 中打开 ${URL}"
+    open -a Safari "$URL"
   fi
-  say "  Safari 自动化不可用，改用普通方式打开"
-  open -a Safari "$URL"
 }
 
 open_chrome() {

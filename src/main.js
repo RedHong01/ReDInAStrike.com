@@ -4038,7 +4038,8 @@ function smoothScrollProjectDetailCardToTop(card, onComplete) {
     if (token !== siteState.projectDetailScrollToken) return
     const raw = clamp((time - startedAt) / duration, 0, 1)
     const eased = smoothstep(raw)
-    const nextY = clamp(startY + (distance * eased), 0, pageMaxScrollY())
+    const liveDistance = (projectDetailHeaderStartY(card) ?? targetY) - startY
+    const nextY = clamp(startY + (liveDistance * eased), 0, pageMaxScrollY())
     window.scrollTo({ top: nextY, left: 0, behavior: "auto" })
     syncScrollDrivenVisuals({ publishMoving: true })
     requestProjectDetailHeaderUpdate()
@@ -6880,6 +6881,7 @@ function clearProjectPreviewExpandGhostState(card) {
   const motion = card.__projectPreviewMotion
   card.__projectPreviewMotion = null
   motion?.animations.forEach((animation) => animation.cancel())
+  motion?.nodes?.forEach((node) => node.remove())
   card.removeAttribute("data-project-preview-motion")
   clearProjectPreviewExpandMotion(card)
 }
@@ -6960,6 +6962,22 @@ function createProjectPreviewExitGhost(card) {
   }
   const sourceRow = card.closest(".project-row")
   const ghost = card.cloneNode(true)
+  // A snapshot must carry resolved geometry out of the catalog. Otherwise
+  // catalog-only grid and typography rules disappear when it moves to body.
+  const originals = [card, ...card.querySelectorAll("*")]
+  const clones = [ghost, ...ghost.querySelectorAll("*")]
+  const properties = ["display", "position", "box-sizing", "width", "height", "min-width", "min-height", "max-width", "max-height", "padding", "margin", "grid-template-columns", "grid-template-rows", "grid-column", "grid-row", "gap", "align-items", "align-content", "align-self", "justify-self", "font-family", "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "color", "background-color", "object-fit", "object-position", "top", "right", "bottom", "left", "opacity", "visibility", "overflow", "clip-path"]
+  originals.forEach((original, index) => {
+    const clone = clones[index]
+    const style = getComputedStyle(original)
+    properties.forEach((name) => clone.style.setProperty(name, style.getPropertyValue(name), "important"))
+    clone.style.setProperty("animation", "none", "important")
+    clone.style.setProperty("transition", "none", "important")
+    if (original instanceof HTMLCanvasElement) {
+      try { clone.getContext("2d")?.drawImage(original, 0, 0) } catch {}
+    }
+  })
+  for (const name of ["position", "left", "top", "right", "bottom", "width", "height", "margin", "opacity", "transition"]) ghost.style.removeProperty(name)
   ghost.classList.add("project-preview-exit-ghost")
   ghost.dataset.projectPreviewMotionSide = card.dataset.cardSide === "right" ? "right" : "left"
   ghost.classList.remove("is-muted-restore-intent", "is-muted-restore-return", "is-filter-muted")
@@ -6975,7 +6993,7 @@ function createProjectPreviewExitGhost(card) {
   ghost.removeAttribute(DITHER_CATEGORY_ENTER_ATTRIBUTE)
   ghost.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"))
   ghost
-    .querySelectorAll(".dither-preview-canvas, .dither-reveal-canvas, .project-halftone, iframe")
+    .querySelectorAll("iframe")
     .forEach((element) => element.remove())
   ghost.querySelectorAll(".project-media img").forEach((image) => {
     image.loading = "eager"
@@ -6985,8 +7003,7 @@ function createProjectPreviewExitGhost(card) {
   copy?.setAttribute("aria-hidden", "false")
   if (copy) {
     copy.style.animation = "none"
-    copy.style.opacity = "0"
-    copy.style.transform = `translate3d(${side === "right" ? "-18px" : "18px"}, 0, 0)`
+    copy.style.transform = "none"
   }
 
   sourceRow?.classList.add("is-project-preview-exit-source")
@@ -7048,7 +7065,7 @@ function runProjectPreviewMotion(card, from, to, { expanding, imageFrom, imageTo
   const shift = `translateY(${compact.top - base.top}px)`
   const frames = [{ clipPath: inset, transform: shift }, { clipPath: "inset(0px 0px 0px 0px)", transform: "translateY(0px)" }]
   if (!expanding) frames.reverse()
-  const motion = { animations: [] }
+  const motion = { animations: [], nodes: [] }
   card.__projectPreviewMotion = motion
   const animate = (element, keyframes, timing = {}) => {
     const animation = element.animate(keyframes, { duration, easing, fill: "both", ...timing })
@@ -7063,6 +7080,20 @@ function runProjectPreviewMotion(card, from, to, { expanding, imageFrom, imageTo
     animate(copy, frames, { delay: expanding ? duration * 0.12 : 0, duration: duration * (expanding ? 0.68 : 0.45) })
   }
   const image = card.querySelector(".project-media > img")
+  if (image && (!imageFrom || !imageTo) && (imageFrom || imageTo)) {
+    // A phone preview exchanges its image for a text panel. Keep only the
+    // bitmap at its natural ratio during that exchange, without cloning a
+    // card or introducing another layout/geometry owner.
+    const rect = imageFrom || imageTo
+    const bitmap = image.cloneNode()
+    bitmap.removeAttribute("id")
+    bitmap.className = "project-preview-motion-image"
+    bitmap.setAttribute("aria-hidden", "true")
+    bitmap.style.cssText = `position:absolute;pointer-events:none;z-index:4;object-fit:contain;left:${rect.left - base.left}px;top:${rect.top - compact.top}px;width:${rect.width}px;height:${rect.height}px;max-width:none;max-height:none;`
+    card.appendChild(bitmap)
+    motion.nodes.push(bitmap)
+    animate(bitmap, expanding ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 0 }, { opacity: 1 }], { duration: duration * 0.5, delay: expanding ? 0 : duration * 0.35 })
+  }
   if (image && imageFrom && imageTo) {
     const resting = expanding ? imageTo : imageFrom
     const moved = expanding ? imageFrom : imageTo
@@ -7162,6 +7193,7 @@ function runProjectPreviewExitGhost(
   const cleanup = () => {
     if (cleaned) return
     cleaned = true
+    window.clearTimeout(ghost.__projectPreviewExitCleanupTimer)
     ghost.removeEventListener("animationend", handleAnimationEnd)
     ghost.removeEventListener("transitionend", handleTransitionEnd)
     releaseProjectPreviewExitSource(ghost)
@@ -7183,6 +7215,7 @@ function runProjectPreviewExitGhost(
 
   ghost.addEventListener("animationend", handleAnimationEnd)
   ghost.addEventListener("transitionend", handleTransitionEnd)
+  ghost.__projectPreviewExitCleanup = cleanup
   if (fade) {
     ghost.__projectPreviewExitSourceRevealTimer = window.setTimeout(() => {
       ghost.__projectPreviewExitSourceRevealTimer = 0
@@ -7200,7 +7233,7 @@ function runProjectPreviewExitGhost(
     : projectPreviewSurfaceDurationMs()
   // Keep exit snapshots mounted for a short settle buffer so late geometry
   // updates never pop through before reveal/collapse reaches visual rest.
-  window.setTimeout(cleanup, catalogFilterDuration(exitTransitionMs + 140))
+  ghost.__projectPreviewExitCleanupTimer = window.setTimeout(cleanup, catalogFilterDuration(exitTransitionMs + 80))
 }
 
 function clearProjectPreviewExpandMotion(card) {
@@ -7249,8 +7282,11 @@ function startProjectPreviewAnchor(card, sourceTop, headerHeight) {
     if (token !== siteState.projectPreviewAnchorToken || !card.isConnected) return
     const progress = clamp((time - startedAt) / PROJECT_PREVIEW_ANCHOR_MS, 0, 1)
     const eased = smoothstep(progress)
+    const liveTarget = activeProjectDetailDrawer()?.card === card
+      ? projectDetailHeaderStartY(card) ?? targetY
+      : targetY
     window.scrollTo({
-      top: startY + (targetY - startY) * eased,
+      top: clamp(startY + (liveTarget - startY) * eased, 0, pageMaxScrollY()),
       left: 0,
       behavior: "auto",
     })
@@ -7487,8 +7523,7 @@ function syncProjectDetailHeaderAnchor(card, drawer) {
   // changes, including frames where no scroll event invalidates that cache.
   const rect = drawer.getClientRects()[0]
   if (!Number.isFinite(rect?.top)) return Number.NaN
-  // A drawer that is still opening carries an entry transform that a rect
-  // includes and a layout offset does not.
+  // Layout offsets avoid fractional grid rounding while the drawer opens.
   const parent = drawer.dataset.drawerState === "settled" ? null : drawer.offsetParent
   const parentRect = parent?.getClientRects?.()[0]
   const flowTop = Number.isFinite(parentRect?.top)
@@ -7526,6 +7561,10 @@ function openProjectDetailDrawer(card, target) {
   // therefore carry the resolved media colour across for the drawer surface
   // blend instead of falling back to the plain homepage paper.
   const cardStyle = window.getComputedStyle(card)
+  const previewCopyStyle = getComputedStyle(card.querySelector(".project-preview-copy"))
+  for (const side of ["top", "right", "bottom", "left"]) {
+    card.style.setProperty(`--project-detail-copy-${side}`, previewCopyStyle.getPropertyValue(`padding-${side}`))
+  }
   const detailTheme =
     cardStyle.getPropertyValue("--preview-media-bg").trim() ||
     cardStyle.getPropertyValue("--media-bg").trim() ||

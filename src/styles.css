@@ -5246,6 +5246,54 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 }
 
+.project-preview-exit-ghost::before,
+.project-preview-exit-ghost::after {
+  left: 0 !important;
+  width: 100% !important;
+  height: var(--project-preview-rule-width) !important;
+  background: var(--preview-rule, var(--rule)) !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+.project-preview-exit-ghost::before { top: 0 !important; bottom: auto !important; }
+.project-preview-exit-ghost::after { top: auto !important; bottom: 0 !important; }
+
+/* Drawer entry keeps the preview's type in place. Its padding contracts only
+   with scroll progress, using the exact insets captured from the preview. */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
+  padding:
+    calc(8px + (var(--project-detail-copy-top, 42px) - 8px) * (1 - var(--project-detail-header-ease, 0)))
+    calc(8px + (var(--project-detail-copy-right, 42px) - 8px) * (1 - var(--project-detail-header-ease, 0)))
+    calc(8px + (var(--project-detail-copy-bottom, 42px) - 8px) * (1 - var(--project-detail-header-ease, 0)))
+    calc(8px + (var(--project-detail-copy-left, 42px) - 8px) * (1 - var(--project-detail-header-ease, 0)));
+  grid-template-rows: auto 1fr auto;
+  clip-path: none;
+}
+
+@media (min-width: 981px) and (orientation: landscape) {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media > img {
+    top: var(--project-preview-content-block-pad);
+    bottom: auto;
+    width: calc(100% - var(--content-edge-pad) - var(--project-card-column-gap) / 2);
+    height: max(0px, calc(100% - var(--project-preview-content-block-pad) * 2));
+    object-fit: contain;
+  }
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="left"] .project-media > img { left: var(--content-edge-pad); }
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="right"] .project-media > img { left: calc(var(--project-card-column-gap) / 2); }
+}
+
+/* The phone preview already handed its media to the text. Opening its article
+   retains that layout instead of suddenly inserting a thumbnail column. */
+@media (max-width: 700px) {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
+  }
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media { display: none; }
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy { grid-column: 1 / -1 !important; }
+}
+
 /* The live card owns the surface until it settles. Freeze responsive layout
    transitions during measurement so its destination cannot move underneath. */
 .project-card[data-project-preview-motion],

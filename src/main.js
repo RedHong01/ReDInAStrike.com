@@ -220,6 +220,10 @@ const PROJECT_RULE_WEIGHT_UPDATE_EPSILON = 0.004
 // a reader stops scrolling.
 const PROJECT_DETAIL_HEADER_EASE_SPEED = 11
 const PROJECT_DETAIL_HEADER_EASE_EPSILON = 0.001
+// A flick can move the edge faster than the interior can follow. Cap how far
+// behind it is allowed to fall, so the copy is never still laid out for a
+// tall card inside a bar that has already collapsed around it.
+const PROJECT_DETAIL_HEADER_EASE_MAX_TRAIL = 0.22
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const SECTION_SCROLL_MIN_MS = 620
 const SECTION_SCROLL_MAX_MS = 1380
@@ -3845,6 +3849,12 @@ function requestProjectDetailHeaderUpdate() {
   siteState.projectDetailHeaderProgress = progress
   if (prefersReducedMotion() || !Number.isFinite(siteState.projectDetailHeaderEase)) {
     siteState.projectDetailHeaderEase = progress
+  } else {
+    siteState.projectDetailHeaderEase = clamp(
+      siteState.projectDetailHeaderEase,
+      progress - PROJECT_DETAIL_HEADER_EASE_MAX_TRAIL,
+      progress + PROJECT_DETAIL_HEADER_EASE_MAX_TRAIL,
+    )
   }
   applyProjectDetailHeaderProgress(card, progress, siteState.projectDetailHeaderEase, openHeight, compactHeight)
   if (
@@ -7460,6 +7470,30 @@ function restoreProjectDetailSwitchAnchor(anchor) {
   requestProjectDetailHeaderUpdate()
 }
 
+/**
+ * Record where the sticky lead sits in normal flow, in document coordinates.
+ * Its own rect is unusable for this — once the card is sticky the rect reports
+ * the pinned position, not the flow position — but the article below it is
+ * ordinary flow, and the lead now keeps a constant flow footprint while it
+ * collapses. So the article's top minus that footprint is the anchor, at any
+ * point in the collapse. Returns the viewport-relative flow top.
+ */
+function syncProjectDetailHeaderAnchor(card, drawer) {
+  const openHeight = card?.__detailHeaderOpenHeight
+  if (!card?.isConnected || !drawer?.isConnected || !(openHeight > 0)) return Number.NaN
+  const rect = drawer.getBoundingClientRect()
+  if (!Number.isFinite(rect?.top)) return Number.NaN
+  // A drawer that is still opening carries an entry transform that a rect
+  // includes and a layout offset does not.
+  const parent = drawer.dataset.drawerState === "settled" ? null : drawer.offsetParent
+  const parentRect = parent?.getBoundingClientRect?.()
+  const flowTop = Number.isFinite(parentRect?.top)
+    ? parentRect.top + (parent.clientTop || 0) + drawer.offsetTop
+    : rect.top
+  card.__detailHeaderStart = flowTop - openHeight + (window.scrollY || window.pageYOffset || 0)
+  return flowTop - openHeight
+}
+
 function openProjectDetailDrawer(card, target) {
   if (!card?.isConnected || !target?.path) return
   const project = routeMap.get(target.path)
@@ -7522,12 +7556,18 @@ function openProjectDetailDrawer(card, target) {
   card.setAttribute("data-project-detail-open", "true")
   card.setAttribute("aria-controls", drawer.id)
   card.setAttribute("aria-expanded", "true")
+  // The rect above was taken while the row was still its own sticky element,
+  // which sits the lead ~24px away from where it lands once the article opens.
+  // Re-anchor against the settled open layout before the first collapse frame,
+  // otherwise the whole travel is offset by that much and the lead floats
+  // above the article instead of sitting on it.
+  const anchoredTop = syncProjectDetailHeaderAnchor(card, drawer)
   requestProjectDetailHeaderUpdate()
   refreshAfterProjectPreviewChange()
 
   startProjectPreviewAnchor(
     card,
-    detailHeaderRect.top,
+    Number.isFinite(anchoredTop) ? anchoredTop : detailHeaderRect.top,
     siteState.headerVisualBottom || currentHeaderHeight(),
   )
 
@@ -7547,6 +7587,10 @@ function openProjectDetailDrawer(card, target) {
       if (!drawer.isConnected || siteState.projectDetailDrawer !== drawerState) return
       drawer.dataset.drawerState = "settled"
       drawer.style.removeProperty("--project-detail-drawer-height")
+      // The opening transform is gone now, so the article's own rect gives the
+      // anchor without the layout-offset detour.
+      syncProjectDetailHeaderAnchor(card, drawer)
+      requestProjectDetailHeaderUpdate()
     }, prefersReducedMotion() ? 0 : 760)
   })
 }

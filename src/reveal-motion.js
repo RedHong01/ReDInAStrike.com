@@ -845,7 +845,10 @@ export function captureViewportDitherBoundaryField(card) {
     currentStrengths: current,
     targetStrengths: target.strengths,
     range: boundaryFieldRange(target.strengths),
-    noiseTime: (state.lastViewportDraw || target.now) / 1000 - (state.boundaryTimeOffset || 0),
+    noiseTime: state.lastBoundaryNoiseTime ??
+      (target.now / 1000 - (state.boundaryTimeOffset || 0)),
+    configKey: state.configKey,
+    sourceSignature: state.sourceSignature,
   }
 }
 
@@ -999,6 +1002,7 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
   const softness = pixelSoftness(config, "pixel-snow")
   const breathAmount = 0.07 + config.revealNoiseFlicker * 0.16
   const timeSeconds = now / 1000 - (state.boundaryTimeOffset || 0)
+  state.lastBoundaryNoiseTime = timeSeconds
   const data = state.framePixels
   const rowKinds = state.boundaryRowKinds
   const uploadRanges = state.boundaryUploadRanges

@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
 import vm from "node:vm"
 import * as motion from "../src/motion-default.js"
+import * as activeColor from "../src/active-color-default.js"
 
 // Run the production ownership and boundary-field code with a small canvas/DOM
 // fixture. No browser, server, external package, or wall-clock delay is required.
@@ -173,6 +174,7 @@ for (const [width, height] of [[390, 844], [768, 1024], [1280, 900], [1920, 1080
     now(3000)
     reveal.renderBoundaryField(previous, 3000, boundary.viewportBoundsForCard(card), true, { immediate: true })
     const snapshot = reveal.capture(card)
+    const visiblePixels = Array.from(previous.framePixels)
     assert.ok(snapshot.range.max > 0, "fixture touches the viewport boundary")
     reveal.cancel(card, { remove: true })
     now(4000)
@@ -182,6 +184,8 @@ for (const [width, height] of [[390, 844], [768, 1024], [1280, 900], [1920, 1080
     const result = reveal.handoff(card, snapshot, { allowBoundaryUpdate: false })
     assert.equal(result.ready, true)
     assert.equal(next.boundarySpread, null, "hover return must consume, rather than restart, the edge spread")
+    assert.deepEqual(Array.from(next.framePixels), visiblePixels,
+      "handoff must resume the same noise phase and raster, not just the same edge depth")
     const target = Array.from(next.boundaryTargetStrengths)
     assert.deepEqual(target, Array.from(snapshot.targetStrengths), "the full clipped boundary is restored atomically")
     now(4033)
@@ -258,6 +262,41 @@ await check("one handoff per interaction and stale async work cannot cancel the 
   releaseSync(true)
   await preparation
   assert.equal(api.state(card), latest, "old async completion leaves the new visible owner intact")
+})
+
+await check("every reverse pixel reaches its exact endpoint before changing owner", async () => {
+  const api = await loadSource("active-color-snow.js", {
+    ...activeColor,
+    URLSearchParams, location: { search: "" },
+    window: { addEventListener() {}, matchMedia: () => ({ matches: false }) },
+    document: {
+      readyState: "loading", addEventListener() {},
+      getElementById: () => ({ dataset: { version: "7" } }),
+      documentElement: { setAttribute() {} },
+    },
+  }, `
+    finishState = state => { state.auditFinished = true; };
+    globalThis.__audit = { drawState };
+  `)
+  const order = new Float32Array([0, 0.001, 0.03, 0.1, 0.5, 0.8, 0.95, 1])
+  const pixels = new Uint8ClampedArray(order.length * 4)
+  for (let index = 0; index < order.length; index++) {
+    pixels.set([index % 2 ? 69 : 248, index % 2 ? 69 : 248, index % 2 ? 69 : 248, 255], index * 4)
+  }
+  const config = activeColor.sanitizeActiveColorConfig(activeColor.PUBLISHED_ACTIVE_COLOR_CONFIG)
+  const state = {
+    card: { isConnected: true }, canvas: { isConnected: true },
+    ctx: { putImageData() {} },
+    grid: { count: order.length, cols: order.length, rows: 1, order,
+      palette: new Uint8ClampedArray(pixels.length).fill(130) },
+    config, paper: [248, 248, 248, 255], ink: [69, 69, 69, 255],
+    startTime: 0, direction: "in", mode: "restore-reverse", reason: "hover-return",
+    sourcePixels: pixels, framePixels: new Uint8ClampedArray(pixels.length),
+  }
+  api.drawState(state, config.activeColorDelayMs + config.activeColorDurationMs)
+  assert.equal(state.auditFinished, true)
+  assert.deepEqual(Array.from(state.framePixels), Array.from(pixels),
+    "no late pixels may still contain color or snow when the next owner appears")
 })
 
 if (failures.length) {

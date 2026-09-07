@@ -28,8 +28,11 @@ try {
  scrollTo(0,media.getBoundingClientRect().top+scrollY-bottom()-20);
  await sleep(1400);
  for (const [name,hold,scrollReturn] of [['full-hover',1100,false],['quick-leave',90,false],['reenter-during-return',500,false],['scroll-return',200,true]]) {
+  const beforeField=captureViewportDitherBoundaryField(card);
   const item={name,completions:0,boundaryMissing:0,replacements:0,peakFieldError:0,samples:[]};
   results.cases.push(item);
+  item.beforeField = {time:beforeField?.noiseTime,cols:beforeField?.cols,rows:beforeField?.rows,config:beforeField?.configKey,source:beforeField?.sourceSignature};
+  item.sourceGrid = {width:card.querySelector('.dither-preview-canvas')?.width,height:card.querySelector('.dither-preview-canvas')?.height};
   let heldSurface=null;
   let heldAt=0;
   const returnApi=window.__RED_HOVER_BINARY_RETURN__;
@@ -52,7 +55,7 @@ try {
    }
   });
   observer.observe(card,{childList:true,subtree:true});
-  const onComplete=e=>{if(e.detail?.card===card){item.completions++;item.handoff=e.detail.handoff;item.phase=e.detail.phase;item.completedAt=performance.now();item.holdMs=item.completedAt-heldAt;item.holdToCanonical=compareSurfaces(heldSurface,[card.querySelector('.dither-preview-canvas[data-active="true"]'),card.querySelector('.dither-reveal-canvas')])}};
+  const onComplete=e=>{if(e.detail?.card===card){item.completions++;item.handoff=e.detail.handoff;item.phase=e.detail.phase;item.completedAt=performance.now();item.holdMs=item.completedAt-heldAt;item.afterField=captureViewportDitherBoundaryField(card);delete item.afterField.currentStrengths;delete item.afterField.targetStrengths;item.holdToCanonical=compareSurfaces(heldSurface,[card.querySelector('.dither-preview-canvas[data-active="true"]'),card.querySelector('.dither-reveal-canvas')])}};
   window.addEventListener('red:hover-binary-return-complete',onComplete);
   // Exercise the same application listeners as pointer input without opening a card.
   card.dispatchEvent(new PointerEvent('pointerover',{bubbles:true,pointerType:'mouse'}));
@@ -99,6 +102,9 @@ try {
   if (item.errorIncreases) results.errors.push(`${name}: edge field regressed after handoff`);
   if (item.finalFieldError > 0.01) results.errors.push(`${name}: edge field did not settle`);
   if (!scrollReturn && item.peakFieldError > 0.01) results.errors.push(`${name}: stationary field restarted`);
+  if (item.beforeField.config !== item.afterField?.configKey) results.errors.push(`${name}: boundary configuration changed`);
+  if (!item.reverseToHold || item.reverseToHold.mean > 0.01) results.errors.push(`${name}: reverse endpoint changed at handoff`);
+  if (!item.holdToCanonical || item.holdToCanonical.changed > 0.001 || item.holdToCanonical.mean > 0.15) results.errors.push(`${name}: canonical raster changed at handoff`);
   report();
   await sleep(350);
  }

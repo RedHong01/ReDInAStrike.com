@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Hover return regression</title>
+<title>Drawer seam regression</title>
 <style>
   body { margin: 0; font: 14px monospace; }
   iframe { border: 0; display: block; position: fixed; inset: 0; }
@@ -9,7 +9,7 @@
   /* Native pointer placement must not add an unrelated hover to the fixture. */
   #pointer-shield { position: fixed; inset: 0; z-index: 2; }
 </style>
-<pre id="results">Running hover-return regression…</pre>
+<pre id="results">Running drawer-seam regression…</pre>
 <iframe title="Portfolio under test"></iframe>
 <div id="pointer-shield"></div>
 <script>
@@ -39,12 +39,12 @@
   frame.onload = () => {
     const script = frame.contentDocument.createElement('script')
     script.type = 'module'
-    script.src = '/scripts/hover-return-browser-audit.js'
+    script.src = '/scripts/drawer-seam-browser-audit.js'
     frame.contentDocument.body.append(script)
   }
   window.addEventListener('message', event => {
-    if (event.origin !== location.origin || event.source !== frame.contentWindow || !event.data?.hoverAudit) return
-    const report = event.data.hoverAudit
+    if (event.origin !== location.origin || event.source !== frame.contentWindow || !event.data?.drawerAudit) return
+    const report = event.data.drawerAudit
     if (report.done) {
       reports.push(report)
       index++
@@ -54,7 +54,7 @@
         frame.onload = () => {
           const script = frame.contentDocument.createElement('script')
           script.type = 'module'
-          script.src = '/scripts/hover-return-browser-audit.js'
+          script.src = '/scripts/drawer-seam-browser-audit.js'
           frame.contentDocument.body.append(script)
         }
         next()

@@ -1179,14 +1179,16 @@ function buildRestoreSurface(card, grid, paper = readPaperColor(), ink = readInk
     ? pixelsFromBinaryBits(fullSurface.bits, grid.cols, grid.rows, fullSurface.paper, fullSurface.ink)
     : null
   if (currentPixels) {
+    const sourceBits = captured?.bits || currentSurface?.bits
+    const fullBits = fullSurface?.bits || sourceBits
     return {
       sourcePixels: currentPixels,
       fullPixels: fullPixels || currentPixels,
-      sourceBits: captured?.bits || currentSurface.bits,
-      fullBits: fullSurface?.bits || captured?.bits || currentSurface.bits,
+      sourceBits,
+      fullBits,
       boundary: analyzeRestoreBoundary(
-        captured?.bits || currentSurface.bits,
-        fullSurface?.bits || captured?.bits || currentSurface.bits,
+        sourceBits,
+        fullBits,
         grid.cols,
         grid.rows,
       ),
@@ -1857,9 +1859,7 @@ function finishState(state) {
         state.cleanupFrame = 0
         if (cardStates.has(state.card)) return
         clearRestoreSourceInline(source)
-        releaseMotionAfterFrames(state.card, handoffStarted ? 0 : 2, {
-          cooldown: !handoffStarted,
-        })
+        releaseMotionAfterFrames(state.card, 2, { cooldown: true })
       })
     })
     return

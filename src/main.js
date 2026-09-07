@@ -3823,6 +3823,12 @@ function requestProjectDetailHeaderUpdate() {
     card.__detailHeaderStart = rect.top + scrollY
     card.__detailHeaderOpenHeight = Math.max(1, rect.height)
   }
+  // Responsive content bounding keeps changing while the site header settles:
+  // earlier catalogue rows can gain height even after scrolling has stopped.
+  // The drawer's live flow edge is therefore the source of truth, not the
+  // document position captured when it opened. Height + backfill stay constant,
+  // so reading this edge cannot feed our own collapse back into the layout.
+  syncProjectDetailHeaderAnchor(card, drawerState.element)
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
   const stickyStart = card.__detailHeaderStart - headerHeight
@@ -3990,6 +3996,8 @@ function projectDetailHeaderStartY(card) {
     card.__detailHeaderStart = rect.top + scrollY
     card.__detailHeaderOpenHeight = Math.max(1, rect.height)
   }
+  const drawerState = activeProjectDetailDrawer()
+  if (drawerState?.card === card) syncProjectDetailHeaderAnchor(card, drawerState.element)
   if (!Number.isFinite(card.__detailHeaderStart)) return null
   const headerHeight = Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
   return Math.max(0, card.__detailHeaderStart - headerHeight)
@@ -7676,12 +7684,14 @@ function restoreProjectDetailSwitchAnchor(anchor) {
 function syncProjectDetailHeaderAnchor(card, drawer) {
   const openHeight = card?.__detailHeaderOpenHeight
   if (!card?.isConnected || !drawer?.isConnected || !(openHeight > 0)) return Number.NaN
-  const rect = drawer.getBoundingClientRect()
+  // Bypass the shared rect cache: this runs from ResizeObserver as layout
+  // changes, including frames where no scroll event invalidates that cache.
+  const rect = drawer.getClientRects()[0]
   if (!Number.isFinite(rect?.top)) return Number.NaN
   // A drawer that is still opening carries an entry transform that a rect
   // includes and a layout offset does not.
   const parent = drawer.dataset.drawerState === "settled" ? null : drawer.offsetParent
-  const parentRect = parent?.getBoundingClientRect?.()
+  const parentRect = parent?.getClientRects?.()[0]
   const flowTop = Number.isFinite(parentRect?.top)
     ? parentRect.top + (parent.clientTop || 0) + drawer.offsetTop
     : rect.top
@@ -7742,9 +7752,17 @@ function openProjectDetailDrawer(card, target) {
   }
   updateHeight()
   const resizeObserver = typeof ResizeObserver === "function" && inner
-    ? new ResizeObserver(updateHeight)
+    ? new ResizeObserver((entries) => {
+      if (entries.some((entry) => entry.target === inner)) updateHeight()
+      // The layout-surface follower can resize earlier catalogue rows after
+      // the last scroll/header frame. Reconcile before paint so its final
+      // frames cannot leave the lead detached from the article's top edge.
+      requestProjectDetailHeaderUpdate()
+    })
     : null
   resizeObserver?.observe(inner)
+  const catalog = card.closest(".catalog")
+  if (catalog) resizeObserver?.observe(catalog)
 
   const drawerState = { element: drawer, card, row, resizeObserver }
   siteState.projectDetailDrawer = drawerState

@@ -169,6 +169,10 @@ const projects = [
     image: "assets/framer-live/ongoing-game-project.png",
     imageFit: "contain",
     mediaBackground: "#ffffff",
+    // The DAD repository publishes its Unity WebGL output at a stable Pages
+    // root. The repository can replace the build behind this URL without a
+    // website code change.
+    webglEmbed: "https://redhong01.github.io/DAD/",
   },
   {
     pageTitle: "Narrative Design Document",
@@ -3196,7 +3200,29 @@ function detailMarkup(project) {
     return framerProjectDetailMarkup(project, framerProjectDetails[project.path])
   }
 
-  const projectMedia = project.itchEmbed
+  const webglSource = project.webglEmbed
+    ? (() => {
+        try {
+          const url = new URL(project.webglEmbed, window.location.href)
+          url.searchParams.set("refresh", String(Date.now()))
+          return url.href
+        } catch {
+          return project.webglEmbed
+        }
+      })()
+    : ""
+  const projectMedia = project.webglEmbed
+    ? `<figure class="detail-screenshot detail-playable detail-playable-webgl" aria-label="${escapeHtml(project.pageTitle)} WebGL game">
+        <iframe
+          src="${escapeHtml(webglSource)}"
+          title="Play ${escapeHtml(project.pageTitle)} WebGL build"
+          allow="autoplay; fullscreen; gamepad; pointer-lock"
+          allowfullscreen
+          loading="eager"
+          referrerpolicy="strict-origin-when-cross-origin"
+        ></iframe>
+      </figure>`
+    : project.itchEmbed
     ? `<figure class="detail-screenshot detail-playable" aria-label="${escapeHtml(project.pageTitle)} playable game">
         <iframe
           src="${escapeHtml(project.itchEmbed)}"

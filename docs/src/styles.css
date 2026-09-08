@@ -2850,6 +2850,16 @@ body[data-layout-transition="true"] .about-section {
   border: 0;
 }
 
+.detail-playable-webgl {
+  aspect-ratio: 16 / 10;
+  background: #000;
+  border: 1px solid var(--ink);
+}
+
+.detail-playable-webgl iframe {
+  background: #000;
+}
+
 .framer-derived-page {
   --derived-ink: rgb(0, 17, 34);
   --derived-muted: rgba(0, 17, 34, 0.52);

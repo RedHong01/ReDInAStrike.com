@@ -1,15 +1,6 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 import "./native-halftone-bypass.js?v=20260905-perf1"
-import { destroyPublicDitherRuntime } from "./dither-public-scheduler.js?v=20260905-perf1"
 import "./layout-surface-sync.js?v=20260905-perf1"
-// Register the preset before the motion listeners so the first category change
-// can use Fine Signal even when it happens immediately after page load.
-import "./fine-signal-preset-runtime.js?v=20260905-perf1"
-import "./active-color-snow.js?v=20260905-perf1"
-import "./hover-binary-return.js?v=20260905-perf1"
-import "./active-color-replay-dedupe.js?v=20260905-perf1"
-import "./active-color-transition-bridge.js?v=20260905-perf1"
-import "./binary-pixel-handoff.js?v=20260905-perf1"
 
 const params = new URLSearchParams(window.location.search)
 const autoOpen =
@@ -18,9 +9,26 @@ const autoOpen =
   params.has("motionConfig") ||
   params.has("activeColorConfig")
 const publishedNeedsRuntime = PUBLISHED_DITHER_CONFIG?.mode && PUBLISHED_DITHER_CONFIG.mode !== "native"
+const FILTER_CATEGORIES = new Set(["game", "ongoing", "interaction", "graphic"])
+
+let productionPromise = null
+let productionModule = null
+let productionLoaded = false
 let corePromise = null
 let coreLoaded = false
 let cssPromise = null
+let replayingFilterClick = false
+let idleWarmHandle = 0
+
+function activeCatalog() {
+  return document.querySelector(".catalog")
+}
+
+function isFilterNavItem(node) {
+  const item = node?.closest?.(".nav-item[data-nav-category]")
+  if (!item) return null
+  return FILTER_CATEGORIES.has(item.dataset.navCategory || "") ? item : null
+}
 
 function ensureCss() {
   if (cssPromise) return cssPromise
@@ -43,12 +51,34 @@ function ensureCss() {
   return cssPromise
 }
 
+async function loadProductionRuntime() {
+  if (!publishedNeedsRuntime || coreLoaded) return null
+  if (!activeCatalog()) return null
+  if (!productionPromise) {
+    productionPromise = import("./dither-production-runtime.js?v=20260908-perf2")
+      .then((module) => {
+        productionModule = module
+        productionLoaded = true
+        return module
+      })
+      .catch((error) => {
+        productionPromise = null
+        throw error
+      })
+  }
+  return productionPromise
+}
+
+function destroyProductionRuntime() {
+  productionModule?.destroyPublicDitherRuntime?.()
+  window.__RED_DITHER_PUBLIC_RUNTIME__?.destroy?.()
+}
+
 async function loadCore() {
   if (!corePromise) {
     corePromise = (async () => {
       window.__RED_NATIVE_HALFTONE_BYPASS__?.destroy?.()
-      destroyPublicDitherRuntime?.()
-      window.__RED_DITHER_PUBLIC_RUNTIME__?.destroy?.()
+      destroyProductionRuntime()
       await ensureCss()
       const module = await import("./dither-hub-entry.js?v=20260905-perf1")
       coreLoaded = true
@@ -58,10 +88,70 @@ async function loadCore() {
   return corePromise
 }
 
+function warmProductionRuntime() {
+  idleWarmHandle = 0
+  if (coreLoaded || productionLoaded || !publishedNeedsRuntime || !activeCatalog()) return
+  loadProductionRuntime().catch(() => {})
+}
+
+function scheduleIdleWarmup() {
+  if (autoOpen || coreLoaded || productionLoaded || idleWarmHandle || !publishedNeedsRuntime) return
+  if (!activeCatalog()) return
+  if ("requestIdleCallback" in window) {
+    idleWarmHandle = window.requestIdleCallback(warmProductionRuntime, { timeout: 2400 })
+  } else {
+    idleWarmHandle = window.setTimeout(warmProductionRuntime, 1400)
+  }
+}
+
+function startRuntimeFromIntent(event) {
+  if (!isFilterNavItem(event.target)) return
+  loadProductionRuntime().catch(() => {})
+}
+
+function gateFirstFilterClick(event) {
+  if (replayingFilterClick || coreLoaded || productionLoaded || !publishedNeedsRuntime) return
+  const item = isFilterNavItem(event.target)
+  if (!item || !activeCatalog()) return
+
+  // The filter motion listeners live in the deferred graph. On an immediate
+  // first click (especially touch, where there is no hover prewarm), hold that
+  // single click until the graph is ready, then replay it. main.js explicitly
+  // ignores defaultPrevented clicks, so the state machine cannot start halfway
+  // through initialization.
+  event.preventDefault()
+  event.stopImmediatePropagation()
+
+  loadProductionRuntime()
+    .catch(() => null)
+    .then(() => {
+      if (!item.isConnected) return
+      replayingFilterClick = true
+      try {
+        item.click()
+      } finally {
+        replayingFilterClick = false
+      }
+    })
+}
+
 if (!publishedNeedsRuntime) {
-  destroyPublicDitherRuntime?.()
+  window.__RED_DITHER_PUBLIC_RUNTIME__?.destroy?.()
 } else if (autoOpen) {
   loadCore()
+} else {
+  // Pointer/focus intent usually hides all network latency before activation.
+  document.addEventListener("pointerover", startRuntimeFromIntent, { passive: true, capture: true })
+  document.addEventListener("pointerdown", startRuntimeFromIntent, { passive: true, capture: true })
+  document.addEventListener("focusin", startRuntimeFromIntent, { passive: true, capture: true })
+  document.addEventListener("click", gateFirstFilterClick, { capture: true })
+
+  // A URL/state restore may already have selected a category before this module
+  // executes. In that case there is no reason to wait for user intent.
+  if (document.querySelector(".catalog[data-active-filter]")) loadProductionRuntime().catch(() => {})
+
+  if (document.readyState === "complete") scheduleIdleWarmup()
+  else window.addEventListener("load", scheduleIdleWarmup, { once: true, passive: true })
 }
 
 window.addEventListener("keydown", async (event) => {

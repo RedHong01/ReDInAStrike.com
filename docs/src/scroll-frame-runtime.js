@@ -88,6 +88,10 @@
     VISUAL_SCROLL,
     request,
     subscribe,
+    // A layout transaction may remove thousands of document pixels while
+    // preserving the viewport. Subscribers still receive the next frame,
+    // but must not interpret that correction as a new user scroll gesture.
+    rebase() { lastScrollY = window.scrollY || window.pageYOffset || 0 },
     get latest() { return latest },
     get pending() { return Boolean(frame) },
   })

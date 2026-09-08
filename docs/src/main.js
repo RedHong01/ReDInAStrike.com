@@ -3948,6 +3948,7 @@ function requestProjectDetailHeaderUpdate() {
     )
   }
   applyProjectDetailHeaderProgress(card, progress, siteState.projectDetailHeaderEase, openHeight, compactHeight)
+  syncProjectDetailRule(drawerState, drawerRect, headerHeight)
   if (
     !siteState.projectDetailHeaderEaseFrame &&
     Math.abs(progress - siteState.projectDetailHeaderEase) >= PROJECT_DETAIL_HEADER_EASE_EPSILON
@@ -3955,6 +3956,20 @@ function requestProjectDetailHeaderUpdate() {
     siteState.projectDetailHeaderEaseTime = 0
     siteState.projectDetailHeaderEaseFrame = requestAnimationFrame(easeProjectDetailHeaderInterior)
   }
+}
+
+function syncProjectDetailRule(state, drawerRect, headerBottom) {
+  const { rule, card } = state
+  if (!rule) return
+  const edge = card.getClientRects()[0]?.bottom
+  // Paint immediately outside the opaque lead, over the article itself.
+  // A blend inside the card's isolated stacking context only inverts the
+  // card background; this body-level line sees images and text too.
+  const visible = Number.isFinite(edge) && edge >= headerBottom && edge < innerHeight &&
+    drawerRect?.top <= edge + 1 && drawerRect.bottom > edge
+  rule.hidden = !visible
+  card.toggleAttribute("data-project-detail-invert-rule", visible)
+  if (visible) rule.style.transform = `translateY(${Math.round(edge)}px)`
 }
 
 /**
@@ -7076,7 +7091,7 @@ function flushProjectPreviewTransitionIntent() {
   }
 }
 
-function createProjectPreviewExitGhost(card) {
+function createProjectPreviewExitGhost(card, { viewportPinned = false } = {}) {
   if (!card?.isConnected) return null
   const side = card.dataset.cardSide === "right" ? "right" : "left"
 
@@ -7121,7 +7136,7 @@ function createProjectPreviewExitGhost(card) {
   // on a body-level snapshot; the normal preview selectors can resolve them
   // again as the live card changes.
   const snapshotImage = ghost.querySelector(".project-media > img")
-  if (snapshotImage) {
+  if (snapshotImage && !viewportPinned) {
     for (const name of ["width", "height", "min-width", "min-height", "max-width", "max-height", "left", "right", "top", "bottom", "inset", "aspect-ratio"]) {
       snapshotImage.style.removeProperty(name)
     }
@@ -7141,7 +7156,7 @@ function createProjectPreviewExitGhost(card) {
   // it thousands of pixels below the viewport when the outgoing card is
   // switched. Reassert the detached layer's containing mode after the class
   // is added so its top/left variables remain document coordinates.
-  ghost.style.setProperty("position", "absolute", "important")
+  ghost.style.setProperty("position", viewportPinned ? "fixed" : "absolute", "important")
   ghost.style.setProperty("left", "var(--project-preview-ghost-left, 0px)", "important")
   ghost.style.setProperty("top", "var(--project-preview-ghost-top, 0px)", "important")
   ghost.style.setProperty("width", "var(--project-preview-ghost-width, 100vw)", "important")
@@ -7179,8 +7194,8 @@ function createProjectPreviewExitGhost(card) {
   ghost.__projectPreviewExitSourceRow = sourceRow
   ghost.__projectPreviewExitSourceCard = card
 
-  ghost.style.setProperty("--project-preview-ghost-left", `${sourceRect.left + window.scrollX}px`)
-  ghost.style.setProperty("--project-preview-ghost-top", `${sourceRect.top + window.scrollY}px`)
+  ghost.style.setProperty("--project-preview-ghost-left", `${sourceRect.left + (viewportPinned ? 0 : window.scrollX)}px`)
+  ghost.style.setProperty("--project-preview-ghost-top", `${sourceRect.top + (viewportPinned ? 0 : window.scrollY)}px`)
   ghost.style.setProperty("--project-preview-ghost-width", `${sourceRect.width}px`)
   ghost.style.setProperty("--project-preview-ghost-height", `${sourceRect.height}px`)
 
@@ -7188,6 +7203,7 @@ function createProjectPreviewExitGhost(card) {
   siteState.projectPreviewExitGhosts.add(ghost)
   return {
     ghost,
+    viewportPinned,
     sourceRect,
     sourceImageState,
     sourceImageVisual,
@@ -7388,20 +7404,38 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   let imageStartDescriptor = null
   let ghostScaleX = 1
   let ghostScaleY = 1
+  let paintedImageTransform = { dx: 0, dy: 0, sx: 1, sy: 1 }
+  const paintImageTransform = ({ dx, dy, sx, sy }) => {
+    paintedImageTransform = {
+      dx: Number(dx.toFixed(3)), dy: Number(dy.toFixed(3)),
+      sx: Number(sx.toFixed(5)), sy: Number(sy.toFixed(5)),
+    }
+    const t = paintedImageTransform
+    ghostImage.style.transform = `translate(${t.dx}px, ${t.dy}px) scale(${t.sx}, ${t.sy})`
+  }
+  if (ghostImage) {
+    ghostImage.style.transformOrigin = "0 0"
+    ghostImage.style.transform = "none"
+  }
 
   let settled = false
   let settling = false
   let syncFrame = 0
+  const imageSourceScrollY = window.scrollY
   const measureImageStartDescriptor = () => {
     if (!ghostImage || !imageFrom?.width || !imageFrom?.height) return null
-    // Measure the destination box without the previous FLIP transform. The
-    // root correction can continue settling as the content-edge proxy moves,
-    // so this is intentionally repeatable on every frame.
-    const previousTransform = ghostImage.style.transform
-    ghostImage.style.transform = "none"
-    const imageBox = ghostImage.getBoundingClientRect()
-    const targetImage = imageFitChanges ? null : projectPreviewImageRect(ghost)
-    ghostImage.style.transform = previousTransform
+    // Undo our known translation/scale mathematically. Removing the transform,
+    // forcing layout, reading twice, and restoring it on every animation frame
+    // made the measurement itself an additional rendering workload.
+    const painted = ghostImage.getBoundingClientRect()
+    const t = paintedImageTransform
+    const imageBox = {
+      left: painted.left - t.dx * ghostScaleX,
+      top: painted.top - t.dy * ghostScaleY,
+      width: painted.width / t.sx,
+      height: painted.height / t.sy,
+    }
+    const targetImage = imageFitChanges ? null : projectPreviewBitmapRect(ghostImage, imageBox)
     if (imageBox.width <= 0 || imageBox.height <= 0) return null
     if (imageFitChanges && imageSourceState?.element) {
       const sourceBox = imageSourceState.element
@@ -7455,18 +7489,21 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     // then interpolated; a one-time FLIP would retain the old proxy width and
     // create the small final relocate the motion is meant to avoid.
     const descriptor = current || imageStartDescriptor
+    // Source coordinates belong to the click's viewport. Keep them attached
+    // to the document if the user scrolls during the reveal.
+    const sourceScrollOffset = (imageSourceScrollY - window.scrollY) / ghostScaleY
     const dx = descriptor.dx * (1 - eased)
-    const dy = descriptor.dy * (1 - eased)
+    const dy = (descriptor.dy + sourceScrollOffset) * (1 - eased)
     const sx = 1 + (descriptor.sx - 1) * (1 - eased)
     const sy = 1 + (descriptor.sy - 1) * (1 - eased)
-    ghostImage.style.transform = `translate(${dx.toFixed(3)}px, ${dy.toFixed(3)}px) scale(${sx.toFixed(5)}, ${sy.toFixed(5)})`
+    paintImageTransform({ dx, dy, sx, sy })
     if (targetImageLayer) {
       const fade = clamp((eased - 0.64) / 0.36, 0, 1)
       ghostImage.style.opacity = `${1 - fade}`
       targetImageLayer.style.opacity = `${fade}`
     }
     if (raw >= 1) {
-      ghostImage.style.transform = "none"
+      paintImageTransform({ dx: 0, dy: 0, sx: 1, sy: 1 })
       ghostImage.style.opacity = targetImageLayer ? "0" : "1"
       if (targetImageLayer) targetImageLayer.style.opacity = "1"
       imageMotionActive = false
@@ -7588,9 +7625,7 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   if (ghostImage && imageFrom?.width > 0 && imageFrom?.height > 0) {
     imageStartDescriptor = measureImageStartDescriptor()
     if (imageStartDescriptor) {
-      const { dx, dy, sx, sy } = imageStartDescriptor
-      ghostImage.style.transformOrigin = "0 0"
-      ghostImage.style.transform = `translate(${dx.toFixed(3)}px, ${dy.toFixed(3)}px) scale(${sx.toFixed(5)}, ${sy.toFixed(5)})`
+      paintImageTransform(imageStartDescriptor)
       ghostImage.style.willChange = "transform"
       ghostImage.style.opacity = "1"
       if (targetImageLayer) targetImageLayer.style.opacity = "0"
@@ -7628,19 +7663,23 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
 function projectPreviewImageRect(card) {
   const image = card.querySelector(".project-media > img")
   if (!image) return null
-  const rect = image.getBoundingClientRect()
+  return projectPreviewBitmapRect(image, image.getBoundingClientRect())
+}
+
+function projectPreviewBitmapRect(image, rect, style = getComputedStyle(image)) {
   if (!rect.width || !rect.height) return null
-  const style = getComputedStyle(image)
   const contain = style.objectFit === "contain"
-  const cover = style.objectFit === "cover"
   // A cover image paints outside its element and clips that overflow. The
   // visible source is therefore the element box, not the larger natural
   // bitmap rectangle; using the latter makes a cover→contain opening start
   // several pixels above/aside from the clicked thumbnail. Contain still
   // benefits from the tighter natural-bitmap rect because its letterbox is
   // part of the visible layout.
-  if (!contain || !image.naturalWidth || !image.naturalHeight) return projectPreviewRect(rect)
-  const scale = Math[contain ? "min" : "max"](rect.width / image.naturalWidth, rect.height / image.naturalHeight)
+  if (!contain || !image.naturalWidth || !image.naturalHeight) return {
+    left: rect.left, top: rect.top, width: rect.width, height: rect.height,
+    right: rect.left + rect.width, bottom: rect.top + rect.height,
+  }
+  const scale = Math.min(rect.width / image.naturalWidth, rect.height / image.naturalHeight)
   const width = image.naturalWidth * scale
   const height = image.naturalHeight * scale
   const position = style.objectPosition.split(" ")
@@ -7653,9 +7692,10 @@ function projectPreviewImageState(card) {
   if (!image) return null
   const style = getComputedStyle(image)
   const bitmap = style.objectFit.trim().toLowerCase() === "contain" && image.naturalWidth > 0 && image.naturalHeight > 0
+  const element = projectPreviewRect(image.getBoundingClientRect())
   return {
-    visual: projectPreviewImageRect(card),
-    element: projectPreviewRect(image.getBoundingClientRect()),
+    visual: element ? projectPreviewBitmapRect(image, element, style) : null,
+    element,
     fit: style.objectFit.trim().toLowerCase(),
     position: style.objectPosition.trim() || "50% 50%",
     bitmap,
@@ -7760,6 +7800,19 @@ function applyProjectPreviewExitTarget(exitMotion, targetCard) {
   if (!exitMotion?.ghost?.isConnected) return
 
   const { ghost, sourceRect, fallbackRect } = exitMotion
+  if (exitMotion.viewportPinned) {
+    // The drawer's sticky lead has no nearby compact destination after its
+    // article is removed. Retract its captured surface to its original edge;
+    // following the distant grid cell would turn this into a vertical wipe.
+    const right = ghost.dataset.projectPreviewMotionSide === "right"
+    ghost.style.setProperty("--project-preview-exit-left", `${right ? sourceRect.width : 0}px`)
+    ghost.style.setProperty("--project-preview-exit-right", `${right ? 0 : sourceRect.width}px`)
+    ghost.style.setProperty("--project-preview-exit-top", "0px")
+    ghost.style.setProperty("--project-preview-exit-bottom", "0px")
+    ghost.dataset.projectPreviewExitMode = "edge"
+    ghost.setAttribute("data-project-preview-exiting", "true")
+    return
+  }
   const measuredRect = targetCard?.isConnected ? targetCard.getBoundingClientRect() : null
   const targetRect = validPreviewTargetRect(measuredRect) ? measuredRect : fallbackRect
   const left = clamp(targetRect.left - sourceRect.left, 0, sourceRect.width)
@@ -7835,7 +7888,7 @@ function runProjectPreviewExitGhost(
   let exitImageFinish = null
   let exitImageRestore = null
 
-  if (!fade && exitImage && targetImage) {
+  if (!fade && !exitMotion.viewportPinned && exitImage && targetImage) {
     const sourceState = exitMotion.sourceImageState || null
     const sourceVisual = exitMotion.sourceImageVisual || projectPreviewImageRect(ghost)
     const sourceElement = sourceState?.element || projectPreviewRect(exitImage.getBoundingClientRect())
@@ -8229,11 +8282,16 @@ function setProjectPreview(card, expanded) {
   if (expanded ? current === card : current !== card) return
   cancelProjectPreviewAnchor()
   const drawer = activeProjectDetailDrawer()
-  if (drawer && (!expanded || drawer.card !== card)) closeProjectDetailDrawer({ immediate: true })
+  if (drawer && !expanded) { closeProjectDetailWithPreview(); return }
   const motionId = ++siteState.projectPreviewMotionId
   clearProjectPreviewExitGhosts()
+  // Read the actual clicked card and the outgoing paint BEFORE removing the
+  // article. One synchronous layout transaction then commits the new state
+  // and restores this viewport anchor, before the browser paints a frame.
+  const switchAnchor = drawer && expanded && drawer.card !== card
+    ? { element: card, top: card.getClientRects()[0]?.top } : null
   const outgoing = expanded && current && current !== card && !prefersReducedMotion()
-    ? createProjectPreviewExitGhost(current) : null
+    ? createProjectPreviewExitGhost(current, { viewportPinned: Boolean(drawer) }) : null
 
   // Disable legacy geometry transitions before either measurement. The live
   // surface owns every frame, including the first and final one.
@@ -8241,6 +8299,11 @@ function setProjectPreview(card, expanded) {
   const from = projectPreviewRect(card.getBoundingClientRect())
   const imageSourceState = expanded ? projectPreviewImageState(card) : null
   const imageFrom = imageSourceState?.visual || projectPreviewImageRect(card)
+  if (drawer && (!expanded || drawer.card !== card)) {
+    beginProjectDetailMotion()
+    cancelSectionScroll()
+    closeProjectDetailDrawer({ immediate: true, refresh: false })
+  }
   if (!expanded) {
     const target = measureCollapsedProjectPreview(card)
     const finish = () => {
@@ -8285,6 +8348,10 @@ function setProjectPreview(card, expanded) {
   card.removeAttribute("data-project-preview-ready")
   card.setAttribute("data-project-preview-expand-ghosting", "true")
   commitProjectPreviewState(card, true, { refresh: false })
+  if (switchAnchor) restoreProjectDetailSwitchAnchor(switchAnchor, { flow: true })
+  if (drawer) requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (motionId === siteState.projectPreviewMotionId) endProjectDetailMotion()
+  }))
   const to = projectPreviewRect(card.getBoundingClientRect())
   // Keep the outgoing preview mounted as a physical snapshot and retract it
   // toward the card's original edge. Fading it out here made a second click
@@ -8359,7 +8426,7 @@ function animateProjectDetailDrawer(state, opening, finish) {
   }).catch(() => {})
 }
 
-function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {}) {
+function closeProjectDetailDrawer({ immediate = false, afterClose = null, refresh = true } = {}) {
   const state = activeProjectDetailDrawer()
   if (!state) return
   const { element, card } = state
@@ -8368,9 +8435,11 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
   cancelProjectDetailScrollMotion()
   clearProjectDetailHeaderMotion()
   state.resizeObserver?.disconnect()
+  if (state.resizeFrame) cancelAnimationFrame(state.resizeFrame)
   const finish = () => {
     if (siteState.projectDetailDrawer !== state) return
     state.heightAnimation?.cancel()
+    state.rule?.remove()
     element.remove()
     state.row?.removeAttribute("data-project-detail-open")
     state.stickyTail?.remove()
@@ -8383,14 +8452,14 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
     }
     state.row?.style.removeProperty("--project-detail-sticky-tail")
     if (card?.isConnected) {
-      for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "data-project-detail-header-exited", "aria-controls"]) card.removeAttribute(attribute)
+      for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "data-project-detail-header-exited", "data-project-detail-invert-rule", "aria-controls"]) card.removeAttribute(attribute)
       delete card.__detailHeaderStart
       delete card.__detailHeaderOpenHeight
       for (const name of ["progress", "ease", "expanded-height", "min-height", "pad"]) card.style.removeProperty(`--project-detail-header-${name}`)
       card.setAttribute("aria-expanded", "true")
     }
     siteState.projectDetailDrawer = null
-    refreshAfterProjectPreviewChange()
+    if (refresh) refreshAfterProjectPreviewChange()
     afterClose?.(card)
     if (!immediate) flushProjectPreviewTransitionIntent()
   }
@@ -8427,19 +8496,38 @@ function captureProjectDetailSwitchAnchor(drawerState) {
   return { element, top: rect.top }
 }
 
-function restoreProjectDetailSwitchAnchor(anchor) {
+function restoreProjectDetailSwitchAnchor(anchor, { flow = false } = {}) {
   if (!anchor?.element?.isConnected) return
-  const rect = anchor.element.getBoundingClientRect?.()
-  if (!rect || !Number.isFinite(rect.top)) return
-  const delta = rect.top - anchor.top
-  if (Math.abs(delta) <= 0.5) return
-  const scrollY = window.scrollY || window.pageYOffset || 0
+  const row = flow ? anchor.element.closest(".project-row") : null
+  const position = row?.style.getPropertyValue("position")
+  const priority = row?.style.getPropertyPriority("position")
+  const top = row?.style.getPropertyValue("top")
+  const topPriority = row?.style.getPropertyPriority("top")
+  // Sticky rects report the viewport pin, not the document position that
+  // changed when the article was removed. Measure normal flow without ever
+  // painting the temporary positioning mode.
+  row?.style.setProperty("position", "relative", "important")
+  row?.style.setProperty("top", "auto", "important")
+  const rect = anchor.element.getClientRects()[0]
+  const destination = rect ? window.scrollY + rect.top - anchor.top : NaN
+  if (row) {
+    if (position) row.style.setProperty("position", position, priority)
+    else row.style.removeProperty("position")
+    if (top) row.style.setProperty("top", top, topPriority)
+    else row.style.removeProperty("top")
+  }
+  if (!Number.isFinite(destination)) return
   window.scrollTo({
-    top: clamp(scrollY + delta, 0, pageMaxScrollY()),
+    top: clamp(destination, 0, pageMaxScrollY()),
     left: 0,
-    behavior: "auto",
+    behavior: "instant",
   })
-  syncScrollDrivenVisuals({ publishMoving: false })
+  // Structural compensation is not a user scroll gesture. Rebase both
+  // scroll owners so it cannot reverse the header, dither, or magnet motion.
+  siteState.lastScrollY = window.scrollY
+  siteState.pendingScrollDelta = 0
+  window.__RED_SCROLL_FRAME__?.rebase?.()
+  syncScrollDrivenVisuals({ syncHeader: false, publishMoving: false })
   requestProjectDetailHeaderUpdate()
 }
 
@@ -8540,19 +8628,30 @@ function openProjectDetailDrawer(card, target) {
   }
 
   const resizeObserver = typeof ResizeObserver === "function" && inner
-    ? new ResizeObserver((entries) => {
-      if (entries.some((entry) => entry.target === inner)) updateHeight()
-      // The layout-surface follower can resize earlier catalogue rows after
-      // the last scroll/header frame. Reconcile before paint so its final
-      // frames cannot leave the lead detached from the article's top edge.
-      requestProjectDetailHeaderUpdate()
+    ? new ResizeObserver(() => {
+      const state = activeProjectDetailDrawer()
+      if (state?.element !== drawer || state.resizeFrame) return
+      // Observing the catalogue and rewriting its sticky runway inside the
+      // same ResizeObserver delivery creates a feedback loop in WebKit.
+      // Coalesce notifications; regular scroll still updates synchronously.
+      state.resizeFrame = requestAnimationFrame(() => {
+        state.resizeFrame = 0
+        if (activeProjectDetailDrawer() !== state) return
+        updateHeight()
+        requestProjectDetailHeaderUpdate()
+      })
     })
     : null
   resizeObserver?.observe(inner)
   const catalog = card.closest(".catalog")
   if (catalog) resizeObserver?.observe(catalog)
 
-  const drawerState = { element: drawer, card, row, stickyTail, resizeObserver }
+  const rule = document.createElement("div")
+  rule.className = "project-detail-invert-rule"
+  rule.setAttribute("aria-hidden", "true")
+  rule.hidden = true
+  document.body.appendChild(rule)
+  const drawerState = { element: drawer, card, row, stickyTail, resizeObserver, rule }
   siteState.projectDetailDrawer = drawerState
   card.setAttribute("data-project-detail-open", "true")
   card.setAttribute("aria-controls", drawer.id)
@@ -8664,19 +8763,7 @@ function handleRouteLinkClick(event) {
   if (projectCard && target.path !== routeFromLocation() && !projectCard.classList.contains("is-project-preview")) {
     event.preventDefault()
     event.stopPropagation()
-    const existingDrawer = activeProjectDetailDrawer()
-    const switchAnchor = existingDrawer ? captureProjectDetailSwitchAnchor(existingDrawer) : null
-    if (existingDrawer) beginProjectDetailMotion()
-    closeProjectDetailDrawer({ immediate: true })
     setProjectPreview(projectCard, true)
-    if (existingDrawer) {
-      window.requestAnimationFrame(() => {
-        if (projectCard.isConnected && activeProjectPreview() === projectCard) {
-          if (switchAnchor) restoreProjectDetailSwitchAnchor(switchAnchor)
-        }
-        endProjectDetailMotion()
-      })
-    }
     return
   }
 
@@ -8753,8 +8840,14 @@ function handlePopState() {
 document.addEventListener("click", handleRouteLinkClick, { capture: true })
 document.addEventListener("click", dismissProjectPreview)
 document.addEventListener("keydown", handleProjectPreviewKeydown)
-window.addEventListener("wheel", clearProjectPreviewExitGhosts, { passive: true })
-window.addEventListener("touchstart", clearProjectPreviewExitGhosts, { passive: true })
+function interruptProjectProgrammaticScroll() {
+  // Trackpad momentum may arrive after a click. It transfers scrolling to
+  // the user, while the mounted preview still owns its reveal/retract.
+  cancelProjectPreviewAnchor()
+  cancelProjectDetailScrollMotion()
+}
+window.addEventListener("wheel", interruptProjectProgrammaticScroll, { passive: true })
+window.addEventListener("touchstart", interruptProjectProgrammaticScroll, { passive: true })
 window.addEventListener("red:public-dither-ready", (event) => {
   if (event?.detail?.generated) stopLegacyCatalogHalftoneWork()
 })

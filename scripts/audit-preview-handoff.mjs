@@ -164,6 +164,7 @@ async function sampleOutgoingPreview(page, duration = 260) {
           animation: style.animationName,
           clip: style.clipPath,
           opacity: Number(style.opacity),
+          progress: ghost.getAnimations().find((a) => a.effect?.target === ghost)?.effect.getComputedTiming().progress,
         }
       }))
     }
@@ -210,7 +211,11 @@ function checkReverseRetraction(result, label) {
   const insets = frames.map((frame) => parseClipInsets(frame.clip)).filter(Boolean)
   if (insets.length > 1) {
     const changed = insets.some((inset, index) => index > 0 && inset.some((value, axis) => Math.abs(value - insets[index - 1][axis]) > 0.25))
-    assert(changed, `${label}: reverse retract changes geometry`)
+    // A rapid click may sample only the eased tail of the previous motion.
+    // Require measurable travel while it is active, not after it has arrived.
+    if (frames.some((frame) => frame.progress != null && frame.progress < 0.95)) {
+      assert(changed, `${label}: reverse retract changes geometry`)
+    }
     for (let index = 1; index < insets.length; index += 1) {
       assert(
         insets[index].every((value, axis) => value + 0.75 >= insets[index - 1][axis]),

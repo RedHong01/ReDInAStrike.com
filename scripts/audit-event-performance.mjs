@@ -234,6 +234,9 @@ try {
     ))
     await routes.evaluate(() => document.querySelector(".project-card.is-project-preview")?.click())
     await routes.waitForFunction(() => !document.querySelector(".project-detail-drawer"))
+    // Clicking the open lead closes its article and keeps the preview. Escape
+    // then returns the preview to the catalogue before the next cycle.
+    await routes.keyboard.press("Escape")
     await routes.waitForFunction(() => !document.querySelector(".project-card.is-project-preview"))
     if (iteration === 0) {
       listenerAfterFirstRoute = await routes.evaluate(() => ({ ...window.__eventAudit.listenerAdds }))

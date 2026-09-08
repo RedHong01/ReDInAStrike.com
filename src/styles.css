@@ -1165,6 +1165,11 @@ body[data-layout-transition="true"] .about-section {
   will-change: opacity;
 }
 
+.project-card.project-preview-exit-ghost[data-project-preview-exit-mode="edge"] {
+  animation-name: project-preview-stage-retract !important;
+  animation-timing-function: var(--project-preview-surface-ease) !important;
+}
+
 .project-card.is-project-preview[data-card-side="left"] .project-media,
 .project-card.is-project-preview[data-card-side="right"] .project-preview-copy {
   grid-column: 1;
@@ -5251,6 +5256,20 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .catalog .project-card.is-project-preview[data-project-detail-open="true"]::after {
   top: auto !important;
   bottom: 0 !important;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-invert-rule]::after {
+  opacity: 0 !important;
+}
+
+.project-detail-invert-rule {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 1px;
+  background: #fff;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  z-index: 21;
 }
 
 /* Leave the detail header in the same list rhythm as the card above while it

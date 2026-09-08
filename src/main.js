@@ -7864,6 +7864,11 @@ function runProjectPreviewExitGhost(
         y: layoutHeight > 0 && Number.isFinite(rootRect.height / layoutHeight) ? rootRect.height / layoutHeight : 1,
       }
     }
+    // The detached root and its image boxes do not reflow while the clip is
+    // retracting.  Cache this basis once so the animation loop only observes
+    // the live compact target; repeatedly toggling the source transform and
+    // measuring the detached clone was a needless layout read/write pair.
+    const detachedScale = rootScale()
 
     const withoutImageTransform = (image, read) => {
       if (!image) return read()
@@ -7881,26 +7886,24 @@ function runProjectPreviewExitGhost(
       visual: projectPreviewImageRect(cardForVisual),
     }))
     const basis = readImageBasis(exitImage)
-    const layerBasis = () => exitImageLayer ? readImageBasis(exitImageLayer) : basis
+    let targetLayerBasis = null
 
     const visualDescriptor = (basisRect, desiredRect) => {
       if (!basisRect?.element || !basisRect?.visual || !desiredRect?.width || !desiredRect?.height) return null
       const scaleX = desiredRect.width / basisRect.visual.width
       const scaleY = desiredRect.height / basisRect.visual.height
-      const scales = rootScale()
       return {
-        dx: (desiredRect.left - basisRect.element.left - (basisRect.visual.left - basisRect.element.left) * scaleX) / scales.x,
-        dy: (desiredRect.top - basisRect.element.top - (basisRect.visual.top - basisRect.element.top) * scaleY) / scales.y,
+        dx: (desiredRect.left - basisRect.element.left - (basisRect.visual.left - basisRect.element.left) * scaleX) / detachedScale.x,
+        dy: (desiredRect.top - basisRect.element.top - (basisRect.visual.top - basisRect.element.top) * scaleY) / detachedScale.y,
         sx: scaleX,
         sy: scaleY,
       }
     }
     const elementDescriptor = (basisRect, desiredRect) => {
       if (!basisRect?.element || !desiredRect?.width || !desiredRect?.height) return null
-      const scales = rootScale()
       return {
-        dx: (desiredRect.left - basisRect.element.left) / scales.x,
-        dy: (desiredRect.top - basisRect.element.top) / scales.y,
+        dx: (desiredRect.left - basisRect.element.left) / detachedScale.x,
+        dy: (desiredRect.top - basisRect.element.top) / detachedScale.y,
         sx: desiredRect.width / basisRect.element.width,
         sy: desiredRect.height / basisRect.element.height,
       }
@@ -7949,6 +7952,11 @@ function runProjectPreviewExitGhost(
         exitImageLayer.style.setProperty("z-index", "5", "important")
         exitImageLayer.style.setProperty("opacity", "0", "important")
         exitImage.parentElement?.appendChild(exitImageLayer)
+        // The target layer has the same detached containing block for the
+        // whole motion.  Measure its untransformed basis once; re-measuring it
+        // inside every RAF forced a layout even though only the live target
+        // card can settle.
+        targetLayerBasis = readImageBasis(exitImageLayer)
       }
 
       const sourceDesired = fitMismatch ? sourceElement : (sourceVisual || basis.visual)
@@ -7960,7 +7968,6 @@ function runProjectPreviewExitGhost(
       const targetDescriptor = fitMismatch
         ? elementDescriptor(basis, targetDesired)
         : visualDescriptor(basis, targetDesired)
-      const targetLayerBasis = layerBasis()
       const targetLayerSource = fitMismatch ? elementDescriptor(targetLayerBasis, sourceDesired) : null
       const targetLayerTarget = fitMismatch ? elementDescriptor(targetLayerBasis, targetDesired) : null
 
@@ -7977,7 +7984,7 @@ function runProjectPreviewExitGhost(
             : visualDescriptor(basis, desired)
           if (descriptor) writeDescriptor(exitImage, descriptor)
           if (exitImageLayer) {
-            const layerTarget = elementDescriptor(layerBasis(), state?.element || desired)
+            const layerTarget = elementDescriptor(targetLayerBasis, state?.element || desired)
             if (layerTarget) writeDescriptor(exitImageLayer, layerTarget)
             exitImage.style.setProperty("opacity", "0", "important")
             exitImageLayer.style.setProperty("opacity", "1", "important")
@@ -7998,7 +8005,7 @@ function runProjectPreviewExitGhost(
           const descriptor = interpolateDescriptor(sourceDescriptor, currentTarget || targetDescriptor, eased)
           writeDescriptor(exitImage, descriptor)
           if (exitImageLayer) {
-            const layerTarget = elementDescriptor(layerBasis(), state?.element || desired)
+            const layerTarget = elementDescriptor(targetLayerBasis, state?.element || desired)
             const layerDescriptor = interpolateDescriptor(targetLayerSource || sourceDescriptor, layerTarget || targetLayerTarget, eased)
             writeDescriptor(exitImageLayer, layerDescriptor)
             const fadeProgress = clamp((eased - 0.64) / 0.36, 0, 1)
@@ -8036,6 +8043,7 @@ function runProjectPreviewExitGhost(
         ghost.__projectPreviewExitImageCleanup = exitImageRestore
       }
     }
+  }
 
   let cleaned = false
   const cleanup = () => {
@@ -8366,7 +8374,13 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
     element.remove()
     state.row?.removeAttribute("data-project-detail-open")
     state.stickyTail?.remove()
-    state.stickySibling?.style.removeProperty("--project-detail-sibling-lift")
+    if (state.row?.isConnected) {
+      for (const child of state.row.children) {
+        if (child.classList.contains("project-card")) {
+          child.style.removeProperty("--project-detail-sibling-lift")
+        }
+      }
+    }
     state.row?.style.removeProperty("--project-detail-sticky-tail")
     if (card?.isConnected) {
       for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "data-project-detail-header-exited", "aria-controls"]) card.removeAttribute(attribute)

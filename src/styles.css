@@ -5750,3 +5750,24 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* During a fast preview switch the new card can be painted one frame before
+   syncProjectPreviewRows adds `has-project-preview` to its row. Without this
+   fallback the row briefly reverts to the ordinary list padding, leaving a
+   paper gap below the site header where the outgoing surface shows through.
+   Derive the same sticky geometry from the card state so the seam stays
+   welded throughout the handoff. Detail drawers keep their dedicated runway
+   and padding contract below. */
+@media (min-width: 981px) and (orientation: landscape) {
+  .catalog
+    .project-row:has(> .project-card.is-project-preview):not([data-project-detail-open="true"]) {
+    position: sticky !important;
+    top: var(--project-preview-sticky-top, var(--perf-layout-header-height, var(--header-height))) !important;
+    z-index: 15 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    row-gap: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    background: var(--paper) !important;
+  }
+}

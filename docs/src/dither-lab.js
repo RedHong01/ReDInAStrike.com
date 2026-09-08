@@ -16,6 +16,7 @@ let productionModule = null
 let productionLoaded = false
 let corePromise = null
 let coreLoaded = false
+let coreRequested = false
 let cssPromise = null
 let replayingFilterClick = false
 let idleWarmHandle = 0
@@ -52,7 +53,7 @@ function ensureCss() {
 }
 
 async function loadProductionRuntime() {
-  if (!publishedNeedsRuntime || coreLoaded) return null
+  if (!publishedNeedsRuntime || coreRequested || coreLoaded) return null
   if (!activeCatalog()) return null
   if (!productionPromise) {
     productionPromise = import("./dither-production-runtime.js?v=20260908-perf2")
@@ -74,9 +75,23 @@ function destroyProductionRuntime() {
   window.__RED_DITHER_PUBLIC_RUNTIME__?.destroy?.()
 }
 
+function cancelIdleWarmup() {
+  if (!idleWarmHandle) return
+  if ("cancelIdleCallback" in window) window.cancelIdleCallback(idleWarmHandle)
+  else window.clearTimeout(idleWarmHandle)
+  idleWarmHandle = 0
+}
+
 async function loadCore() {
   if (!corePromise) {
+    coreRequested = true
+    cancelIdleWarmup()
     corePromise = (async () => {
+      // If intent prewarming was already in flight, let it finish and then
+      // tear it down before the developer hub takes ownership.
+      if (productionPromise) {
+        try { await productionPromise } catch {}
+      }
       window.__RED_NATIVE_HALFTONE_BYPASS__?.destroy?.()
       destroyProductionRuntime()
       await ensureCss()
@@ -90,12 +105,12 @@ async function loadCore() {
 
 function warmProductionRuntime() {
   idleWarmHandle = 0
-  if (coreLoaded || productionLoaded || !publishedNeedsRuntime || !activeCatalog()) return
+  if (coreRequested || coreLoaded || productionLoaded || !publishedNeedsRuntime || !activeCatalog()) return
   loadProductionRuntime().catch(() => {})
 }
 
 function scheduleIdleWarmup() {
-  if (autoOpen || coreLoaded || productionLoaded || idleWarmHandle || !publishedNeedsRuntime) return
+  if (autoOpen || coreRequested || coreLoaded || productionLoaded || idleWarmHandle || !publishedNeedsRuntime) return
   if (!activeCatalog()) return
   if ("requestIdleCallback" in window) {
     idleWarmHandle = window.requestIdleCallback(warmProductionRuntime, { timeout: 2400 })
@@ -110,7 +125,7 @@ function startRuntimeFromIntent(event) {
 }
 
 function gateFirstFilterClick(event) {
-  if (replayingFilterClick || coreLoaded || productionLoaded || !publishedNeedsRuntime) return
+  if (replayingFilterClick || coreRequested || coreLoaded || productionLoaded || !publishedNeedsRuntime) return
   const item = isFilterNavItem(event.target)
   if (!item || !activeCatalog()) return
 

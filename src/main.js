@@ -3848,6 +3848,18 @@ function requestProjectDetailHeaderUpdate() {
   const headerHeight = liveHeaderBottom > 0
     ? liveHeaderBottom
     : Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
+  // Once the article's bottom has crossed the viewport's top edge, the lead
+  // has no content left to introduce. Keep its row footprint for scroll
+  // continuity, but mark the paint layer as exited so a released sticky card
+  // cannot remain behind later catalogue rows at a lower stacking level.
+  const drawerRect = drawerState.element.getBoundingClientRect?.()
+  const detailHeaderExited = Boolean(
+    drawerRect &&
+    Number.isFinite(drawerRect.bottom) &&
+    drawerRect.bottom <= 0.5 &&
+    drawerRect.height > 0,
+  )
+  card.toggleAttribute("data-project-detail-header-exited", detailHeaderExited)
   if (!Number.isFinite(card.__detailHeaderStart)) {
     const rect = card.getBoundingClientRect()
     card.__detailHeaderStart = rect.top + scrollY
@@ -3886,7 +3898,15 @@ function requestProjectDetailHeaderUpdate() {
       previousSibling.style.removeProperty("--project-detail-sibling-lift")
     }
     const siblingHeight = sibling?.getBoundingClientRect?.().height || 0
-    const tailHeight = Math.max(0, openHeight - siblingHeight)
+    // Sticky positioning is clamped by the row's bottom edge. Without a
+    // runway equal to the site-header seam, that clamp becomes
+    // `drawerBottom` and releases the detail header while the final slice of
+    // the article is still visible. Include the live header height in the
+    // tail so the clamp remains at the sticky top until the drawer has fully
+    // crossed the viewport; the row's matching negative margin keeps the
+    // following catalogue content at the same document position.
+    const stickyRunway = Math.max(0, headerHeight)
+    const tailHeight = Math.max(0, openHeight - siblingHeight + stickyRunway)
     detailRow.style.setProperty("--project-detail-sticky-tail", `${tailHeight.toFixed(2)}px`)
     if (sibling) sibling.style.setProperty("--project-detail-sibling-lift", `${tailHeight.toFixed(2)}px`)
     drawerState.stickySibling = sibling || null
@@ -7353,15 +7373,95 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   let targetImagePosition = "50% 50%"
   let imageFitChanges = false
   let targetImageLayer = null
-  let targetImageAnimation = null
-  let imageAnimation = null
-  let imageStartTransform = "none"
+  let imageMotionActive = false
+  let imageMotionStartedAt = 0
+  let imageStartDescriptor = null
   let ghostScaleX = 1
   let ghostScaleY = 1
 
   let settled = false
   let settling = false
   let syncFrame = 0
+  const measureImageStartDescriptor = () => {
+    if (!ghostImage || !imageFrom?.width || !imageFrom?.height) return null
+    // Measure the destination box without the previous FLIP transform. The
+    // root correction can continue settling as the content-edge proxy moves,
+    // so this is intentionally repeatable on every frame.
+    const previousTransform = ghostImage.style.transform
+    ghostImage.style.transform = "none"
+    const imageBox = ghostImage.getBoundingClientRect()
+    const targetImage = imageFitChanges ? null : projectPreviewImageRect(ghost)
+    ghostImage.style.transform = previousTransform
+    if (imageBox.width <= 0 || imageBox.height <= 0) return null
+    if (imageFitChanges && imageSourceState?.element) {
+      const sourceBox = imageSourceState.element
+      return {
+        dx: (sourceBox.left - imageBox.left) / ghostScaleX,
+        dy: (sourceBox.top - imageBox.top) / ghostScaleY,
+        sx: sourceBox.width / imageBox.width,
+        sy: sourceBox.height / imageBox.height,
+      }
+    }
+    // When the natural bitmap is available, interpolate its painted rect.
+    // This keeps a contain thumbnail's letterbox and aspect ratio intact
+    // while it resizes into a differently shaped bar. If a lazy image has not
+    // reported its natural dimensions yet, fall back to the element box; that
+    // avoids the opposite failure mode where a missing bitmap measurement is
+    // treated as a tiny rect and produces a 2x first-frame scale.
+    if (imageSourceState?.bitmap && imageSourceState.visual?.width && targetImage?.width) {
+      const scale = imageSourceState.visual.width / targetImage.width
+      return {
+        dx: (imageSourceState.visual.left - imageBox.left - (targetImage.left - imageBox.left) * scale) / ghostScaleX,
+        dy: (imageSourceState.visual.top - imageBox.top - (targetImage.top - imageBox.top) * scale) / ghostScaleY,
+        sx: scale,
+        sy: scale,
+      }
+    }
+    if (imageSourceState?.element) {
+      const sourceBox = imageSourceState.element
+      return {
+        dx: (sourceBox.left - imageBox.left) / ghostScaleX,
+        dy: (sourceBox.top - imageBox.top) / ghostScaleY,
+        sx: sourceBox.width / imageBox.width,
+        sy: sourceBox.height / imageBox.height,
+      }
+    }
+    if (!targetImage?.width || !targetImage?.height) return null
+    const scale = imageFrom.width / targetImage.width
+    return {
+      dx: (imageFrom.left - imageBox.left - (targetImage.left - imageBox.left) * scale) / ghostScaleX,
+      dy: (imageFrom.top - imageBox.top - (targetImage.top - imageBox.top) * scale) / ghostScaleY,
+      sx: scale,
+      sy: scale,
+    }
+  }
+  const updateImageMotion = (time) => {
+    if (!imageMotionActive || !imageStartDescriptor || !ghostImage?.isConnected) return
+    const raw = clamp((time - imageMotionStartedAt) / duration, 0, 1)
+    const eased = smoothstep(raw)
+    const current = measureImageStartDescriptor()
+    // Keep the source anchor exact while the target geometry settles. The
+    // start descriptor is recomputed against the current destination box,
+    // then interpolated; a one-time FLIP would retain the old proxy width and
+    // create the small final relocate the motion is meant to avoid.
+    const descriptor = current || imageStartDescriptor
+    const dx = descriptor.dx * (1 - eased)
+    const dy = descriptor.dy * (1 - eased)
+    const sx = 1 + (descriptor.sx - 1) * (1 - eased)
+    const sy = 1 + (descriptor.sy - 1) * (1 - eased)
+    ghostImage.style.transform = `translate(${dx.toFixed(3)}px, ${dy.toFixed(3)}px) scale(${sx.toFixed(5)}, ${sy.toFixed(5)})`
+    if (targetImageLayer) {
+      const fade = clamp((eased - 0.64) / 0.36, 0, 1)
+      ghostImage.style.opacity = `${1 - fade}`
+      targetImageLayer.style.opacity = `${fade}`
+    }
+    if (raw >= 1) {
+      ghostImage.style.transform = "none"
+      ghostImage.style.opacity = targetImageLayer ? "0" : "1"
+      if (targetImageLayer) targetImageLayer.style.opacity = "1"
+      imageMotionActive = false
+    }
+  }
   const syncGhostToLiveCard = () => {
     syncFrame = 0
     if (settled || !ghost.isConnected || !card.isConnected) return
@@ -7391,6 +7491,7 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     // is especially visible when a scrollbar makes the target fractional).
     ghost.style.transformOrigin = "0 0"
     ghost.style.transform = `translate3d(${dx.toFixed(3)}px, ${dy.toFixed(3)}px, 0) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`
+    updateImageMotion(performance.now())
     syncFrame = window.requestAnimationFrame(syncGhostToLiveCard)
   }
   const detach = () => {
@@ -7406,10 +7507,9 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
       window.cancelAnimationFrame(syncFrame)
       syncFrame = 0
     }
-    imageAnimation?.cancel()
-    imageAnimation = null
-    targetImageAnimation?.cancel()
-    targetImageAnimation = null
+    imageMotionActive = false
+    imageStartDescriptor = null
+    targetImageLayer?.style.removeProperty("opacity")
     siteState.projectPreviewExpandGhosts.delete(ghost)
     if (card.__projectPreviewExpandGhost === ghost) card.__projectPreviewExpandGhost = null
     ghost.remove()
@@ -7440,30 +7540,50 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
   // different coordinate frame from the one painted on the first RAF, which
   // is the small vertical hop visible at the opening edge.
   syncGhostToLiveCard()
+  if (ghostImage) {
+    // Resolve the destination fit only after the snapshot is attached. The
+    // expanded selectors (including the desktop contain rule) are scoped to
+    // the document tree; reading a detached clone would report the compact
+    // source fit and skip the cover→contain handoff branch.
+    targetImageFit = getComputedStyle(ghostImage).objectFit.trim().toLowerCase()
+    targetImagePosition = getComputedStyle(ghostImage).objectPosition.trim() || "50% 50%"
+    imageFitChanges = Boolean(
+      imageSourceState?.element &&
+      sourceImageFit &&
+      targetImageFit &&
+      sourceImageFit !== targetImageFit,
+    )
+    if (imageFitChanges) {
+      // A cover thumbnail and a contain destination do not share one bitmap
+      // rectangle: the cover state is cropped while the destination reveals
+      // the full natural image. Scaling one <img> from visual-bitmap rect to
+      // visual-bitmap rect therefore produces a 2x portrait blow-up. Keep the
+      // source fit on the moving layer and cross-fade a second destination-fit
+      // layer in during the last part of the wipe.
+      ghostImage.style.setProperty("object-fit", sourceImageFit, "important")
+      ghostImage.style.setProperty("object-position", sourceImagePosition, "important")
+      targetImageLayer = ghostImage.cloneNode(true)
+      targetImageLayer.removeAttribute("id")
+      targetImageLayer.classList.add("project-preview-motion-target-image")
+      targetImageLayer.setAttribute("aria-hidden", "true")
+      targetImageLayer.style.setProperty("object-fit", targetImageFit, "important")
+      targetImageLayer.style.setProperty("object-position", targetImagePosition, "important")
+      targetImageLayer.style.setProperty("transform", "none")
+      targetImageLayer.style.setProperty("opacity", "0")
+      targetImageLayer.style.setProperty("pointer-events", "none")
+      targetImageLayer.style.setProperty("z-index", "5")
+      ghostImage.parentElement?.appendChild(targetImageLayer)
+    }
+  }
   if (ghostImage && imageFrom?.width > 0 && imageFrom?.height > 0) {
-    const targetImage = projectPreviewImageRect(ghost)
-    const imageBox = ghostImage.getBoundingClientRect()
-    if (targetImage && imageBox.width > 0 && imageBox.height > 0) {
-      if (imageFitChanges && imageSourceState?.element) {
-        const sourceBox = imageSourceState.element
-        const scaleX = sourceBox.width / imageBox.width
-        const scaleY = sourceBox.height / imageBox.height
-        const dx = (sourceBox.left - imageBox.left) / ghostScaleX
-        const dy = (sourceBox.top - imageBox.top) / ghostScaleY
-        imageStartTransform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`
-      } else {
-        const scale = imageFrom.width / targetImage.width
-        // The image transform lives inside the root correction transform. Its
-        // local translation is therefore divided by the root scale; otherwise
-        // a settling root multiplies the FLIP offset a second time and the
-        // bitmap starts several pixels away from the clicked thumbnail.
-        const dx = (imageFrom.left - imageBox.left - (targetImage.left - imageBox.left) * scale) / ghostScaleX
-        const dy = (imageFrom.top - imageBox.top - (targetImage.top - imageBox.top) * scale) / ghostScaleY
-        imageStartTransform = `translate(${dx}px, ${dy}px) scale(${scale})`
-      }
+    imageStartDescriptor = measureImageStartDescriptor()
+    if (imageStartDescriptor) {
+      const { dx, dy, sx, sy } = imageStartDescriptor
       ghostImage.style.transformOrigin = "0 0"
-      ghostImage.style.transform = imageStartTransform
+      ghostImage.style.transform = `translate(${dx.toFixed(3)}px, ${dy.toFixed(3)}px) scale(${sx.toFixed(5)}, ${sy.toFixed(5)})`
       ghostImage.style.willChange = "transform"
+      ghostImage.style.opacity = "1"
+      if (targetImageLayer) targetImageLayer.style.opacity = "0"
     }
   }
   ghost.addEventListener("transitionend", onTransitionEnd)
@@ -7476,29 +7596,13 @@ function createProjectPreviewExpandGhost(card, sourceRect, targetRect, imageFrom
     if (!ghost.isConnected || settled) return
     ghost.dataset.projectPreviewExpandState = "target"
     ghost.style.clipPath = "inset(0px)"
-    if (ghostImage && imageStartTransform !== "none") {
-      const imageFrames = imageFitChanges
-        ? [
-          { transform: imageStartTransform, opacity: 1, offset: 0 },
-          { transform: "none", opacity: 1, offset: 0.68 },
-          { transform: "none", opacity: 0, offset: 1 },
-        ]
-        : [
-          { transform: imageStartTransform },
-          { transform: "none" },
-        ]
-      imageAnimation = ghostImage.animate(imageFrames,
-        { duration, easing: getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease", fill: "both" },
-      )
-      if (targetImageLayer) {
-        targetImageAnimation = targetImageLayer.animate(
-          [
-            { opacity: 0, offset: 0.64 },
-            { opacity: 1, offset: 1 },
-          ],
-          { duration, easing: getComputedStyle(document.documentElement).getPropertyValue("--project-preview-surface-ease").trim() || "ease", fill: "both" },
-        )
-      }
+    if (imageStartDescriptor) {
+      // Start the image motion on the same clock as the clip transition. The
+      // descriptor is refreshed by `updateImageMotion` on every frame, so a
+      // settling content-edge proxy cannot introduce a final one-frame snap.
+      imageMotionStartedAt = performance.now()
+      imageMotionActive = true
+      updateImageMotion(imageMotionStartedAt)
     }
     if (copy) {
       copy.style.setProperty("opacity", "1", "important")
@@ -7538,11 +7642,13 @@ function projectPreviewImageState(card) {
   const image = card?.querySelector?.(".project-media > img")
   if (!image) return null
   const style = getComputedStyle(image)
+  const bitmap = style.objectFit.trim().toLowerCase() === "contain" && image.naturalWidth > 0 && image.naturalHeight > 0
   return {
     visual: projectPreviewImageRect(card),
     element: projectPreviewRect(image.getBoundingClientRect()),
     fit: style.objectFit.trim().toLowerCase(),
     position: style.objectPosition.trim() || "50% 50%",
+    bitmap,
   }
 }
 
@@ -7690,19 +7796,82 @@ function revealProjectPreviewExitSourceRow(ghost) {
 function runProjectPreviewExitGhost(
   exitMotion,
   targetCard,
-  { clearTransition = false, motionId = 0, fade = false } = {},
+  { clearTransition = false, motionId = 0, fade = false, onCleaned = null } = {},
 ) {
   if (!exitMotion?.ghost?.isConnected) {
     releaseProjectPreviewExitSource(exitMotion?.ghost)
     if (clearTransition && motionId === siteState.projectPreviewMotionId) {
       delete document.documentElement.dataset.projectPreviewTransition
     }
+    onCleaned?.()
     return
   }
 
   const { ghost } = exitMotion
   if (fade) ghost.setAttribute("data-project-preview-exit-mode", "switching")
   else applyProjectPreviewExitTarget(exitMotion, targetCard)
+
+  // The retract clip moves the expanded surface back to the compact card,
+  // but the expanded and compact media boxes can have different aspect
+  // ratios (and often different object-fit values). Keep a destination-fit
+  // image layer at the compact image rect and cross-fade it during the last
+  // part of the clip. Without this handoff the surface reaches the right
+  // edge, then the live card reveals a differently cropped bitmap in one
+  // frame.
+  const exitImage = ghost.querySelector(".project-media > img")
+  const targetImage = targetCard?.querySelector?.(".project-media > img")
+  let exitImageLayer = null
+  let exitImageAnimations = []
+  if (!fade && exitImage && targetImage) {
+    const sourceRect = exitImage.getBoundingClientRect()
+    const targetRect = targetImage.getBoundingClientRect()
+    if (sourceRect.width > 0 && sourceRect.height > 0 && targetRect.width > 0 && targetRect.height > 0) {
+      const targetStyle = getComputedStyle(targetImage)
+      const sourceOpacity = exitImage.style.getPropertyValue("opacity")
+      const sourceOpacityPriority = exitImage.style.getPropertyPriority("opacity")
+      exitImageLayer = exitImage.cloneNode(true)
+      exitImageLayer.removeAttribute("id")
+      exitImageLayer.classList.add("project-preview-motion-target-image")
+      exitImageLayer.setAttribute("aria-hidden", "true")
+      exitImageLayer.style.setProperty("object-fit", targetStyle.objectFit, "important")
+      exitImageLayer.style.setProperty("object-position", targetStyle.objectPosition, "important")
+      exitImageLayer.style.setProperty("visibility", "visible", "important")
+      exitImageLayer.style.setProperty("pointer-events", "none", "important")
+      exitImageLayer.style.setProperty("z-index", "5", "important")
+      exitImageLayer.style.setProperty("transform-origin", "0 0", "important")
+      const scaleX = targetRect.width / sourceRect.width
+      const scaleY = targetRect.height / sourceRect.height
+      const dx = targetRect.left - sourceRect.left
+      const dy = targetRect.top - sourceRect.top
+      exitImageLayer.style.setProperty(
+        "transform",
+        `translate(${dx.toFixed(3)}px, ${dy.toFixed(3)}px) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`,
+        "important",
+      )
+      exitImageLayer.style.setProperty("opacity", "0", "important")
+      exitImage.parentElement?.appendChild(exitImageLayer)
+      const easing = getComputedStyle(document.documentElement).getPropertyValue("--project-preview-ease").trim() || "ease"
+      const exitDuration = projectPreviewSurfaceRetractDurationMs()
+      exitImageAnimations = [
+        exitImage.animate(
+          [{ opacity: 1, offset: 0 }, { opacity: 1, offset: 0.58 }, { opacity: 0, offset: 1 }],
+          { duration: exitDuration, easing, fill: "both" },
+        ),
+        exitImageLayer.animate(
+          [{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.58 }, { opacity: 1, offset: 1 }],
+          { duration: exitDuration, easing, fill: "both" },
+        ),
+      ]
+      ghost.__projectPreviewExitImageCleanup = () => {
+        exitImageAnimations.forEach((animation) => animation.cancel())
+        exitImageAnimations = []
+        exitImageLayer?.remove()
+        exitImageLayer = null
+        if (sourceOpacityPriority || sourceOpacity) exitImage.style.setProperty("opacity", sourceOpacity, sourceOpacityPriority)
+        else exitImage.style.removeProperty("opacity")
+      }
+    }
+  }
 
   let cleaned = false
   const cleanup = () => {
@@ -7711,6 +7880,8 @@ function runProjectPreviewExitGhost(
     window.clearTimeout(ghost.__projectPreviewExitCleanupTimer)
     ghost.removeEventListener("animationend", handleAnimationEnd)
     ghost.removeEventListener("transitionend", handleTransitionEnd)
+    ghost.__projectPreviewExitImageCleanup?.()
+    ghost.__projectPreviewExitImageCleanup = null
     releaseProjectPreviewExitSource(ghost)
     siteState.projectPreviewExitGhosts.delete(ghost)
     ghost.remove()
@@ -7718,6 +7889,7 @@ function runProjectPreviewExitGhost(
       delete document.documentElement.dataset.projectPreviewTransition
       refreshAfterProjectPreviewChange()
     }
+    onCleaned?.()
   }
   const handleAnimationEnd = (event) => {
     if (event.target !== ghost) return
@@ -7909,8 +8081,31 @@ function setProjectPreview(card, expanded) {
       flushProjectPreviewTransitionIntent()
     }
     if (prefersReducedMotion() || !from || !target.rect) { finish(); return }
+
+    // Keep the expanded surface as a paint-only snapshot while the live card
+    // returns to its compact grid cell. Animating the live card directly lets
+    // its grid tracks recalculate on the same frame as the final WAAPI tick;
+    // the ensuing class commit then exposes a second, compact geometry and
+    // reads as a one-frame refresh. The exit ghost owns that entire retract,
+    // just as the expand ghost owns the opening wipe.
+    const exitMotion = createProjectPreviewExitGhost(card)
+    if (!exitMotion) { finish(); return }
     document.documentElement.dataset.projectPreviewTransition = "exiting"
-    runProjectPreviewMotion(card, from, target.rect, { expanding: false, imageFrom, imageTo: target.image, onSettled: finish })
+    // Commit the compact layout under the snapshot so the target rect is
+    // measured in the real row. The source row/card remain hidden by the
+    // exit-ghost ownership classes until the retract has painted its final
+    // frame.
+    commitProjectPreviewState(card, false, { refresh: false })
+    runProjectPreviewExitGhost(exitMotion, card, {
+      clearTransition: true,
+      motionId,
+      onCleaned: () => {
+        clearProjectPreviewExpandGhostState(card)
+        clearProjectPreviewHeightLock(card)
+        card.removeAttribute("data-project-preview-ready")
+        flushProjectPreviewTransitionIntent()
+      },
+    })
     return
   }
 

@@ -7083,6 +7083,14 @@ function createProjectPreviewExitGhost(card) {
   const rect = card.getBoundingClientRect()
   if (rect.width <= 0 || rect.height <= 0) return null
 
+  // Capture the outgoing bitmap before the live card is returned to its
+  // compact grid state.  The detached snapshot keeps the expanded surface,
+  // while the real card becomes the compact target before the retract starts;
+  // without this pair of measurements the exit layer can only fade into the
+  // target and the bitmap relocates in the cleanup frame.
+  const sourceImageState = projectPreviewImageState(card)
+  const sourceImageVisual = sourceImageState?.visual || projectPreviewImageRect(card)
+
   const sourceRect = {
     left: rect.left,
     right: rect.right,
@@ -7181,6 +7189,8 @@ function createProjectPreviewExitGhost(card) {
   return {
     ghost,
     sourceRect,
+    sourceImageState,
+    sourceImageVisual,
     fallbackRect: normalProjectCardFallbackRect(card, sourceRect),
   }
 }
@@ -7811,67 +7821,221 @@ function runProjectPreviewExitGhost(
   if (fade) ghost.setAttribute("data-project-preview-exit-mode", "switching")
   else applyProjectPreviewExitTarget(exitMotion, targetCard)
 
-  // The retract clip moves the expanded surface back to the compact card,
-  // but the expanded and compact media boxes can have different aspect
-  // ratios (and often different object-fit values). Keep a destination-fit
-  // image layer at the compact image rect and cross-fade it during the last
-  // part of the clip. Without this handoff the surface reaches the right
-  // edge, then the live card reveals a differently cropped bitmap in one
-  // frame.
+  // The retract clip moves the expanded surface back to the compact card.
+  // Keep the bitmap on the same paint layer and FLIP its visual rectangle on
+  // every frame.  A one-time transform is insufficient here: the compact row
+  // can settle by a fractional amount while the clip is running, which would
+  // otherwise expose a final relocate when the ghost is removed.
   const exitImage = ghost.querySelector(".project-media > img")
   const targetImage = targetCard?.querySelector?.(".project-media > img")
   let exitImageLayer = null
-  let exitImageAnimations = []
+  let exitImageFrame = 0
+  let exitImageActive = false
+  let exitImageStartedAt = 0
+  let exitImageFinish = null
+  let exitImageRestore = null
+
   if (!fade && exitImage && targetImage) {
-    const sourceRect = exitImage.getBoundingClientRect()
-    const targetRect = targetImage.getBoundingClientRect()
-    if (sourceRect.width > 0 && sourceRect.height > 0 && targetRect.width > 0 && targetRect.height > 0) {
-      const targetStyle = getComputedStyle(targetImage)
-      const sourceOpacity = exitImage.style.getPropertyValue("opacity")
-      const sourceOpacityPriority = exitImage.style.getPropertyPriority("opacity")
-      exitImageLayer = exitImage.cloneNode(true)
-      exitImageLayer.removeAttribute("id")
-      exitImageLayer.classList.add("project-preview-motion-target-image")
-      exitImageLayer.setAttribute("aria-hidden", "true")
-      exitImageLayer.style.setProperty("object-fit", targetStyle.objectFit, "important")
-      exitImageLayer.style.setProperty("object-position", targetStyle.objectPosition, "important")
-      exitImageLayer.style.setProperty("visibility", "visible", "important")
-      exitImageLayer.style.setProperty("pointer-events", "none", "important")
-      exitImageLayer.style.setProperty("z-index", "5", "important")
-      exitImageLayer.style.setProperty("transform-origin", "0 0", "important")
-      const scaleX = targetRect.width / sourceRect.width
-      const scaleY = targetRect.height / sourceRect.height
-      const dx = targetRect.left - sourceRect.left
-      const dy = targetRect.top - sourceRect.top
-      exitImageLayer.style.setProperty(
-        "transform",
-        `translate(${dx.toFixed(3)}px, ${dy.toFixed(3)}px) scale(${scaleX.toFixed(5)}, ${scaleY.toFixed(5)})`,
-        "important",
-      )
-      exitImageLayer.style.setProperty("opacity", "0", "important")
-      exitImage.parentElement?.appendChild(exitImageLayer)
-      const easing = getComputedStyle(document.documentElement).getPropertyValue("--project-preview-ease").trim() || "ease"
-      const exitDuration = projectPreviewSurfaceRetractDurationMs()
-      exitImageAnimations = [
-        exitImage.animate(
-          [{ opacity: 1, offset: 0 }, { opacity: 1, offset: 0.58 }, { opacity: 0, offset: 1 }],
-          { duration: exitDuration, easing, fill: "both" },
-        ),
-        exitImageLayer.animate(
-          [{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.58 }, { opacity: 1, offset: 1 }],
-          { duration: exitDuration, easing, fill: "both" },
-        ),
-      ]
-      ghost.__projectPreviewExitImageCleanup = () => {
-        exitImageAnimations.forEach((animation) => animation.cancel())
-        exitImageAnimations = []
-        exitImageLayer?.remove()
-        exitImageLayer = null
-        if (sourceOpacityPriority || sourceOpacity) exitImage.style.setProperty("opacity", sourceOpacity, sourceOpacityPriority)
-        else exitImage.style.removeProperty("opacity")
+    const sourceState = exitMotion.sourceImageState || null
+    const sourceVisual = exitMotion.sourceImageVisual || projectPreviewImageRect(ghost)
+    const sourceElement = sourceState?.element || projectPreviewRect(exitImage.getBoundingClientRect())
+    const sourceFit = sourceState?.fit || getComputedStyle(exitImage).objectFit.trim().toLowerCase()
+    const sourcePosition = sourceState?.position || getComputedStyle(exitImage).objectPosition.trim() || "50% 50%"
+    const targetStyle = getComputedStyle(targetImage)
+    const targetFit = targetStyle.objectFit.trim().toLowerCase()
+    const targetPosition = targetStyle.objectPosition.trim() || "50% 50%"
+    const fitMismatch = Boolean(sourceFit && targetFit && sourceFit !== targetFit)
+    const sourceTransform = exitImage.style.getPropertyValue("transform")
+    const sourceTransformPriority = exitImage.style.getPropertyPriority("transform")
+    const sourceOpacity = exitImage.style.getPropertyValue("opacity")
+    const sourceOpacityPriority = exitImage.style.getPropertyPriority("opacity")
+    const sourceWillChange = exitImage.style.getPropertyValue("will-change")
+    const sourceWillChangePriority = exitImage.style.getPropertyPriority("will-change")
+
+    // The clone's root is normally scale-one (`translateZ(0)` only), but use
+    // its measured scale so the local image translation remains correct if a
+    // browser applies a fractional page zoom or a future root transform.
+    const rootScale = () => {
+      const rootRect = ghost.getBoundingClientRect()
+      const layoutWidth = ghost.offsetWidth || rootRect.width
+      const layoutHeight = ghost.offsetHeight || rootRect.height
+      return {
+        x: layoutWidth > 0 && Number.isFinite(rootRect.width / layoutWidth) ? rootRect.width / layoutWidth : 1,
+        y: layoutHeight > 0 && Number.isFinite(rootRect.height / layoutHeight) ? rootRect.height / layoutHeight : 1,
       }
     }
-  }
+
+    const withoutImageTransform = (image, read) => {
+      if (!image) return read()
+      const value = image.style.getPropertyValue("transform")
+      const priority = image.style.getPropertyPriority("transform")
+      image.style.setProperty("transform", "none", "important")
+      try { return read() } finally {
+        if (value || priority) image.style.setProperty("transform", value, priority)
+        else image.style.removeProperty("transform")
+      }
+    }
+
+    const readImageBasis = (image, cardForVisual = ghost) => withoutImageTransform(image, () => ({
+      element: projectPreviewRect(image.getBoundingClientRect()),
+      visual: projectPreviewImageRect(cardForVisual),
+    }))
+    const basis = readImageBasis(exitImage)
+    const layerBasis = () => exitImageLayer ? readImageBasis(exitImageLayer) : basis
+
+    const visualDescriptor = (basisRect, desiredRect) => {
+      if (!basisRect?.element || !basisRect?.visual || !desiredRect?.width || !desiredRect?.height) return null
+      const scaleX = desiredRect.width / basisRect.visual.width
+      const scaleY = desiredRect.height / basisRect.visual.height
+      const scales = rootScale()
+      return {
+        dx: (desiredRect.left - basisRect.element.left - (basisRect.visual.left - basisRect.element.left) * scaleX) / scales.x,
+        dy: (desiredRect.top - basisRect.element.top - (basisRect.visual.top - basisRect.element.top) * scaleY) / scales.y,
+        sx: scaleX,
+        sy: scaleY,
+      }
+    }
+    const elementDescriptor = (basisRect, desiredRect) => {
+      if (!basisRect?.element || !desiredRect?.width || !desiredRect?.height) return null
+      const scales = rootScale()
+      return {
+        dx: (desiredRect.left - basisRect.element.left) / scales.x,
+        dy: (desiredRect.top - basisRect.element.top) / scales.y,
+        sx: desiredRect.width / basisRect.element.width,
+        sy: desiredRect.height / basisRect.element.height,
+      }
+    }
+    const interpolateDescriptor = (from, to, progress) => {
+      if (!from || !to) return to || from
+      return {
+        dx: from.dx + (to.dx - from.dx) * progress,
+        dy: from.dy + (to.dy - from.dy) * progress,
+        sx: from.sx + (to.sx - from.sx) * progress,
+        sy: from.sy + (to.sy - from.sy) * progress,
+      }
+    }
+    const writeDescriptor = (image, descriptor) => {
+      if (!image || !descriptor) return
+      image.style.setProperty("transform-origin", "0 0", "important")
+      image.style.setProperty(
+        "transform",
+        `translate(${descriptor.dx.toFixed(3)}px, ${descriptor.dy.toFixed(3)}px) scale(${descriptor.sx.toFixed(5)}, ${descriptor.sy.toFixed(5)})`,
+        "important",
+      )
+      image.style.setProperty("will-change", "transform, opacity", "important")
+    }
+    const readTargetState = () => {
+      if (!targetCard?.isConnected) return null
+      const state = projectPreviewImageState(targetCard)
+      if (!state?.element) return null
+      return state
+    }
+
+    if (basis?.element && basis?.visual && sourceElement) {
+      if (fitMismatch) {
+        // The target-fit bitmap has a different painted rectangle (cover can
+        // crop while contain shows the full image). Cross-fade two FLIP'd
+        // layers rather than stretching one cropped bitmap into the other.
+        exitImage.style.setProperty("object-fit", sourceFit, "important")
+        exitImage.style.setProperty("object-position", sourcePosition, "important")
+        exitImageLayer = exitImage.cloneNode(true)
+        exitImageLayer.removeAttribute("id")
+        exitImageLayer.classList.add("project-preview-motion-target-image")
+        exitImageLayer.setAttribute("aria-hidden", "true")
+        exitImageLayer.style.setProperty("object-fit", targetFit, "important")
+        exitImageLayer.style.setProperty("object-position", targetPosition, "important")
+        exitImageLayer.style.setProperty("visibility", "visible", "important")
+        exitImageLayer.style.setProperty("pointer-events", "none", "important")
+        exitImageLayer.style.setProperty("z-index", "5", "important")
+        exitImageLayer.style.setProperty("opacity", "0", "important")
+        exitImage.parentElement?.appendChild(exitImageLayer)
+      }
+
+      const sourceDesired = fitMismatch ? sourceElement : (sourceVisual || basis.visual)
+      const sourceDescriptor = fitMismatch
+        ? elementDescriptor(basis, sourceDesired)
+        : visualDescriptor(basis, sourceDesired)
+      const targetState = readTargetState()
+      const targetDesired = fitMismatch ? targetState?.element : (targetState?.visual || targetState?.element)
+      const targetDescriptor = fitMismatch
+        ? elementDescriptor(basis, targetDesired)
+        : visualDescriptor(basis, targetDesired)
+      const targetLayerBasis = layerBasis()
+      const targetLayerSource = fitMismatch ? elementDescriptor(targetLayerBasis, sourceDesired) : null
+      const targetLayerTarget = fitMismatch ? elementDescriptor(targetLayerBasis, targetDesired) : null
+
+      if (sourceDescriptor && (targetDescriptor || targetLayerTarget)) {
+        exitImageFrame = 0
+        exitImageStartedAt = performance.now()
+        exitImageActive = true
+
+        const applyFinal = () => {
+          const state = readTargetState()
+          const desired = fitMismatch ? state?.element : (state?.visual || state?.element)
+          const descriptor = fitMismatch
+            ? elementDescriptor(basis, desired)
+            : visualDescriptor(basis, desired)
+          if (descriptor) writeDescriptor(exitImage, descriptor)
+          if (exitImageLayer) {
+            const layerTarget = elementDescriptor(layerBasis(), state?.element || desired)
+            if (layerTarget) writeDescriptor(exitImageLayer, layerTarget)
+            exitImage.style.setProperty("opacity", "0", "important")
+            exitImageLayer.style.setProperty("opacity", "1", "important")
+          } else {
+            exitImage.style.setProperty("opacity", "1", "important")
+          }
+        }
+        exitImageFinish = applyFinal
+        const update = (time) => {
+          if (!exitImageActive || !ghost.isConnected) return
+          const raw = clamp((time - exitImageStartedAt) / projectPreviewSurfaceRetractDurationMs(), 0, 1)
+          const eased = smoothstep(raw)
+          const state = readTargetState()
+          const desired = fitMismatch ? state?.element : (state?.visual || state?.element)
+          const currentTarget = fitMismatch
+            ? elementDescriptor(basis, desired)
+            : visualDescriptor(basis, desired)
+          const descriptor = interpolateDescriptor(sourceDescriptor, currentTarget || targetDescriptor, eased)
+          writeDescriptor(exitImage, descriptor)
+          if (exitImageLayer) {
+            const layerTarget = elementDescriptor(layerBasis(), state?.element || desired)
+            const layerDescriptor = interpolateDescriptor(targetLayerSource || sourceDescriptor, layerTarget || targetLayerTarget, eased)
+            writeDescriptor(exitImageLayer, layerDescriptor)
+            const fadeProgress = clamp((eased - 0.64) / 0.36, 0, 1)
+            exitImage.style.setProperty("opacity", `${1 - fadeProgress}`, "important")
+            exitImageLayer.style.setProperty("opacity", `${fadeProgress}`, "important")
+          }
+          if (raw >= 1) {
+            exitImageActive = false
+            exitImageFinish?.()
+            return
+          }
+          exitImageFrame = window.requestAnimationFrame(update)
+        }
+        writeDescriptor(exitImage, sourceDescriptor)
+        if (exitImageLayer) {
+          writeDescriptor(exitImageLayer, targetLayerSource || sourceDescriptor)
+          exitImage.style.setProperty("opacity", "1", "important")
+          exitImageLayer.style.setProperty("opacity", "0", "important")
+        }
+        exitImageFrame = window.requestAnimationFrame(update)
+        exitImageRestore = () => {
+          exitImageActive = false
+          if (exitImageFrame) window.cancelAnimationFrame(exitImageFrame)
+          exitImageFrame = 0
+          exitImageFinish?.()
+          exitImageLayer?.remove()
+          exitImageLayer = null
+          if (sourceTransformPriority || sourceTransform) exitImage.style.setProperty("transform", sourceTransform, sourceTransformPriority)
+          else exitImage.style.removeProperty("transform")
+          if (sourceOpacityPriority || sourceOpacity) exitImage.style.setProperty("opacity", sourceOpacity, sourceOpacityPriority)
+          else exitImage.style.removeProperty("opacity")
+          if (sourceWillChangePriority || sourceWillChange) exitImage.style.setProperty("will-change", sourceWillChange, sourceWillChangePriority)
+          else exitImage.style.removeProperty("will-change")
+        }
+        ghost.__projectPreviewExitImageCleanup = exitImageRestore
+      }
+    }
 
   let cleaned = false
   const cleanup = () => {
@@ -8205,7 +8369,7 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null } = {})
     state.stickySibling?.style.removeProperty("--project-detail-sibling-lift")
     state.row?.style.removeProperty("--project-detail-sticky-tail")
     if (card?.isConnected) {
-      for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "aria-controls"]) card.removeAttribute(attribute)
+      for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "data-project-detail-header-exited", "aria-controls"]) card.removeAttribute(attribute)
       delete card.__detailHeaderStart
       delete card.__detailHeaderOpenHeight
       for (const name of ["progress", "ease", "expanded-height", "min-height", "pad"]) card.style.removeProperty(`--project-detail-header-${name}`)

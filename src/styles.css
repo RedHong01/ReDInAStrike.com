@@ -5521,3 +5521,15 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     min-height: clamp(236px, 72vw, 320px);
   }
 }
+
+/* A detail header remains sticky while its article is crossing the viewport.
+   Once the article's bottom has passed the top edge, the sticky card is still
+   needed in flow as a spacer, but it must leave the paint and hit-test layers.
+   Keeping the footprint avoids pulling the following row upward; hiding the
+   whole card also removes its pseudo rules, which otherwise can show through
+   later catalogue rows at a lower stacking level. */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

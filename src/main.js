@@ -15,7 +15,7 @@ import {
 
 const navItems = [
   { label: "Game", detail: "Rapid Prototype / Alt Control", hash: "game" },
-  { label: "On going", detail: "Latest Personal Project", hash: "ongoing" },
+  { label: "Ongoing", detail: "Latest Personal Project", hash: "ongoing" },
   { label: "Interaction", detail: "UI & UX Prototype / Plugin", hash: "interaction" },
   { label: "Graphic", detail: "Prints / Motion", hash: "graphic" },
   { label: "Resume", detail: "CV / Contact", hash: "resume" },
@@ -71,7 +71,7 @@ const projects = [
   },
   {
     pageTitle: "MyFridge",
-    displayTitle: "UI&UX Prototype",
+    displayTitle: "UI/UX Prototype",
     date: "4/29/2024",
     path: "/myfridge",
     navHash: "interaction",
@@ -88,7 +88,7 @@ const projects = [
   },
   {
     pageTitle: "Assets Hub",
-    displayTitle: "UI&UX Prototype",
+    displayTitle: "UI/UX Prototype",
     date: "12/9/2024",
     path: "/uiux-prototype",
     navHash: "interaction",
@@ -333,11 +333,11 @@ function catalogRowsMarkup(category = null) {
 const framerProjectDetails = {
   "/bns_gdd": {
     year: "2024 Spring",
-    title: "Build n Shoot",
+    title: "Build & Shoot",
     category: "Board Game Prototype",
     routeImage: "assets/framer-routes/03-bns_gdd.jpg",
     leadImage: "assets/framer-live/analog-game.png",
-    leadAlt: "Build n Shoot board game concept landscape",
+    leadAlt: "Build & Shoot board game concept landscape",
     summary:
       "A turn-based strategy shooting board-game prototype built around movement, building, territory control, and tactical combat on a 15 by 15 grid.",
     points: [
@@ -360,7 +360,7 @@ const framerProjectDetails = {
   "/myfridge": {
     year: "2024 Spring",
     title: "MyFridge",
-    category: "UI&UX Prototype",
+    category: "UI/UX Prototype",
     routeImage: "assets/framer-routes/04-myfridge.jpg",
     leadImage: "assets/framer-live/my-fridge.png",
     leadAlt: "MyFridge mobile app interface overview",
@@ -2675,6 +2675,7 @@ function projectLeadMarkup(project, { detail = false } = {}) {
         <img
           ${imageSourceAttrs(project.image)}
           alt="${escapeHtml(title)}"
+          sizes="(max-width: 700px) calc(100vw - 36px), (max-width: 980px) min(760px, calc(100vw - 48px)), 44vw"
           loading="eager"
           fetchpriority="high"
           decoding="async"
@@ -2713,11 +2714,12 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
   const cardSide = loadingIndex % 2 === 0 ? "left" : "right"
 
   return `
-    <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-card-side="${cardSide}" data-section="${escapeHtml(project.navHash)}" data-index="${index}" data-media-bg-mode="${mediaBackgroundMode}" aria-expanded="false" style="${mediaStyle(project)}"${mutedAttributes}>
+    <a class="project-card${mutedClass}" href="${hrefFor(project.path)}" data-project-card data-card-side="${cardSide}" data-section="${escapeHtml(project.navHash)}" data-index="${index}" data-media-bg-mode="${mediaBackgroundMode}" aria-label="${escapeHtml(`${project.displayTitle}, ${project.pageTitle}, ${project.date}`)}" aria-expanded="false" style="${mediaStyle(project)}"${mutedAttributes}>
       <figure class="project-media${mediaBackgroundClass}"${videoAttributes}>
         <img
           ${imageSourceAttrs(project.image)}
           alt="${escapeHtml(project.pageTitle)}"
+          sizes="(max-width: 700px) calc(100vw - 36px), (max-width: 980px) min(760px, calc(100vw - 48px)), 44vw"
           loading="${eagerImage ? "eager" : "lazy"}"
           fetchpriority="${fetchPriority}"
           decoding="async"
@@ -2918,6 +2920,7 @@ function galleryTile(project, index, isClone = false) {
         <img
           ${imageSourceAttrs(project.image)}
           alt="${escapeHtml(project.pageTitle)}"
+          sizes="(max-width: 700px) 76vw, (max-width: 980px) 46vw, 27vw"
           loading="${imageLoading}"
           fetchpriority="low"
           decoding="async"
@@ -2994,7 +2997,7 @@ const resumeProjects = [
   },
   {
     title: "Drill and Thrill",
-    role: "Lead Alt-Control Game Design & Development / Graphics Design",
+    role: "Lead Alt-Control Game Design & Development / Graphic Design",
     date: "Jan-Sept 2025",
     body: [
       "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
@@ -3002,7 +3005,7 @@ const resumeProjects = [
   },
   {
     title: "Shroom Show Down",
-    role: "Lead Alt-Control Game Design & Development / Graphics Design",
+    role: "Lead Alt-Control Game Design & Development / Graphic Design",
     date: "Jan-Sept 2026",
     body: [
       "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
@@ -3010,7 +3013,7 @@ const resumeProjects = [
   },
   {
     title: "Curtain",
-    role: "Game Prototype Design & Development / Graphics Design",
+    role: "Game Prototype Design & Development / Graphic Design",
     date: "Mar-Nov 2025",
     body: [
       "Designed the core gameplay loop, resource economy, combat systems, and AI mechanics.",
@@ -3149,7 +3152,6 @@ function aboutMarkup() {
         <div class="contact-copy" id="contact">
           <h2>Contact:</h2>
           <div class="contact-links">
-            <a href="#" aria-label="Twitter">Twitter</a>
             <a href="https://www.instagram.com/red_cnfh/">Instagram</a>
             <a href="mailto:zwang29@inside.artcenter.edu">Email</a>
           </div>
@@ -6441,8 +6443,12 @@ function setupNavHoverInteraction() {
     visualStateKey = nextVisualStateKey
 
     items.forEach((item) => {
-      item.classList.toggle("is-nav-active", item === visibleItem && item !== lockedItem)
-      item.classList.toggle("is-nav-locked", item === lockedItem)
+      const isActive = item === visibleItem && item !== lockedItem
+      const isLocked = item === lockedItem
+      item.classList.toggle("is-nav-active", isActive)
+      item.classList.toggle("is-nav-locked", isLocked)
+      if (isActive || isLocked) item.setAttribute("aria-current", "location")
+      else item.removeAttribute("aria-current")
       item.classList.remove("is-nav-lock-suppressed")
     })
   }

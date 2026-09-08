@@ -209,6 +209,10 @@ html {
   font-size: 16px;
   letter-spacing: 0;
   scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
 }
 
 @media (any-hover: hover) and (any-pointer: fine) {
@@ -222,14 +226,21 @@ html {
 
 body {
   margin: 0;
-  min-width: 320px;
-  background: var(--paper);
+  min-width: 0;
+  background:
+    radial-gradient(circle at 50% -14%, rgba(255, 255, 255, 0.74), transparent 46%),
+    var(--paper);
   overflow-x: hidden;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+a:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 5px;
 }
 
 img {
@@ -366,10 +377,32 @@ html[data-project-detail-scroll-motion="moving"] body {
   inset: 0;
   z-index: 0;
   background: var(--glass-bg);
+  background: color-mix(in srgb, var(--paper) 84%, transparent);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   box-shadow: none;
   pointer-events: none;
+}
+
+/* Frosted surfaces are a signature of the paper interface, but a large blur
+   kernel is disproportionately expensive on small, high-density screens.
+   Keep the material read while reducing the off-screen texture work there. */
+@media (max-width: 700px) {
+  :root {
+    --glass-blur: 10px;
+    --glass-saturate: 1.06;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* A static paper surface does not need a continuously composited backdrop.
+     This also keeps reduced-motion sessions cool on integrated GPUs. */
+  .site-header::before,
+  .about-card::before,
+  .about-resume-band {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 .header-inner {
@@ -463,6 +496,33 @@ html[data-project-detail-scroll-motion="moving"] body {
   transition:
     transform 420ms var(--nav-ease),
     color 260ms ease;
+}
+
+.nav-item:hover .nav-title,
+.nav-item:focus-visible .nav-title {
+  color: #111;
+}
+
+.nav-item::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 280ms var(--nav-ease), opacity 280ms ease;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.nav-item:hover::after,
+.nav-item:focus-visible::after,
+.nav-item.is-nav-active::after {
+  transform: scaleX(1);
+  opacity: 0.8;
 }
 
 .nav-detail {
@@ -596,7 +656,9 @@ body[data-nav-density="full"] .nav-item:focus-visible .nav-detail {
 }
 
 .site-main {
-  background: var(--paper);
+  background:
+    radial-gradient(circle at 50% -8%, rgba(255, 255, 255, 0.48), transparent 40%),
+    var(--paper);
 }
 
 body[data-home-return-transition] .site-header {
@@ -1472,6 +1534,7 @@ body[data-layout-transition="true"] .about-section {
   margin: 0;
   overflow: hidden;
   background: var(--media-bg, var(--media-surface));
+  border: 1px solid rgba(17, 17, 17, 0.08);
 }
 
 .project-halftone {
@@ -1584,6 +1647,13 @@ body[data-layout-transition="true"] .about-section {
   white-space: nowrap;
 }
 
+@media (hover: none), (pointer: coarse) {
+  .project-meta,
+  .footer-gallery-meta {
+    opacity: 1;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .project-meta,
   .footer-gallery-meta {
@@ -1639,6 +1709,13 @@ body[data-layout-transition="true"] .about-section {
   overflow: hidden;
   pointer-events: none;
   transition: none;
+  /* Promote only while the pocket is actually moving; a permanent layer here
+     costs a full viewport-sized surface on pages where the footer is below
+     the fold. */
+  will-change: auto;
+}
+
+.footer-gallery[data-gallery-revealed="true"] .footer-gallery-viewport {
   will-change: top, height;
 }
 
@@ -1658,7 +1735,33 @@ body[data-layout-transition="true"] .about-section {
   width: max-content;
   height: 100%;
   transform: translate3d(var(--gallery-loop-offset), 0, 0);
+  will-change: auto;
+}
+
+.footer-gallery[data-gallery-revealed="true"] .footer-gallery-track {
   will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .project-card:not(.is-project-preview) {
+    transition:
+      transform 420ms var(--nav-ease),
+      opacity 320ms ease,
+      clip-path 560ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card:not(.is-project-preview):hover {
+    transform: translate3d(0, -4px, 0);
+  }
+
+  .catalog .project-card:not(.is-project-preview) .project-media img {
+    transition: transform 520ms var(--nav-ease), filter 420ms ease;
+  }
+
+  .catalog .project-card:not(.is-project-preview):hover .project-media img {
+    transform: scale(calc(var(--image-scale, 1) * 1.018));
+    filter: saturate(1.04) contrast(1.01);
+  }
 }
 
 .footer-gallery:not([data-gallery-revealed="true"]) .footer-gallery-runner {
@@ -2342,6 +2445,12 @@ body[data-layout-transition="true"] .about-section {
   --resume-project-body-leading: var(--type-resume-project-body-leading);
   --resume-sidebar-body-size: var(--type-resume-sidebar-body-size);
   --resume-sidebar-body-leading: var(--type-resume-sidebar-body-leading);
+}
+
+.about-copy h2,
+.contact-copy h2,
+.resume-info-block h3 {
+  text-wrap: balance;
 }
 
 .resume-projects,
@@ -3368,10 +3477,10 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .about-card {
     display: grid;
     grid-template-columns:
-      minmax(280px, 1fr)
-      minmax(112px, 0.36fr)
-      clamp(118px, 10.8vw, 132px)
-      minmax(210px, 0.72fr);
+      minmax(190px, 1fr)
+      minmax(82px, 0.36fr)
+      clamp(96px, 10.8vw, 132px)
+      minmax(170px, 0.72fr);
     column-gap: clamp(18px, 2.3vw, 30px);
     align-items: start;
   }
@@ -4472,6 +4581,93 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 @media (max-width: 520px) {
   .profile-portrait {
     top: 316px;
+  }
+}
+
+/* Small finishing layer: keep the editorial system crisp at every input size.
+   These rules are intentionally state-only so they do not compete with the
+   catalogue's existing transition choreography. */
+.project-card:focus-visible,
+.footer-gallery-tile:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 7px;
+}
+
+.project-card:not(.is-project-preview) .project-title,
+.footer-gallery-meta span:first-child {
+  text-wrap: pretty;
+}
+
+.project-card:not(.is-project-preview) .project-date,
+.footer-gallery-meta span:last-child {
+  color: color-mix(in srgb, currentColor 68%, transparent);
+}
+
+.contact-copy a,
+.profile-actions a,
+.framer-derived-footer a,
+.framer-case-footer a {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: color-mix(in srgb, currentColor 52%, transparent);
+  transition: text-decoration-color 180ms ease, color 180ms ease;
+}
+
+.contact-copy a:hover,
+.profile-actions a:hover,
+.framer-derived-footer a:hover,
+.framer-case-footer a:hover,
+.contact-copy a:focus-visible,
+.profile-actions a:focus-visible,
+.framer-derived-footer a:focus-visible,
+.framer-case-footer a:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+/* Long case studies should not force the browser to paint the entire article
+   before the reader reaches it. The intrinsic size prevents scroll jumps. */
+.site-main > .detail-page .framer-case-section,
+.site-main > .detail-page .framer-case-footer,
+.site-main > .detail-page .framer-derived-reference,
+.site-main > .detail-page .framer-derived-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+
+@media (max-width: 700px) {
+  .project-meta {
+    align-items: flex-start;
+  }
+
+  .project-title {
+    line-height: 1.2;
+  }
+
+  .project-date {
+    padding-top: 0.08em;
+  }
+
+  .contact-copy a,
+  .profile-actions a {
+    text-underline-offset: 0.18em;
+  }
+}
+
+@media (max-width: 380px) {
+  .project-meta {
+    gap: 10px;
+  }
+
+  .project-title {
+    flex-basis: 57%;
+    max-width: 57%;
+  }
+
+  .project-date {
+    flex-basis: 39%;
+    max-width: 39%;
+    white-space: normal;
   }
 }
 

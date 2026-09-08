@@ -10,7 +10,7 @@ import {
   smooth01,
   writeBinaryPixel,
 } from "./binary-surface-core.js?v=20260905-perf1"
-import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js?v=20260905-perf1"
+import { boundaryRevealMotionConfig } from "./motion-default.js?v=20260905-perf1"
 import {
   paintViewportDitherRevealNow,
   refreshViewportDitherReveals,
@@ -173,7 +173,7 @@ function currentCompositeBits(card, baseCanvas, cols, rows, paper, ink, config) 
     paper,
     ink,
     ditherConfig: config,
-    motionConfig: window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG,
+    motionConfig: boundaryRevealMotionConfig(),
   })?.bits || null
 }
 
@@ -184,12 +184,12 @@ function syncRevealBeforeRemoving(state) {
   trackViewportDitherReveal(
     state.card,
     finalCanvas,
-    window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG,
+    boundaryRevealMotionConfig(),
   )
   paintViewportDitherRevealNow(
     state.card,
     finalCanvas,
-    window.__RED_MOTION_CONFIG__ || PUBLISHED_MOTION_CONFIG,
+    boundaryRevealMotionConfig(),
   )
   refreshViewportDitherReveals({ linger: false })
 }

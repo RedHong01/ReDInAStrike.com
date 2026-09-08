@@ -171,6 +171,12 @@ function parseObjectPositionRatio(value) {
   return { x, y }
 }
 
+function readImageDisplayScale(style) {
+  const raw = style?.getPropertyValue?.("--image-scale")?.trim?.() || ""
+  const scale = Number.parseFloat(raw)
+  return Number.isFinite(scale) && scale > 0 ? scale : 1
+}
+
 function getImageRect(img, width, height, style = getComputedStyle(img)) {
   if (!img.naturalWidth || !img.naturalHeight) return null
   const fit = style.objectFit || "fill"
@@ -187,6 +193,11 @@ function getImageRect(img, width, height, style = getComputedStyle(img)) {
   } else if (fit === "none") {
     w = iw
     h = ih
+  }
+  const displayScale = readImageDisplayScale(style)
+  if (displayScale !== 1) {
+    w *= displayScale
+    h *= displayScale
   }
   const pos = parseObjectPositionRatio(style.objectPosition)
   return { x: (width - w) * pos.x, y: (height - h) * pos.y, width: w, height: h }
@@ -241,6 +252,7 @@ function sampleImage(img, media, config) {
     rows,
     style.objectFit || "fill",
     style.objectPosition || "50% 50%",
+    style.getPropertyValue("--image-scale").trim() || "1",
   ].join("|")
   const cached = sampleCache.get(key)
   if (cached) return cached

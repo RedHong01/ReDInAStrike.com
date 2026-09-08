@@ -160,6 +160,10 @@
   --type-preview-title-leading: 1.03;
   --project-preview-rule-width: 1px;
   --project-preview-content-block-pad: clamp(18px, 2.1vw, 32px);
+  /* Outer inset the expanded preview's image keeps from the card's right
+     edge in the wide-compact band. Mirrors the copy's own outer padding so
+     type and bitmap share one margin. */
+  --project-preview-compact-media-inset: clamp(32px, 6.6vw, 100px);
   --project-caption-size: var(--type-subtitle-size);
   --project-caption-leading: var(--type-subtitle-leading);
   --project-caption-step: var(--project-caption-leading);
@@ -168,15 +172,17 @@
   --project-rule-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-first-card-gap: calc(var(--project-caption-step) * 1.5);
   --project-card-column-gap: clamp(25px, 3.2vw, 48px);
-  --project-preview-duration: 420ms;
+  --project-preview-duration: 280ms;
   --project-preview-media-inset: clamp(18px, 2.5vw, 36px);
-  /* Keep the edge wipe slow enough to read as a physical colour bar moving
-     across the viewport. These values are mirrored by the JS teardown timer
-     so the state attribute is not removed before the paint animation settles. */
-  --project-preview-surface-duration: 720ms;
-  --project-preview-surface-retract-duration: 980ms;
-  --project-preview-surface-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --project-preview-exit-fade-duration: 180ms;
+  /* Keep the edge wipe visible as a physical colour bar moving across the
+     viewport. The gentler curve avoids front-loading almost the whole travel
+     into the first frames, which made the last part read as a small tail. */
+  --project-preview-surface-duration: 740ms;
+  --project-preview-surface-retract-duration: 280ms;
+  --project-detail-open-duration: 640ms;
+  --project-detail-close-duration: 520ms;
+  --project-preview-surface-ease: cubic-bezier(0.42, 0, 0.58, 1);
+  --project-preview-exit-fade-duration: 120ms;
   --project-preview-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --nav-detail-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -345,8 +351,12 @@ img {
 
 html[data-header-motion="moving"],
 html[data-scroll-magnet="moving"],
+html[data-project-detail-motion="moving"],
+html[data-project-detail-scroll-motion="moving"],
 html[data-header-motion="moving"] body,
-html[data-scroll-magnet="moving"] body {
+html[data-scroll-magnet="moving"] body,
+html[data-project-detail-motion="moving"] body,
+html[data-project-detail-scroll-motion="moving"] body {
   overflow-anchor: none;
 }
 
@@ -1021,7 +1031,7 @@ body[data-layout-transition="true"] .about-section {
   }
 }
 
-.project-card.is-project-preview[data-project-preview-expanding="true"] {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"]) {
   animation: project-preview-stage-expand var(--project-preview-duration) var(--project-preview-ease) both;
   will-change: clip-path;
 }
@@ -1030,11 +1040,11 @@ body[data-layout-transition="true"] .about-section {
    from the page's left edge, while a right card opens from the opposite edge.
    Keeping the two insets in the animation (instead of a generic scale) also
    preserves the full-bleed FLIP geometry used by the real card. */
-.project-card.is-project-preview[data-project-preview-expanding="true"][data-project-preview-motion-side="left"] {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])[data-project-preview-motion-side="left"] {
   animation-name: project-preview-stage-expand-left;
 }
 
-.project-card.is-project-preview[data-project-preview-expanding="true"][data-project-preview-motion-side="right"] {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])[data-project-preview-motion-side="right"] {
   animation-name: project-preview-stage-expand-right;
 }
 
@@ -1048,7 +1058,10 @@ body[data-layout-transition="true"] .about-section {
 
 .project-preview-expand-ghost {
   position: fixed !important;
-  z-index: 70;
+  /* The sticky project row paints a paper backdrop at z-index 15. Keep the
+     transition snapshot above that backdrop or the opening edge disappears
+     behind white for its first frames. */
+  z-index: 80 !important;
   display: grid !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -1056,35 +1069,43 @@ body[data-layout-transition="true"] .about-section {
   overflow: hidden;
   overflow: clip;
   pointer-events: none;
+  contain: layout paint;
   isolation: isolate;
-  transform-origin: var(--project-preview-expand-origin, 0% 50%);
-  transition:
-    left 520ms var(--project-preview-ease),
-    top 520ms var(--project-preview-ease),
-    width 520ms var(--project-preview-ease),
-    height 520ms var(--project-preview-ease);
-  animation: project-preview-stage-expand var(--project-preview-duration) var(--project-preview-ease) both;
-  will-change: left, top, width, height, clip-path;
+  transform: translateZ(0);
+  clip-path: inset(var(--project-preview-ghost-start-top, 0px) var(--project-preview-ghost-start-right, 0px) var(--project-preview-ghost-start-bottom, 0px) var(--project-preview-ghost-start-left, 0px));
+  -webkit-clip-path: inset(var(--project-preview-ghost-start-top, 0px) var(--project-preview-ghost-start-right, 0px) var(--project-preview-ghost-start-bottom, 0px) var(--project-preview-ghost-start-left, 0px));
+  transition-property: clip-path;
+  -webkit-transition-property: -webkit-clip-path;
+  transition-duration: var(--project-preview-surface-duration);
+  -webkit-transition-duration: var(--project-preview-surface-duration);
+  transition-timing-function: var(--project-preview-surface-ease);
+  -webkit-transition-timing-function: var(--project-preview-surface-ease);
+  will-change: clip-path;
 }
 
-/* Geometry is FLIP'd from source to full bleed. The fixed ghost also uses a
-   clamped, side-aware wipe so the reading edge arrives first. */
-.project-preview-expand-ghost[data-project-preview-motion-side="left"] {
-  animation-name: project-preview-ghost-expand-left;
-}
-
-.project-preview-expand-ghost[data-project-preview-motion-side="right"] {
-  animation-name: project-preview-ghost-expand-right;
-}
-
+/* Geometry is FLIP'd from source to full bleed through fixed-coordinate
+   interpolation. The reading edge is already represented by the source clone
+   orientation and can stay visually aligned with the live card side. */
 .project-preview-expand-ghost .project-media {
+  height: 100% !important;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+}
+
+.project-preview-expand-ghost {
+  grid-template-rows: minmax(0, 1fr) !important;
+}
+
+.project-preview-expand-ghost .project-preview-copy {
+  height: 100% !important;
   min-height: 0 !important;
 }
 
 .project-preview-expand-ghost .project-preview-copy {
+  clip-path: inset(0 0 0 0);
   transition:
-    opacity 300ms ease 480ms,
-    transform 520ms var(--project-preview-ease) 480ms;
+    opacity var(--project-preview-copy-duration, 320ms) var(--project-preview-copy-ease, var(--project-preview-surface-ease)) var(--project-preview-copy-delay, 220ms),
+    transform var(--project-preview-copy-duration, 360ms) var(--project-preview-copy-ease, var(--project-preview-surface-ease)) var(--project-preview-copy-delay, 220ms);
 }
 
 .project-preview-expand-ghost:not([data-project-preview-expand-state="target"]) .project-preview-copy {
@@ -1092,9 +1113,8 @@ body[data-layout-transition="true"] .about-section {
 }
 
 @media (max-width: 700px), (orientation: portrait) {
-  .project-preview-expand-ghost {
-    transition-duration: 440ms;
-    transform-origin: 50% 0;
+  :root {
+    --project-preview-surface-duration: 600ms;
   }
 }
 
@@ -1123,21 +1143,23 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-exiting="true"] {
-  animation: project-preview-stage-retract var(--project-preview-duration) var(--project-preview-ease) both;
+  /* `.is-project-preview` disables the live card animation with !important;
+     the snapshot must explicitly win that rule while it retracts. */
+  animation: project-preview-stage-retract var(--project-preview-surface-retract-duration) var(--project-preview-ease) both !important;
   will-change: clip-path, opacity;
   opacity: 1;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-motion-side="left"] {
-  animation-name: project-preview-stage-retract-left;
+  animation-name: project-preview-stage-retract-left !important;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-motion-side="right"] {
-  animation-name: project-preview-stage-retract-right;
+  animation-name: project-preview-stage-retract-right !important;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-exit-mode="switching"] {
-  animation: none;
+  animation: none !important;
   transition: opacity var(--project-preview-exit-fade-duration, 180ms) cubic-bezier(0.22, 0.61, 0.36, 1);
   transition-delay: 0ms;
   will-change: opacity;
@@ -1166,12 +1188,12 @@ body[data-layout-transition="true"] .about-section {
   gap: clamp(24px, 2.5vw, 40px);
   min-width: 0;
   padding: clamp(38px, 4.65vw, 72px) clamp(32px, 6.6vw, 100px) clamp(30px, 3.5vw, 54px) clamp(28px, 3.2vw, 48px);
-  animation: project-preview-copy-in var(--project-preview-duration) var(--project-preview-ease) both;
+  animation: none;
   animation-delay: 480ms;
 }
 
 /* Let the full-bleed color and its boundary arrive before the type. */
-.project-card.is-project-preview[data-project-preview-expanding="true"] .project-preview-copy {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"]) .project-preview-copy {
   animation-delay: 480ms;
 }
 
@@ -1225,10 +1247,24 @@ body[data-layout-transition="true"] .about-section {
 
 .project-preview-meta {
   margin: clamp(7px, 0.75vw, 12px) 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(2px, 0.2vw, 4px);
   font-family: var(--type-subtitle-font);
   font-size: var(--project-caption-size);
   line-height: var(--project-caption-leading);
   white-space: normal;
+}
+
+.project-preview-meta-subtitle,
+.project-preview-meta-date {
+  display: block;
+  min-width: 0;
+}
+
+.project-preview-meta-date {
+  white-space: nowrap;
 }
 
 .project-preview-summary {
@@ -1291,18 +1327,6 @@ body[data-layout-transition="true"] .about-section {
   100% {
     clip-path: inset(0 0 0 0);
   }
-}
-
-@keyframes project-preview-ghost-expand-left {
-  0% { clip-path: inset(0 0 0 0); }
-  56% { clip-path: inset(0 var(--project-preview-ghost-start-right, 0px) 0 0); }
-  100% { clip-path: inset(0 0 0 0); }
-}
-
-@keyframes project-preview-ghost-expand-right {
-  0% { clip-path: inset(0 0 0 0); }
-  56% { clip-path: inset(0 0 0 var(--project-preview-ghost-start-left, 0px)); }
-  100% { clip-path: inset(0 0 0 0); }
 }
 
 @keyframes project-preview-stage-retract {
@@ -1373,22 +1397,40 @@ body[data-layout-transition="true"] .about-section {
   to { transform: scaleX(0); }
 }
 
-.project-card.is-project-preview[data-project-preview-expanding="true"]::after,
-.project-card.is-project-preview[data-project-preview-expanding="true"]::before {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])::after,
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])::before {
   transform-origin: center;
   animation: project-preview-rule-expand 360ms cubic-bezier(0.22, 0.61, 0.36, 1) 110ms both;
 }
 
 .project-preview-expand-ghost::after,
 .project-preview-expand-ghost::before {
-  transform-origin: center;
-  animation: project-preview-rule-expand 360ms cubic-bezier(0.22, 0.61, 0.36, 1) 110ms both;
+  /* The parent clip-path already carries the full surface from the viewport
+     edge. A second scale animation from the center made the rules look like
+     the bar was growing out of the middle, so keep them at full width and let
+     the same edge wipe reveal them. */
+  transform-origin: left center;
+  transform: none !important;
+  animation: none !important;
+}
+
+.project-preview-expand-ghost[data-project-preview-motion-side="right"]::after,
+.project-preview-expand-ghost[data-project-preview-motion-side="right"]::before {
+  transform-origin: right center;
 }
 
 .project-card.project-preview-exit-ghost[data-project-preview-exiting="true"]::after,
 .project-card.project-preview-exit-ghost[data-project-preview-exiting="true"]::before {
-  transform-origin: center;
-  animation: project-preview-rule-retract 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  /* The exit surface already carries the reverse edge clip. A second rule
+     scale would reintroduce a center-origin shrink at the end of a switch. */
+  transform-origin: left center;
+  transform: none !important;
+  animation: none !important;
+}
+
+.project-card.project-preview-exit-ghost[data-project-preview-motion-side="right"][data-project-preview-exiting="true"]::after,
+.project-card.project-preview-exit-ghost[data-project-preview-motion-side="right"][data-project-preview-exiting="true"]::before {
+  transform-origin: right center;
 }
 
 .catalog[data-filter-phase] .project-card {
@@ -1487,6 +1529,12 @@ body[data-layout-transition="true"] .about-section {
   object-position: var(--image-position, center center);
 }
 
+/* Optional per-project thumbnail scale (e.g. Serial Deminer logo at 85%). */
+.catalog .project-card:not(.is-project-preview) .project-media > img {
+  transform: scale(var(--image-scale, 1));
+  transform-origin: center center;
+}
+
 .hover-video {
   z-index: 2;
   background: #000000;
@@ -1499,6 +1547,17 @@ body[data-layout-transition="true"] .about-section {
   justify-content: space-between;
   gap: clamp(14px, 5.65%, 28px);
   padding-top: var(--project-media-caption-gap);
+  /* Keep the caption slot independent from the number of wrapped lines.
+     Rows use the bottom edge of their tallest card as the rule anchor; when
+     a title wraps on only one side, letting that side grow the grid made the
+     next rule drift by exactly one line-height. Reserve the two-line slot
+     that the catalogue already needs, while still allowing unusually long
+     titles to grow beyond it. This gives the preview FLIP a stable media
+     center without changing the visible type treatment. */
+  min-height: calc(
+    var(--project-media-caption-gap) +
+    (2 * var(--project-caption-leading))
+  );
   font-family: var(--type-subtitle-font);
   font-size: var(--project-caption-size);
   line-height: var(--project-caption-leading);
@@ -1749,7 +1808,8 @@ body[data-layout-transition="true"] .about-section {
   z-index: 16;
   grid-column: 1 / -1;
   width: 100vw;
-  max-height: 0;
+  height: 0;
+  max-height: none;
   margin-left: calc((100% - 100vw) / 2);
   overflow: hidden;
   overflow: clip;
@@ -1764,15 +1824,11 @@ body[data-layout-transition="true"] .about-section {
      border box prevents a collapsed drawer's bottom border from being
      mistaken for the next card's top divider during compact reflow. */
   border-bottom: 0;
-  clip-path: inset(0 0 100% 0);
-  opacity: 0;
-  transform: translate3d(0, 18px, 0);
-  transition:
-    max-height 720ms var(--responsive-ease),
-    clip-path 720ms var(--responsive-ease),
-    opacity 260ms ease,
-    transform 720ms var(--responsive-ease);
-  will-change: max-height, clip-path, opacity, transform;
+  clip-path: none;
+  opacity: 1;
+  transform: none;
+  transition: none;
+  overflow-anchor: none;
 }
 
 /* One explicit boundary marks the end of the article. A pseudo-element is
@@ -1797,16 +1853,8 @@ body[data-layout-transition="true"] .about-section {
   border-top: 0;
 }
 
-.project-detail-drawer[data-drawer-direction="up"] {
-  clip-path: inset(100% 0 0 0);
-  transform: translate3d(0, -18px, 0);
-}
-
 .project-detail-drawer[data-drawer-state="open"] {
-  max-height: var(--project-detail-drawer-height, 100000px);
-  clip-path: inset(0 0 0 0);
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+  height: auto;
 }
 
 /* Once the drawer has finished opening, it becomes ordinary document flow.
@@ -1814,6 +1862,7 @@ body[data-layout-transition="true"] .about-section {
    would turn a full project page into a short clipped panel when media or
    fonts finish loading later. */
 .project-detail-drawer[data-drawer-state="settled"] {
+  height: auto;
   max-height: none;
   overflow: visible;
   clip-path: none;
@@ -1823,17 +1872,17 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-detail-drawer[data-drawer-state="closing"] {
-  max-height: 0;
+  height: 0;
 }
 
 .project-detail-drawer-inner {
   min-height: 0;
   padding-bottom: clamp(48px, 7vw, 112px);
   opacity: 0;
-  transform: translate3d(0, 24px, 0);
+  transform: translate3d(0, 12px, 0);
   transition:
-    opacity 360ms ease 80ms,
-    transform 720ms var(--responsive-ease) 40ms;
+    opacity 240ms ease,
+    transform 420ms var(--project-preview-surface-ease);
 }
 
 .project-row.has-project-preview[data-project-detail-open="true"] {
@@ -1899,9 +1948,20 @@ body[data-layout-transition="true"] .about-section {
     (1 - var(--project-detail-header-progress, 0)) * var(--project-detail-header-expanded-height, 420px) +
     var(--project-detail-header-progress, 0) * var(--project-detail-header-min-height, 88px)
   );
+  /* The collapse is paint-only: every pixel the lead gives up is handed back
+     to the grid as margin, so its flow footprint stays the full preview
+     height. Without this the article below rose at twice the scroll speed and
+     dived under the lead; with it, the lead's bottom edge and the article's
+     top edge travel together — one pixel of scroll, one pixel of shrink (see
+     the 1:1 mapping in requestProjectDetailHeaderUpdate) — so the collapsing
+     header never covers copy the reader is scrolling toward. */
+  margin-bottom: calc(
+    var(--project-detail-header-progress, 0) *
+    (var(--project-detail-header-expanded-height, 420px) - var(--project-detail-header-min-height, 88px))
+  );
   min-height: 0;
   overflow: visible;
-  transition: grid-template-columns 420ms var(--responsive-ease), height 760ms var(--responsive-ease);
+  transition: grid-template-columns 180ms var(--responsive-ease);
   will-change: height;
 }
 
@@ -1911,7 +1971,8 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] {
   transition:
     grid-template-columns 420ms var(--responsive-ease),
-    height 760ms var(--responsive-ease);
+    height 760ms var(--responsive-ease),
+    margin-bottom 760ms var(--responsive-ease);
 }
 
 .project-card.is-project-preview[data-project-detail-open="true"] .project-media {
@@ -1923,10 +1984,10 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
   padding: var(--project-detail-header-pad, 20px);
   transition:
-    padding 420ms var(--responsive-ease),
-    grid-template-rows 420ms var(--responsive-ease),
-    transform 420ms var(--responsive-ease),
-    opacity 260ms ease;
+    padding 180ms var(--responsive-ease),
+    grid-template-rows 180ms var(--responsive-ease),
+    transform 180ms var(--responsive-ease),
+    opacity 140ms ease;
 }
 
 /* The detail header progressively removes its secondary type and summary.
@@ -1939,8 +2000,8 @@ body[data-layout-transition="true"] .about-section {
   gap: 0;
   text-align: center;
   transition:
-    gap 420ms var(--responsive-ease),
-    transform 420ms var(--responsive-ease);
+    gap 180ms var(--responsive-ease),
+    transform 180ms var(--responsive-ease);
 }
 
 .project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-head h2 {
@@ -1954,10 +2015,10 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-summary,
 .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-enter {
   transition:
-    transform 420ms var(--responsive-ease),
-    opacity 260ms ease,
-    max-height 680ms var(--responsive-ease),
-    margin 680ms var(--responsive-ease);
+    transform 180ms var(--responsive-ease),
+    opacity 140ms ease,
+    max-height 220ms var(--responsive-ease),
+    margin 220ms var(--responsive-ease);
 }
 
 /* A detail card remains the visual anchor while its article scrolls. Keep a
@@ -2050,10 +2111,10 @@ body[data-layout-transition="true"] .about-section {
   pointer-events: none;
   transform: translate3d(0, -6px, 0);
   transition:
-    max-height 680ms var(--responsive-ease),
-    margin 680ms var(--responsive-ease),
-    opacity 260ms ease,
-    transform 420ms var(--responsive-ease);
+    max-height 220ms var(--responsive-ease),
+    margin 220ms var(--responsive-ease),
+    opacity 140ms ease,
+    transform 180ms var(--responsive-ease);
 }
 
 /* The title's secondary line is part of the compact header identity. Keep it
@@ -2072,7 +2133,7 @@ body[data-layout-transition="true"] .about-section {
   grid-template-rows: 1fr;
   align-content: center;
   gap: 0;
-  transition: gap 420ms var(--responsive-ease), grid-template-rows 420ms var(--responsive-ease);
+  transition: gap 180ms var(--responsive-ease), grid-template-rows 180ms var(--responsive-ease);
 }
 
 /* At the smallest header height the title and its subtitle must fit as one
@@ -2102,6 +2163,19 @@ body[data-layout-transition="true"] .about-section {
   text-align: center;
 }
 
+.project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-meta {
+  align-self: center;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  gap: clamp(8px, 1vw, 14px);
+  margin-top: clamp(4px, 0.5vw, 6px);
+  max-width: 100%;
+  white-space: nowrap;
+  font-size: clamp(10px, 1.05vw, 13px);
+  line-height: 1;
+}
+
 /* At the minimum height the collapsed summary and affordance must stop
    participating in the flex measure. Their borders/line boxes otherwise add
    a few pixels below the title, which makes the title block overflow upward
@@ -2129,8 +2203,8 @@ body[data-layout-transition="true"] .about-section {
   font-size: clamp(28px, 4vw, 40px);
   line-height: 1;
   transition:
-    font-size 420ms var(--responsive-ease),
-    transform 420ms var(--responsive-ease);
+    font-size 180ms var(--responsive-ease),
+    transform 180ms var(--responsive-ease);
 }
 
 /* Restore the compact card's secondary metadata as the drawer retracts. A
@@ -3710,13 +3784,14 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   /* The detail drawer sits between the active card and its row sibling on
      compact layouts. Restore the sibling's list spacing/rule even though it
      is no longer a direct card-to-card sibling. */
-  .project-detail-drawer + .project-card:not(.is-project-preview) {
+  .project-detail-sticky-tail + .project-card:not(.is-project-preview) {
     position: relative;
     border-top: 0;
     padding-top: var(--project-rule-card-gap);
+    top: calc(-1 * var(--project-detail-sibling-lift, 0px));
   }
 
-  .project-detail-drawer + .project-card:not(.is-project-preview)::before {
+  .project-detail-sticky-tail + .project-card:not(.is-project-preview)::before {
     content: "";
     position: absolute;
     left: 0;
@@ -4223,12 +4298,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   clip-path: inset(0);
 }
 
-.project-card.is-project-preview[data-project-preview-expanding="true"][data-card-side="left"]::before {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])[data-card-side="left"]::before {
   clip-path: inset(0 100% 0 0);
   animation: preview-surface-expand-left var(--project-preview-surface-duration) var(--project-preview-surface-ease) both !important;
 }
 
-.project-card.is-project-preview[data-project-preview-expanding="true"][data-card-side="right"]::before {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])[data-card-side="right"]::before {
   clip-path: inset(0 0 0 100%);
   animation: preview-surface-expand-right var(--project-preview-surface-duration) var(--project-preview-surface-ease) both !important;
 }
@@ -4254,7 +4329,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   animation: none !important;
 }
 
-.project-card.is-project-preview[data-project-preview-expanding="true"]::after {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])::after {
   animation: preview-rule-expand var(--project-preview-surface-duration) var(--project-preview-surface-ease) both !important;
 }
 
@@ -4262,7 +4337,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   animation: preview-rule-collapse var(--project-preview-surface-retract-duration) var(--project-preview-surface-ease) both !important;
 }
 
-.project-card.is-project-preview[data-project-preview-expanding="true"] .project-preview-copy {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"]) .project-preview-copy {
   clip-path: inset(0 100% 0 0);
 }
 
@@ -4270,7 +4345,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   clip-path: inset(0 0 0 0);
 }
 
-.project-card.is-project-preview[data-project-preview-expanding="true"][data-card-side="right"] .project-preview-copy {
+.project-card.is-project-preview[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])[data-card-side="right"] .project-preview-copy {
   clip-path: inset(0 0 0 100%);
 }
 
@@ -4384,7 +4459,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     bottom: 0;
   }
 
-  .project-detail-drawer + .project-card:not(.is-project-preview)::before {
+  .project-detail-sticky-tail + .project-card:not(.is-project-preview)::before {
     display: none;
   }
 }
@@ -4572,9 +4647,9 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   min-height: 0;
-  /* Keep the overscanned seam/pseudo-surface visible while the header is
-     expanded. The compact state below becomes its own paint boundary. */
-  overflow: visible;
+  /* Clip the sticky lead to its own seam so the preview surface cannot leave
+     a stray strip behind while the drawer scrolls underneath it. */
+  overflow: clip;
   clip-path: none;
   background: var(--preview-media-bg, var(--media-bg, var(--media-surface, var(--paper))));
 }
@@ -4597,6 +4672,14 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   min-width: 0;
   height: 100%;
   grid-row: 1;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media img {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="left"] .project-media {
@@ -4651,9 +4734,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 
   .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-preview-meta {
-    font-size: 12px;
-    line-height: 1.1;
-    margin-top: 4px;
+    font-size: clamp(10px, 1.05vw, 12px);
+    line-height: 1;
   }
 }
 
@@ -4682,23 +4764,48 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     pointer-events: auto;
   }
 
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] {
-    grid-template-columns: minmax(0, 1fr);
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: clamp(12px, 2.2vw, 20px);
+    align-items: start;
     overflow: clip;
   }
 
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media,
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
-    grid-column: 1;
-    grid-row: 1;
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) .project-media {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: end;
+    align-self: center;
+    margin-top: clamp(6px, 1.6vw, 12px);
+    margin-right: clamp(12px, 3vw, 24px);
+    width: clamp(84px, 23vw, 150px);
+    height: auto;
+    min-height: 0;
+    aspect-ratio: var(--media-aspect, 16 / 9);
   }
 
-.catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) .project-media > img {
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) .project-preview-copy {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
     position: relative;
     inset: auto;
     left: auto;
     right: auto;
-    width: 100%;
+    top: auto;
+    bottom: auto;
+    width: auto;
+    min-width: 0;
+    align-self: start;
+    justify-self: stretch;
+    visibility: visible !important;
+    opacity: 1 !important;
+    clip-path: none !important;
+    z-index: 2;
   }
 }
 
@@ -4826,27 +4933,6 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 }
 
-/* A detail-open compact header is a single solid bar. Keep the media box for
-   the theme colour/full-bleed geometry but remove its bitmap at the moment the
-   drawer opens, so the copy cannot sit on top of a second image layer. */
-@media (max-width: 980px), (orientation: portrait) {
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media > img,
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media canvas {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none;
-    transition: opacity 360ms ease, visibility 0s linear 360ms;
-  }
-
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media > img,
-  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media canvas {
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto;
-    transition: opacity 260ms ease, visibility 0s linear;
-  }
-}
-
 /* Match typography to the compressed height before the minimized attribute is
    reached.  This keeps the title inside the shrinking card throughout the
    transition instead of clipping the old 48px line at its upper edge. */
@@ -4959,7 +5045,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   gap: clamp(24px, 2.5vw, 40px);
   padding: clamp(38px, 4.65vw, 72px) clamp(32px, 6.6vw, 100px) clamp(30px, 3.5vw, 54px) clamp(28px, 3.2vw, 48px);
   clip-path: inset(0 100% 0 0);
-  animation: project-preview-copy-in var(--project-preview-duration) var(--project-preview-ease) both;
+  animation: none;
 }
 
 .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-card-side="left"] .project-media,
@@ -4997,12 +5083,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 }
 
 .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-card-side="right"] .project-preview-copy,
-.project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-project-preview-expanding="true"][data-card-side="right"] .project-preview-copy,
+.project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"])[data-card-side="right"] .project-preview-copy,
 .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-project-preview-collapsing="true"][data-card-side="right"] .project-preview-copy {
   clip-path: inset(0 0 0 100%);
 }
 
-.project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-project-preview-expanding="true"] .project-preview-copy,
+.project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-project-preview-expanding="true"]:not([data-project-preview-expand-ghosting="true"]) .project-preview-copy,
 .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-project-preview-collapsing="true"] .project-preview-copy {
   clip-path: inset(0 100% 0 0);
 }
@@ -5173,7 +5259,40 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
    shared seam instead of pushing the compact bar down. */
 .catalog .project-row.has-project-preview[data-project-detail-open="true"] {
   padding-top: var(--project-rule-card-gap);
+  /* Extend the sticky containing block through the compact header's final
+     overlap with the drawer. The negative margin keeps the next homepage row
+     at the same document position, while the padding gives native sticky
+     positioning enough runway to stay pinned until the drawer reaches the
+     shared site-header seam. */
   padding-bottom: 0;
+  margin-bottom: calc(-1 * var(--project-detail-sticky-tail, 0px));
+}
+
+/* The sticky card's containing block ends at the row's content edge. Keep an
+   explicit, in-flow tail after the drawer so the card can remain pinned until
+   the drawer itself has crossed the shared header seam. The row's matching
+   negative margin keeps the next catalogue row at its original document
+   position without turning the tail into a detached overlay. */
+.catalog .project-row.has-project-preview[data-project-detail-open="true"] > .project-detail-sticky-tail {
+  display: block;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: var(--project-detail-sticky-tail, 0px);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* On stacked layouts the row tail is an invisible sticky runway. Keep the
+   row's divider on the visible sibling's bottom edge instead of leaving it
+   below the runway by the tail height. The active lead's own bottom rule
+   remains the seam above the drawer. */
+@media (max-width: 980px), (orientation: portrait) {
+  .catalog .project-row.has-project-preview[data-project-detail-open="true"]::after {
+    bottom: var(--project-detail-sticky-tail, 0px);
+  }
 }
 
 /* The homepage header owns the exact shared top seam. Keep the card rule out
@@ -5210,4 +5329,207 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .project-card.is-project-preview:not(.project-preview-exit-ghost):not(.project-preview-expand-ghost):not([data-project-detail-open="true"])[data-card-side="right"] .project-preview-copy {
     padding-left: var(--content-edge-pad);
   }
+}
+
+.project-preview-exit-ghost::before,
+.project-preview-exit-ghost::after {
+  left: 0 !important;
+  width: 100% !important;
+  height: var(--project-preview-rule-width) !important;
+  background: var(--preview-rule, var(--rule)) !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+.project-preview-exit-ghost::before { top: 0 !important; bottom: auto !important; }
+.project-preview-exit-ghost::after { top: auto !important; bottom: 0 !important; }
+
+/* Drawer entry keeps the preview's type in place. Its padding contracts only
+   with scroll progress, using the exact insets captured from the preview. */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy {
+  padding:
+    calc(8px + (var(--project-detail-copy-top, 42px) - 8px) * (1 - var(--project-detail-header-ease, 0)))
+    calc(8px + (var(--project-detail-copy-right, 42px) - 8px) * (1 - var(--project-detail-header-ease, 0)))
+    calc(8px + (var(--project-detail-copy-bottom, 42px) - 8px) * (1 - var(--project-detail-header-ease, 0)))
+    calc(8px + (var(--project-detail-copy-left, 42px) - 8px) * (1 - var(--project-detail-header-ease, 0)));
+  grid-template-rows: auto 1fr auto;
+  clip-path: none;
+}
+
+@media (min-width: 981px) and (orientation: landscape) {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media > img {
+    top: var(--project-preview-content-block-pad);
+    bottom: auto;
+    width: calc(100% - var(--content-edge-pad) - var(--project-card-column-gap) / 2);
+    height: max(0px, calc(100% - var(--project-preview-content-block-pad) * 2));
+    object-fit: contain;
+  }
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="left"] .project-media > img { left: var(--content-edge-pad); }
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-card-side="right"] .project-media > img { left: calc(var(--project-card-column-gap) / 2); }
+}
+
+/* The phone preview already handed its media to the text. Opening its article
+   retains that layout instead of suddenly inserting a thumbnail column. */
+@media (max-width: 700px) {
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
+  }
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-media { display: none; }
+  .catalog .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-copy { grid-column: 1 / -1 !important; }
+}
+
+/* The live card owns the surface until it settles. Freeze responsive layout
+   transitions during measurement so its destination cannot move underneath. */
+.project-card[data-project-preview-motion],
+.project-card[data-project-preview-motion] *,
+.project-card[data-project-preview-motion]::before,
+.project-card[data-project-preview-motion]::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+.project-card[data-project-preview-motion] {
+  will-change: clip-path, transform;
+  overflow-anchor: none;
+}
+
+/* -------------------------------------------------------------------------
+   Compact preview media
+
+   The earlier mobile cascade collapses the expanded card's media row to zero
+   after the motion settles. That hard state change is why a thumbnail could
+   disappear when the viewport crossed 700px even though its available width
+   changed by only a few pixels. Keep a real media track throughout the
+   compact range so the bitmap continuously resizes instead of being removed.
+
+   Restore a two-column preview across that band. Unlike the desktop layout,
+   the side is fixed rather than alternating: at this width the copy already
+   starts at the left page gutter for every card (see the compact padding
+   rules), so the image belongs opposite it on the right, where it reads as
+   one consistent column instead of jumping sides card to card.
+
+   Geometry: the image is contained inside the right column, pinned to the
+   same outer inset the copy uses for its own right padding, and centered on
+   the card's vertical axis with the shared content block pad — so it keeps an
+   appropriate size instead of being squeezed into a corner.
+
+   This block is deliberately last in the file: the mobile cascade it corrects
+   uses the same specificity and !important, so source order is what decides.
+------------------------------------------------------------------------- */
+@media (min-width: 521px) and (max-width: 980px), (min-width: 521px) and (orientation: portrait) {
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]),
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]),
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-preview-copy,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-preview-copy,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-preview-copy {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    opacity: 1 !important;
+    overflow: hidden !important;
+    pointer-events: auto;
+  }
+
+  /* Absolutely positioned replaced elements resolve `auto` sizes from their
+     intrinsic dimensions, not from their offsets, so the box is given an
+     explicit measure the same way the desktop rule does. `right` anchors it
+     to the outer inset; object-position keeps the bitmap on that edge when a
+     portrait source does not fill the box. */
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media > img {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto;
+    left: auto;
+    right: var(--project-preview-compact-media-inset);
+    top: var(--project-preview-content-block-pad);
+    bottom: auto;
+    width: calc(100% - var(--project-preview-compact-media-inset));
+    height: calc(100% - var(--project-preview-content-block-pad) * 2);
+    object-fit: contain;
+    object-position: right center;
+  }
+}
+
+/* Phones keep the same image-first reading order as the source card. The
+   target is stacked because two columns would make both the image and the
+   copy illegible, but the media row remains measurable in every state. This
+   also gives the FLIP a real destination, eliminating the zero-height handoff
+   that used to look like a final refresh. */
+@media (max-width: 520px) {
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]),
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]),
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: var(--project-preview-mobile-media-height, calc(var(--content-width) * 9 / 16)) auto !important;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    overflow: hidden !important;
+    pointer-events: auto;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-media > img,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-media > img {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"]:not([data-project-detail-open="true"]) .project-preview-copy,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-ready="true"]:not([data-project-detail-open="true"]) .project-preview-copy,
+  .catalog .project-card.is-project-preview[data-project-preview-active="true"][data-project-preview-collapsing="true"]:not([data-project-detail-open="true"]) .project-preview-copy {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    height: auto !important;
+    min-height: clamp(236px, 72vw, 320px);
+  }
+}
+
+/* A detail header remains sticky while its article is crossing the viewport.
+   Once the article's bottom has passed the top edge, the sticky card is still
+   needed in flow as a spacer, but it must leave the paint and hit-test layers.
+   Keeping the footprint avoids pulling the following row upward; hiding the
+   whole card also removes its pseudo rules, which otherwise can show through
+   later catalogue rows at a lower stacking level. */
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

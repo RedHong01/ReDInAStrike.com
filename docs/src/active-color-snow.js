@@ -660,6 +660,12 @@ function parseObjectPositionRatio(value) {
   return { x, y }
 }
 
+function readImageDisplayScale(style) {
+  const raw = style?.getPropertyValue?.("--image-scale")?.trim?.() || ""
+  const scale = Number.parseFloat(raw)
+  return Number.isFinite(scale) && scale > 0 ? scale : 1
+}
+
 function getImageRect(img, width, height, style = getComputedStyle(img)) {
   if (!img.naturalWidth || !img.naturalHeight) return null
   const fit = style.objectFit || "fill"
@@ -682,6 +688,12 @@ function getImageRect(img, width, height, style = getComputedStyle(img)) {
   } else if (fit === "none") {
     w = iw
     h = ih
+  }
+
+  const displayScale = readImageDisplayScale(style)
+  if (displayScale !== 1) {
+    w *= displayScale
+    h *= displayScale
   }
 
   const pos = parseObjectPositionRatio(style.objectPosition)
@@ -920,6 +932,7 @@ function paletteDescriptor(img, media, config) {
     `${cols}x${rows}`,
     imgStyle.objectFit || "fill",
     imgStyle.objectPosition || "50% 50%",
+    imgStyle.getPropertyValue("--image-scale").trim() || "1",
     background,
     config.activeColorPaletteLevels,
     config.activeColorNeighborRadius,
@@ -1152,6 +1165,7 @@ function analyzeRestoreBoundary(sourceBits, fullBits, cols, rows) {
 }
 
 function buildRestoreSurface(card, grid, paper = readPaperColor(), ink = readInkColor()) {
+  const captured = window.__RED_HOVER_BINARY_RETURN__?.surface?.(card, grid.cols, grid.rows)
   const currentSurface = sampleCurrentBinarySurface(card, {
     cols: grid.cols,
     rows: grid.rows,
@@ -1171,21 +1185,23 @@ function buildRestoreSurface(card, grid, paper = readPaperColor(), ink = readInk
         applyViewportBoundary: false,
       })
     : null
-  const currentPixels = currentSurface
+  const currentPixels = captured?.pixels || (currentSurface
     ? pixelsFromBinaryBits(currentSurface.bits, grid.cols, grid.rows, currentSurface.paper, currentSurface.ink)
-    : null
+    : null)
   const fullPixels = fullSurface
     ? pixelsFromBinaryBits(fullSurface.bits, grid.cols, grid.rows, fullSurface.paper, fullSurface.ink)
     : null
   if (currentPixels) {
+    const sourceBits = captured?.bits || currentSurface?.bits
+    const fullBits = fullSurface?.bits || sourceBits
     return {
       sourcePixels: currentPixels,
       fullPixels: fullPixels || currentPixels,
-      sourceBits: currentSurface.bits,
-      fullBits: fullSurface?.bits || currentSurface.bits,
+      sourceBits,
+      fullBits,
       boundary: analyzeRestoreBoundary(
-        currentSurface.bits,
-        fullSurface?.bits || currentSurface.bits,
+        sourceBits,
+        fullBits,
         grid.cols,
         grid.rows,
       ),
@@ -1829,20 +1845,34 @@ function restoreImageHandoffAlpha(state, index, col, row, handoffProgress, frame
 
 function finishState(state) {
   activeStates.delete(state)
+  if (cardStates.get(state.card) !== state) return
 
   if (state.mode === "restore-reverse") {
     clearRestoreReady(state.card)
-    const handoffStarted = window.__RED_HOVER_BINARY_RETURN__?.play?.(state.card) === true
+    const hoverBinaryReturn = window.__RED_HOVER_BINARY_RETURN__
+    const handoffStarted = hoverBinaryReturn?.play?.(state.card) === true
     const source = handoffStarted ? state.hiddenSource : exposeRestoreSource(state.card)
+    if (handoffStarted) {
+      // The return layer now owns exactly the same endpoint pixels. Release
+      // immediately so its canonical preparation can run on the next frame.
+      state.canvas.remove()
+      cardStates.delete(state.card)
+      clearRestoreSourceInline(source)
+      state.card.removeAttribute(RETURN_ATTRIBUTE)
+      state.card.removeAttribute(MOTION_ATTRIBUTE)
+      return
+    }
     state.handoffFrame = requestAnimationFrame(() => {
+      state.handoffFrame = 0
+      if (cardStates.get(state.card) !== state) return
       if (state.canvas.isConnected) state.canvas.remove()
       cardStates.delete(state.card)
       state.card.removeAttribute(RETURN_ATTRIBUTE)
       state.cleanupFrame = requestAnimationFrame(() => {
+        state.cleanupFrame = 0
+        if (cardStates.has(state.card)) return
         clearRestoreSourceInline(source)
-        releaseMotionAfterFrames(state.card, handoffStarted ? 0 : 2, {
-          cooldown: !handoffStarted,
-        })
+        releaseMotionAfterFrames(state.card, 2, { cooldown: true })
       })
     })
     return
@@ -1955,7 +1985,10 @@ function drawState(state, now) {
       const settleSoftness = 0.1
 
       for (let index = 0; index < grid.count; index += 1) {
-        const settleThreshold = 0.035 + (1 - grid.order[index]) * 0.93
+        // Keep the entire soft interval inside [0, 1]: every pixel must reach
+        // the exact return surface before ownership changes at the endpoint.
+        const settleThreshold = settleSoftness +
+          (1 - grid.order[index]) * (1 - settleSoftness * 2)
         const settled = smooth01(
           (settleProgress - settleThreshold + settleSoftness) /
             (settleSoftness * 2),

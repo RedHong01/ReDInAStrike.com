@@ -65,10 +65,11 @@ function isMutedCardBase(card, targetCatalog) {
 }
 
 function isMutedCard(card, targetCatalog) {
+  // The return class can outlive the pixel motion. Once that owner releases
+  // its attributes, keep the boundary prepared by the hover handoff alive.
   return Boolean(
     isMutedCardBase(card, targetCatalog) &&
     !card.classList.contains("is-muted-restore-intent") &&
-    !card.classList.contains("is-muted-restore-return") &&
     !cardHasRuntimeOwner(card, ACTIVE_COLOR_MOTION_ATTRIBUTE) &&
     !cardHasRuntimeOwner(card, ACTIVE_COLOR_COOLDOWN_ATTRIBUTE) &&
     !cardHasRuntimeOwner(card, DITHER_RESIZE_MOTION_ATTRIBUTE),
@@ -79,7 +80,6 @@ function shouldKeepTrackedCard(card, targetCatalog) {
   return Boolean(
     isMutedCardBase(card, targetCatalog) &&
     !card.classList.contains("is-muted-restore-intent") &&
-    !card.classList.contains("is-muted-restore-return") &&
     !cardHasRuntimeOwner(card, ACTIVE_COLOR_MOTION_ATTRIBUTE) &&
     !cardHasRuntimeOwner(card, ACTIVE_COLOR_COOLDOWN_ATTRIBUTE),
   )

@@ -1,6 +1,6 @@
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 import { renderCard, resetSampleCache } from "./dither-engine.js?v=20260905-perf1"
-import { PUBLISHED_MOTION_CONFIG } from "./motion-default.js?v=20260905-perf1"
+import { boundaryRevealMotionConfig } from "./motion-default.js?v=20260905-perf1"
 import {
   cancelReveal,
   paintViewportDitherRevealNow,
@@ -221,10 +221,10 @@ function armViewportReveal(card, catalog) {
 
   state.revealSignatures.set(card, signature)
   if (existingReveal) {
-    const painted = paintViewportDitherRevealNow(card, canvas, PUBLISHED_MOTION_CONFIG)
+    const painted = paintViewportDitherRevealNow(card, canvas, boundaryRevealMotionConfig())
     if (painted?.ready === true) return true
   }
-  return trackViewportDitherReveal(card, canvas, PUBLISHED_MOTION_CONFIG)
+  return trackViewportDitherReveal(card, canvas, boundaryRevealMotionConfig())
 }
 
 function releaseViewportReveal(card, { forgetSignature = true } = {}) {

@@ -845,6 +845,10 @@ export function captureViewportDitherBoundaryField(card) {
     currentStrengths: current,
     targetStrengths: target.strengths,
     range: boundaryFieldRange(target.strengths),
+    noiseTime: state.lastBoundaryNoiseTime ??
+      (target.now / 1000 - (state.boundaryTimeOffset || 0)),
+    configKey: state.configKey,
+    sourceSignature: state.sourceSignature,
   }
 }
 
@@ -882,6 +886,12 @@ export function handoffViewportDitherBoundaryField(
     state.boundaryTargetStrengths.set(target.strengths)
   }
   state.boundaryRowsInitialized = true
+  // This field already exists in the visible hover-return snapshot. A newly
+  // tracked canvas must not replay its first-reveal depth growth on handoff.
+  state.boundarySpread = null
+  if (Number.isFinite(snapshot?.noiseTime)) {
+    state.boundaryTimeOffset = target.now / 1000 - snapshot.noiseTime
+  }
   state.lastBoundaryFieldAt = target.now
   state.boundaryRowKinds.fill(255)
   state.boundaryUploadRanges.length = 0
@@ -991,7 +1001,8 @@ function renderBoundaryField(state, now, bounds, forceMeasure = false, options =
   const field = advanceBoundaryField(state, now, options.immediate === true)
   const softness = pixelSoftness(config, "pixel-snow")
   const breathAmount = 0.07 + config.revealNoiseFlicker * 0.16
-  const timeSeconds = now / 1000
+  const timeSeconds = now / 1000 - (state.boundaryTimeOffset || 0)
+  state.lastBoundaryNoiseTime = timeSeconds
   const data = state.framePixels
   const rowKinds = state.boundaryRowKinds
   const uploadRanges = state.boundaryUploadRanges

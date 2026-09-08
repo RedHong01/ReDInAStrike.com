@@ -3870,7 +3870,7 @@ function requestProjectDetailHeaderUpdate() {
   // The drawer's live flow edge is therefore the source of truth, not the
   // document position captured when it opened. Height + backfill stay constant,
   // so reading this edge cannot feed our own collapse back into the layout.
-  syncProjectDetailHeaderAnchor(card, drawerState.element)
+  syncProjectDetailHeaderAnchor(card, drawerState.element, drawerRect)
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
   // A sticky element is constrained by the bottom edge of its containing row.
@@ -8451,12 +8451,17 @@ function restoreProjectDetailSwitchAnchor(anchor) {
  * collapses. So the article's top minus that footprint is the anchor, at any
  * point in the collapse. Returns the viewport-relative flow top.
  */
-function syncProjectDetailHeaderAnchor(card, drawer) {
+function syncProjectDetailHeaderAnchor(card, drawer, measuredDrawerRect = null) {
   const openHeight = card?.__detailHeaderOpenHeight
   if (!card?.isConnected || !drawer?.isConnected || !(openHeight > 0)) return Number.NaN
   // Bypass the shared rect cache: this runs from ResizeObserver as layout
   // changes, including frames where no scroll event invalidates that cache.
-  const rect = drawer.getClientRects()[0]
+  // The scroll updater already reads this box to decide when the lead has
+  // fully exited. Reuse that same snapshot so one controller performs one
+  // drawer layout read per frame; mount/resize callers can still omit it.
+  const rect = Number.isFinite(measuredDrawerRect?.top)
+    ? measuredDrawerRect
+    : drawer.getClientRects()[0]
   if (!Number.isFinite(rect?.top)) return Number.NaN
   // Layout offsets avoid fractional grid rounding while the drawer opens.
   const parent = drawer.dataset.drawerState === "settled" ? null : drawer.offsetParent

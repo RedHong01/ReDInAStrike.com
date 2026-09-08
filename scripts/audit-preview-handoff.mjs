@@ -27,7 +27,8 @@ async function open(width, height = 932) {
 async function settlePreview(page) {
   await page.waitForFunction(() =>
     !document.documentElement.hasAttribute("data-project-preview-transition") &&
-    !document.querySelector(".project-preview-exit-ghost"),
+    !document.querySelector(".project-preview-exit-ghost") &&
+    !document.querySelector(".project-preview-expand-ghost"),
   )
 }
 
@@ -182,6 +183,43 @@ function checkFixedFade(result, label) {
   }
 }
 
+function parseClipInsets(value) {
+  const match = value.match(/inset\(([^)]+)\)/)
+  if (!match) return null
+  const parts = match[1].trim().split(/\s+/).map((part) => Number.parseFloat(part))
+  if (parts.some((part) => !Number.isFinite(part))) return null
+  if (parts.length === 1) return [parts[0], parts[0], parts[0], parts[0]]
+  if (parts.length === 2) return [parts[0], parts[1], parts[0], parts[1]]
+  if (parts.length === 3) return [parts[0], parts[1], parts[2], parts[1]]
+  return parts.slice(0, 4)
+}
+
+function checkReverseRetraction(result, label) {
+  const samples = result.frames
+  assert(samples.every((sample) => sample.length <= 1), `${label}: at most one outgoing snapshot`)
+  const frames = samples.flat()
+  // A queued click can be coalesced while the previous retract is still
+  // running, so a later 70ms window is allowed to contain no snapshot. When
+  // one is present, it must be the edge anchored reverse gesture rather than
+  // the old instant disappearance.
+  if (!frames.length) return
+  assert(
+    frames.every((frame) => frame.animation.startsWith("project-preview-stage-retract")),
+    `${label}: outgoing snapshot uses the reverse retract motion`,
+  )
+  const insets = frames.map((frame) => parseClipInsets(frame.clip)).filter(Boolean)
+  if (insets.length > 1) {
+    const changed = insets.some((inset, index) => index > 0 && inset.some((value, axis) => Math.abs(value - insets[index - 1][axis]) > 0.25))
+    assert(changed, `${label}: reverse retract changes geometry`)
+    for (let index = 1; index < insets.length; index += 1) {
+      assert(
+        insets[index].every((value, axis) => value + 0.75 >= insets[index - 1][axis]),
+        `${label}: clip retract is monotonic`,
+      )
+    }
+  }
+}
+
 async function checkCategoryHandoff() {
   const page = await open(1280, 900)
   const card = page.locator('[data-project-card][data-index="4"]')
@@ -297,11 +335,11 @@ async function checkRapidSwitching() {
   for (const index of [6, 8, 10, 12]) {
     await page.locator(`[data-project-card][data-index="${index}"]`).evaluate((card) => card.click())
     const samples = await sampleOutgoingPreview(page, 70)
-    checkFixedFade(samples, `rapid switch to ${index}`)
+    checkReverseRetraction(samples, `rapid switch to ${index}`)
   }
   await settlePreview(page)
   assert.equal(
-    await page.locator(".project-card.is-project-preview").getAttribute("data-index"),
+    await page.locator("[data-project-card].is-project-preview").getAttribute("data-index"),
     "12",
     "rapid switching settles on latest card",
   )
@@ -316,10 +354,52 @@ async function checkDesktopMediaGeometry() {
   const card = page.locator('[data-project-card]').first()
   const before = await card.locator('.project-media > img').evaluate((image) => {
     const rect = image.getBoundingClientRect()
-    return { x: rect.x, width: rect.width }
+    const style = getComputedStyle(image)
+    const scale = style.objectFit === 'contain' && image.naturalWidth && image.naturalHeight
+      ? Math.min(rect.width / image.naturalWidth, rect.height / image.naturalHeight)
+      : null
+    const width = scale ? image.naturalWidth * scale : rect.width
+    const height = scale ? image.naturalHeight * scale : rect.height
+    return {
+      left: rect.left + (rect.width - width) / 2,
+      top: rect.top + (rect.height - height) / 2,
+      width,
+      height,
+    }
   })
 
-  await card.click({ position: { x: 80, y: 80 } })
+  // Observe the detached snapshot in the mutation microtask before its first
+  // target RAF. This verifies that a per-project thumbnail scale stays at the
+  // exact painted source bitmap while the full-bleed surface starts opening.
+  const firstFrame = await card.evaluate((element) => new Promise((resolve) => {
+    const observer = new MutationObserver(() => {
+      const ghost = document.querySelector('.project-preview-expand-ghost')
+      const image = ghost?.querySelector('.project-media > img')
+      if (!image) return
+      observer.disconnect()
+      const rect = image.getBoundingClientRect()
+      const style = getComputedStyle(image)
+      const scale = style.objectFit === 'contain' && image.naturalWidth && image.naturalHeight
+        ? Math.min(rect.width / image.naturalWidth, rect.height / image.naturalHeight)
+        : null
+      const width = scale ? image.naturalWidth * scale : rect.width
+      const height = scale ? image.naturalHeight * scale : rect.height
+      resolve({
+        left: rect.left + (rect.width - width) / 2,
+        top: rect.top + (rect.height - height) / 2,
+        width,
+        height,
+      })
+    })
+    observer.observe(document.body, { childList: true })
+    element.click()
+  }))
+  for (const property of ['left', 'top', 'width', 'height']) {
+    assert(
+      Math.abs(firstFrame[property] - before[property]) <= 1,
+      `desktop media geometry: first-frame ${property} remains at clicked thumbnail`,
+    )
+  }
   await settlePreview(page)
   const snapshot = async () => card.evaluate((element) => {
     const image = element.querySelector('.project-media > img')
@@ -367,8 +447,6 @@ async function checkDesktopMediaGeometry() {
   }
   const expanded = await snapshot()
   assertBounded(expanded, 'desktop media geometry')
-  assert(Math.abs(expanded.image.left - before.x) <= 1, 'desktop media geometry: valid horizontal origin remains stable')
-  assert(Math.abs(expanded.image.width - before.width) <= 1, 'desktop media geometry: valid width remains stable')
 
   await page.evaluate(() => window.scrollTo({ top: 150, behavior: 'instant' }))
   await page.waitForTimeout(650)

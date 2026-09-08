@@ -120,7 +120,7 @@ function checkPreview(snapshot, label) {
   }
   assert.equal(snapshot.active, 1, `${label}: one active preview`)
   assert.equal(snapshot.ghosts, 0, `${label}: no outgoing snapshot`)
-  assert.equal(snapshot.duration, "420ms", `${label}: shared preview timing`)
+  assert.equal(snapshot.duration, "280ms", `${label}: one-third-faster preview timing`)
   assert.equal(snapshot.siblingVisible, snapshot.single, `${label}: sibling visibility`)
   assert.equal(snapshot.rowPosition, snapshot.single ? "static" : "sticky", `${label}: pin policy`)
   assert.deepEqual(snapshot.order, Array.from({ length: 16 }, (_, i) => String(i)), `${label}: order`)

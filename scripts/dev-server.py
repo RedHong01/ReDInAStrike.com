@@ -129,6 +129,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if not (target and os.path.isfile(target)):
             fallback = resolve_under(ROOT, os.path.join("public", request_path.lstrip("/")))
+            if fallback and os.path.isdir(fallback):
+                fallback = os.path.join(fallback, "index.html")
             if fallback and os.path.isfile(fallback):
                 target = fallback
 

@@ -75,7 +75,10 @@ createServer(async (req, res) => {
 
     if (!existsSync(filePath)) {
       const publicPath = join(root, "public", requestPath)
-      if (existsSync(publicPath)) filePath = publicPath
+      if (existsSync(publicPath)) {
+        filePath = publicPath
+        if (statSync(filePath).isDirectory()) filePath = join(filePath, "index.html")
+      }
     }
 
     if (existsSync(filePath) && statSync(filePath).isFile()) {

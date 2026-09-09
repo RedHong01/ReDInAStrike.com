@@ -169,10 +169,10 @@ const projects = [
     image: "assets/framer-live/ongoing-game-project.png",
     imageFit: "contain",
     mediaBackground: "#ffffff",
-    // The DAD repository publishes its Unity WebGL output at a stable Pages
-    // root. The repository can replace the build behind this URL without a
-    // website code change.
-    webglEmbed: "https://redhong01.github.io/DAD/",
+    // Keep the playable build on the same Pages origin as the portfolio so
+    // the project remains playable even when the separate Unity repository's
+    // Pages deployment is unavailable.
+    webglEmbed: "../dad/",
   },
   {
     pageTitle: "Narrative Design Document",

@@ -1747,23 +1747,10 @@ body[data-layout-transition="true"] .about-section {
 @media (hover: hover) and (pointer: fine) {
   .project-card:not(.is-project-preview) {
     transition:
-      transform 420ms var(--nav-ease),
       opacity 320ms ease,
       clip-path 560ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .project-card:not(.is-project-preview):hover {
-    transform: translate3d(0, -4px, 0);
-  }
-
-  .catalog .project-card:not(.is-project-preview) .project-media img {
-    transition: transform 520ms var(--nav-ease), filter 420ms ease;
-  }
-
-  .catalog .project-card:not(.is-project-preview):hover .project-media img {
-    transform: scale(calc(var(--image-scale, 1) * 1.018));
-    filter: saturate(1.04) contrast(1.01);
-  }
 }
 
 .footer-gallery:not([data-gallery-revealed="true"]) .footer-gallery-runner {
@@ -5780,4 +5767,27 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     padding-bottom: 0 !important;
     background: var(--paper) !important;
   }
+}
+
+/* Category hover uses this pseudo-element as an invisible hit corridor.  The
+   base underline styling also painted that corridor as a long horizontal rule
+   beneath the expanded category detail. Keep the corridor for pointer access,
+   but remove its decorative paint so hovering a category does not introduce a
+   stray rule into the header. */
+.nav-item::after,
+.nav-item:hover::after,
+.nav-item:focus-visible::after,
+.nav-item.is-nav-active::after {
+  background: transparent;
+  opacity: 0;
+  transform: none;
+}
+
+/* Category previews turn the catalogue into a focused surface. Suppress the
+   ordinary list dividers while that filter is active so a hover does not
+   leave rules floating under the reduced set of cards. The header seam and
+   project preview edges remain owned by their own elements. */
+.catalog[data-active-filter] .project-row::after,
+.catalog[data-active-filter] .project-card + .project-card:not(.is-project-preview)::before {
+  display: none !important;
 }

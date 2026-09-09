@@ -98,7 +98,7 @@
         var buildUrl = "Build";
         var loaderUrl = buildUrl + "/4cd8e08d00c6432267e49480c633922d.loader.js";
         var config = {
-          arguments: [], dataUrl: buildUrl + "/c162c7d5e99fdeb40d2ade4b1506c55d.data", frameworkUrl: buildUrl + "/b72c558b84a84cea59ff30c64545ef27.framework.js", codeUrl: buildUrl + "/a9c003ee35efee94278cd006abca411d.wasm", matchWebGLToCanvasSize: true,
+          arguments: [], dataUrl: buildUrl + "/e110ecbc9efac32bd9eb9e74e87e4f46.data", frameworkUrl: buildUrl + "/b72c558b84a84cea59ff30c64545ef27.framework.js", codeUrl: buildUrl + "/a9c003ee35efee94278cd006abca411d.wasm", matchWebGLToCanvasSize: true,
           streamingAssetsUrl: "StreamingAssets", companyName: "DefaultCompany", productName: "GD4Final", productVersion: "0.1.0", showBanner: unityShowBanner
         };
         var script=document.createElement("script"); script.src=loaderUrl;
@@ -107,7 +107,11 @@
           document.querySelector("#unity-progress-bar-full").style.width=percent+"%";
           document.querySelector("#loading-percent").textContent=percent+"%";
           document.querySelector("#loading-status").textContent=percent<35?"LOADING ASSETS":(percent<85?"BUILDING WORLD":"FINALIZING");
-        }).then(function(unityInstance){ loadingBar.style.display="none"; document.querySelector("#dad-fullscreen-button").onclick=function(){unityInstance.SetFullscreen(1);}; }).catch(function(message){unityShowBanner(message,"error");}); };
+        }).then(function(unityInstance){
+          loadingBar.style.display="none";
+          var fullscreenButton = document.querySelector("#dad-fullscreen-button");
+          fullscreenButton.onclick=function(){unityInstance.SetFullscreen(1);};
+        }).catch(function(message){unityShowBanner(message,"error");}); };
         document.body.appendChild(script);
       }
       loadingBar.style.display="flex";

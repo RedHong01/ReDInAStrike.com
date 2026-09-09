@@ -606,14 +606,16 @@ const caseStudyDetails = {
         ],
       },
       {
-        kind: "image",
-        image: "assets/case-study/dad-system.png",
-        alt: "DAD editable system diagram reference",
-        label: "FIGMA SYSTEM DIAGRAM / WEEK 11",
-        caption: {
-          en: "This diagram maps the relationship between money, territory, bills, and the Phase I → Phase II change. It helped me place each state change beside the action that causes it.",
-          zh: "這張圖把金錢、地塊、帳單與 Phase I → Phase II 的變化連在一起。它幫助我把每個狀態變化放到觸發它的玩家行動旁邊。",
-        },
+        kind: "source-breakdown",
+        title: "System Diagram, Read as Player Actions",
+        source: "FIGMA / WEEK 11 SYSTEM DIAGRAM / 447:58",
+        lead: { en: "The diagram is a chain of actions rather than a software map. The player moves, earns or receives money, spends ammunition, collides with bills, and carries unpaid pressure into the next month.", zh: "這張圖不是軟體架構圖，而是一條玩家行動鏈。玩家移動、工作或接受金錢、消耗彈藥、碰到帳單，並把未處理的壓力帶進下一個月。" },
+        blocks: [
+          { title: "Time and Phase", en: "The original plan uses day, month, and year as the turn units. A month spawns a bill wave; the year ends with the Phase II confrontation. The exact duration is version-specific, so the page describes the sequence rather than treating those numbers as final.", zh: "原始計畫用日、月、年作為回合單位。每個月生成一波帳單，年度結束時進入 Phase II 對抗。具體時間依版本而變，因此頁面保留順序，不把數字當成最終規則。" },
+          { title: "Player Actions", en: "WASD moves the player and left click fires a coin in the cursor direction. Work asks the player to stand at the briefcase and complete the Space QTE before it produces ammunition.", zh: "WASD 控制移動，左鍵朝游標方向射出金幣。工作要求玩家站到公事包位置，在它產生彈藥前完成 Space QTE。" },
+          { title: "Monthly Pressure", en: "Unpaid bills are recorded for the next settlement. Bills that reach DAD, loans, and accumulated anger change the later boss state. Water is a directional projectile wave; power pursues the player; rent is tied to purchased space.", zh: "未付帳單會被記錄到下一次結算。到達 DAD 的帳單、貸款與累積的憤怒會改變後面的 Boss 狀態。水是方向性的投射物波，電力追逐玩家，房租則連到購買的空間。" },
+          { title: "Space and Reversal", en: "The base map is a 6 × 6 grid with a 3 × 3 DAD area. Purchasing tiles outside that area expands the boundary. When Phase II begins, DAD-related tiles return to their original state while player-purchased tiles remain beneficial.", zh: "基礎地圖是 6 × 6 格，DAD 的區域是 3 × 3。玩家購買區域外的地塊時，邊界會擴張。Phase II 開始後，與 DAD 相關的地塊回到原本狀態，而玩家購買的地塊保留正面效果。" },
+        ],
       },
       {
         kind: "flow",
@@ -687,14 +689,16 @@ const caseStudyDetails = {
         ],
       },
       {
-        kind: "image",
-        image: "assets/case-study/slow-mechanic.png",
-        alt: "Slow’em Down Figma mechanic derivation",
-        label: "FIGMA MECHANIC DERIVATION / 644:422",
-        caption: {
-          en: "The design board places the player input beside the scene response. That pairing became the rule for explaining the mechanic on this page.",
-          zh: "設計板把玩家輸入放在場景回應旁邊。這個配對關係也成為我在本頁解釋機制時採用的方式。",
-        },
+        kind: "source-breakdown",
+        title: "Mechanic, From Concept to Action",
+        source: "FIGMA / INNOVATIVE GAME MECHANIC / 644:422",
+        lead: { en: "The source begins with subjective time: world events continue, while the player creates a limited area where an event is experienced more slowly. The action is to trigger the reduction, interact with the affected target, and decide what to interrupt.", zh: "原稿從主觀時間開始：世界事件繼續發生，但玩家能創造一個有限區域，讓其中的事件被更慢地經歷。玩家要觸發減速、介入受影響的目標，並決定要打斷什麼。" },
+        blocks: [
+          { title: "Concept", en: "The paper prototype describes time as a local, limited resource rather than a global pause. The player has to spot what is about to happen before using the ability.", zh: "紙面原型把時間視為局部且有限的資源，而不是讓全世界停下來。玩家必須先看出即將發生什麼，才使用能力。" },
+          { title: "Input", en: "The playable instruction is: press Space, then click a position. The click creates the zone; the affected object must make the result visible beside unaffected motion.", zh: "可玩版本的提示是：按 Space，再點選一個位置。點擊會建立區域，受影響的物件必須和未受影響的動態並列，讓結果可見。" },
+          { title: "Interaction Opportunity", en: "The design notes describe moving an object, activating or deactivating it, and changing a narrative beat inside the slowed area. These are directions in the source, not all finished mechanics in the current build.", zh: "設計筆記提到移動物件、啟用或停用物件，以及改變減速區內的敘事節點。這些是原稿中的方向，不代表目前 build 已完成全部機制。" },
+          { title: "Scene Reference", en: "The paper concept uses a moving street event and a train or granny crossing context to test whether the player can identify a target before the moment passes. The train was the clearest case in the recorded notes.", zh: "紙面概念用移動中的街道事件，以及火車或 Granny 過街的情境，測試玩家能否在時機消失前辨認目標。測試筆記中火車情境最清楚。" },
+        ],
       },
       {
         kind: "flow",
@@ -779,14 +783,61 @@ const caseStudyDetails = {
         ],
       },
       {
-        kind: "image",
-        image: "assets/case-study/shroom-gdd.png",
-        alt: "Shroom Pot Showdown GDD design derivation",
-        label: "FIGMA / GDD DESIGN DERIVATION / 102:487",
-        caption: {
-          en: "The GDD maps each physical input to its game action and feedback. Placing it beside the recording lets the reader compare the intended control with what actually happened.",
-          zh: "GDD 把每個實體輸入對應到遊戲行動和回饋。把它放在錄影旁邊，讀者就能比較原本設計的控制方式和實際發生的結果。",
+        kind: "source-breakdown",
+        title: "The GDD, Read as Player Rules",
+        source: "FIGMA / GAME DESIGN DOCUMENT / 102:487",
+        lead: {
+          en: "I rewrote the source board as the rules a player has to understand. The two screens share a countdown, but each player reads a different pressure: the mushroom protects lives and avoids the pot’s heat; the chopsticks player keeps hunger up while trying to catch, hold, and eat.",
+          zh: "我把原始 GDD 畫板改寫成玩家真正需要理解的規則。兩個畫面共享同一個倒數，但兩位玩家閱讀的是不同的壓力：蘑菇保護生命並躲避鍋中的熱度；筷子玩家一邊維持飢餓值，一邊嘗試捕捉、握住並吃掉食物。",
         },
+        blocks: [
+          {
+            title: "Mushroom / Player 1",
+            en: "The mushroom starts with three lives. Being caught and eaten removes one life. Staying in the boiling water raises Cook Level; the lower area raises it faster, the upper area raises it more slowly, and leaving the water stops it. When Cook Level reaches its limit, the mushroom loses a life.",
+            zh: "蘑菇從三條生命開始。被筷子抓住並吃掉會失去一條生命。留在沸水裡會增加 Cook Level；下層增加較快，上層增加較慢，離開水面則停止增加。Cook Level 到達上限時，蘑菇會失去一條生命。",
+          },
+          {
+            title: "Chopsticks / Player 2",
+            en: "The chopsticks move on two axes. Bringing the tips together triggers a catch. Holding a caught item for two seconds eats it; releasing earlier lets it fall back into the pot. Eating raises hunger by 20%, while hunger drains when the player is not eating.",
+            zh: "筷子可以在兩個軸向上移動。兩支筷子尖端碰到一起時會觸發捕捉。抓住物件後維持兩秒會吃掉它，提早放開則會讓物件掉回鍋裡。吃東西會增加 20% 飢餓值，沒有進食時飢餓值會下降。",
+          },
+          {
+            title: "Pressure States",
+            en: "Below 20% hunger, the chopsticks player enters an illusion state such as ghosting, chromatic aberration, camera shake, or lost control. Above 80%, the player becomes too full and cannot move or catch for five seconds. The pressure is shared, but the decision is asymmetric.",
+            zh: "飢餓值低於 20% 時，筷子玩家會進入幻覺狀態，例如殘影、色差、鏡頭晃動或失去控制。高於 80% 時，玩家會過飽，五秒內不能移動或捕捉。兩位玩家共享同一個壓力，但決策是不對稱的。",
+          },
+          {
+            title: "Pot and Food",
+            en: "Every five seconds, one area of the water boils and pushes submerged food upward. Vegetables take longer to chew, tofu takes a medium time, and meat is quicker. This gives the chopsticks player changing targets while the mushroom reads where the pressure is about to move.",
+            zh: "每五秒，鍋裡會有一個區域開始沸騰，把水下食物往上推。蔬菜需要較長咀嚼時間，豆腐是中等時間，肉類較快。這讓筷子玩家持續面對變動目標，也讓蘑菇需要預判壓力即將移向哪裡。",
+          },
+        ],
+      },
+      {
+        kind: "source-breakdown",
+        title: "Physical Input and Visual Language",
+        source: "FIGMA / CONTROLLER + VISUAL STUDY / 731:34 · 731:52 · 436:2485 · 436:2590",
+        lead: {
+          en: "The controller proposal maps one physical cause to one visible game response. The yoga-ball sensor reads tilt for turning and acceleration for jumping. The chopsticks sensor maps gyro X/Y to movement, while a button detects the tips coming together and separates catch from the two-second eat action.",
+          zh: "控制器提案把一個身體動作對應到一個可見的遊戲反應。瑜伽球裡的感測器用傾斜控制轉向，用加速度觸發跳躍。筷子控制器把陀螺儀 X/Y 對應到移動，再用按鈕區分筷子碰合時的捕捉與兩秒後的進食。",
+        },
+        blocks: [
+          {
+            title: "Mushroom Input",
+            en: "Lean left or right to turn. Bounce to jump in the current facing direction. The proposed parts are a gyroscope, accelerometer, mini module board, and Arduino board.",
+            zh: "向左或向右傾斜來轉向，跳動來朝目前面向的方向跳躍。提案使用陀螺儀、加速度計、小型模組板與 Arduino 主板。",
+          },
+          {
+            title: "Chopsticks Input",
+            en: "Tilt the giant chopsticks to move through gyro X and Y. Press the enlarged button once to catch. Hold it for two seconds to eat. The contact surface is enlarged so the catch action does not depend on a tiny switch.",
+            zh: "傾斜大型筷子，透過陀螺儀 X/Y 移動。按一下加大的按鈕來捕捉，按住兩秒來進食。按鈕增加接觸面積，讓捕捉不依賴一個難以按中的小開關。",
+          },
+          {
+            title: "Visual and UI Direction",
+            en: "The visual study calls for minimal lines, cute flat shapes, paper or fabric-like texture, warm medium-saturation colors, large color blocks, and ingredients with distinct faces. The GDD compares Fredoka and Baloo; the selected direction is Baloo 2 for the game UI.",
+            zh: "視覺研究提出簡約線條、可愛扁平形狀、紙張或布料質感、中飽和暖色、大色塊，以及有明確表情的食材。GDD 比較了 Fredoka 與 Baloo，遊戲 UI 最後選擇 Baloo 2。",
+          },
+        ],
       },
       {
         kind: "flow",
@@ -835,14 +886,16 @@ const caseStudyDetails = {
         },
       },
       {
-        kind: "image",
-        image: "assets/case-study/super99-pitch.png",
-        alt: "Super99 pitch and learning emphasis frames",
-        label: "FIGMA PITCH / DATA MAPPING / 67:113",
-        caption: {
-          en: "The pitch connects the cashier role, customer patience, product fields, physical scanner, and retry response. I separated those parts here so the player loop can be read from request to result.",
-          zh: "Pitch 把收銀角色、顧客耐心、商品欄位、實體掃描器與重試回應連在一起。我在這裡拆開這些部分，讓玩家循環可以從需求一路讀到結果。",
-        },
+        kind: "source-breakdown",
+        title: "Pitch Board, Read as a Task",
+        source: "FIGMA / WEEK 1 ASSIGNMENT DATA GAME PITCH / 67:113",
+        lead: { en: "The pitch starts with the customer request, then maps the data fields to a product choice and a scanner response. The page keeps the proposal separate from a playable result because the matching build recording is still missing.", zh: "Pitch 從顧客需求開始，再把資料欄位連到商品選擇與掃描回應。由於對應的 playable build 錄影仍然缺少，頁面把提案和已完成的玩法結果分開。" },
+        blocks: [
+          { title: "Request Fields", en: "The request can specify product name, size, brand, quantity, gluten-free or sugar-free requirements, and discount conditions. These fields are meant to change what the player takes from the shelf.", zh: "顧客需求可以指定商品名稱、尺寸、品牌、數量、無麩質或無糖條件，以及折扣條件。這些欄位應該改變玩家從貨架上拿取的商品。" },
+          { title: "Cashier Pressure", en: "Customer patience turns a data lookup into a timed decision. The pitch also explores the tension between earning more and honoring a discount instead of treating the sale as a neutral database operation.", zh: "顧客耐心把資料查找變成限時決策。Pitch 也探索多賺錢與執行折扣之間的張力，而不是把交易當成中性的資料庫操作。" },
+          { title: "Learning Emphasis", en: "The board frames the project as a learning-focused data game. The player learns the relationship between a request, a product attribute, a barcode, and the customer’s response through repeated checkout decisions.", zh: "這張板把專案定位成以學習為重點的資料遊戲。玩家透過重複結帳決策，理解需求、商品屬性、條碼與顧客回應之間的關係。" },
+          { title: "Production Boundary", en: "The pitch names the data, scanner, and checkout direction. It does not yet provide a verified recording of the whole request → shelf → scan → result sequence, so that clip remains the next material to add.", zh: "Pitch 已經提出資料、掃描器與結帳方向，但還沒有確認完整需求 → 貨架 → 掃描 → 結果流程的錄影，因此這段短片仍是下一份要補的材料。" },
+        ],
       },
       {
         kind: "flow",
@@ -3839,6 +3892,26 @@ function caseStudyFlow(section) {
     </section>`
 }
 
+function caseStudySourceBreakdown(section) {
+  const blocks = section.blocks
+    .map(
+      (block) => `
+        <article class="case-study-source-block">
+          <h3>${escapeHtml(block.title)}</h3>
+          <p>${caseStudyPair({ en: block.en, zh: block.zh })}</p>
+        </article>`,
+    )
+    .join("")
+  return `
+    <section class="framer-case-section case-study-source-section">
+      <div class="case-study-source-heading">
+        <div><span class="case-study-media-label">${escapeHtml(section.source)}</span><h2>${escapeHtml(section.title)}</h2></div>
+        <p>${caseStudyPair(section.lead)}</p>
+      </div>
+      <div class="case-study-source-grid">${blocks}</div>
+    </section>`
+}
+
 function caseStudySectionMarkup(section) {
   if (section.kind === "copy-grid") {
     return `
@@ -3859,6 +3932,7 @@ function caseStudySectionMarkup(section) {
       .join("")
     return `<section class="framer-case-section case-study-system-section"><h2>${escapeHtml(section.title)}</h2><ul class="case-study-system-grid">${items}</ul></section>`
   }
+  if (section.kind === "source-breakdown") return caseStudySourceBreakdown(section)
   if (section.kind === "flow") return caseStudyFlow(section)
   if (section.kind === "callout") {
     return `
@@ -3947,11 +4021,7 @@ function framerProjectDetailMarkup(project, detail) {
           ${blocks}
         </section>
 
-        <section class="framer-derived-reference" aria-label="${escapeHtml(detail.title)} full page">
-          <figure>
-            <img ${imageSourceAttrs(detail.routeImage)} alt="${escapeHtml(detail.title)} Framer page capture" loading="lazy" decoding="async" />
-          </figure>
-        </section>
+        <p class="framer-derived-source-note">The original board is kept as a source reference in the project archive. This page carries the readable decisions forward as text and structured sections.</p>
 
         <section class="framer-derived-footer">
           <div>

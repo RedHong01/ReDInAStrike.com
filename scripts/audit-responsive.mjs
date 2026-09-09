@@ -123,7 +123,7 @@ function checkPreview(snapshot, label) {
   assert.equal(snapshot.duration, "280ms", `${label}: one-third-faster preview timing`)
   assert.equal(snapshot.siblingVisible, snapshot.single, `${label}: sibling visibility`)
   assert.equal(snapshot.rowPosition, snapshot.single ? "static" : "sticky", `${label}: pin policy`)
-  assert.deepEqual(snapshot.order, Array.from({ length: 16 }, (_, i) => String(i)), `${label}: order`)
+  assert.deepEqual(snapshot.order, Array.from({ length: 17 }, (_, i) => String(i)), `${label}: order`)
   if (snapshot.single && snapshot.followingSiblingTop !== null) {
     assert(snapshot.followingSiblingTop >= snapshot.bottom, `${label}: next card follows preview`)
   }
@@ -220,7 +220,7 @@ async function checkPaintedRules(page, card, label) {
 async function auditAllCardRules() {
   for (const [width, height] of [[430, 932], [940, 820], [1280, 900]]) {
     const page = await open({ width, height })
-    const indices = [0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
+    const indices = [0, 2, 4, 6, 8, 10, 12, 14, 16, 1, 3, 5, 7, 9, 11, 13, 15]
     for (const index of indices) {
       const card = page.locator("[data-project-card]").nth(index)
       await card.click({ position: { x: 100, y: 100 } })
@@ -232,7 +232,7 @@ async function auditAllCardRules() {
       results.push({ label, ...snapshot })
     }
     await page.close()
-    console.log(`PASS all 16 card rules ${width}x${height}`)
+    console.log(`PASS all 17 card rules ${width}x${height}`)
   }
 }
 

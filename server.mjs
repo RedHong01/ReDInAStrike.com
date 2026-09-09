@@ -1,5 +1,6 @@
 import { createServer } from "node:http"
 import { readFile } from "node:fs/promises"
+import { createReadStream } from "node:fs"
 import { existsSync, statSync } from "node:fs"
 import { extname, join, normalize, resolve } from "node:path"
 
@@ -23,6 +24,9 @@ const mime = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".webp": "image/webp",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
   ".otf": "font/otf",
   ".woff2": "font/woff2",
 }
@@ -51,17 +55,57 @@ function renderHtml(html, base) {
     .replaceAll("%BASE%", base)
 }
 
-async function send(res, filePath, status = 200) {
+async function send(req, res, filePath, status = 200) {
   const ext = extname(filePath)
+  const stats = statSync(filePath)
+  const isHtml = ext === ".html"
+  const isVideo = ext === ".mp4" || ext === ".webm" || ext === ".mov"
+  // Asset filenames are stable rather than content-hashed, so cache them for a
+  // day without making an updated local build impossible to pick up.
+  const cacheControl = isHtml ? "no-cache" : "public, max-age=86400"
+
+  if (isVideo) {
+    const range = req.headers.range
+    const headers = {
+      "content-type": mime[ext] || "application/octet-stream",
+      "accept-ranges": "bytes",
+      "cache-control": cacheControl,
+    }
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range)
+      if (match) {
+        const start = match[1] ? Number(match[1]) : Math.max(0, stats.size - Number(match[2] || 0))
+        const end = match[2] ? Number(match[2]) : stats.size - 1
+        if (Number.isInteger(start) && Number.isInteger(end) && start >= 0 && start <= end && end < stats.size) {
+          headers["content-range"] = `bytes ${start}-${end}/${stats.size}`
+          headers["content-length"] = String(end - start + 1)
+          res.writeHead(206, headers)
+          if (req.method !== "HEAD") createReadStream(filePath, { start, end }).pipe(res)
+          else res.end()
+          return
+        }
+      }
+      res.writeHead(416, { ...headers, "content-range": `bytes */${stats.size}` })
+      res.end()
+      return
+    }
+    res.writeHead(status, { ...headers, "content-length": String(stats.size) })
+    if (req.method !== "HEAD") createReadStream(filePath).pipe(res)
+    else res.end()
+    return
+  }
+
   let content = await readFile(filePath)
   if (ext === ".html") {
     content = Buffer.from(renderHtml(content.toString("utf8"), root.endsWith("dist") ? "./" : "/"))
   }
   res.writeHead(status, {
     "content-type": mime[ext] || "application/octet-stream",
-    "cache-control": "no-store",
+    "cache-control": cacheControl,
+    "content-length": String(content.byteLength),
   })
-  res.end(content)
+  if (req.method !== "HEAD") res.end(content)
+  else res.end()
 }
 
 createServer(async (req, res) => {
@@ -82,12 +126,12 @@ createServer(async (req, res) => {
     }
 
     if (existsSync(filePath) && statSync(filePath).isFile()) {
-      await send(res, filePath)
+      await send(req, res, filePath)
       return
     }
 
     if (existsSync(htmlPath)) {
-      await send(res, htmlPath)
+      await send(req, res, htmlPath)
       return
     }
 

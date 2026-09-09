@@ -3196,7 +3196,7 @@ function homeMarkup() {
 
 function detailMarkup(project) {
   if (project.path === "/serialdeminer") return serialDeminerDetailMarkup(project)
-  if (framerProjectDetails[project.path]) {
+  if (framerProjectDetails[project.path] && !project.webglEmbed) {
     return framerProjectDetailMarkup(project, framerProjectDetails[project.path])
   }
 

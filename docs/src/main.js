@@ -172,7 +172,7 @@ const projects = [
     // Keep the playable build on the same Pages origin as the portfolio so
     // the project remains playable even when the separate Unity repository's
     // Pages deployment is unavailable.
-    webglEmbed: "../dad/",
+    webglEmbed: "dad/",
   },
   {
     pageTitle: "Narrative Design Document",
@@ -3203,7 +3203,7 @@ function detailMarkup(project) {
   const webglSource = project.webglEmbed
     ? (() => {
         try {
-          const url = new URL(project.webglEmbed, window.location.href)
+          const url = new URL(asset(project.webglEmbed), window.location.href)
           url.searchParams.set("refresh", String(Date.now()))
           return url.href
         } catch {

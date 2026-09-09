@@ -6,6 +6,8 @@ import {
   smooth01,
 } from "./binary-surface-core.js?v=20260905-perf1"
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
+import { supportingReadableSections } from "./readable-source-sections.js"
+import { editorialReadableSections } from "./editorial-readable-sections.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -606,14 +608,16 @@ const caseStudyDetails = {
         ],
       },
       {
-        kind: "image",
-        image: "assets/case-study/dad-system.png",
-        alt: "DAD editable system diagram reference",
-        label: "FIGMA SYSTEM DIAGRAM / WEEK 11",
-        caption: {
-          en: "This diagram maps the relationship between money, territory, bills, and the Phase I → Phase II change. It helped me place each state change beside the action that causes it.",
-          zh: "這張圖把金錢、地塊、帳單與 Phase I → Phase II 的變化連在一起。它幫助我把每個狀態變化放到觸發它的玩家行動旁邊。",
-        },
+        kind: "source-breakdown",
+        title: "System Diagram, Read as Player Actions",
+        source: "FIGMA / WEEK 11 SYSTEM DIAGRAM / 447:58",
+        lead: { en: "The diagram is a chain of actions rather than a software map. The player moves, earns or receives money, spends ammunition, collides with bills, and carries unpaid pressure into the next month.", zh: "這張圖不是軟體架構圖，而是一條玩家行動鏈。玩家移動、工作或接受金錢、消耗彈藥、碰到帳單，並把未處理的壓力帶進下一個月。" },
+        blocks: [
+          { title: "Time and Phase", en: "The original plan uses day, month, and year as the turn units. A month spawns a bill wave; the year ends with the Phase II confrontation. The exact duration is version-specific, so the page describes the sequence rather than treating those numbers as final.", zh: "原始計畫用日、月、年作為回合單位。每個月生成一波帳單，年度結束時進入 Phase II 對抗。具體時間依版本而變，因此頁面保留順序，不把數字當成最終規則。" },
+          { title: "Player Actions", en: "WASD moves the player and left click fires a coin in the cursor direction. Work asks the player to stand at the briefcase and complete the Space QTE before it produces ammunition.", zh: "WASD 控制移動，左鍵朝游標方向射出金幣。工作要求玩家站到公事包位置，在它產生彈藥前完成 Space QTE。" },
+          { title: "Monthly Pressure", en: "Unpaid bills are recorded for the next settlement. Bills that reach DAD, loans, and accumulated anger change the later boss state. Water is a directional projectile wave; power pursues the player; rent is tied to purchased space.", zh: "未付帳單會被記錄到下一次結算。到達 DAD 的帳單、貸款與累積的憤怒會改變後面的 Boss 狀態。水是方向性的投射物波，電力追逐玩家，房租則連到購買的空間。" },
+          { title: "Space and Reversal", en: "The base map is a 6 × 6 grid with a 3 × 3 DAD area. Purchasing tiles outside that area expands the boundary. When Phase II begins, DAD-related tiles return to their original state while player-purchased tiles remain beneficial.", zh: "基礎地圖是 6 × 6 格，DAD 的區域是 3 × 3。玩家購買區域外的地塊時，邊界會擴張。Phase II 開始後，與 DAD 相關的地塊回到原本狀態，而玩家購買的地塊保留正面效果。" },
+        ],
       },
       {
         kind: "flow",
@@ -687,14 +691,16 @@ const caseStudyDetails = {
         ],
       },
       {
-        kind: "image",
-        image: "assets/case-study/slow-mechanic.png",
-        alt: "Slow’em Down Figma mechanic derivation",
-        label: "FIGMA MECHANIC DERIVATION / 644:422",
-        caption: {
-          en: "The design board places the player input beside the scene response. That pairing became the rule for explaining the mechanic on this page.",
-          zh: "設計板把玩家輸入放在場景回應旁邊。這個配對關係也成為我在本頁解釋機制時採用的方式。",
-        },
+        kind: "source-breakdown",
+        title: "Mechanic, From Concept to Action",
+        source: "FIGMA / INNOVATIVE GAME MECHANIC / 644:422",
+        lead: { en: "The source begins with subjective time: world events continue, while the player creates a limited area where an event is experienced more slowly. The action is to trigger the reduction, interact with the affected target, and decide what to interrupt.", zh: "原稿從主觀時間開始：世界事件繼續發生，但玩家能創造一個有限區域，讓其中的事件被更慢地經歷。玩家要觸發減速、介入受影響的目標，並決定要打斷什麼。" },
+        blocks: [
+          { title: "Concept", en: "The paper prototype describes time as a local, limited resource rather than a global pause. The player has to spot what is about to happen before using the ability.", zh: "紙面原型把時間視為局部且有限的資源，而不是讓全世界停下來。玩家必須先看出即將發生什麼，才使用能力。" },
+          { title: "Input", en: "The playable instruction is: press Space, then click a position. The click creates the zone; the affected object must make the result visible beside unaffected motion.", zh: "可玩版本的提示是：按 Space，再點選一個位置。點擊會建立區域，受影響的物件必須和未受影響的動態並列，讓結果可見。" },
+          { title: "Interaction Opportunity", en: "The design notes describe moving an object, activating or deactivating it, and changing a narrative beat inside the slowed area. These are directions in the source, not all finished mechanics in the current build.", zh: "設計筆記提到移動物件、啟用或停用物件，以及改變減速區內的敘事節點。這些是原稿中的方向，不代表目前 build 已完成全部機制。" },
+          { title: "Scene Reference", en: "The paper concept uses a moving street event and a train or granny crossing context to test whether the player can identify a target before the moment passes. The train was the clearest case in the recorded notes.", zh: "紙面概念用移動中的街道事件，以及火車或 Granny 過街的情境，測試玩家能否在時機消失前辨認目標。測試筆記中火車情境最清楚。" },
+        ],
       },
       {
         kind: "flow",
@@ -779,14 +785,61 @@ const caseStudyDetails = {
         ],
       },
       {
-        kind: "image",
-        image: "assets/case-study/shroom-gdd.png",
-        alt: "Shroom Pot Showdown GDD design derivation",
-        label: "FIGMA / GDD DESIGN DERIVATION / 102:487",
-        caption: {
-          en: "The GDD maps each physical input to its game action and feedback. Placing it beside the recording lets the reader compare the intended control with what actually happened.",
-          zh: "GDD 把每個實體輸入對應到遊戲行動和回饋。把它放在錄影旁邊，讀者就能比較原本設計的控制方式和實際發生的結果。",
+        kind: "source-breakdown",
+        title: "The GDD, Read as Player Rules",
+        source: "FIGMA / GAME DESIGN DOCUMENT / 102:487",
+        lead: {
+          en: "I rewrote the source board as the rules a player has to understand. The two screens share a countdown, but each player reads a different pressure: the mushroom protects lives and avoids the pot’s heat; the chopsticks player keeps hunger up while trying to catch, hold, and eat.",
+          zh: "我把原始 GDD 畫板改寫成玩家真正需要理解的規則。兩個畫面共享同一個倒數，但兩位玩家閱讀的是不同的壓力：蘑菇保護生命並躲避鍋中的熱度；筷子玩家一邊維持飢餓值，一邊嘗試捕捉、握住並吃掉食物。",
         },
+        blocks: [
+          {
+            title: "Mushroom / Player 1",
+            en: "The mushroom starts with three lives. Being caught and eaten removes one life. Staying in the boiling water raises Cook Level; the lower area raises it faster, the upper area raises it more slowly, and leaving the water stops it. When Cook Level reaches its limit, the mushroom loses a life.",
+            zh: "蘑菇從三條生命開始。被筷子抓住並吃掉會失去一條生命。留在沸水裡會增加 Cook Level；下層增加較快，上層增加較慢，離開水面則停止增加。Cook Level 到達上限時，蘑菇會失去一條生命。",
+          },
+          {
+            title: "Chopsticks / Player 2",
+            en: "The chopsticks move on two axes. Bringing the tips together triggers a catch. Holding a caught item for two seconds eats it; releasing earlier lets it fall back into the pot. Eating raises hunger by 20%, while hunger drains when the player is not eating.",
+            zh: "筷子可以在兩個軸向上移動。兩支筷子尖端碰到一起時會觸發捕捉。抓住物件後維持兩秒會吃掉它，提早放開則會讓物件掉回鍋裡。吃東西會增加 20% 飢餓值，沒有進食時飢餓值會下降。",
+          },
+          {
+            title: "Pressure States",
+            en: "Below 20% hunger, the chopsticks player enters an illusion state such as ghosting, chromatic aberration, camera shake, or lost control. Above 80%, the player becomes too full and cannot move or catch for five seconds. The pressure is shared, but the decision is asymmetric.",
+            zh: "飢餓值低於 20% 時，筷子玩家會進入幻覺狀態，例如殘影、色差、鏡頭晃動或失去控制。高於 80% 時，玩家會過飽，五秒內不能移動或捕捉。兩位玩家共享同一個壓力，但決策是不對稱的。",
+          },
+          {
+            title: "Pot and Food",
+            en: "Every five seconds, one area of the water boils and pushes submerged food upward. Vegetables take longer to chew, tofu takes a medium time, and meat is quicker. This gives the chopsticks player changing targets while the mushroom reads where the pressure is about to move.",
+            zh: "每五秒，鍋裡會有一個區域開始沸騰，把水下食物往上推。蔬菜需要較長咀嚼時間，豆腐是中等時間，肉類較快。這讓筷子玩家持續面對變動目標，也讓蘑菇需要預判壓力即將移向哪裡。",
+          },
+        ],
+      },
+      {
+        kind: "source-breakdown",
+        title: "Physical Input and Visual Language",
+        source: "FIGMA / CONTROLLER + VISUAL STUDY / 731:34 · 731:52 · 436:2485 · 436:2590",
+        lead: {
+          en: "The controller proposal maps one physical cause to one visible game response. The yoga-ball sensor reads tilt for turning and acceleration for jumping. The chopsticks sensor maps gyro X/Y to movement, while a button detects the tips coming together and separates catch from the two-second eat action.",
+          zh: "控制器提案把一個身體動作對應到一個可見的遊戲反應。瑜伽球裡的感測器用傾斜控制轉向，用加速度觸發跳躍。筷子控制器把陀螺儀 X/Y 對應到移動，再用按鈕區分筷子碰合時的捕捉與兩秒後的進食。",
+        },
+        blocks: [
+          {
+            title: "Mushroom Input",
+            en: "Lean left or right to turn. Bounce to jump in the current facing direction. The proposed parts are a gyroscope, accelerometer, mini module board, and Arduino board.",
+            zh: "向左或向右傾斜來轉向，跳動來朝目前面向的方向跳躍。提案使用陀螺儀、加速度計、小型模組板與 Arduino 主板。",
+          },
+          {
+            title: "Chopsticks Input",
+            en: "Tilt the giant chopsticks to move through gyro X and Y. Press the enlarged button once to catch. Hold it for two seconds to eat. The contact surface is enlarged so the catch action does not depend on a tiny switch.",
+            zh: "傾斜大型筷子，透過陀螺儀 X/Y 移動。按一下加大的按鈕來捕捉，按住兩秒來進食。按鈕增加接觸面積，讓捕捉不依賴一個難以按中的小開關。",
+          },
+          {
+            title: "Visual and UI Direction",
+            en: "The visual study calls for minimal lines, cute flat shapes, paper or fabric-like texture, warm medium-saturation colors, large color blocks, and ingredients with distinct faces. The GDD compares Fredoka and Baloo; the selected direction is Baloo 2 for the game UI.",
+            zh: "視覺研究提出簡約線條、可愛扁平形狀、紙張或布料質感、中飽和暖色、大色塊，以及有明確表情的食材。GDD 比較了 Fredoka 與 Baloo，遊戲 UI 最後選擇 Baloo 2。",
+          },
+        ],
       },
       {
         kind: "flow",
@@ -813,7 +866,7 @@ const caseStudyDetails = {
     category: "Game Design / Data Mapping / Physical Input",
     summary:
       "The player works as a cashier and stock clerk, reads a customer request, finds the matching product, and scans it before patience runs out. Product data becomes a timed shelf decision.",
-    heroImage: "assets/case-study/super99-pitch.png",
+    heroImage: null,
     heroAlt: "Super99 Figma pitch showing cashier and scanner concept",
     points: [
       "Player role: cashier and stock clerk in a virtual Super99 branch.",
@@ -835,14 +888,16 @@ const caseStudyDetails = {
         },
       },
       {
-        kind: "image",
-        image: "assets/case-study/super99-pitch.png",
-        alt: "Super99 pitch and learning emphasis frames",
-        label: "FIGMA PITCH / DATA MAPPING / 67:113",
-        caption: {
-          en: "The pitch connects the cashier role, customer patience, product fields, physical scanner, and retry response. I separated those parts here so the player loop can be read from request to result.",
-          zh: "Pitch 把收銀角色、顧客耐心、商品欄位、實體掃描器與重試回應連在一起。我在這裡拆開這些部分，讓玩家循環可以從需求一路讀到結果。",
-        },
+        kind: "source-breakdown",
+        title: "Pitch Board, Read as a Task",
+        source: "FIGMA / WEEK 1 ASSIGNMENT DATA GAME PITCH / 67:113",
+        lead: { en: "The pitch starts with the customer request, then maps the data fields to a product choice and a scanner response. The page keeps the proposal separate from a playable result because the matching build recording is still missing.", zh: "Pitch 從顧客需求開始，再把資料欄位連到商品選擇與掃描回應。由於對應的 playable build 錄影仍然缺少，頁面把提案和已完成的玩法結果分開。" },
+        blocks: [
+          { title: "Request Fields", en: "The request can specify product name, size, brand, quantity, gluten-free or sugar-free requirements, and discount conditions. These fields are meant to change what the player takes from the shelf.", zh: "顧客需求可以指定商品名稱、尺寸、品牌、數量、無麩質或無糖條件，以及折扣條件。這些欄位應該改變玩家從貨架上拿取的商品。" },
+          { title: "Cashier Pressure", en: "Customer patience turns a data lookup into a timed decision. The pitch also explores the tension between earning more and honoring a discount instead of treating the sale as a neutral database operation.", zh: "顧客耐心把資料查找變成限時決策。Pitch 也探索多賺錢與執行折扣之間的張力，而不是把交易當成中性的資料庫操作。" },
+          { title: "Learning Emphasis", en: "The board frames the project as a learning-focused data game. The player learns the relationship between a request, a product attribute, a barcode, and the customer’s response through repeated checkout decisions.", zh: "這張板把專案定位成以學習為重點的資料遊戲。玩家透過重複結帳決策，理解需求、商品屬性、條碼與顧客回應之間的關係。" },
+          { title: "Production Boundary", en: "The pitch names the data, scanner, and checkout direction. It does not yet provide a verified recording of the whole request → shelf → scan → result sequence, so that clip remains the next material to add.", zh: "Pitch 已經提出資料、掃描器與結帳方向，但還沒有確認完整需求 → 貨架 → 掃描 → 結果流程的錄影，因此這段短片仍是下一份要補的材料。" },
+        ],
       },
       {
         kind: "flow",
@@ -874,7 +929,7 @@ Object.assign(caseStudyDetails, {
     title: "To Be Chosen",
     category: "Narrative Design / Multi-POV Storytelling",
     summary: "A narrative prototype in which the player moves through a scene, investigates objects, and changes point of view when a new piece of information becomes available.",
-    heroImage: "assets/framer-live/narrative-doc-2025-a.png",
+    heroImage: null,
     heroAlt: "To Be Chosen narrative design document and POV chart",
     points: [
       "Player action: investigate a scene, find a narrative relic, and trigger a change in point of view.",
@@ -883,7 +938,7 @@ Object.assign(caseStudyDetails, {
     ],
     sections: [
       { kind: "copy-grid", left: { title: "Start With the Scene", en: "The player enters a scene as a character, examines objects, and receives information through what they choose to inspect. The point of view changes after the discovery, so the chart records the action that causes the shift.", zh: "玩家以角色身分進入場景，調查物件，並透過自己選擇檢查的東西取得資訊。發現發生後視角才會改變，因此圖表記錄觸發切換的玩家行動。" }, right: { title: "Player Experience", en: "A new point of view should change the next question. The player compares what two characters know, then decides where to look or what to interpret next.", zh: "新的視角應該改變下一個問題。玩家比較兩個角色知道的事情，再決定下一步要調查哪裡，或如何解讀眼前的線索。" } },
-      { kind: "image", image: "assets/case-study/chosen-scene.png", alt: "To Be Chosen scene and point-of-view reference", label: "NARRATIVE SCENE / POV REFERENCE", caption: { en: "The scene comes before the multi-POV chart. It gives the reader a place, an action, and a reason for the perspective shift before the larger structure appears.", zh: "先從場景開始，再放多視角圖表。讀者先知道地點、行動，以及為什麼要切換視角，之後才看到整體結構。" } },
+      { kind: "source-breakdown", title: "Scene Before Chart", source: "FIGMA / TO BE CHOSEN NARRATIVE MATERIAL", lead: { en: "The source describes a multi-POV structure, but the player needs a scene before the chart. Enter the space, inspect a relic, trigger a perspective change, and use the new information to decide what to investigate next.", zh: "原稿描述了多視角結構，但玩家需要先看見一個場景。進入空間、調查敘事物件、觸發視角變化，再用新資訊決定下一步要調查什麼。" }, blocks: [ { title: "Scene", en: "The player controls a character and investigates an object rather than opening a narrative diagram.", zh: "玩家控制角色並調查物件，而不是先打開敘事圖表。" }, { title: "Perspective", en: "The discovery triggers another point of view. The purpose of the switch is to add information that was unavailable in the first view.", zh: "發現會觸發另一個視角。切換的目的，是加入第一個視角中沒有的資訊。" }, { title: "Next Choice", en: "The added information should change the next investigation or interpretation. A complete playable scene recording is still needed to verify that sequence.", zh: "新增資訊應該改變下一次調查或解讀。目前仍需要完整 playable scene 錄影來確認這段順序。" } ] },
       { kind: "flow", title: "Player Discovery Loop", steps: [["Scene", "Enter and observe", "進入並觀察"], ["Object", "Investigate a relic", "調查敘事物件"], ["POV", "Receive another account", "取得另一個視角"], ["Choice", "Change the next question", "改變下一個問題"]] },
       { kind: "callout", title: "Next Evidence", en: "Record one complete scene from entry to investigation, POV change, and the next player choice. The current chart explains the structure; the missing recording must show how that structure feels in play.", zh: "錄下一個從進入、調查、切換視角到下一個玩家選擇的完整場景。目前圖表能解釋結構，還需要錄影展示這個結構在遊戲中的感受。" },
     ],
@@ -899,7 +954,7 @@ Object.assign(caseStudyDetails, {
     points: ["Player action: spend a turn moving, building, managing weight, or shooting.", "Design question: how much rule memory can the board ask for before the turn stops being readable?", "Current version: the GDD and rules are available; a matched playtest recording is still needed before I describe a final result."],
     sections: [
       { kind: "copy-grid", left: { title: "The Rule", en: "The floating island is a 15 × 15 board. Movement cards position a player, territory marks change the value of a shot, and inventory weight forces a choice between carrying more actions and keeping room for tactical cards.", zh: "浮空島是一張 15 × 15 的棋盤。移動卡決定玩家的位置，領地標記會改變射擊價值，負重則迫使玩家在攜帶更多行動與保留戰術卡之間取捨。" }, right: { title: "Player Experience", en: "The board should make a player think about position before they think about damage. A good turn is a small plan that leaves a visible change for the next player.", zh: "棋盤應該先讓玩家思考位置，再思考傷害。一個好的回合是一個小計畫，並為下一位玩家留下看得見的變化。" } },
-      { kind: "image", image: "assets/case-study/build-shoot.png", alt: "Build and Shoot board and rules reference", label: "GDD / BOARD RULES / 15 × 15", caption: { en: "The board, movement cards, territory marks, inventory weight, and AI states define what a player can choose during a turn. The implementation can come after that rule loop is clear.", zh: "棋盤、移動卡、領地標記、負重與 AI 狀態共同定義玩家在一個回合裡能做什麼。先把規則循環說清楚，再談實作。" } },
+      { kind: "source-breakdown", title: "Rules Before Board Image", source: "BUILD & SHOOT / GAME DESIGN DOCUMENT", lead: { en: "The board is a 15 × 15 floating island for up to four players. The design asks players to spend a turn on movement, building, inventory, or shooting, then read the physical change left for the next turn.", zh: "棋盤是一座 15 × 15 的浮空島，最多四名玩家。設計要求玩家在移動、建造、負重與射擊之間分配回合，再讀取留給下一回合的空間變化。" }, blocks: [ { title: "Movement Cards", en: "Movement is a card decision that changes position before the player commits to a build or shot.", zh: "移動卡在建造或射擊前先改變位置。" }, { title: "Territory Marks", en: "Territory marks make ownership affect later shots, so location becomes part of the attack rather than a backdrop.", zh: "領地標記讓擁有權影響之後的射擊，位置因此成為攻擊的一部分，而不是背景。" }, { title: "Inventory Weight", en: "Weight forces a choice between carrying more actions and keeping space for tactical cards.", zh: "負重迫使玩家在攜帶更多行動和保留戰術卡之間取捨。" }, { title: "Open Test", en: "The GDD records rule-memory and turn-length concerns. A recorded match is still needed to show how players explain a turn without a handoff.", zh: "GDD 記錄了規則記憶與回合過長的疑慮。仍需要一段對局錄影，展示玩家能否在沒有重新交接的情況下說出自己的回合。" } ] },
       { kind: "flow", title: "One Turn", steps: [["Read", "Check space and weight", "確認位置與負重"], ["Move", "Spend a movement card", "使用移動卡"], ["Build", "Mark territory or change cover", "標記領地或改變掩護"], ["Shoot", "Resolve the exposed choice", "結算暴露出的選擇"]] },
       { kind: "callout", title: "Open Question", en: "The GDD records a concern about rule memory and a turn that grows too long. The next useful evidence is a short recorded match with one player explaining the turn without a rules handoff.", zh: "GDD 記錄了規則記憶負擔與回合膨脹的疑慮。下一份有用的證據，是一段短對局錄影，讓一名玩家在沒有重新交接規則的情況下說出自己的回合。" },
     ],
@@ -910,11 +965,11 @@ Object.assign(caseStudyDetails, {
     title: "Curtain",
     category: "Game Prototype / Spatial Rules",
     summary: "A compact spatial prototype built around a grid, units, doors, and the invitation: “I’m so cold, may I come in?” This page records the visible rule language while the playable build remains available below.",
-    heroImage: "assets/framer-live/youtube-pjbu-hq.jpg",
+    heroImage: null,
     heroAlt: "Curtain spatial prototype grid and units",
     points: ["Player action: read a grid, units, and door state before deciding what can enter.", "Design question: how can a small spatial rule carry the tone of an invitation and a boundary?", "Current version: the Figma grid and unit references are confirmed; a full player walkthrough is still open."],
     sections: [
-      { kind: "image", image: "assets/case-study/curtain-diagram.png", alt: "Curtain grid, units, and door diagram", label: "FIGMA SPATIAL REFERENCE / GRID + UNIT + DOOR", caption: { en: "The visual language starts with the grid and the door. The sentence “I’m so cold, may I come in?” gives the boundary a reason before the prototype asks the player to read its state.", zh: "視覺語言從格線與門開始。「I’m so cold, may I come in?」先給邊界一個理由，再讓玩家閱讀它的狀態。" } },
+      { kind: "source-breakdown", title: "A Door Is a Rule", source: "CURTAIN / FIGMA GRID + UNIT + DOOR", lead: { en: "Curtain begins with a grid, units, and a door. “I’m so cold, may I come in?” turns the door from a graphic object into a boundary with a request attached to it.", zh: "Curtain 從格線、單位與門開始。「I’m so cold, may I come in?」讓門不只是圖形物件，而是帶著請求的邊界。" }, blocks: [ { title: "Grid", en: "Locate the unit and read the available space before the boundary changes.", zh: "先定位單位，再閱讀邊界變化前可用的空間。" }, { title: "Request", en: "The invitation gives the player a reason to read the door state rather than treating it as decoration.", zh: "邀請讓玩家有理由閱讀門的狀態，而不是把它當成裝飾。" }, { title: "Playable Gap", en: "The current source confirms the visual rule. A complete player recording is still needed to describe the final decision and result.", zh: "目前來源確認了視覺規則，但仍需要完整玩家錄影來描述最後的決定與結果。" } ] },
       { kind: "flow", title: "Spatial Read", steps: [["Grid", "Locate the unit", "定位單位"], ["Door", "Read the boundary", "閱讀邊界"], ["Request", "Understand the invitation", "理解邀請"], ["Action", "Open or hold", "開門或保持關閉"]] },
       { kind: "callout", title: "Playable Build", en: "The playable build is available below. A future recording should show the player reading the request, checking the door, and making the boundary decision in one sequence.", zh: "下方保留可玩 build。之後的錄影需要展示玩家閱讀請求、確認門的狀態，並在同一段流程中做出邊界決定。" },
     ],
@@ -930,7 +985,7 @@ Object.assign(caseStudyDetails, {
     points: ["Player action: grip and pinch through a cooking sequence.", "Design question: can a physical gesture make the order of a service task easy to follow?", "Current version: the Vision Pro and XR prototype materials are available; a complete outcome measure is still missing."],
     sections: [
       { kind: "copy-grid", left: { title: "Sequence Before System", en: "The interaction is organized as a service sequence: knife, fish, rice, plate, delivery. The order is part of the design because each hand action prepares the next one.", zh: "互動被整理成一個服務流程：拿刀、切魚、拿魚、合米、裝盤、交付。順序本身就是設計，因為每個手部動作都在準備下一步。" }, right: { title: "Player Experience", en: "The player should know what to pick up next from the state of the dish, not from a technical instruction panel.", zh: "玩家應該從料理的狀態知道下一步要拿什麼，而不是依賴技術說明面板。" } },
-      { kind: "image", image: "assets/case-study/sushigo-gesture.png", alt: "SushiGo gesture and hand interaction reference", label: "VISIONOS / GESTURE REFERENCE", caption: { en: "The gesture reference places grip and pinch beside the food action. The platform matters because it changes how the player can pick up, cut, and combine the ingredients.", zh: "手勢參考把抓取與捏取放在食物行動旁邊。平台之所以重要，是因為它改變玩家拿起、切割與合併食材的方式。" } },
+      { kind: "source-breakdown", title: "Gesture as Serving Sequence", source: "SUSHIGO / VISIONOS GESTURE REFERENCE", lead: { en: "The source sequence is pick up the knife, cut the fish, pick up the fish, combine it with rice, plate it, and deliver it. The gesture matters because each hand action prepares the next state of the dish.", zh: "原稿的流程是拿刀、切魚、拿魚、合米、裝盤與交付。手勢之所以重要，是因為每個手部動作都在準備料理的下一個狀態。" }, blocks: [ { title: "Grip", en: "Pick up the tool or ingredient. The object state should make the next action apparent.", zh: "拿起工具或食材，物件狀態應該提示下一步。" }, { title: "Pinch", en: "Use the cut or combine gesture to change the food state, then place it in the next workspace.", zh: "用切割或合併手勢改變食物狀態，再把它放入下一個工作區。" }, { title: "Delivery", en: "The final action is delivery. A complete 48-second pass is still the clearest evidence for the gesture-to-result relationship.", zh: "最後一步是交付。完整的 48 秒操作流程仍然是最清楚的手勢到結果證據。" } ] },
       { kind: "flow", title: "Serving Sequence", steps: [["Pick up", "Take knife or fish", "拿起刀或魚"], ["Prepare", "Cut and combine", "切割並合米"], ["Plate", "Place the portion", "把份量裝盤"], ["Deliver", "Complete the service", "完成交付"]] },
       { kind: "callout", title: "Next Evidence", en: "Show one 48-second interaction pass with the gesture, the visible food response, and the next available action. Keep platform implementation in production notes after the player sequence.", zh: "展示一段 48 秒的互動流程，讓手勢、食物反應與下一個可用動作一起出現。平台實作放在玩家流程之後的製作筆記裡。" },
     ],
@@ -994,6 +1049,15 @@ Object.assign(caseStudyDetails, {
     access: "This is a graphic design case. The source images remain the reference for the final specimen pages.",
   },
 })
+for (const [path, sections] of Object.entries(supportingReadableSections)) {
+  if (caseStudyDetails[path]) caseStudyDetails[path].sections = sections
+}
+for (const [path, sections] of Object.entries(editorialReadableSections)) {
+  const route = path === "untitled-sans" ? "/narrative-design-document" : `/${path}`
+  const detail = framerProjectDetails[route]
+  if (detail) detail.readableSections = sections
+}
+
 const app = document.querySelector("#app")
 const base = document.body.dataset.base || "/"
 const siteState = {
@@ -3839,6 +3903,26 @@ function caseStudyFlow(section) {
     </section>`
 }
 
+function caseStudySourceBreakdown(section) {
+  const blocks = section.blocks
+    .map(
+      (block) => `
+        <article class="case-study-source-block">
+          <h3>${escapeHtml(block.title)}</h3>
+          <p>${caseStudyPair({ en: block.en, zh: block.zh })}</p>
+        </article>`,
+    )
+    .join("")
+  return `
+    <section class="framer-case-section case-study-source-section">
+      <div class="case-study-source-heading">
+        <div><span class="case-study-media-label">${escapeHtml(section.source)}</span><h2>${escapeHtml(section.title)}</h2></div>
+        <p>${caseStudyPair(section.lead)}</p>
+      </div>
+      <div class="case-study-source-grid">${blocks}</div>
+    </section>`
+}
+
 function caseStudySectionMarkup(section) {
   if (section.kind === "copy-grid") {
     return `
@@ -3859,6 +3943,7 @@ function caseStudySectionMarkup(section) {
       .join("")
     return `<section class="framer-case-section case-study-system-section"><h2>${escapeHtml(section.title)}</h2><ul class="case-study-system-grid">${items}</ul></section>`
   }
+  if (section.kind === "source-breakdown") return caseStudySourceBreakdown(section)
   if (section.kind === "flow") return caseStudyFlow(section)
   if (section.kind === "callout") {
     return `
@@ -3900,8 +3985,8 @@ function caseStudyDetailMarkup(project, detail) {
             <p class="framer-case-year">${escapeHtml(detail.year)}</p>
           </div>
           <p class="framer-case-category">${escapeHtml(detail.category)}</p>
-          <div class="case-study-hero-grid">
-            <figure class="case-study-hero-image"><img ${imageSourceAttrs(detail.heroImage)} alt="${escapeHtml(detail.heroAlt)}" loading="lazy" decoding="async" /></figure>
+          <div class="case-study-hero-grid${detail.heroImage ? "" : " case-study-hero-grid--text"}">
+            ${detail.heroImage ? `<figure class="case-study-hero-image"><img ${imageSourceAttrs(detail.heroImage)} alt="${escapeHtml(detail.heroAlt)}" loading="lazy" decoding="async" /></figure>` : ""}
             <div class="case-study-hero-copy"><p>${bilingualText(detail.summary)}</p><ul>${points}</ul></div>
           </div>
         </header>
@@ -3946,12 +4031,9 @@ function framerProjectDetailMarkup(project, detail) {
         <section class="framer-derived-blocks">
           ${blocks}
         </section>
+        ${detail.readableSections?.length ? `<section class="framer-derived-readable" aria-label="Readable design process">${detail.readableSections.map(section => `<section><h2>${escapeHtml(section.heading)}</h2><p>${escapeHtml(section.body)}</p></section>`).join("")}</section>` : ""}
 
-        <section class="framer-derived-reference" aria-label="${escapeHtml(detail.title)} full page">
-          <figure>
-            <img ${imageSourceAttrs(detail.routeImage)} alt="${escapeHtml(detail.title)} Framer page capture" loading="lazy" decoding="async" />
-          </figure>
-        </section>
+        <p class="framer-derived-source-note">The original board is kept as a source reference in the project archive. This page carries the readable decisions forward as text and structured sections.</p>
 
         <section class="framer-derived-footer">
           <div>

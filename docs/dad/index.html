@@ -51,9 +51,21 @@
           .catch(function(){ /* embedded defaults keep the loader self-contained */ });
       }
       function buildPattern() {
-        var cell = 280 - remix.density * 20;
-        var cols = Math.ceil(2600 / cell) + 2, rows = Math.ceil(2000 / cell) + 2;
+        var cell = Math.max(40, 280 - remix.density * 20);
+        // The rotated layer must cover the viewport's diagonal, not a fixed
+        // canvas size. This keeps all four corners filled at desktop widths,
+        // fullscreen, and after an iframe resize.
+        var viewportWidth = Math.max(1, loadingBar.clientWidth || window.innerWidth);
+        var viewportHeight = Math.max(1, loadingBar.clientHeight || window.innerHeight);
+        var diagonal = Math.sqrt(viewportWidth * viewportWidth + viewportHeight * viewportHeight);
+        var patternSize = Math.ceil((diagonal + cell * 4) / cell) * cell;
+        var cols = Math.ceil(patternSize / cell) + 2, rows = Math.ceil(patternSize / cell) + 2;
         tileLayer.innerHTML = "";
+        tileLayer.style.left = "50%"; tileLayer.style.top = "50%";
+        tileLayer.style.right = "auto"; tileLayer.style.bottom = "auto";
+        tileLayer.style.width = patternSize + "px"; tileLayer.style.height = patternSize + "px";
+        tileLayer.style.marginLeft = (-patternSize / 2) + "px";
+        tileLayer.style.marginTop = (-patternSize / 2) + "px";
         tileLayer.style.setProperty("--cell-size", cell + "px");
         tileLayer.style.setProperty("--tile-font-size", remix.fontSize + "px");
         tileLayer.style.setProperty("--tile-letter-spacing", remix.letterSpacing + "%");
@@ -120,7 +132,9 @@
         document.documentElement.style.setProperty("--paper", remix.paper);
         document.documentElement.style.setProperty("--accent", remix.accent);
         loadingBar.style.background=remix.ink;
-        buildPattern(); window.requestAnimationFrame(animatePattern); startUnity();
+        buildPattern();
+        window.addEventListener("resize", buildPattern, {passive:true});
+        window.requestAnimationFrame(animatePattern); startUnity();
       });
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) { document.querySelector("#unity-container").className="unity-mobile"; canvas.className="unity-mobile"; }
       else { canvas.style.width="100%"; canvas.style.height="100%"; }

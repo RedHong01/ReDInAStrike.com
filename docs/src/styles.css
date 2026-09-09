@@ -5791,3 +5791,16 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .catalog[data-active-filter] .project-card + .project-card:not(.is-project-preview)::before {
   display: none !important;
 }
+
+/* Expanded previews use one continuous colour surface for the image and
+   copy. Remove only the media edge facing the copy; the outer image frame and
+   the card's horizontal seams remain intact. */
+@media (min-width: 521px) {
+  .catalog .project-card.is-project-preview[data-card-side="left"] .project-media {
+    border-right: 0;
+  }
+
+  .catalog .project-card.is-project-preview[data-card-side="right"] .project-media {
+    border-left: 0;
+  }
+}

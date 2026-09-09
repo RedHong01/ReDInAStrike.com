@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Curtain</title>
+  <style>html,body{margin:0;width:100%;height:100%;background:#0b0b0b;color:#f4f1ea;font-family:system-ui,sans-serif}#game-shell{width:100%;height:100%;display:grid;place-items:center;position:relative}#unity-canvas{width:100%;height:100%;display:block;background:#111}#loading{position:absolute;z-index:2;inset:auto 8vw 8vh;display:grid;gap:10px;text-align:center;pointer-events:none}#bar{height:5px;background:#333;border-radius:5px;overflow:hidden}#fill{height:100%;width:0;background:#f4f1ea;transition:width .15s ease}.hidden{display:none!important}#fullscreen{position:absolute;z-index:3;right:16px;bottom:16px;background:#f4f1ea;color:#111;border:0;padding:9px 13px;border-radius:4px;cursor:pointer}</style>
+</head>
+<body>
+  <main id="game-shell"><canvas id="unity-canvas" width="960" height="600" tabindex="-1"></canvas><div id="loading" role="status" aria-live="polite"><div id="label">Loading… 0%</div><div id="bar"><div id="fill"></div></div></div><button id="fullscreen" type="button" class="hidden">Fullscreen</button></main>
+  <script src="Build/Curtain_Web.loader.js"></script>
+  <script>
+    const canvas=document.querySelector('#unity-canvas'),loading=document.querySelector('#loading'),label=document.querySelector('#label'),fill=document.querySelector('#fill'),fullscreen=document.querySelector('#fullscreen');
+    const buildUrl='Build';
+    const config={dataUrl:buildUrl+'/Curtain_Web.data',frameworkUrl:buildUrl+'/Curtain_Web.framework.js',codeUrl:buildUrl+'/Curtain_Web.wasm',streamingAssetsUrl:'StreamingAssets',companyName:'RedHong01',productName:'Curtain',productVersion:'1.0'};
+    createUnityInstance(canvas,config,progress=>{const percent=Math.round(progress*100);fill.style.width=percent+'%';label.textContent='Loading… '+percent+'%';}).then(instance=>{window.unityInstance=instance;loading.classList.add('hidden');fullscreen.classList.remove('hidden');fullscreen.addEventListener('click',()=>instance.SetFullscreen(1));}).catch(message=>{label.textContent='Unable to load the game: '+message;fill.style.background='#d35b5b';});
+  </script>
+</body>
+</html>

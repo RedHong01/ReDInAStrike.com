@@ -1,0 +1,12 @@
+{
+  "source": "Builds/Curtain_Web known-good package",
+  "editor": "6000.3.10f1",
+  "package": "repacked-uncompressed",
+  "sizeBytes": 91049029,
+  "compression": "Disabled",
+  "threads": false,
+  "wasm2023": true,
+  "scenes": [
+    "Assets/Scenes/RedScene.unity"
+  ]
+}

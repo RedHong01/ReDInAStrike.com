@@ -95,13 +95,13 @@ const projects = [
     image: "assets/framer-live/uiux-prototype-2024.png",
   },
   {
-    pageTitle: "Alternative Controller Game Prototype",
-    displayTitle: "Alternative Controller Game Prototype",
+    pageTitle: "Curtain",
+    displayTitle: "Curtain",
     date: "12/9/2024",
     path: "/bns_gdd",
     navHash: "game",
     image: "assets/framer-live/youtube-pjbu-hq.jpg",
-    youtube: "PjBUK45MWJs",
+    webglEmbed: "curtain/",
   },
   {
     pageTitle: "The Mystery of Instrument",
@@ -142,7 +142,7 @@ const projects = [
     path: "/game-prototype",
     navHash: "game",
     image: "assets/framer-live/game-prototype-2026.png",
-    itchEmbed: "https://redinastrike.itch.io/innovative-game-mechanic/embed",
+    webglEmbed: "innovative-game-mechanic-redw/",
   },
   {
     pageTitle: "Squirrel Samurai",

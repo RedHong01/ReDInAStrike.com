@@ -1,0 +1,14 @@
+project=InnovativeGameMechanicRedW
+unity=6000.3.10f1
+target=WebGL
+scenes=Assets/Scenes/Level1.unity
+compression=None
+decompressionFallback=false
+dataCaching=true
+nameFilesAsHashes=true
+webAssembly2023=true
+threads=false
+initialMemoryMB=256
+maximumMemoryMB=2048
+buildReportBytes=98850579
+elapsedSeconds=56.72

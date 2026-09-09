@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>innovativeGameMechanic RedW</title>
+  <link rel="stylesheet" href="TemplateData/style.css">
+</head>
+<body>
+  <main id="unity-container">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <section id="unity-loading" aria-live="polite">
+      <div class="loading-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p class="loading-kicker">INNOVATIVE GAME MECHANIC</p>
+      <h1>Loading <span id="loading-percent">0%</span></h1>
+      <div class="progress-track"><div id="progress-fill"></div></div>
+      <p id="loading-status">Preparing the scene...</p>
+      <p id="loading-error" role="alert"></p>
+    </section>
+    <button id="fullscreen-button" type="button" disabled>Full screen</button>
+    <div id="unity-warning" role="alert"></div>
+  </main>
+  <script>
+    const canvas = document.querySelector('#unity-canvas');
+    const loading = document.querySelector('#unity-loading');
+    const percent = document.querySelector('#loading-percent');
+    const fill = document.querySelector('#progress-fill');
+    const status = document.querySelector('#loading-status');
+    const error = document.querySelector('#loading-error');
+    const fullscreen = document.querySelector('#fullscreen-button');
+    const warning = document.querySelector('#unity-warning');
+
+    function unityShowBanner(message, type) {
+      warning.textContent = message;
+      warning.dataset.type = type || 'error';
+      warning.hidden = false;
+    }
+
+    const buildUrl = 'Build';
+    const loaderUrl = buildUrl + '/6f7b273834cabcc24871ee7c13251194.loader.js';
+    const config = {
+      arguments: [],
+      dataUrl: buildUrl + '/a58b4fbdab569c894e516b8de2c44bfe.data',
+      frameworkUrl: buildUrl + '/3d1884fe023e23daeb3c35d94babd00f.framework.js',
+      codeUrl: buildUrl + '/718da3e9eb5e4f74e9b9057f049e877f.wasm',
+      streamingAssetsUrl: 'StreamingAssets',
+      companyName: 'DefaultCompany',
+      productName: 'innovativeGameMechanic RedW',
+      productVersion: '0.1.0',
+      showBanner: unityShowBanner,
+      matchWebGLToCanvasSize: true,
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2)
+    };
+
+    function loadFailed(message) {
+      status.textContent = 'Load failed';
+      error.textContent = message && message.message ? message.message : String(message);
+      error.hidden = false;
+    }
+
+    document.querySelector('#unity-loading').style.display = 'grid';
+    const script = document.createElement('script');
+    script.src = loaderUrl;
+    script.onload = () => {
+      createUnityInstance(canvas, config, (progress) => {
+        const value = Math.round(progress * 100);
+        percent.textContent = value + '%';
+        fill.style.width = value + '%';
+        status.textContent = value < 100 ? 'Loading game data...' : 'Starting game...';
+      }).then((unityInstance) => {
+        loading.classList.add('complete');
+        fullscreen.disabled = false;
+        fullscreen.addEventListener('click', () => unityInstance.SetFullscreen(1));
+      }).catch(loadFailed);
+    };
+    script.onerror = () => loadFailed('Unable to load the WebGL loader. Check the published Build path.');
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

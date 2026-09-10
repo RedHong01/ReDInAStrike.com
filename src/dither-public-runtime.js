@@ -109,7 +109,9 @@ function applyPublishedModeState() {
 }
 
 function activeCatalog() {
-  return document.querySelector(".catalog")
+  // Case-study halftone fields borrow the catalog markup so the engine will
+  // paint them, but they are not the card grid and must not drive its state.
+  return document.querySelector(".catalog:not(.gdd-halftone-field)")
 }
 
 function applyCategoryAliases(catalog) {

@@ -1,23 +1,20 @@
-import {
-  cancelBinaryPixelVeil,
-  closeBinaryPixelVeil,
-  openBinaryPixelVeil,
-  syncBinaryPixelVeil,
-} from "./binary-pixel-veil.js?v=20260910-plateveil1"
+import { holdPlateField, releasePlateField } from "./plate-field-halftone.js?v=20260910-platefield1"
 
 // A project body is the same markup in two containers: the drawer that opens
 // under its card on the home grid, and the route that renders it on its own.
 // The drawer is the real one, and it is the one without a <main> wrapper.
 const PROJECT_BODY_SCOPES = [".detail-page", ".project-detail-drawer"]
 const PROJECT_BODY_SELECTOR = PROJECT_BODY_SCOPES.join(", ")
-// A booklet field is already a page of pixels. Opening a plate out of one hands
-// the rest of the page to the shared binary dissolve rather than a plain fade.
-const PIXEL_VEIL_SELECTOR = ".gdd-plates"
+// A booklet field is already a page of pixels. Opening one plate out of it hands
+// every other plate to the colour halftone the catalog uses for a card the
+// active category does not match, so the field reads as filtered rather than
+// covered, and the page stays where it was.
+const PLATE_FIELD_SELECTOR = ".gdd-plates"
 
 const LIGHTBOX_STYLE_ID = "project-lightbox-style"
 const LIGHTBOX_CLASS = "project-lightbox"
 const LIGHTBOX_OPEN_CLASS = "is-open"
-const VEIL_MODIFIER = "pixel"
+const FIELD_MODIFIER = "field"
 const LIGHTBOX_OPEN_MS = 440
 const LIGHTBOX_CLOSE_MS = 360
 const LIGHTBOX_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
@@ -34,7 +31,7 @@ let previousSourceOpacity = ""
 let closeTimer = 0
 let animationFrame = 0
 let isClosing = false
-let usesPixelVeil = false
+let usesPlateField = false
 
 function scopedSelector(suffix) {
   return PROJECT_BODY_SCOPES.map((scope) => `${scope} ${suffix}`).join(",\n      ")
@@ -102,10 +99,10 @@ function ensureStyles() {
       opacity: 1;
     }
 
-    /* The dissolve paints its own paper field, so the plain backdrop would only
-       double it. */
-    .${LIGHTBOX_CLASS}--${VEIL_MODIFIER} .${LIGHTBOX_CLASS}__backdrop {
-      display: none;
+    /* A filtered field is the backdrop: the page stays visible behind the
+       plate, halftoned, instead of being covered by paper. */
+    .${LIGHTBOX_CLASS}--${FIELD_MODIFIER} .${LIGHTBOX_CLASS}__backdrop {
+      background: rgba(var(--paper-rgb, 248, 247, 245), 0.34);
     }
 
     .${LIGHTBOX_CLASS}__image {
@@ -242,7 +239,7 @@ function openLightbox(sourceImage) {
   isClosing = false
 
   activeSourceImage = sourceImage
-  usesPixelVeil = !prefersReducedMotion() && Boolean(sourceImage.closest(PIXEL_VEIL_SELECTOR))
+  usesPlateField = Boolean(sourceImage.closest(PLATE_FIELD_SELECTOR)) && holdPlateField(sourceImage)
   previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
 
   const sourceRect = sourceImage.getBoundingClientRect()
@@ -259,17 +256,10 @@ function openLightbox(sourceImage) {
     : transformBetweenRects(sourceRect, activeTargetRect)
 
   root.classList.remove(LIGHTBOX_OPEN_CLASS)
-  root.classList.toggle(`${LIGHTBOX_CLASS}--${VEIL_MODIFIER}`, usesPixelVeil)
+  root.classList.toggle(`${LIGHTBOX_CLASS}--${FIELD_MODIFIER}`, usesPlateField)
   root.hidden = false
   lockArticleScroll()
   hideSourceImage(sourceImage)
-
-  // The dissolve runs on the zoom's own budget, so the page finishes coming
-  // apart on the frame the plate finishes arriving.
-  if (usesPixelVeil && !openBinaryPixelVeil(root, { durationMs: LIGHTBOX_OPEN_MS })) {
-    usesPixelVeil = false
-    root.classList.remove(`${LIGHTBOX_CLASS}--${VEIL_MODIFIER}`)
-  }
 
   if (prefersReducedMotion()) {
     root.classList.add(LIGHTBOX_OPEN_CLASS)
@@ -291,11 +281,10 @@ function openLightbox(sourceImage) {
 
 function finishClose(focusTarget, sourceImage) {
   if (!overlay || !previewImage) return
-  cancelBinaryPixelVeil()
   overlay.hidden = true
   overlay.classList.remove(LIGHTBOX_OPEN_CLASS)
-  overlay.classList.remove(`${LIGHTBOX_CLASS}--${VEIL_MODIFIER}`)
-  usesPixelVeil = false
+  overlay.classList.remove(`${LIGHTBOX_CLASS}--${FIELD_MODIFIER}`)
+  usesPlateField = false
   previewImage.removeAttribute("src")
   previewImage.style.removeProperty("left")
   previewImage.style.removeProperty("top")
@@ -337,7 +326,7 @@ function closeLightbox() {
     ? sourceImage.getBoundingClientRect()
     : null
 
-  if (usesPixelVeil) closeBinaryPixelVeil({ durationMs: LIGHTBOX_CLOSE_MS })
+  if (usesPlateField) releasePlateField()
 
   previewImage.style.transition = `transform ${LIGHTBOX_CLOSE_MS}ms ${LIGHTBOX_EASE}`
   overlay.classList.remove(LIGHTBOX_OPEN_CLASS)
@@ -384,7 +373,6 @@ window.addEventListener("resize", () => {
   const naturalHeight = activeSourceImage.naturalHeight || previewImage.naturalHeight
   if (!naturalWidth || !naturalHeight) return
 
-  syncBinaryPixelVeil()
   activeTargetRect = getPreviewTargetRect(naturalWidth, naturalHeight)
   previewImage.style.transition = "none"
   previewImage.style.transform = "none"

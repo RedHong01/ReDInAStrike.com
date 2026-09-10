@@ -6629,3 +6629,68 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .gdd-plate:hover,
   .gdd-plate:focus-within { transform: scale(1.06); }
 }
+
+/* ---------------------------------------------------------------------------
+   Halftone reference field.
+   The markup borrows .catalog / .project-card / .project-media so the site's
+   own dither engine recognises it and paints the same effect the card grid uses
+   for an out-of-category card. These rules undo the grid layout that comes with
+   those class names and give the canvas a box to sit in.
+   --------------------------------------------------------------------------- */
+
+.gdd-halftone-field {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: clamp(14px, 2vw, 30px);
+  width: max(100%, var(--case-bleed-width));
+  max-width: none;
+  margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
+  padding-inline: clamp(20px, 4vw, 78px);
+  position: static;
+}
+
+.gdd-halftone-plate {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: default;
+  position: static;
+  transform: none;
+}
+
+.gdd-halftone-plate .project-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.gdd-halftone-plate .project-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gdd-halftone-plate figcaption {
+  display: grid;
+  gap: 5px;
+  padding-top: 12px;
+}
+
+.gdd-halftone-label {
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.gdd-halftone-copy {
+  font-size: 14px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}

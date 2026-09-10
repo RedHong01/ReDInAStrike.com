@@ -48,6 +48,38 @@ export const tbcSections = [
     ],
   },
   {
+    kind: "halftone",
+    title: "Casting References",
+    intro: {
+      en: "Each character sheet carries a panel of reference faces \u2014 the look I was writing towards before any art existed. They run through the site\u2019s own halftone, the same effect the catalogue applies to a card outside the selected category, so what survives is the silhouette and the weight rather than the photograph.",
+      zh: "每一份角色設定都附有一組參考臉孔——那是在任何美術產出之前，我書寫時所朝向的樣子。它們經由網站自身的半調處理，也就是目錄在卡片不屬於當前分類時所套用的同一種效果；因此留下來的是輪廓與份量，而不是照片本身。",
+    },
+    plates: [
+      {
+        image: "assets/tbc/ref-mia.jpg",
+        alt: "Halftoned reference panel from the protagonist character sheet",
+        label: "PROTAGONIST / MIA THOMPSON",
+        caption: {
+          en: "Seventeen, and asked to lead people who did not elect her.",
+          zh: "十七歲，卻被要求去領導一群並非選她出來的人。",
+        },
+      },
+      {
+        image: "assets/tbc/ref-malachi.jpg",
+        alt: "Halftoned reference panel from the antagonist character sheet",
+        label: "ANTAGONIST / ELDER MALACHI",
+        caption: {
+          en: "Reads 60\u201370, has lived far past it. Once a scholar; the ritual is what he made of the search.",
+          zh: "看上去六十到七十歲，實際遠不止。他曾是學者；那套儀式，是他把追尋做成的東西。",
+        },
+      },
+    ],
+    note: {
+      en: "The panels are casting references I gathered while writing, not artwork for the game.",
+      zh: "這些面板是我寫作期間蒐集的選角參考，並非遊戲的美術稿。",
+    },
+  },
+  {
     kind: "flow",
     title: "Three Acts",
     steps: [

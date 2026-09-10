@@ -6,6 +6,7 @@ import {
   smooth01,
 } from "./binary-surface-core.js?v=20260905-perf1"
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
+import { renderCard as renderDitherCard } from "./dither-engine.js?v=20260905-perf1"
 import { supportingReadableSections } from "./readable-source-sections.js"
 import { editorialReadableSections } from "./editorial-readable-sections.js"
 import { bnsGddSections } from "./bns-gdd-sections.js"
@@ -3901,6 +3902,44 @@ function gddPlates(section) {
     </section>`
 }
 
+// Reference imagery is shown through the site's own halftone — the same effect
+// the catalog applies to a card that falls outside the selected category. The
+// engine only paints when it sees .catalog[data-active-filter] wrapping a
+// .project-card.is-filter-muted with a .project-media, so the markup reproduces
+// that shape exactly and the existing runtime CSS makes the canvas visible.
+function gddHalftone(section) {
+  const plates = section.plates
+    .map(
+      (plate) => `
+        <figure class="project-card is-filter-muted gdd-halftone-plate">
+          <div class="project-media">
+            <img ${imageSourceAttrs(plate.image)} alt="${escapeHtml(plate.alt || section.title)}" loading="lazy" decoding="async" data-lightbox-disabled="true" />
+          </div>
+          <figcaption><span class="gdd-halftone-label">${escapeHtml(plate.label)}</span><span class="gdd-halftone-copy">${gddPair(plate.caption)}</span></figcaption>
+        </figure>`,
+    )
+    .join("")
+  return `
+    <section class="framer-case-section gdd-section gdd-halftone-section" aria-label="${escapeHtml(section.title)}">
+      <h2 class="gdd-h2">${escapeHtml(section.title)}</h2>
+      ${section.intro ? `<p class="gdd-intro">${gddPair(section.intro)}</p>` : ""}
+      <div class="catalog gdd-halftone-field" data-active-filter="halftone">${plates}</div>
+      ${section.note ? `<p class="gdd-note">${gddPair(section.note)}</p>` : ""}
+    </section>`
+}
+
+// The engine paints once the bitmap is decoded, so drive it per image.
+function paintHalftonePlates(root = document) {
+  const plates = root.querySelectorAll(".gdd-halftone-plate")
+  for (const plate of plates) {
+    const img = plate.querySelector("img")
+    if (!img) continue
+    const paint = () => renderDitherCard(plate, PUBLISHED_DITHER_CONFIG)
+    if (img.complete && img.naturalWidth) paint()
+    else img.addEventListener("load", paint, { once: true })
+  }
+}
+
 function gddSectionMarkup(section) {
   if (section.kind === "symbol-key") return gddSymbolKey(section)
   if (section.kind === "spec-table") return gddSpecTable(section)
@@ -3908,6 +3947,7 @@ function gddSectionMarkup(section) {
   if (section.kind === "diagram") return gddDiagram(section)
   if (section.kind === "question-list") return gddQuestionList(section)
   if (section.kind === "plates") return gddPlates(section)
+  if (section.kind === "halftone") return gddHalftone(section)
   return caseStudySectionMarkup(section)
 }
 
@@ -4350,6 +4390,7 @@ function render() {
   const route = routeFromLocation()
   const project = routeMap.get(route)
   app.innerHTML = project ? detailMarkup(project) : homeMarkup()
+  paintHalftonePlates(app)
   siteState.navMetricKey = ""
   siteState.navHoverSpacingKey = ""
   refreshDomCache()
@@ -9565,6 +9606,7 @@ function openProjectDetailDrawer(card, target) {
     applyCaseAccentToScope(drawer, detailTheme)
   }
   drawer.innerHTML = `<div class="project-detail-drawer-inner">${projectDetailBodyMarkup(project)}</div>`
+  paintHalftonePlates(drawer)
   // Keep the drawer immediately after the activated card. On compact layouts
   // the neighboring card remains in the same row, so inserting after the row
   // would place Pitchfork before Serial's full article instead of below it.

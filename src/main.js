@@ -3921,7 +3921,11 @@ function gddHalftone(section) {
           <div class="project-media">
             <img ${imageSourceAttrs(plate.image)} alt="${escapeHtml(plate.alt || section.title)}" loading="lazy" decoding="async" data-lightbox-disabled="true" />
           </div>
-          <figcaption><span class="gdd-halftone-label">${escapeHtml(plate.label)}</span><span class="gdd-halftone-copy">${gddPair(plate.caption)}</span></figcaption>
+          <figcaption>
+            <span class="gdd-halftone-label">${escapeHtml(plate.label)}</span>
+            <span class="gdd-halftone-copy">${gddPair(plate.caption)}</span>
+            ${plate.credits?.length ? `<ul class="gdd-halftone-credits">${plate.credits.map((entry) => `<li>${escapeHtml(entry)}</li>`).join("")}</ul>` : ""}
+          </figcaption>
         </figure>`,
     )
     .join("")
@@ -4392,10 +4396,11 @@ function serialDeminerDetailMarkup(project) {
     </main>`
 }
 
+// The site has one document. A project body is a drawer under its card on the
+// home grid, so there is no second thing to render: a project URL is an entry
+// point into this page, handled by claimEntryRouteAsDrawer().
 function render() {
-  const route = routeFromLocation()
-  const project = routeMap.get(route)
-  app.innerHTML = project ? detailMarkup(project) : homeMarkup()
+  app.innerHTML = homeMarkup()
   paintHalftonePlates(app)
   siteState.navMetricKey = ""
   siteState.navHoverSpacingKey = ""
@@ -8072,6 +8077,69 @@ function projectPreviewExitFadeDurationMs() {
   return PROJECT_PREVIEW_EXIT_FADE_MS
 }
 
+function projectCardForPath(path) {
+  return [...document.querySelectorAll("[data-project-card]")].find((card) => {
+    const href = card.getAttribute("href")
+    if (!href) return false
+    try {
+      return routeTargetFromUrl(new URL(href, window.location.href))?.path === path
+    } catch {
+      return false
+    }
+  }) || null
+}
+
+// Reach a project the way a visitor does: put its card into preview, then let
+// the same intent queue a second click uses open the drawer under it.
+//
+// The queue is deliberately patient -- it refuses to act while a preview
+// transition owns the page -- and on a cold entry the catalog may not be built
+// yet either. So this drives the queue rather than firing once, and it waits on
+// timers rather than frames: a tab loaded in the background paints no frames at
+// all, and the drawer still has to be open when it comes forward.
+function openProjectRouteAsDrawer(path, { scroll = true } = {}) {
+  if (!path || path === "/") return false
+  const target = routeTargetFromUrl(new URL(hrefFor(path), window.location.href))
+  if (!target) return false
+
+  let attempts = 26
+  let scrolled = !scroll
+  const advance = () => {
+    // A hidden tab paints no frames, so the preview transition the queue is
+    // waiting on cannot finish there. Waiting costs nothing while nobody is
+    // looking; spend the attempts only on time the page is actually visible.
+    if (!document.hidden) attempts -= 1
+    const card = projectCardForPath(path)
+    if (card) {
+      const drawer = activeProjectDetailDrawer()
+      if (drawer?.card === card && drawer.element.dataset.drawerState !== "closing") return
+      if (!scrolled) {
+        card.scrollIntoView({ block: "start", behavior: "auto" })
+        scrolled = true
+      }
+      if (!siteState.projectPreviewTransitionIntent) {
+        scheduleProjectPreviewTransitionIntent(card, true, target)
+      }
+      flushProjectPreviewTransitionIntent()
+    }
+    if (attempts > 0) window.setTimeout(advance, document.hidden ? 400 : 160)
+  }
+
+  clearProjectPreviewExitGhosts()
+  advance()
+  return true
+}
+
+// A project URL is an address for a drawer, not for a page of its own. Trade it
+// for the home address before anything renders, and hand the path back so the
+// drawer can be opened once the grid exists.
+function claimEntryRouteAsDrawer() {
+  const route = routeFromLocation()
+  if (route === "/") return null
+  window.history.replaceState(null, "", homeUrl().href)
+  return route
+}
+
 function scheduleProjectPreviewTransitionIntent(card, expanded, target = null) {
   if (!card?.isConnected) return
   siteState.projectPreviewTransitionIntent = { card, expanded: Boolean(expanded), target }
@@ -9823,6 +9891,10 @@ function handleRouteLinkClick(event) {
   }
 
   event.preventDefault()
+  // A link into a project -- an Access line, a cross-reference in a case body --
+  // opens that project's drawer rather than navigating to a page.
+  if (target.path !== "/" && openProjectRouteAsDrawer(target.path)) return
+
   if (prefersReducedMotion()) {
     clearProjectPreviewExitGhosts()
     navigateRouteWithoutTransition(target.url)
@@ -9839,6 +9911,17 @@ function handlePopState() {
     clearProjectPreviewExitGhosts()
     cancelHomeReturnTransition()
     render()
+    return
+  }
+
+  // Older history entries can still hold a project URL. Trade it for home and
+  // reopen the drawer instead of restoring a page that no longer exists.
+  if (target.path !== "/") {
+    clearProjectPreviewExitGhosts()
+    cancelHomeReturnTransition({ syncHeaderToScroll: false })
+    window.history.replaceState(null, "", homeUrl().href)
+    if (!document.querySelector(".catalog")) render()
+    openProjectRouteAsDrawer(target.path)
     return
   }
 
@@ -9869,5 +9952,7 @@ window.addEventListener("red:public-dither-ready", (event) => {
   if (event?.detail?.generated) stopLegacyCatalogHalftoneWork()
 })
 window.addEventListener("popstate", handlePopState)
+const entryDrawerRoute = claimEntryRouteAsDrawer()
 render()
 applyFigmaCaptureState()
+if (entryDrawerRoute) openProjectRouteAsDrawer(entryDrawerRoute)

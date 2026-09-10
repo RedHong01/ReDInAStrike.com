@@ -6579,24 +6579,67 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   will-change: transform;
 }
 
-.gdd-plate img {
+/* A plate keeps whatever shape it was printed at, so the catalog's 16/9 media
+   frame has to come off: the image sets the height and the box follows it. The
+   wrapper is there so the dither surface and the colour halftone have somewhere
+   to mount that covers the page and nothing else. */
+.gdd-plate .project-media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: auto;
+  height: auto;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 17, 34, 0.14), 0 8px 20px -14px rgba(0, 17, 34, 0.4);
+}
+
+.gdd-plate .project-media > img {
+  position: static;
   display: block;
   width: 100%;
   height: auto;
+  inset: auto;
+  object-fit: fill;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 17, 34, 0.14), 0 8px 20px -14px rgba(0, 17, 34, 0.4);
   cursor: zoom-in;
 }
 
+/* Held behind an opened plate: what shows is the published dither surface, the
+   same one a card muted by the active category shows. */
+.gdd-plate[data-plate-halftone="true"] .project-media > img {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.gdd-plate[data-plate-halftone="true"] .dither-preview-canvas[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+}
+
+.gdd-plate[data-plate-halftone="true"] { cursor: default; }
+
+/* The label reads on paper, not on whichever plate happens to overlap the strip
+   under this one. It sits clear of the media box on its own paper chip, above
+   every plate in the field, and holds its 10px size while the plate lifts. */
 .gdd-plate figcaption {
-  margin-top: 8px;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -7px;
+  z-index: 30;
+  margin: 0;
+  padding: 3px 8px 4px 7px;
+  background: var(--paper);
+  white-space: nowrap;
   font-family: var(--type-subtitle-font);
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--case-muted);
   opacity: 0;
+  transform-origin: top left;
   transition: opacity 300ms ease;
+  pointer-events: none;
 }
 
 /* Lift the hovered plate clear of its neighbours. */
@@ -6606,13 +6649,16 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   transform: rotate(0deg) scale(var(--plate-lift, 1.32));
 }
 
-.gdd-plate:hover img,
-.gdd-plate:focus-within img {
+.gdd-plate:hover .project-media,
+.gdd-plate:focus-within .project-media {
   box-shadow: 0 2px 6px rgba(0, 17, 34, 0.18), 0 26px 60px -22px rgba(0, 17, 34, 0.55);
 }
 
 .gdd-plate:hover figcaption,
-.gdd-plate:focus-within figcaption { opacity: 1; }
+.gdd-plate:focus-within figcaption {
+  opacity: 1;
+  transform: scale(calc(1 / var(--plate-lift, 1.32)));
+}
 
 /* A full-width plate anchors the field so it does not read as an even mosaic. */
 .gdd-plate--wide { grid-column: span var(--plate-span, 8); }
@@ -6621,6 +6667,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .gdd-plate { transition: none; }
   .gdd-plate:hover,
   .gdd-plate:focus-within { transform: none; }
+  .gdd-plate:hover figcaption,
+  .gdd-plate:focus-within figcaption { transform: none; }
 }
 
 @media (max-width: 900px) {
@@ -6628,6 +6676,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .gdd-plate { grid-column: span 3; margin-top: 0; transform: none; }
   .gdd-plate:hover,
   .gdd-plate:focus-within { transform: scale(1.06); }
+  .gdd-plate:hover figcaption,
+  .gdd-plate:focus-within figcaption { transform: scale(calc(1 / 1.06)); }
 }
 
 /* ---------------------------------------------------------------------------

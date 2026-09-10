@@ -1,6 +1,6 @@
 // Editorial adaptation of verified design documents. Provenance lives in the Term Review audit workspace.
 export const supportingReadableSections = {
-  "/monologue": [
+  "/to-be-chosen": [
     {
       "kind": "copy-grid",
       "title": "Premise and Narrative Structure",

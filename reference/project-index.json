@@ -98,23 +98,13 @@
       "date": "12/9/2024",
       "nav": "graphic",
       "local": [
-        "/Users/redwang/Desktop/ArtCenter/Type1",
-        "/Users/redwang/Desktop/ArtCenter/ArtWorks/PitchforkMagazinePageByPage",
-        "/Users/redwang/Downloads/Type1_Final_Magazine_RW.indd"
+        "/Users/redwang/Desktop/ArtCenter/ArtWorks/PitchforkMagazinePageByPage"
       ],
       "figma": [],
       "siteStatus": "Image-led page",
       "gaps": [
-        "Magazine pages never published on the site",
-        "Page 1 missing from the page-by-page set; 2.png is a low-resolution outlier"
-      ],
-      "booklet": {
-        "pages": 20,
-        "latest": "/Users/redwang/Desktop/ArtCenter/Type1/Type1_Final_Magazine_RW_Print_Page_01..11.jpg (2026-05-11, 1 cover + 9 spreads + 1 back)",
-        "singles": "/Users/redwang/Desktop/ArtCenter/ArtWorks/PitchforkMagazinePageByPage/2..20.png (2025-11-05, 2551x3301; page 1 MISSING, 2.png low-res)",
-        "source": "/Users/redwang/Downloads/Type1_Final_Magazine_RW.indd (2025-06-30, 178MB)",
-        "note": "Files are named Type1_Final_Magazine_RW, never 'Pitchfork' — searching for pitchfork finds only website build assets."
-      }
+        "Print source (indd/ai) not indexed"
+      ]
     },
     {
       "route": "/analog-game",
@@ -628,12 +618,12 @@
     },
     {
       "route": "/narrative-design-document",
-      "pageTitle": "Untitled Sans (overridden at runtime)",
+      "pageTitle": "Narrative Design Document",
       "displayTitle": "Narrative Design Document",
       "date": "3/10/2025",
       "nav": "ongoing",
       "local": [
-        "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Type2"
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Narrative Design/"
       ],
       "docs": [
         "Narrative Design Vision Document 1st Iteration_RedWang.docx",
@@ -644,18 +634,8 @@
       "figma": [],
       "siteStatus": "Case page",
       "gaps": [
-        "Booklet pages never published on the site",
-        "Route slug still says narrative-design-document, which belongs to To Be Chosen"
-      ],
-      "labelOverride": "src/project-metadata-prelude.js monkey-patches window.Map to set pageTitle 'Untitled Sans', displayTitle 'Type 2 Specimen Booklet', navHash 'graphic'. The projects array still says 'Narrative Design Document'.",
-      "booklet": {
-        "format": "696 x 903 pt; booklet 16 pages = 8 spreads, plus a separate 2-page insert",
-        "latestBooklet": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Type2/Red_Wang_Wk14_ SpecimenFinal_Type2_SP26.indd.pdf (2026-04-22 16:23, 8 spreads)",
-        "latestInsert": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Type2/Red Wang Wed Print/Red_Wang_Wk14_ SpecimenOnlyInsert_SP26.pdf (2026-04-25 07:46, 2 pages) — newest file of all",
-        "latestSingles": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Type2/Red_Wang_Wk14_ SpecimenColorFixed_ype2_SP26.pdf (2026-04-22 01:28, 16 pages)",
-        "copies": "46 of Red's own Specimen files including [Recovered] versions and 'copy copy copy' chains",
-        "warning": "Week numbers in filenames are unreliable — a file named Wk12 is dated later than several Wk14 files. Sort by mtime."
-      }
+        "Two documented iterations never surfaced as a design-change story"
+      ]
     }
   ],
   "notOnSite": [
@@ -708,9 +688,7 @@
     "figma get_metadata with no nodeId under-reports pages (returned 1 of 17 for AltControl). Use the evidence index-*.json page lists.",
     "Figma <text> nodes carry their content in the name attribute - that is how board copy is read.",
     "A 'name 2' directory on this machine is EITHER an iCloud conflict copy OR an archive symlink to /Volumes/UnityProjectsArchive. Run `readlink` before treating one as junk.",
-    "/Volumes/UnityProjectsArchive is not mounted. 13 Unity projects archived 2026-08-31 are unreachable until it is.",
-    "~/Downloads holds Type 2 Specimen booklets by OTHER students (MichelleHeo, KatieKim, Nick Rheem, MichellePark, Vy Huynh, Julia Rz, Jinghan Zhang). Red's own files always carry Red_Wang / RedW / _RW.",
-    "Card labels can be overridden at runtime by src/project-metadata-prelude.js, which patches window.Map. Grepping the projects array will not find those labels."
+    "/Volumes/UnityProjectsArchive is not mounted. 13 Unity projects archived 2026-08-31 are unreachable until it is."
   ],
   "archivedProjects": {
     "date": "2026-08-31",

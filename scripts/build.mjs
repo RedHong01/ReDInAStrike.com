@@ -5,6 +5,11 @@ const root = resolve(".")
 const dist = join(root, "dist")
 const docs = join(root, "docs")
 const faviconVersion = "20260904"
+// Every project opens as a drawer on the home page, so none of these is a page
+// of its own any more. They stay in the build because a project URL is still a
+// working address: the shell boots, trades the address for home, and opens that
+// project's drawer. Dropping the folders would hand those links to 404.html,
+// whose relative base cannot resolve assets from a nested path.
 const routes = [
   "",
   "serialdeminer",
@@ -23,7 +28,7 @@ const routes = [
   "alt-controller-2025-b",
   "game-prototype",
   "alt-controller-2025-c",
-  "monologue",
+  "to-be-chosen",
   "ongoing-game-project",
   "narrative-design-document",
 ]

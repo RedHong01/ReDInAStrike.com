@@ -61,14 +61,15 @@ export const tbcSections = [
     kind: "halftone",
     title: "Casting References",
     intro: {
-      en: "Each character sheet carries a panel of reference faces \u2014 the look I was writing towards before any art existed. They run through the site\u2019s own halftone, the same effect the catalogue applies to a card outside the selected category, so what survives is the silhouette and the weight rather than the photograph.",
-      zh: "每一份角色設定都附有一組參考臉孔——那是在任何美術產出之前，我書寫時所朝向的樣子。它們經由網站自身的半調處理，也就是目錄在卡片不屬於當前分類時所套用的同一種效果；因此留下來的是輪廓與份量，而不是照片本身。",
+      en: "Each character sheet carries a panel of faces I was writing towards before any art existed. The images run through the site\u2019s own halftone \u2014 the effect the catalogue applies to a card outside the selected category \u2014 so what survives is the silhouette and the weight. The credits are set in type rather than left inside the picture.",
+      zh: "每一份角色設定都附有一組臉孔，那是在任何美術產出之前，我書寫時所朝向的樣子。圖像經由網站自身的半調處理\u2014\u2014也就是目錄對非當前分類卡片所套用的效果\u2014\u2014因此留下的是輪廓與份量。出處以文字排版標示，而不是留在圖片裡。",
     },
     plates: [
       {
         image: "assets/tbc/ref-mia.jpg",
-        alt: "Halftoned reference panel from the protagonist character sheet",
+        alt: "Halftoned casting reference for the protagonist",
         label: "PROTAGONIST / MIA THOMPSON",
+        credits: ["Catherine Blades"],
         caption: {
           en: "Seventeen, and asked to lead people who did not elect her.",
           zh: "十七歲，卻被要求去領導一群並非選她出來的人。",
@@ -76,8 +77,9 @@ export const tbcSections = [
       },
       {
         image: "assets/tbc/ref-malachi.jpg",
-        alt: "Halftoned reference panel from the antagonist character sheet",
+        alt: "Halftoned casting reference for the antagonist",
         label: "ANTAGONIST / ELDER MALACHI",
+        credits: ["Judge Turpin \u2014 Sweeney Todd", "Sho Murakami \u2014 Life", "Saruman \u2014 The Lord of the Rings"],
         caption: {
           en: "Reads 60\u201370, has lived far past it. Once a scholar; the ritual is what he made of the search.",
           zh: "看上去六十到七十歲，實際遠不止。他曾是學者；那套儀式，是他把追尋做成的東西。",
@@ -85,8 +87,8 @@ export const tbcSections = [
       },
     ],
     note: {
-      en: "The panels are casting references I gathered while writing, not artwork for the game.",
-      zh: "這些面板是我寫作期間蒐集的選角參考，並非遊戲的美術稿。",
+      en: "These are references I gathered while writing, not artwork for the game.",
+      zh: "這些是我寫作期間蒐集的參考，並非遊戲的美術稿。",
     },
   },
   {
@@ -106,17 +108,17 @@ export const tbcSections = [
       zh: "帶去期末評審的十二頁：綱要、角色設定、三幕，以及我的結論。將游標移到任一頁可將它抬起，點擊即可閱讀。",
     },
     plates: [
-      { image: "assets/tbc/slide-01.jpg", span: 4, offset: "0px", rotate: -0.5, alt: "Storytelling For Games final presentation, slide 1", label: "SLIDE 01" },
-      { image: "assets/tbc/slide-02.jpg", span: 5, offset: "46px", rotate: 0, alt: "Storytelling For Games final presentation, slide 2", label: "SLIDE 02" },
-      { image: "assets/tbc/slide-03.jpg", span: 4, offset: "14px", rotate: 0.5, alt: "Storytelling For Games final presentation, slide 3", label: "SLIDE 03" },
-      { image: "assets/tbc/slide-04.jpg", span: 5, offset: "62px", rotate: 0, alt: "Storytelling For Games final presentation, slide 4", label: "SLIDE 04" },
-      { image: "assets/tbc/slide-05.jpg", span: 4, offset: "22px", rotate: -0.4, alt: "Storytelling For Games final presentation, slide 5", label: "SLIDE 05" },
-      { image: "assets/tbc/slide-06.jpg", span: 5, offset: "38px", rotate: 0, alt: "Storytelling For Games final presentation, slide 6", label: "SLIDE 06" },
+      { image: "assets/tbc/slide-01.jpg", span: 5, offset: "0px", rotate: -0.5, alt: "Storytelling For Games final presentation, slide 1", label: "SLIDE 01" },
+      { image: "assets/tbc/slide-02.jpg", span: 4, offset: "46px", rotate: 0, alt: "Storytelling For Games final presentation, slide 2", label: "SLIDE 02" },
+      { image: "assets/tbc/slide-03.jpg", span: 3, offset: "14px", rotate: 0.5, alt: "Storytelling For Games final presentation, slide 3", label: "SLIDE 03" },
+      { image: "assets/tbc/slide-04.jpg", span: 3, offset: "62px", rotate: 0, alt: "Storytelling For Games final presentation, slide 4", label: "SLIDE 04" },
+      { image: "assets/tbc/slide-05.jpg", span: 5, offset: "22px", rotate: -0.4, alt: "Storytelling For Games final presentation, slide 5", label: "SLIDE 05" },
+      { image: "assets/tbc/slide-06.jpg", span: 4, offset: "38px", rotate: 0, alt: "Storytelling For Games final presentation, slide 6", label: "SLIDE 06" },
       { image: "assets/tbc/slide-07.jpg", span: 4, offset: "10px", rotate: 0.5, alt: "Storytelling For Games final presentation, slide 7", label: "SLIDE 07" },
-      { image: "assets/tbc/slide-08.jpg", span: 4, offset: "54px", rotate: 0, alt: "Storytelling For Games final presentation, slide 8", label: "SLIDE 08" },
+      { image: "assets/tbc/slide-08.jpg", span: 3, offset: "54px", rotate: 0, alt: "Storytelling For Games final presentation, slide 8", label: "SLIDE 08" },
       { image: "assets/tbc/slide-09.jpg", span: 5, offset: "26px", rotate: -0.5, alt: "Storytelling For Games final presentation, slide 9", label: "SLIDE 09" },
       { image: "assets/tbc/slide-10.jpg", span: 4, offset: "44px", rotate: 0, alt: "Storytelling For Games final presentation, slide 10", label: "SLIDE 10" },
-      { image: "assets/tbc/slide-11.jpg", span: 4, offset: "18px", rotate: 0.4, alt: "Storytelling For Games final presentation, slide 11", label: "SLIDE 11" },
+      { image: "assets/tbc/slide-11.jpg", span: 5, offset: "18px", rotate: 0.4, alt: "Storytelling For Games final presentation, slide 11", label: "SLIDE 11" },
       { image: "assets/tbc/slide-12.jpg", span: 3, offset: "58px", rotate: 0, alt: "Storytelling For Games final presentation, slide 12", label: "SLIDE 12" }
     ],
   },

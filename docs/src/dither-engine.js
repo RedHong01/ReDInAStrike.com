@@ -473,7 +473,14 @@ export function renderCard(card, config) {
   if (!overlay) return
   const { media, canvas } = overlay
   const img = media.querySelector("img")
-  const active = config.mode !== "native" && card.classList.contains("is-filter-muted") && !!card.closest(".catalog")?.dataset.activeFilter
+  // The catalog decides a card is muted through the active category filter.
+  // Anything else that wants this exact surface -- a booklet plate held behind
+  // an opened plate, say -- opts in explicitly rather than pretending to be a
+  // filtered card.
+  const active = config.mode !== "native" && (
+    card.dataset.ditherMuted === "true" ||
+    (card.classList.contains("is-filter-muted") && !!card.closest(".catalog")?.dataset.activeFilter)
+  )
   canvas.dataset.active = active ? "true" : "false"
   if (!active || !img?.complete || !img.naturalWidth) return
 

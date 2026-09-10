@@ -157,6 +157,10 @@ function ensureOverlay() {
   overlay.appendChild(previewImage)
 
   overlay.addEventListener("click", (event) => {
+    // The overlay is a child of <body>, so a click that reaches the document
+    // reads as a click outside the open drawer and dismisses it. Closing the
+    // preview is this overlay's own business and stops here.
+    event.stopPropagation()
     if (event.target !== previewImage) closeLightbox()
   })
 
@@ -359,12 +363,15 @@ document.addEventListener("click", (event) => {
   openLightbox(image)
 })
 
+// Capture, because Escape also closes the drawer this preview was opened from,
+// and the drawer's listener is registered first. The topmost surface answers.
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && overlay && !overlay.hidden) {
     event.preventDefault()
+    event.stopPropagation()
     closeLightbox()
   }
-})
+}, { capture: true })
 
 window.addEventListener("resize", () => {
   if (!overlay || overlay.hidden || !previewImage || !activeSourceImage || isClosing) return

@@ -63,3 +63,22 @@ Folder: /docs
 ```
 
 Leave **Custom domain** empty unless you later buy and configure a domain.
+
+## Preserve playable project pages
+
+DAD (`/ongoing-game-project/`), Slow’em Down (`/game-prototype/`), and Curtain
+(`/bns_gdd/`) include local Unity games alongside their case-study text. Keep
+`projectPlayableMarkup()` in the case-study renderer when changing the article
+layout. The homepage drawer reuses that renderer; an Access link alone does not
+replace the embedded game.
+
+After changing the detail renderer or a game package, build the site and run:
+
+```sh
+npm run audit:playable -- http://127.0.0.1:4174
+```
+
+The check starts all three Unity builds, verifies fullscreen and narrow-screen
+bounds, and checks that closing a drawer removes its game frame. Replace game
+packages as matched HTML/loader/framework/data/WASM sets. Slow’em Down's copied
+package hashes are recorded in its `package-verification.json`.

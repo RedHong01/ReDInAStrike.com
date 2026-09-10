@@ -15,6 +15,7 @@ const routes = [
   "uiux-prototype",
   "bns_gdd",
   "curtain",
+  "butter-beatdown",
   "service-game-ui",
   "alt-controller-2025-a",
   "shroom-pot-showdown",

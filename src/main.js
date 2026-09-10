@@ -11,6 +11,7 @@ import { editorialReadableSections } from "./editorial-readable-sections.js"
 import { bnsGddSections } from "./bns-gdd-sections.js"
 import { dadSections } from "./dad-sections.js"
 import { slowSections } from "./slow-sections.js"
+import { butterSections } from "./butter-sections.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -165,6 +166,14 @@ const projects = [
     navHash: "ongoing",
     image: "assets/framer-live/game-prototype-2026.png",
     webglEmbed: "innovative-game-mechanic-redw/",
+  },
+  {
+    pageTitle: "Butter Beatdown 2",
+    displayTitle: "Alternative Controller Final Project",
+    date: "12/10/2025",
+    path: "/butter-beatdown",
+    navHash: "game",
+    image: "assets/case-study/butter-laser-sheet.jpg",
   },
   {
     pageTitle: "Squirrel Samurai",
@@ -747,6 +756,22 @@ Object.assign(caseStudyDetails, {
     ],
     sections: bnsGddSections,
     access: "The case study for the game itself is on the Build and Shoot page.",
+  },
+  "/butter-beatdown": {
+    year: "2025 Fall",
+    title: "Butter Beatdown 2: No Churning Back",
+    category: "Alternative Controller / Fabrication / Physical Computing",
+    summary:
+      "A waist-high wooden butter churn you play by churning to a beat. Andrew built the first controller out of a laundry basket and wrote the game; I designed and built the second generation and the physical computing inside it.",
+    heroImage: null,
+    heroAlt: "Butter Beatdown 2 controller",
+    points: [
+      "Two matched barrels, three contacts each: churn, strike left, strike right.",
+      "Waist height and a 15\u00b0 handle cut are the two decisions the whole object rests on.",
+      "Three problems came out of testing and four changes went in. None were retested.",
+    ],
+    sections: butterSections,
+    access: "Built with Andrew Villasenor for Alternative Controllers, Fall 2025.",
   },
   "/alt-controller-2025-b": {
     year: "2025 Fall",

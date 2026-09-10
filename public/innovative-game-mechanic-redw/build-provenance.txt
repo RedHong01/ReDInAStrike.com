@@ -10,5 +10,5 @@ webAssembly2023=true
 threads=false
 initialMemoryMB=256
 maximumMemoryMB=2048
-buildReportBytes=88301562
-elapsedSeconds=138.84
+buildReportBytes=88301561
+elapsedSeconds=69.94

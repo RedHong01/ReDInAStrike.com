@@ -10,6 +10,7 @@ import { supportingReadableSections } from "./readable-source-sections.js"
 import { editorialReadableSections } from "./editorial-readable-sections.js"
 import { bnsGddSections } from "./bns-gdd-sections.js"
 import { dadSections } from "./dad-sections.js"
+import { slowSections } from "./slow-sections.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -477,86 +478,19 @@ const caseStudyDetails = {
   },
   "/game-prototype": {
     year: "2026 Spring",
-    title: "Slow’em Down",
-    category: "Game Design / Mechanic Prototype",
+    title: "Slow\u2019em Down",
+    category: "Game Prototype / Innovative Mechanic",
     summary:
-      "Press Space, place a slow zone, and create a few extra seconds inside a moving scene. The prototype asks the player to choose which event deserves intervention instead of slowing the whole world.",
-    heroImage: "assets/case-study/slow-gameplay.png",
-    heroAlt: "Slow’em Down local time-slow zone gameplay",
+      "An old woman is about to walk onto a level crossing and a train is already coming. You cannot move her and you cannot stop it \u2014 you can drop a pocket of slowed time on one part of the scene and buy the seconds to do something about it.",
+    heroImage: null,
+    heroAlt: "Slow\u2019em Down local time-slow zone",
     points: [
-      "Player action: press Space, click a position, and watch the affected event respond.",
-      "Design question: how can a local intervention help the player understand a moving scene without stopping the whole world?",
-      "Current version: the local slow-zone loop is playable. Target recognition and player understanding still need another test.",
+      "Week 6 cut the ability from global to local, and that is the moment it became a game.",
+      "Three zones, 15% time inside, and an energy bar that drains twice as fast as it fills.",
+      "Two of three playtests reached the same verdict: the train works and nothing else does.",
     ],
-    sections: [
-      {
-        kind: "copy-grid",
-        left: {
-          title: "Brief",
-          en: "I compared global slowing with a local zone. Slowing the whole scene gives every event the same treatment; a local zone asks the player to notice one threat and choose where to intervene. The current prototype lets the player place that zone and watch one event change.",
-          zh: "我比較了全局減速與局部區域。全局減速會同樣處理每個事件；局部區域則要求玩家注意到一個威脅，並選擇介入的位置。目前原型讓玩家放置區域，再觀察一個事件發生變化。",
-        },
-        right: {
-          title: "Player Experience",
-          en: "The player should notice danger, place the zone ahead of it, then use the extra time to move or intervene. The decision happens before the threat reaches the zone.",
-          zh: "玩家應該先注意到危險，在它到達之前放置減速區，再利用多出來的時間移動或介入。決定發生在威脅進入區域之前。",
-        },
-      },
-      {
-        kind: "video",
-        video: "assets/videos/slow-em-down-mechanic.mp4",
-        poster: "assets/case-study/slow-gameplay.png",
-        alt: "Slow’em Down local time-slow zone recording",
-        label: "GAMEPLAY VIDEO / INNOVATIVEGAMEMECHANIC.MP4 / FULL RECORDING 1:36",
-        caption: {
-          en: "The complete walkthrough, uncut: the Space prompt, the click, the local zone, and the train or road events that slow inside it, across every scene the recording covers.",
-          zh: "未經剪輯的完整走查：Space 提示、點擊、局部區域，以及在其中減速的火車或道路事件，涵蓋錄影中的每一個場景。",
-        },
-      },
-      {
-        kind: "text",
-        title: "Design Change",
-        paragraphs: [
-          {
-            en: "A local zone makes placement part of the decision. Its edge needs to be clear, and the affected object needs to move differently enough from its surroundings for the player to recognise the result.",
-            zh: "局部區域讓放置位置成為決定的一部分。它需要清楚的邊界，受影響物件的動態也需要和周圍有足夠差異，玩家才能辨認結果。",
-          },
-          {
-            en: "I also sketched outlines, colored interventions, overlapping zones, an energy cost, and a timeline. These are possible extensions; I have not built and tested them as one system yet.",
-            zh: "我也畫過描邊、彩色介入、重疊區域、能量消耗與時間線。這些都是可能的延伸，我還沒有把它們組成一套系統並完成測試。",
-          },
-        ],
-      },
-      {
-        kind: "source-breakdown",
-        title: "Mechanic, From Concept to Action",
-        source: "FIGMA / INNOVATIVE GAME MECHANIC / 644:422",
-        lead: { en: "The source begins with subjective time: world events continue, while the player creates a limited area where an event is experienced more slowly. The action is to trigger the reduction, interact with the affected target, and decide what to interrupt.", zh: "原稿從主觀時間開始：世界事件繼續發生，但玩家能創造一個有限區域，讓其中的事件被更慢地經歷。玩家要觸發減速、介入受影響的目標，並決定要打斷什麼。" },
-        blocks: [
-          { title: "Concept", en: "The paper prototype describes time as a local, limited resource rather than a global pause. The player has to spot what is about to happen before using the ability.", zh: "紙面原型把時間視為局部且有限的資源，而不是讓全世界停下來。玩家必須先看出即將發生什麼，才使用能力。" },
-          { title: "Input", en: "The playable instruction is: press Space, then click a position. The click creates the zone; the affected object must make the result visible beside unaffected motion.", zh: "可玩版本的提示是：按 Space，再點選一個位置。點擊會建立區域，受影響的物件必須和未受影響的動態並列，讓結果可見。" },
-          { title: "Interaction Opportunity", en: "The design notes describe moving an object, activating or deactivating it, and changing a narrative beat inside the slowed area. These are directions in the source, not all finished mechanics in the current build.", zh: "設計筆記提到移動物件、啟用或停用物件，以及改變減速區內的敘事節點。這些是原稿中的方向，不代表目前 build 已完成全部機制。" },
-          { title: "Scene Reference", en: "The paper concept uses a moving street event and a train or granny crossing context to test whether the player can identify a target before the moment passes. The train was the clearest case in the recorded notes.", zh: "紙面概念用移動中的街道事件，以及火車或 Granny 過街的情境，測試玩家能否在時機消失前辨認目標。測試筆記中火車情境最清楚。" },
-        ],
-      },
-      {
-        kind: "flow",
-        title: "Intent → Iteration → Observation → Decision",
-        steps: [
-          ["Intent", "Give time pressure a local lever", "給時間壓力一個局部介入"],
-          ["Exploration", "Compare global and local slowing", "比較全局與局部減速"],
-          ["Observation", "Train threat is clear; other targets need context", "火車威脅較清楚，其他目標仍需要脈絡"],
-          ["Decision", "Show input + affected object", "讓輸入與受影響物件同時出現"],
-        ],
-      },
-      {
-        kind: "callout",
-        title: "Mixed Test Notes",
-        en: "The feedback was mixed. One note says players recognized slowable objects more easily and understood the train case best; Kyle still reported confusion. I kept both observations instead of treating the test as a confirmed improvement.",
-        zh: "回饋並不一致。一則筆記指出玩家較容易辨認可減速的物件，對火車情境的理解也最好；Kyle 仍然感到困惑。我保留這兩種觀察，不把這次測試寫成已經證實的改善。",
-      },
-    ],
-    access: "Play the current local-zone mechanic. The design notes compare global and local slowing and outline extensions that remain to be tested.",
+    sections: slowSections,
+    access: "Playable on itch.io. The tuned values on this page are the ones in that build.",
   },
   "/shroom-pot-showdown": {
     year: "2026 Spring",

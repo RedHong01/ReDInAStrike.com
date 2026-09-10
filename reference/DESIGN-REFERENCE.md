@@ -279,16 +279,16 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 | `TermReview - 1080WebShareName.mov` | 96.3s | — |
 | `InnovativeMechanics_Progess.mov` | 21.6s | — |
 
-**Unattributed in same folder:** location.mov 27.3s, Book.mov 29.6s, Victim.mov 3.9s, identiy recognized.mov 7.2s, 4.mov 3.5s, 5.mov 31.4s, Screen Recording 2026-03-12 at 7.34.18 PM.mov 22.3s, ScreenRecording for Innovative agme mechanics.mov 17.9s
+**Unattributed in same folder:** Screen Recording 2026-03-12 7.34.18 PM.mov 22.3s (progress capture)
 
-> Hypothesis (unconfirmed): The Victim/Book/location/identity-recognized set matches the Obra Dinn murder-case reference in the Figma concept - likely Slow'em Down scenario footage, NOT confirmed
-
-**On site now:** Full 96.34s recording embedded
+**On site now:** Full 96.34s recording embedded; 12 authored sections from the Figma board + build
 
 **Gaps:**
 
-- 8 unattributed videos in the same folder
-- 128s and 359s recordings unused
+- Level 2 kitchen (Stove / Soup Pot / Fry Pan / Boiling Water) designed on the board, Level2.unity is empty
+- Week 6 idea 1 — highlighting the woman's situation — never shipped; every test failure traces to it
+- Week 10 Kyle note stops mid-sentence in the source
+- 128.1s 2026-04-02 recording still unused
 
 
 ### `/alt-controller-2025-c` — Squirrel Samurai

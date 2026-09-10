@@ -417,7 +417,20 @@
       ],
       "unity": {
         "productName": "innovativeGameMechanic RedW",
-        "editor": "6000.3.10f1"
+        "editor": "6000.3.10f1",
+        "scenes": [
+          "Level1.unity",
+          "Level2.unity (empty — the kitchen was designed but not built)"
+        ],
+        "coreScripts": [
+          "LocalSlowZoneController (maxSimultaneousZones=3)",
+          "GlobalTimeSlowdown (kept, repurposed as the energy host: max 100, drain 20/s, refill 10/s, min 20)",
+          "LocalTimeAffectable",
+          "SlowZoneAvailabilityUI",
+          "TrainApproachSignalController",
+          "Pigeon",
+          "PlayPianoGroundHitOnce"
+        ]
       },
       "figma": [
         {
@@ -449,7 +462,8 @@
           {
             "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/Screen Recording 2026-02-26 at 4.12.21 PM.mov",
             "seconds": 358.92,
-            "onSite": null
+            "onSite": null,
+            "attribution": "PLAYTEST RECORDING — 358.9s with audio, recorded 2026-02-26 16:18, against the board's 'Playtest: Innovative Mechanic, due Thu Feb 26 2026 5:00pm, record with OBS + think-aloud'. Previously filed as unattributed."
           },
           {
             "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/TermReview - 1080WebShareName.mov",
@@ -463,22 +477,21 @@
           }
         ],
         "unattributed": [
-          "location.mov 27.3s",
-          "Book.mov 29.6s",
-          "Victim.mov 3.9s",
-          "identiy recognized.mov 7.2s",
-          "4.mov 3.5s",
-          "5.mov 31.4s",
-          "Screen Recording 2026-03-12 at 7.34.18 PM.mov 22.3s",
-          "ScreenRecording for Innovative agme mechanics.mov 17.9s"
+          "Screen Recording 2026-03-12 7.34.18 PM.mov 22.3s (progress capture)"
         ],
-        "hypothesis": "The Victim/Book/location/identity-recognized set matches the Obra Dinn murder-case reference in the Figma concept - likely Slow'em Down scenario footage, NOT confirmed"
+        "resolved": {
+          "january-2026-concept-clips": "Book.mov 29.6s, location.mov 27.3s, identiy recognized.mov 7.2s, Victim.mov 3.9s, 4.mov 3.5s, 5.mov 31.4s, ScreenRecording for Innovative agme mechanics.mov 17.9s — all silent, all 2026-01-29 13:40–14:07. Belong to the term's opening idea (Idea II: Subjective Time Distortion, referenced to Return of the Obra Dinn) before the Dumb Ways to Die direction replaced it.",
+          "april-exports": "InnovativeGameMechanic.mp4 and TermReview - 1080WebShareName.mov are the same 96.3s content exported twice on 2026-04-08 for the term review."
+        }
       },
-      "siteStatus": "Full 96.34s recording embedded",
+      "siteStatus": "Full 96.34s recording embedded; 12 authored sections from the Figma board + build",
       "gaps": [
-        "8 unattributed videos in the same folder",
-        "128s and 359s recordings unused"
-      ]
+        "Level 2 kitchen (Stove / Soup Pot / Fry Pan / Boiling Water) designed on the board, Level2.unity is empty",
+        "Week 6 idea 1 — highlighting the woman's situation — never shipped; every test failure traces to it",
+        "Week 10 Kyle note stops mid-sentence in the source",
+        "128.1s 2026-04-02 recording still unused"
+      ],
+      "published": "https://redinastrike.itch.io/innovative-game-mechanic"
     },
     {
       "route": "/alt-controller-2025-c",

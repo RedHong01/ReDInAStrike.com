@@ -9,6 +9,7 @@ import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 import { supportingReadableSections } from "./readable-source-sections.js"
 import { editorialReadableSections } from "./editorial-readable-sections.js"
 import { bnsGddSections } from "./bns-gdd-sections.js"
+import { dadSections } from "./dad-sections.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -459,167 +460,20 @@ const framerProjectDetails = {
 
 const caseStudyDetails = {
   "/ongoing-game-project": {
-    year: "2025–Present",
+    year: "2025\u2013Present",
     title: "DAD",
     category: "Game Design / Systems / Playtest Analysis",
     summary:
-      "A 2D survival game about accepting help that later becomes debt. The player uses money to survive, claim space, and prepare for the next wave, while each short-term benefit changes what they will owe or defend later.",
-    heroImage: "assets/case-study/dad-gameplay.png",
+      "A survival game about a year of being helped. You shoot coins at the bills chasing you and buy the ground under your feet; your father clears what you cannot reach, and every time he does it goes on a tab you settle at the end of the year.",
+    heroImage: null,
     heroAlt: "DAD gameplay grid with money and survival state",
     points: [
-      "Player action: move through a grid, collect and spend money, protect space, and prepare for the next wave.",
-      "Design question: which state changes must be visible before the player makes the next decision?",
-      "Current version: playable prototype with design notes from the latest recorded playtest. The Phase II revision still needs a matched retest.",
+      "One resource does everything: money is the bullet, the rent, and the state of the relationship.",
+      "A run is one in-game year in six minutes, and the clock never stops for a decision.",
+      "Phase II is not a twist. It is the sum of every small convenience you accepted.",
     ],
-    sections: [
-      {
-        kind: "copy-grid",
-        left: {
-          title: "Brief",
-          en: "I started with a contradiction: the same help that keeps the player alive can also make them dependent. I connected money, territory, health, and family support so every resource solves an immediate problem while adding pressure to the next phase.",
-          zh: "我從一個矛盾開始：同一份援助既能讓玩家活下來，也會讓玩家逐漸依賴它。我把金錢、地塊、生命與家庭支援連在一起，讓每份資源解決眼前問題的同時，也增加下一階段的壓力。",
-        },
-        right: {
-          title: "Player Experience",
-          en: "I want the player to feel capable, but never completely secure. Spending money or expanding territory helps now; it also changes what the player will owe, protect, or lose later.",
-          zh: "我希望玩家有能力行動，卻始終無法完全安心。花錢或擴大地塊能解決眼前問題，同時也會改變之後需要償還、保護或失去的東西。",
-        },
-      },
-      {
-        kind: "video",
-        video: "assets/videos/dad-wave-teaser.mp4",
-        poster: "assets/case-study/dad-gameplay.png",
-        alt: "DAD first wave gameplay recording",
-        label: "GAMEPLAY VIDEO / DADGOTMONEY.MOV / FULL RECORDING 0:08",
-        caption: {
-          en: "The first wave shows the basic loop: cross the grid, collect money, protect space, and survive. This is the complete source recording; it does not establish how players understood the later phase change.",
-          zh: "第一波攻勢展示基本循環：穿過格線、收集金錢、保護空間並活下來。這是完整的原始錄影，但不能說明玩家如何理解之後的階段轉換。",
-        },
-      },
-      {
-        kind: "text",
-        title: "Money Is More Than Currency",
-        paragraphs: [
-          {
-            en: "Money is the main verb of DAD. The player earns it through work, spends it to stay alive, and can use it against bills. I wanted one familiar resource to connect movement, survival, and family support, so the same money solves one problem while creating the next choice.",
-            zh: "金錢是 DAD 裡最主要的動詞。玩家透過工作取得金錢，用它維持生存，也能用它處理帳單。我想用一個熟悉的資源把移動、生存與家庭支援連在一起，讓同一筆錢解決一個問題，同時帶來下一個選擇。",
-          },
-          {
-            en: "Drive is the player’s life state. Bills, incoming attacks, and DAD’s anger can reduce it. That lets financial pressure appear on the board as something the player can see, respond to, and carry into the next phase.",
-            zh: "Drive 是玩家的生命狀態。帳單、襲來的攻擊與 DAD 的憤怒都可能降低它。這讓財務壓力不只存在於故事裡，而是成為玩家能在棋盤上看見、回應，並帶入下一階段的東西。",
-          },
-        ],
-      },
-      {
-        kind: "system-grid",
-        title: "Three Ways to Receive Help",
-        items: [
-          ["WORK", "Reach the briefcase and complete the Space task before income arrives.", "走到公事包並完成 Space 任務，收入才會出現。"],
-          ["ALLOWANCE", "Recurring support that is not automatically the same as debt.", "週期性的支援，不會自動等同於債務。"],
-          ["LOAN", "Emergency help that returns in a later settlement.", "緊急援助，會在之後的結算裡回來。"],
-        ],
-      },
-      {
-        kind: "text",
-        title: "Work, Allowance, and Loan",
-        paragraphs: [
-          {
-            en: "I separated these three sources because receiving money should not always carry the same meaning. Work asks the player to act. Allowance is recurring support. A loan solves an immediate shortage but enters the later settlement. The source of the money decides which pressure returns.",
-            zh: "我把這三種收入分開，因為拿到錢不應該永遠代表同一件事。工作要求玩家先行動；零用錢是週期性的支援；貸款解決眼前的短缺，卻會在之後的結算中出現。錢從哪裡來，決定了哪一種壓力會回來。",
-          },
-        ],
-      },
-      {
-        kind: "text",
-        title: "When Support Changes Sides",
-        paragraphs: [
-          {
-            en: "During Phase I, DAD can remove an immediate bill for the player. That relief also adds anger, while unpaid bills and loans remain part of the later settlement. In Phase II, the same relationship returns as a combat and space problem.",
-            zh: "在 Phase I，DAD 可以替玩家處理眼前的帳單。這份緩解同時增加憤怒，而未付的帳單與貸款仍會進入後續結算。到了 Phase II，同一段關係會以戰鬥與空間問題重新出現。",
-          },
-          {
-            en: "The map separates space the player purchased from space DAD provided. When the phase changes, DAD-linked tiles can turn against the player while purchased territory keeps its advantage. I used that difference to make independence visible on the board, not only in the story.",
-            zh: "地圖把玩家買下的空間，和 DAD 提供的空間分開。階段轉換後，與 DAD 連結的地塊可能反過來對玩家造成威脅，而購買的領地保留優勢。我用這個差異讓獨立不只存在於故事裡，也能在棋盤上被看見。",
-          },
-        ],
-      },
-      {
-        kind: "system-grid",
-        title: "Bills as Different Pressures",
-        items: [
-          ["WATER", "A directional wave that can be shot apart.", "會沿方向移動、可以被射散的波。"],
-          ["POWER", "A pressure that follows the player.", "會追著玩家移動的壓力。"],
-          ["RENT", "A bill tied to owned space and settlement.", "與擁有的空間和結算相連的帳單。"],
-        ],
-      },
-      {
-        kind: "text",
-        title: "Different Bills, Different Pressures",
-        paragraphs: [
-          {
-            en: "I explored bills as different enemy behaviours instead of interchangeable damage. Water moves as a directional wave, power follows the player, and rent connects to owned space and the monthly settlement. Each version asks for a different kind of movement or preparation. These behaviours belong to the design exploration; the current submission does not contain every bill type as a finished enemy set.",
-            zh: "我把帳單做成不同的敵人行為，而不是可以互換的傷害。水以方向性的波移動，電力追著玩家，房租則連到擁有的空間與每月結算。每一種壓力都要求不同的移動或準備方式。這些行為屬於設計探索，目前提交版本還沒有把每一種帳單都做成完成的敵人組合。",
-          },
-        ],
-      },
-      {
-        kind: "text",
-        title: "Design Problem",
-        paragraphs: [
-          {
-            en: "In my playtest notes, players missed the Phase II transition, the purpose of several tiles, and the meaning of ammunition and water. I needed to show those changes before asking for the next decision.",
-            zh: "在我的測試筆記裡，玩家沒有掌握 Phase II 的轉換、幾個地塊的用途，以及彈藥和水資源的意義。我需要在要求玩家做下一個決定之前，先把這些變化說清楚。",
-          },
-          {
-            en: "These observations come from the Week 11 playtest board (Figma 598:184, 598:187, and 598:207). I have not run a controlled post-change retest yet, so the next build focuses on the phase transition, tile function, and the consequence of spending each resource.",
-            zh: "這些觀察來自 Week 11 的測試板（Figma 598:184、598:187 與 598:207）。我還沒有進行改版後的對照測試，所以下一版會先處理階段轉換、地塊用途，以及花掉每種資源後產生的後果。",
-          },
-        ],
-      },
-      {
-        kind: "text",
-        title: "What Players Could Not Read",
-        paragraphs: [
-          {
-            en: "The notes point to four separate moments: players missed the Phase II entrance; several tile purposes were unclear; a tile could be hit or pushed without its size and consequence being obvious; and low ammunition or a pile-up of enemies left players asking what to do next. Players had too many states competing for attention.",
-            zh: "筆記指出四個不同的時刻：玩家錯過 Phase II 的入口；幾種地塊功能不清楚；地塊受擊或被推動時，尺寸與後果不明顯；彈藥不足或敵人堆積時，玩家不知道下一步該做什麼。問題不是沒有事情可做，而是太多狀態同時爭奪注意力。",
-          },
-          {
-            en: "My next pass therefore starts with priority. Announce the phase change, explain a tile when it becomes relevant, and show the consequence of spending the last ammunition before another threat arrives. I have not run a matched post-change retest yet.",
-            zh: "因此下一輪會先處理優先順序：在階段變化發生時先提示，地塊變得重要時再解釋，並在下一個威脅出現前展示用完最後一發彈藥的後果。我還沒有完成改版後的對照復測。",
-          },
-        ],
-      },
-      {
-        kind: "source-breakdown",
-        title: "Money, Space, and the Next Month",
-        source: "FIGMA / WEEK 11 SYSTEM DIAGRAM / 447:58",
-        lead: { en: "I connected movement, work, money, and bills through the calendar. A choice that helps the player survive today can leave a cost for the next month—or change the confrontation at the end of the year. The system diagram records how those consequences carry forward.", zh: "我用日曆連起移動、工作、金錢與帳單。一個幫助玩家撐過今天的選擇，可能把代價留到下個月，也可能改變年末的對抗。系統圖記錄的就是這些後果如何延續。" },
-        blocks: [
-          { title: "Time and Phase", en: "The original plan uses day, month, and year as the turn units. A month spawns a bill wave; the year ends with the Phase II confrontation. The exact duration is version-specific, so the page describes the sequence rather than treating those numbers as final.", zh: "原始計畫用日、月、年作為回合單位。每個月生成一波帳單，年度結束時進入 Phase II 對抗。具體時間依版本而變，因此頁面保留順序，不把數字當成最終規則。" },
-          { title: "Player Actions", en: "WASD moves the player and left click fires a coin in the cursor direction. Work asks the player to stand at the briefcase and complete the Space QTE before it produces ammunition.", zh: "WASD 控制移動，左鍵朝游標方向射出金幣。工作要求玩家站到公事包位置，在它產生彈藥前完成 Space QTE。" },
-          { title: "Monthly Pressure", en: "Unpaid bills are recorded for the next settlement. Bills that reach DAD, loans, and accumulated anger change the later boss state. Water is a directional projectile wave; power pursues the player; rent is tied to purchased space.", zh: "未付帳單會被記錄到下一次結算。到達 DAD 的帳單、貸款與累積的憤怒會改變後面的 Boss 狀態。水是方向性的投射物波，電力追逐玩家，房租則連到購買的空間。" },
-          { title: "Space and Reversal", en: "The base map is a 6 × 6 grid with a 3 × 3 DAD area. Purchasing tiles outside that area expands the boundary. When Phase II begins, DAD-related tiles return to their original state while player-purchased tiles remain beneficial.", zh: "基礎地圖是 6 × 6 格，DAD 的區域是 3 × 3。玩家購買區域外的地塊時，邊界會擴張。Phase II 開始後，與 DAD 相關的地塊回到原本狀態，而玩家購買的地塊保留正面效果。" },
-        ],
-      },
-      {
-        kind: "flow",
-        title: "Intent → Iteration → Observation → Decision",
-        steps: [
-          ["Intent", "Turn family help into a rule the player handles", "把家庭援助變成玩家要處理的規則"],
-          ["Iteration", "Link money, territory, bills, and survival", "連結金錢、地塊、帳單與生存"],
-          ["Observation", "Players miss the phase change and tile purpose", "玩家錯過階段轉換與地塊用途"],
-          ["Decision", "Signal the new phase before the next action", "在下一個行動前提示新的階段"],
-        ],
-      },
-      {
-        kind: "callout",
-        title: "Next Test",
-        en: "Show the phase transition, tile function, and resource consequence in the same playable sequence. Ask players to explain what changed before asking them to act again.",
-        zh: "在同一段可玩流程中展示階段轉換、地塊功能與資源後果。先請玩家說出發生了什麼，再請他們做下一個行動。",
-      },
-    ],
-    access: "Play the current DAD prototype. This build contains one version of the money, bill, and calendar rules; the process diagrams show the revisions I am testing next.",
+    sections: dadSections,
+    access: "Play the current build. The tuned values on this page are the ones in it.",
   },
   "/game-prototype": {
     year: "2026 Spring",
@@ -4093,7 +3947,7 @@ function caseStudyDetailMarkup(project, detail) {
     "/shroom-pot-showdown": "https://www.figma.com/design/174btXmgZagM2UU2Ud7TXz/Alt2Team3_ShroomPotShowdown?node-id=102-487",
     "/alt-controller-2025-a": "https://www.figma.com/design/xmD79sBtEvt0lfst75cMDz/Game-Development-4?node-id=67-113",
     "/monologue": "https://www.figma.com/design/6ff8yXnsbuYuCVlvyWzARc?node-id=2009-5396",
-    "/bns_gdd": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=963-1231",
+    "/curtain": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=963-1231",
     "/alt-controller-2025-b": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=176-77",
   }
   const sourceLink = sourceLinks[project.path]
@@ -4103,11 +3957,6 @@ function caseStudyDetailMarkup(project, detail) {
       ${projectLeadMarkup(project, { detail: true })}
       <article class="framer-case-shell case-study-shell" aria-label="${escapeHtml(detail.title)} case study">
         <header class="framer-case-hero case-study-hero">
-          <div class="framer-case-hero-head">
-            <h1>${escapeHtml(detail.title)}</h1>
-            <p class="framer-case-year">${escapeHtml(detail.year)}</p>
-          </div>
-          <p class="framer-case-category">${escapeHtml(detail.category)}</p>
           <div class="case-study-hero-grid${detail.heroImage ? "" : " case-study-hero-grid--text"}">
             ${detail.heroImage ? `<figure class="case-study-hero-image"><img ${imageSourceAttrs(detail.heroImage)} alt="${escapeHtml(detail.heroAlt)}" loading="lazy" decoding="async" /></figure>` : ""}
             <div class="case-study-hero-copy"><p>${bilingualText(detail.summary)}</p><ul>${points}</ul></div>

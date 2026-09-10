@@ -1985,6 +1985,13 @@ body[data-layout-transition="true"] .about-section {
 .project-row.has-project-preview[data-project-detail-open="true"] {
   position: relative;
   top: auto;
+  /* Keep the whole detail block above following catalogue cards (which create
+     their own stacking contexts via transform) for the article's lifetime.
+     Stay below the site header (20). */
+  z-index: 18;
+}
+
+.project-row.has-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
   z-index: auto;
 }
 
@@ -4861,8 +4868,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   padding-bottom: 0;
   position: relative;
   top: auto;
-  z-index: auto;
+  z-index: 18;
   background: var(--paper);
+}
+
+.catalog .project-row.has-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
+  z-index: auto;
 }
 
 .catalog .project-card.is-project-preview[data-project-detail-open="true"] {
@@ -5762,13 +5773,14 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 }
 
-/* A detail header remains sticky while its article is crossing the viewport.
-   Once the article's bottom has passed the top edge, the sticky card is still
-   needed in flow as a spacer, but it must leave the paint and hit-test layers.
-   Keeping the footprint avoids pulling the following row upward; hiding the
-   whole card also removes its pseudo rules, which otherwise can show through
-   later catalogue rows at a lower stacking level. */
+/* A detail header remains sticky while its article is still in the content
+   band under the site chrome. Once the article has cleared that band, the
+   sticky card is still needed in flow as a spacer, but it must leave sticky
+   paint / hit-testing so later catalogue rows are never covered or buried. */
 .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
+  position: relative !important;
+  top: auto !important;
+  z-index: auto !important;
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;

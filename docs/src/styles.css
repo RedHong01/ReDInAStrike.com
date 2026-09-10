@@ -6533,16 +6533,19 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
 .gdd-plates-section { --plate-gap: clamp(10px, 1.4vw, 22px); }
 
+/* A booklet field is not a figure in a column — it runs the full width of the
+   window. --page-gutter is the scrollbar allowance, measured once at runtime by
+   the plates observer; without it 100vw overflows by the scrollbar and the whole
+   page gains a horizontal scroll. */
 .gdd-plates {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--plate-gap);
   align-items: start;
-  width: max(100%, var(--case-bleed-width));
+  width: calc(100vw - var(--page-gutter, 0px));
   max-width: none;
-  margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
-  padding: clamp(20px, 3vw, 44px) clamp(12px, 2vw, 30px);
-  background: var(--surface-soft);
+  margin-left: calc(50% - (100vw - var(--page-gutter, 0px)) / 2);
+  padding: clamp(26px, 4vw, 64px) clamp(20px, 4vw, 78px);
   border-top: 3px solid var(--case-accent, var(--case-ink));
 }
 

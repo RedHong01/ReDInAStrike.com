@@ -13,6 +13,7 @@ import { dadSections } from "./dad-sections.js"
 import { slowSections } from "./slow-sections.js"
 import { butterSections } from "./butter-sections.js"
 import { pitchforkPlates, specimenPlates } from "./booklet-plates.js"
+import { tbcSections } from "./tbc-sections.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -450,29 +451,20 @@ const framerProjectDetails = {
     ],
   },
   "/monologue": {
-    year: "2024 Fall",
-    title: "\"Monologue\"",
-    category: "Project Pitch",
-    routeImage: "assets/framer-routes/08-monologue.jpg",
-    leadImage: "assets/framer-live/narrative-doc-2025-a.png",
-    leadAlt: "Monologue project pitch visual reference",
+    year: "2025 Fall",
+    title: "To Be Chosen",
+    category: "Narrative Design / Multi-POV Structure",
     summary:
-      "A narrative game pitch about slow-paced, non-aggressive storytelling, visual interactive narrative language, and post-modern social problems.",
+      "A cheer squad\u2019s bus breaks down on the way home and the driver goes missing. Every beat is played through whichever girl is carrying the scene, so each of them ends holding an incomplete account \u2014 and the player is the only one who sees all of them.",
+    heroImage: null,
+    heroAlt: "To Be Chosen POV switch chart",
     points: [
-      "Tone: slow-paced and non-aggressive.",
-      "Narrative mode: visual interactive storytelling with music, narration, and sensory audiovisual language.",
-      "Theme: personal struggle expanding into broader social challenges including identity, culture, depression, economics, and political shifts.",
+      "Narrative Director on a team of four; I owned the perspective structure.",
+      "Five playable viewpoints, charted scene by scene against a single game-time timeline.",
+      "I wrote the revision pass myself: the theme was in the story but not enforced by any mechanism.",
     ],
-    blocks: [
-      {
-        title: "Story Direction",
-        body: "The story is told from a teenager's perspective in a semi-autobiographical mode, following a young individual across social classes and cultural fragmentation.",
-      },
-      {
-        title: "Experience",
-        body: "The pitch emphasizes an intuitive, sensory narrative style where visuals, music, and narration work together to carry emotion and story.",
-      },
-    ],
+    sections: tbcSections,
+    access: "Written with Jinqi Chang, Kris Kuerten and Bedi Ruan for Storytelling For Games, Fall 2025.",
   },
 }
 
@@ -3891,6 +3883,14 @@ function gddQuestionList(section) {
 // deliberate offsets, some overlap. Hovering lifts a plate out of the stack;
 // clicking it opens the existing project lightbox, which binds itself to any
 // image inside .detail-page, so no extra wiring is needed here.
+// 100vw includes the classic scrollbar, so a full-bleed field overflows by its
+// width and the page gains a horizontal scroll. Publish the difference once and
+// keep it current on resize; overlay scrollbars simply report 0.
+function syncPageGutter() {
+  const gutter = Math.max(0, window.innerWidth - document.documentElement.clientWidth)
+  document.documentElement.style.setProperty("--page-gutter", `${gutter}px`)
+}
+
 function gddPlates(section) {
   const plates = section.plates
     .map((plate, index) => {
@@ -7690,7 +7690,12 @@ function setupHeader() {
     window.addEventListener("scroll", handleScrollFrame, { passive: true })
   }
 
+  syncPageGutter()
+
   window.addEventListener("resize", () => {
+    // The full-bleed booklet fields are sized off 100vw, so the scrollbar
+    // allowance has to be refreshed with the viewport or they overflow.
+    syncPageGutter()
     // Drop viewport-derived caches synchronously, before the coalescing frame:
     // anything reading header metrics between this event and that frame must
     // see the new width, not the previous one.

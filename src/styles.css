@@ -6546,7 +6546,6 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   max-width: none;
   margin-left: calc(50% - (100vw - var(--page-gutter, 0px)) / 2);
   padding: clamp(26px, 4vw, 64px) clamp(20px, 4vw, 78px);
-  background: var(--surface-soft);
   border-top: 3px solid var(--case-accent, var(--case-ink));
 }
 

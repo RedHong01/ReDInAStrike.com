@@ -1985,6 +1985,13 @@ body[data-layout-transition="true"] .about-section {
 .project-row.has-project-preview[data-project-detail-open="true"] {
   position: relative;
   top: auto;
+  /* Keep the whole detail block above following catalogue cards (which create
+     their own stacking contexts via transform) for the article's lifetime.
+     Stay below the site header (20). */
+  z-index: 18;
+}
+
+.project-row.has-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
   z-index: auto;
 }
 
@@ -4802,10 +4809,17 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 }
 
 .catalog .project-card.is-project-preview[data-project-detail-open="true"] {
-  opacity: 1;
-  transform: none;
+  /* Exit progress is scroll-linked; keep the sticky box intact so fading does
+     not rewrite layout or feel like a sudden catalogue jump. */
+  opacity: calc(1 - var(--project-detail-header-exit, 0));
+  transform: translate3d(0, calc(var(--project-detail-header-exit, 0) * -10px), 0);
   clip-path: none;
   pointer-events: auto;
+  will-change: opacity, transform;
+}
+
+.catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
+  pointer-events: none;
 }
 
 /* The side-aware preview rules above intentionally move copy into the
@@ -4861,8 +4875,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   padding-bottom: 0;
   position: relative;
   top: auto;
-  z-index: auto;
+  z-index: 18;
   background: var(--paper);
+}
+
+.catalog .project-row.has-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
+  z-index: auto;
 }
 
 .catalog .project-card.is-project-preview[data-project-detail-open="true"] {
@@ -5762,15 +5780,10 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   }
 }
 
-/* A detail header remains sticky while its article is crossing the viewport.
-   Once the article's bottom has passed the top edge, the sticky card is still
-   needed in flow as a spacer, but it must leave the paint and hit-test layers.
-   Keeping the footprint avoids pulling the following row upward; hiding the
-   whole card also removes its pseudo rules, which otherwise can show through
-   later catalogue rows at a lower stacking level. */
+/* Once the article has cleared the sticky band, the lead is fully faded via
+   --project-detail-header-exit. Keep sticky geometry so the runway does not
+   snap; only drop hit-testing. Row z-index falls back separately. */
 .catalog .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-exited] {
-  visibility: hidden !important;
-  opacity: 0 !important;
   pointer-events: none !important;
 }
 
@@ -6507,4 +6520,93 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .gdd-section,
   .case-study-system-section,
   .case-study-flow-section { --case-bleed-width: 100%; }
+}
+
+/* ---------------------------------------------------------------------------
+   Booklet plates.
+   A printed booklet reads badly as a filmstrip — every page the same width in a
+   row flattens the thing that makes it a book. These sit as plates on a field:
+   varied spans, small deliberate offsets and rotations, occasional overlap.
+   Hover lifts one clear of the stack; clicking hands off to project-lightbox.js,
+   which already binds to any image inside .detail-page.
+   --------------------------------------------------------------------------- */
+
+.gdd-plates-section { --plate-gap: clamp(10px, 1.4vw, 22px); }
+
+.gdd-plates {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--plate-gap);
+  align-items: start;
+  width: max(100%, var(--case-bleed-width));
+  max-width: none;
+  margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
+  padding: clamp(20px, 3vw, 44px) clamp(12px, 2vw, 30px);
+  background: var(--surface-soft);
+  border-top: 3px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-plate {
+  grid-column: span var(--plate-span, 4);
+  margin: 0;
+  margin-top: var(--plate-offset, 0px);
+  position: relative;
+  z-index: 1;
+  transform: rotate(var(--plate-rotate, 0deg));
+  transform-origin: center;
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1),
+              z-index 0s;
+  will-change: transform;
+}
+
+.gdd-plate img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 17, 34, 0.14), 0 8px 20px -14px rgba(0, 17, 34, 0.4);
+  cursor: zoom-in;
+}
+
+.gdd-plate figcaption {
+  margin-top: 8px;
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-muted);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+/* Lift the hovered plate clear of its neighbours. */
+.gdd-plate:hover,
+.gdd-plate:focus-within {
+  z-index: 20;
+  transform: rotate(0deg) scale(var(--plate-lift, 1.32));
+}
+
+.gdd-plate:hover img,
+.gdd-plate:focus-within img {
+  box-shadow: 0 2px 6px rgba(0, 17, 34, 0.18), 0 26px 60px -22px rgba(0, 17, 34, 0.55);
+}
+
+.gdd-plate:hover figcaption,
+.gdd-plate:focus-within figcaption { opacity: 1; }
+
+/* A full-width plate anchors the field so it does not read as an even mosaic. */
+.gdd-plate--wide { grid-column: span var(--plate-span, 8); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gdd-plate { transition: none; }
+  .gdd-plate:hover,
+  .gdd-plate:focus-within { transform: none; }
+}
+
+@media (max-width: 900px) {
+  .gdd-plates { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .gdd-plate { grid-column: span 3; margin-top: 0; transform: none; }
+  .gdd-plate:hover,
+  .gdd-plate:focus-within { transform: scale(1.06); }
 }

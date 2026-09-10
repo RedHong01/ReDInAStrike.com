@@ -12,6 +12,7 @@ import { bnsGddSections } from "./bns-gdd-sections.js"
 import { dadSections } from "./dad-sections.js"
 import { slowSections } from "./slow-sections.js"
 import { butterSections } from "./butter-sections.js"
+import { pitchforkPlates, specimenPlates } from "./booklet-plates.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -262,6 +263,10 @@ const PROJECT_DETAIL_HEADER_EASE_EPSILON = 0.001
 // behind it is allowed to fall, so the copy is never still laid out for a
 // tall card inside a bar that has already collapsed around it.
 const PROJECT_DETAIL_HEADER_EASE_MAX_TRAIL = 0.22
+// Scroll distance over which the sticky lead fades out after the article has
+// cleared the pin line. Keeps the hand-off continuous instead of a hard cut.
+const PROJECT_DETAIL_HEADER_EXIT_MIN_TRAVEL = 96
+const PROJECT_DETAIL_HEADER_EXIT_TRAVEL_RATIO = 1.45
 const NAV_HOVER_SCROLL_DELAY_MS = 180
 const SECTION_SCROLL_MIN_MS = 620
 const SECTION_SCROLL_MAX_MS = 1380
@@ -760,6 +765,37 @@ Object.assign(caseStudyDetails, {
     sections: bnsGddSections,
     access: "The case study for the game itself is on the Build and Shoot page.",
   },
+  "/pitchfork": {
+    year: "2024 Fall",
+    title: "Pitchfork Magazine",
+    category: "Editorial Design / Typography",
+    summary:
+      "A full twenty-page issue, not a cover study. The brief was to rebuild an existing music publication\u2019s editorial system \u2014 masthead, grid, image treatment, typographic hierarchy \u2014 and then run an entire issue through it without the system breaking.",
+    heroImage: null,
+    heroAlt: "Pitchfork magazine issue",
+    points: [
+      "Twenty pages: a cover, nine spreads and a back, laid out as eleven print sheets.",
+      "Black and white throughout, so hierarchy has to come from scale and position alone.",
+      "The masthead sets the measure; every interior page is built against it.",
+    ],
+    sections: [
+      {
+        kind: "copy-grid",
+        left: {
+          title: "The System First",
+          en: "I started with the masthead, because on a music magazine it is the one element that has to survive every cover. Once its proportion was fixed, it set the measure for the grid, and the interior pages were built against that measure rather than designed one at a time.",
+          zh: "我從刊頭開始，因為在一本音樂雜誌上，它是唯一必須撐過每一期封面的元素。刊頭的比例一旦定下來，網格的基準也就定了；之後的內頁是依著這個基準長出來的，而不是一頁一頁單獨設計。",
+        },
+        right: {
+          title: "Why Black and White",
+          en: "Working without colour removes the easiest way to make a page look organised. What is left is scale, weight and position \u2014 which is the part of editorial design I wanted to be forced to get right.",
+          zh: "不用顏色，就等於放棄了讓版面看起來有秩序的最省事的手段。剩下的只有尺度、字重與位置\u2014\u2014而那正是我希望被逼著做對的那部分編輯設計。",
+        },
+      },
+      pitchforkPlates,
+    ],
+    access: "The issue is shown here as the print sheets it was laid out on.",
+  },
   "/butter-beatdown": {
     year: "2025 Fall",
     title: "Butter Beatdown 2: No Churning Back",
@@ -839,6 +875,7 @@ Object.assign(caseStudyDetails, {
     heroAlt: "Untitled Sans type specimen booklet",
     points: ["Design task: make letterform behaviour visible through scale, rhythm, and layout.", "Design question: how can a specimen show the type system instead of only displaying a font name?", "Current version: the booklet is a graphic and type case, separate from To Be Chosen narrative design."],
     sections: [
+      specimenPlates,
       { kind: "copy-grid", left: { title: "Type as Material", en: "The booklet studies the typeface through its shapes, spacing, and repeated text. Reference images and the Under the Skin comparison give the pages a visual question before the specimen becomes a catalogue.", zh: "小冊子透過字形、字距與重複文字研究這套字體。參考圖片與 Under the Skin 的比較先提出視覺問題，再讓 specimen 成為目錄。" }, right: { title: "Layout Goal", en: "Scale, crop, and page rhythm should make the letterforms felt at different distances. The work is a type and layout case, not a narrative chart.", zh: "字級、裁切與頁面節奏應該讓讀者在不同距離感受到字形。這是字體與版面案例，不是敘事圖表。" } },
       { kind: "callout", title: "Reading Order", en: "Read the booklet as a sequence of observation, reference, specimen, and layout decision. Keep it separate from the To Be Chosen player journey.", zh: "把小冊子按觀察、參考、字體展示與版面決定的順序閱讀。它與 To Be Chosen 的玩家旅程分開。" },
     ],
@@ -3850,12 +3887,50 @@ function gddQuestionList(section) {
     </section>`
 }
 
+// A booklet laid out as plates on a field rather than a filmstrip: varied scale,
+// deliberate offsets, some overlap. Hovering lifts a plate out of the stack;
+// clicking it opens the existing project lightbox, which binds itself to any
+// image inside .detail-page, so no extra wiring is needed here.
+// 100vw includes the classic scrollbar, so a full-bleed field overflows by its
+// width and the page gains a horizontal scroll. Publish the difference once and
+// keep it current on resize; overlay scrollbars simply report 0.
+function syncPageGutter() {
+  const gutter = Math.max(0, window.innerWidth - document.documentElement.clientWidth)
+  document.documentElement.style.setProperty("--page-gutter", `${gutter}px`)
+}
+
+function gddPlates(section) {
+  const plates = section.plates
+    .map((plate, index) => {
+      const style = [
+        plate.span ? `--plate-span:${plate.span}` : "",
+        plate.offset ? `--plate-offset:${plate.offset}` : "",
+        plate.rotate ? `--plate-rotate:${plate.rotate}deg` : "",
+        plate.lift ? `--plate-lift:${plate.lift}` : "",
+      ].filter(Boolean).join(";")
+      return `
+        <figure class="gdd-plate${plate.wide ? " gdd-plate--wide" : ""}" style="${style}">
+          <img ${imageSourceAttrs(plate.image)} alt="${escapeHtml(plate.alt || section.title)}" loading="lazy" decoding="async" />
+          ${plate.label ? `<figcaption>${escapeHtml(plate.label)}</figcaption>` : ""}
+        </figure>`
+    })
+    .join("")
+  return `
+    <section class="framer-case-section gdd-section gdd-plates-section" aria-label="${escapeHtml(section.title)}">
+      <h2 class="gdd-h2">${escapeHtml(section.title)}</h2>
+      ${section.intro ? `<p class="gdd-intro">${gddPair(section.intro)}</p>` : ""}
+      <div class="gdd-plates">${plates}</div>
+      ${section.note ? `<p class="gdd-note">${gddPair(section.note)}</p>` : ""}
+    </section>`
+}
+
 function gddSectionMarkup(section) {
   if (section.kind === "symbol-key") return gddSymbolKey(section)
   if (section.kind === "spec-table") return gddSpecTable(section)
   if (section.kind === "matrix") return gddMatrix(section)
   if (section.kind === "diagram") return gddDiagram(section)
   if (section.kind === "question-list") return gddQuestionList(section)
+  if (section.kind === "plates") return gddPlates(section)
   return caseStudySectionMarkup(section)
 }
 
@@ -4691,19 +4766,7 @@ function requestProjectDetailHeaderUpdate() {
   const headerHeight = liveHeaderBottom > 0
     ? liveHeaderBottom
     : Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
-  // Exit as soon as the article clears the sticky pin line (site-header
-  // bottom). Waiting for drawer.bottom <= 0 is too late: the sticky-tail and
-  // matching negative margin already pull following catalogue cards into the
-  // sticky band, which used to let those cards paint over a still-visible lead.
   const drawerRect = drawerState.element.getBoundingClientRect?.()
-  const detailHeaderExited = Boolean(
-    drawerRect &&
-    Number.isFinite(drawerRect.bottom) &&
-    drawerRect.bottom <= headerHeight + 0.5 &&
-    drawerRect.height > 0,
-  )
-  card.toggleAttribute("data-project-detail-header-exited", detailHeaderExited)
-  drawerState.row?.toggleAttribute("data-project-detail-header-exited", detailHeaderExited)
   if (!Number.isFinite(card.__detailHeaderStart)) {
     const rect = card.getBoundingClientRect()
     card.__detailHeaderStart = rect.top + scrollY
@@ -4717,6 +4780,27 @@ function requestProjectDetailHeaderUpdate() {
   syncProjectDetailHeaderAnchor(card, drawerState.element, drawerRect)
   const openHeight = card.__detailHeaderOpenHeight
   const compactHeight = Math.min(openHeight, window.innerWidth < 560 ? 76 : window.innerWidth < 980 ? 84 : 92)
+  // Fade the lead out across a short scroll band after the article clears the
+  // sticky pin. A binary hide (or sticky→relative swap) made the next catalogue
+  // row appear as a sudden jump; keep sticky geometry and ease only paint.
+  const exitTravel = Math.max(
+    PROJECT_DETAIL_HEADER_EXIT_MIN_TRAVEL,
+    compactHeight * PROJECT_DETAIL_HEADER_EXIT_TRAVEL_RATIO,
+  )
+  const exitFadeStart = headerHeight + exitTravel
+  let exitProgress = 0
+  if (
+    drawerRect &&
+    Number.isFinite(drawerRect.bottom) &&
+    drawerRect.height > 0
+  ) {
+    exitProgress = clamp((exitFadeStart - drawerRect.bottom) / exitTravel, 0, 1)
+  }
+  if (prefersReducedMotion()) exitProgress = exitProgress >= 1 ? 1 : exitProgress > 0 ? 1 : 0
+  const detailHeaderExited = exitProgress >= 1
+  setElementStyleProperty(card, "--project-detail-header-exit", exitProgress.toFixed(4))
+  card.toggleAttribute("data-project-detail-header-exited", detailHeaderExited)
+  drawerState.row?.toggleAttribute("data-project-detail-header-exited", detailHeaderExited)
   // A sticky element is constrained by the bottom edge of its containing row.
   // The drawer's in-flow tail plus the following compact sibling restore the
   // full open-header footprint. The sibling is visually lifted by the same
@@ -9348,7 +9432,9 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null, refres
       for (const attribute of ["data-project-detail-open", "data-project-detail-header-compressed", "data-project-detail-header-minimized", "data-project-detail-header-closing", "data-project-detail-header-exited", "data-project-detail-invert-rule", "aria-controls"]) card.removeAttribute(attribute)
       delete card.__detailHeaderStart
       delete card.__detailHeaderOpenHeight
-      for (const name of ["progress", "ease", "expanded-height", "min-height", "pad"]) card.style.removeProperty(`--project-detail-header-${name}`)
+      for (const name of ["progress", "ease", "expanded-height", "min-height", "pad", "exit"]) {
+        card.style.removeProperty(`--project-detail-header-${name}`)
+      }
       card.setAttribute("aria-expanded", "true")
     }
     siteState.projectDetailDrawer = null

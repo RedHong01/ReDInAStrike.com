@@ -202,7 +202,7 @@ const projects = [
     navHash: "ongoing",
     image: "assets/framer-live/ongoing-game-project.png",
     imageFit: "contain",
-    mediaBackground: "#ffffff",
+    mediaBackground: "#2f2f2f",
     // Keep the playable build on the same Pages origin as the portfolio so
     // the project remains playable even when the separate Unity repository's
     // Pages deployment is unavailable.
@@ -4691,18 +4691,19 @@ function requestProjectDetailHeaderUpdate() {
   const headerHeight = liveHeaderBottom > 0
     ? liveHeaderBottom
     : Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
-  // Once the article's bottom has crossed the viewport's top edge, the lead
-  // has no content left to introduce. Keep its row footprint for scroll
-  // continuity, but mark the paint layer as exited so a released sticky card
-  // cannot remain behind later catalogue rows at a lower stacking level.
+  // Exit as soon as the article clears the sticky pin line (site-header
+  // bottom). Waiting for drawer.bottom <= 0 is too late: the sticky-tail and
+  // matching negative margin already pull following catalogue cards into the
+  // sticky band, which used to let those cards paint over a still-visible lead.
   const drawerRect = drawerState.element.getBoundingClientRect?.()
   const detailHeaderExited = Boolean(
     drawerRect &&
     Number.isFinite(drawerRect.bottom) &&
-    drawerRect.bottom <= 0.5 &&
+    drawerRect.bottom <= headerHeight + 0.5 &&
     drawerRect.height > 0,
   )
   card.toggleAttribute("data-project-detail-header-exited", detailHeaderExited)
+  drawerState.row?.toggleAttribute("data-project-detail-header-exited", detailHeaderExited)
   if (!Number.isFinite(card.__detailHeaderStart)) {
     const rect = card.getBoundingClientRect()
     card.__detailHeaderStart = rect.top + scrollY
@@ -9333,6 +9334,7 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null, refres
     state.rule?.remove()
     element.remove()
     state.row?.removeAttribute("data-project-detail-open")
+    state.row?.removeAttribute("data-project-detail-header-exited")
     state.stickyTail?.remove()
     if (state.row?.isConnected) {
       for (const child of state.row.children) {

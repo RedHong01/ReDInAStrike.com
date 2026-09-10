@@ -35,13 +35,16 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 **Local:**
 
+- `/Users/redwang/Desktop/ArtCenter/Type1`
 - `/Users/redwang/Desktop/ArtCenter/ArtWorks/PitchforkMagazinePageByPage`
+- `/Users/redwang/Downloads/Type1_Final_Magazine_RW.indd`
 
 **On site now:** Image-led page
 
 **Gaps:**
 
-- Print source (indd/ai) not indexed
+- Magazine pages never published on the site
+- Page 1 missing from the page-by-page set; 2.png is a low-resolution outlier
 
 
 ### `/analog-game` — Build and Shoot
@@ -91,7 +94,7 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 ### `/bns_gdd` — Curtain
 
-*Curtain · 12/9/2024 · nav:game*
+*Curtain · 12/9/2024-Present · nav:ongoing*
 
 **Local:**
 
@@ -132,7 +135,7 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 ### `/alt-controller-2025-a` — Super99
 
-*Alternative Controller Game Prototype · 11/4/2025 · nav:game*
+*Alternative Controller Game Prototype · 11/4/2025-Present · nav:ongoing*
 
 **Also called:** Barcode Checkout, Supermarket Scanner, GD4 Data Jam
 
@@ -166,7 +169,7 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 ### `/shroom-pot-showdown` — Shroom Pot Showdown
 
-*Alternative Controller Game Prototype · 3/30/2026 · nav:game*
+*Alternative Controller Game Prototype · 3/30/2026-Present · nav:ongoing*
 
 **Local:**
 
@@ -221,7 +224,7 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 ### `/alt-controller-2025-b` — SushiGo
 
-*Alternative Controller Game Prototype · 11/4/2025 · nav:game*
+*Alternative Controller Game Prototype · 11/4/2025-Present · nav:ongoing*
 
 **Local:**
 
@@ -251,7 +254,7 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 ### `/game-prototype` — Slow'em Down
 
-*Game Prototype · 3/10/2026 · nav:game*
+*Game Prototype · 3/10/2026-Present · nav:ongoing*
 
 **Local:**
 
@@ -318,7 +321,7 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 ### `/monologue` — To Be Chosen
 
-*Narrative Design Document · 3/10/2025 · nav:ongoing*
+*Narrative Design Document · 3/10/2025 · nav:game*
 
 **Local:**
 
@@ -380,13 +383,13 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 - On-screen Feb 15 / Feb 18 are in-game dates, NOT build dates - do not build a timeline from them
 
 
-### `/narrative-design-document` — Narrative Design Document
+### `/narrative-design-document` — Untitled Sans (overridden at runtime)
 
 *Narrative Design Document · 3/10/2025 · nav:ongoing*
 
 **Local:**
 
-- `/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Narrative Design/`
+- `/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Type2`
 
 **Docs:** `Narrative Design Vision Document 1st Iteration_RedWang.docx`, `Narrative Design Vision Document 2nd Iteration_RedWang.docx`, `NarrativeVision_RedW.docx`, `Narrative Strategy_Week4_RedW.pdf`
 
@@ -394,7 +397,8 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 **Gaps:**
 
-- Two documented iterations never surfaced as a design-change story
+- Booklet pages never published on the site
+- Route slug still says narrative-design-document, which belongs to To Be Chosen
 
 
 ## Projects with no route
@@ -459,6 +463,8 @@ Long-unopened Unity projects were moved to an external volume. In most cases the
 - Figma <text> nodes carry their content in the name attribute - that is how board copy is read.
 - A 'name 2' directory on this machine is EITHER an iCloud conflict copy OR an archive symlink to /Volumes/UnityProjectsArchive. Run `readlink` before treating one as junk.
 - /Volumes/UnityProjectsArchive is not mounted. 13 Unity projects archived 2026-08-31 are unreachable until it is.
+- ~/Downloads holds Type 2 Specimen booklets by OTHER students (MichelleHeo, KatieKim, Nick Rheem, MichellePark, Vy Huynh, Julia Rz, Jinghan Zhang). Red's own files always carry Red_Wang / RedW / _RW.
+- Card labels can be overridden at runtime by src/project-metadata-prelude.js, which patches window.Map. Grepping the projects array will not find those labels.
 
 ## Last verification
 

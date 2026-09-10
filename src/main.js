@@ -202,7 +202,7 @@ const projects = [
     navHash: "ongoing",
     image: "assets/framer-live/ongoing-game-project.png",
     imageFit: "contain",
-    mediaBackground: "#ffffff",
+    mediaBackground: "#2f2f2f",
     // Keep the playable build on the same Pages origin as the portfolio so
     // the project remains playable even when the separate Unity repository's
     // Pages deployment is unavailable.

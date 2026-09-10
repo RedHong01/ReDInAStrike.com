@@ -334,7 +334,7 @@ export const supportingReadableSections = {
       ]
     }
   ],
-  "/bns_gdd": [
+  "/curtain": [
     {
       "kind": "copy-grid",
       "title": "The Fragment We Can Verify",

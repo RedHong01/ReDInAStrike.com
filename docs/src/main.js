@@ -8,6 +8,7 @@ import {
 import { PUBLISHED_DITHER_CONFIG } from "./dither-default.js?v=20260905-perf1"
 import { supportingReadableSections } from "./readable-source-sections.js"
 import { editorialReadableSections } from "./editorial-readable-sections.js"
+import { bnsGddSections } from "./bns-gdd-sections.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -100,10 +101,18 @@ const projects = [
     pageTitle: "Curtain",
     displayTitle: "Curtain",
     date: "12/9/2024",
-    path: "/bns_gdd",
+    path: "/curtain",
     navHash: "game",
     image: "assets/framer-live/youtube-pjbu-hq.jpg",
-    webglEmbed: "curtain/",
+    webglEmbed: "curtain-play/",
+  },
+  {
+    pageTitle: "Build n Shoot",
+    displayTitle: "Game Design Document",
+    date: "2/18/2026",
+    path: "/bns_gdd",
+    navHash: "game",
+    image: "assets/framer-live/analog-game.png",
   },
   {
     pageTitle: "The Mystery of Instrument",
@@ -346,32 +355,6 @@ function catalogRowsMarkup(category = null) {
 }
 
 const framerProjectDetails = {
-  "/bns_gdd": {
-    year: "2024 Spring",
-    title: "Build & Shoot",
-    category: "Board Game Prototype",
-    routeImage: "assets/framer-routes/03-bns_gdd.jpg",
-    leadImage: "assets/framer-live/analog-game.png",
-    leadAlt: "Build & Shoot board game concept landscape",
-    summary:
-      "A turn-based strategy shooting board-game prototype built around movement, building, territory control, and tactical combat on a 15 by 15 grid.",
-    points: [
-      "Player Format: PvP, maximum 4 players.",
-      "Estimated Play Time: 30 minutes.",
-      "Primary Goal: eliminate the other player and be the last one standing.",
-      "Core hook: use movement to create building and shooting opportunities, reshaping the map into tactical advantage.",
-    ],
-    blocks: [
-      {
-        title: "System",
-        body: "The design defines cards, avatars, dice, blocks, territory marks, power-ups, procedures, purchasing, combat range, and inventory rules as a complete board-game document.",
-      },
-      {
-        title: "Design Focus",
-        body: "The prototype connects traversal, building, shooting, and resource management into one turn structure, so each action can change both board state and future strategy.",
-      },
-    ],
-  },
   "/myfridge": {
     year: "2024 Spring",
     title: "MyFridge",
@@ -950,7 +933,7 @@ Object.assign(caseStudyDetails, {
     sections: supportingReadableSections["/analog-game"],
     access: "The fourth-iteration GDD documents the rules and playtest concerns. A recorded match is still needed to show the complete turn sequence in use.",
   },
-  "/bns_gdd": {
+  "/curtain": {
     year: "2024 Fall",
     title: "Curtain",
     category: "Game Prototype / Spatial Rules",
@@ -958,8 +941,24 @@ Object.assign(caseStudyDetails, {
     heroImage: null,
     heroAlt: "Curtain spatial prototype grid and units",
     points: ["Source material: modular spaces, a door or curtain, and the request “I’m so cold, may I come in?”", "Design question: how can a small spatial rule carry the tone of an invitation and a boundary?", "Current version: the Figma grid and unit references are confirmed; a full player walkthrough is still open."],
-    sections: supportingReadableSections["/bns_gdd"],
-    access: "Open the playable build below. This page describes Curtain only; Build and Shoot has its own rules case above.",
+    sections: supportingReadableSections["/curtain"],
+    access: "Open the playable build below. Build and Shoot keeps its own rules case, and its design document has a page of its own.",
+  },
+  "/bns_gdd": {
+    year: "2024 Fall — 4th Iteration, Feb 2026",
+    title: "Build n Shoot",
+    category: "Analog Game / Game Design Document",
+    summary:
+      "The design document for Build and Shoot, rebuilt as readable type rather than uploaded page images. It carries the parts a screenshot cannot: the component symbol key, the purchase matrix, and the AI behaviour table that the fourth iteration was written to fix.",
+    heroImage: null,
+    heroAlt: "Build n Shoot design document",
+    points: [
+      "A turn-based strategy shooting game for up to four players on a 15 × 15 grid.",
+      "Four iterations: the inventory system, then the AI system, then a revision of it.",
+      "Read as a document — every table and diagram here is live type, not a screenshot.",
+    ],
+    sections: bnsGddSections,
+    access: "The case study for the game itself is on the Build and Shoot page.",
   },
   "/alt-controller-2025-b": {
     year: "2025 Fall",
@@ -3797,6 +3796,105 @@ function homeMarkup() {
     </main>`
 }
 
+// The Build n Shoot GDD lives in the project drawer, not on a page of its own,
+// so it is expressed in the drawer's own section vocabulary — system-grid, flow
+// and copy-grid — plus three kinds the document genuinely needs and the site did
+// not yet have: a symbol key for the physical components, a spec table for the
+// purchase matrix, and a state matrix for the AI. Diagrams are drawn as inline
+// SVG in the same ink/rule/soft-surface language as the rest of the case pages.
+
+function gddPair(pair) {
+  if (!pair) return ""
+  return typeof pair === "string" ? bilingualText(pair) : caseStudyPair(pair)
+}
+
+function gddSymbolKey(section) {
+  const items = section.items
+    .map(
+      (item) => `
+        <li class="gdd-symbol">
+          <span class="gdd-symbol-mark" aria-hidden="true">${item.symbol}</span>
+          <span class="gdd-symbol-body">
+            <span class="gdd-symbol-name">${escapeHtml(item.name)}</span>
+            ${item.qty ? `<span class="gdd-symbol-qty">${escapeHtml(item.qty)}</span>` : ""}
+            <span class="gdd-symbol-copy">${gddPair(item.copy)}</span>
+          </span>
+        </li>`,
+    )
+    .join("")
+  return `
+    <section class="framer-case-section gdd-section" aria-label="${escapeHtml(section.title)}">
+      <h2 class="gdd-h2">${escapeHtml(section.title)}</h2>
+      ${section.intro ? `<p class="gdd-intro">${gddPair(section.intro)}</p>` : ""}
+      <ul class="gdd-symbol-key">${items}</ul>
+    </section>`
+}
+
+function gddSpecTable(section) {
+  const head = section.head.map((cell) => `<th scope="col">${escapeHtml(cell)}</th>`).join("")
+  const rows = section.rows
+    .map(
+      (row) =>
+        `<tr>${row
+          .map((cell, index) =>
+            index === 0
+              ? `<th scope="row">${escapeHtml(cell)}</th>`
+              : `<td>${escapeHtml(cell)}</td>`,
+          )
+          .join("")}</tr>`,
+    )
+    .join("")
+  return `
+    <section class="framer-case-section gdd-section" aria-label="${escapeHtml(section.title)}">
+      <h2 class="gdd-h2">${escapeHtml(section.title)}</h2>
+      ${section.intro ? `<p class="gdd-intro">${gddPair(section.intro)}</p>` : ""}
+      <div class="gdd-table-scroll"><table class="gdd-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+      ${section.note ? `<p class="gdd-note">${gddPair(section.note)}</p>` : ""}
+    </section>`
+}
+
+function gddMatrix(section) {
+  const head = section.states.map((state) => `<th scope="col">${escapeHtml(state)}</th>`).join("")
+  const rows = section.rows
+    .map(
+      (row) =>
+        `<tr><th scope="row">${escapeHtml(row.condition)}</th>${row.cells
+          .map((cell) => {
+            if (!cell || cell === "N/A") return `<td class="gdd-cell-na">N/A</td>`
+            const keep = /^Keep/.test(cell)
+            return `<td class="${keep ? "gdd-cell-keep" : "gdd-cell-switch"}">${escapeHtml(cell)}</td>`
+          })
+          .join("")}</tr>`,
+    )
+    .join("")
+  return `
+    <section class="framer-case-section gdd-section" aria-label="${escapeHtml(section.title)}">
+      <h2 class="gdd-h2">${escapeHtml(section.title)}</h2>
+      ${section.intro ? `<p class="gdd-intro">${gddPair(section.intro)}</p>` : ""}
+      <div class="gdd-table-scroll"><table class="gdd-table gdd-matrix"><thead><tr><th scope="col">Condition</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+      ${section.legend ? `<p class="gdd-note">${gddPair(section.legend)}</p>` : ""}
+    </section>`
+}
+
+function gddDiagram(section) {
+  return `
+    <section class="framer-case-section gdd-section gdd-diagram-section" aria-label="${escapeHtml(section.title)}">
+      <h2 class="gdd-h2">${escapeHtml(section.title)}</h2>
+      <figure class="gdd-figure">
+        <div class="gdd-figure-art">${section.svg}</div>
+        <figcaption><span class="gdd-figure-label">${escapeHtml(section.label || "DIAGRAM")}</span><span class="gdd-figure-copy">${gddPair(section.caption)}</span></figcaption>
+      </figure>
+    </section>`
+}
+
+function gddSectionMarkup(section) {
+  if (section.kind === "symbol-key") return gddSymbolKey(section)
+  if (section.kind === "spec-table") return gddSpecTable(section)
+  if (section.kind === "matrix") return gddMatrix(section)
+  if (section.kind === "diagram") return gddDiagram(section)
+  return caseStudySectionMarkup(section)
+}
+
 function detailMarkup(project) {
   if (project.path === "/serialdeminer") return serialDeminerDetailMarkup(project)
   if (caseStudyDetails[project.path]) return caseStudyDetailMarkup(project, caseStudyDetails[project.path])
@@ -3951,7 +4049,7 @@ function caseStudySectionMarkup(section) {
 
 function caseStudyDetailMarkup(project, detail) {
   const points = detail.points.map((point) => `<li>${bilingualText(point)}</li>`).join("")
-  const sections = detail.sections.map(caseStudySectionMarkup).join("")
+  const sections = detail.sections.map(gddSectionMarkup).join("")
   const sourceLinks = {
     "/ongoing-game-project": "https://www.figma.com/design/xmD79sBtEvt0lfst75cMDz/Game-Development-4?node-id=447-58",
     "/game-prototype": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=644-422",

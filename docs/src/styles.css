@@ -6164,3 +6164,218 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     transform: translateX(-50%) rotate(90deg);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Build n Shoot GDD components.
+   The document is diagrammatic, so it needs three things the case pages did not
+   already have: a symbol key for physical components, a spec table for the
+   purchase matrix, and a state matrix for the AI. All three borrow the existing
+   language — 3px ink rule, soft surface, mono eyebrow, serif reading type — so
+   the document reads as part of the drawer rather than as an embedded PDF.
+   --------------------------------------------------------------------------- */
+
+.gdd-section {
+  padding-top: clamp(28px, 4vw, 48px);
+  padding-bottom: clamp(30px, 5vw, 62px);
+}
+
+.gdd-h2 {
+  margin: 0 0 18px;
+  font-family: var(--body-latin-font);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: calc(1em + 4px);
+  color: var(--case-ink);
+}
+
+.gdd-intro,
+.gdd-note {
+  margin: 0 0 22px;
+  max-width: 760px;
+  font-family: var(--body-latin-font);
+  font-size: 16px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+.gdd-note {
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 17, 34, 0.12);
+}
+
+/* Symbol key --------------------------------------------------------------- */
+
+.gdd-symbol-key {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gdd-symbol {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding: 18px;
+  background: var(--surface-soft);
+  border-top: 3px solid var(--case-ink);
+}
+
+.gdd-symbol-mark {
+  display: block;
+  padding-top: 2px;
+  color: var(--case-ink);
+}
+
+.gdd-symbol-mark svg { display: block; }
+
+.gdd-symbol-body { display: grid; gap: 6px; }
+
+.gdd-symbol-name {
+  font-family: var(--body-latin-font);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--case-ink);
+}
+
+.gdd-symbol-qty {
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-muted);
+}
+
+.gdd-symbol-copy {
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+/* Tables ------------------------------------------------------------------- */
+
+.gdd-table-scroll {
+  margin: 0;
+  overflow-x: auto;
+}
+
+.gdd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 4px);
+  color: var(--case-copy);
+}
+
+.gdd-table th {
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--case-ink);
+}
+
+.gdd-table thead th {
+  padding: 10px 16px 10px 0;
+  border-top: 3px solid var(--case-ink);
+  border-bottom: 1px solid rgba(0, 17, 34, 0.14);
+  white-space: nowrap;
+}
+
+.gdd-table tbody th {
+  padding: 13px 16px 13px 0;
+  border-bottom: 1px solid rgba(0, 17, 34, 0.08);
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.gdd-table td {
+  padding: 13px 16px 13px 0;
+  border-bottom: 1px solid rgba(0, 17, 34, 0.08);
+  vertical-align: top;
+}
+
+.gdd-table tbody tr:hover { background: rgba(0, 17, 34, 0.025); }
+
+/* State matrix ------------------------------------------------------------- */
+
+.gdd-matrix { font-size: 14px; }
+
+.gdd-matrix tbody th {
+  max-width: 190px;
+  white-space: normal;
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--case-ink);
+}
+
+.gdd-matrix td { white-space: nowrap; }
+
+.gdd-cell-switch { color: var(--case-ink); }
+.gdd-cell-keep { color: var(--case-copy); }
+
+.gdd-cell-na {
+  color: var(--case-muted);
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+/* Diagrams ----------------------------------------------------------------- */
+
+.gdd-figure {
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+
+.gdd-figure-art {
+  padding: clamp(18px, 3vw, 34px);
+  background: var(--surface-soft);
+  border-top: 3px solid var(--case-ink);
+}
+
+.gdd-figure-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.gdd-figure figcaption {
+  display: grid;
+  gap: 6px;
+  padding: 15px 0 0;
+  max-width: 760px;
+}
+
+.gdd-figure-label {
+  font-family: var(--type-subtitle-font);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.gdd-figure-copy {
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+@media (max-width: 720px) {
+  .gdd-symbol { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; }
+  .gdd-matrix tbody th { max-width: 140px; }
+}

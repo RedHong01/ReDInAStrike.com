@@ -14,6 +14,7 @@ const routes = [
   "assethub",
   "uiux-prototype",
   "bns_gdd",
+  "curtain",
   "service-game-ui",
   "alt-controller-2025-a",
   "shroom-pot-showdown",

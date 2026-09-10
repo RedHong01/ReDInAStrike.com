@@ -15,7 +15,7 @@ await mkdir(output, { recursive: true })
 const cases = [
   { name: "DAD", route: "/ongoing-game-project/", build: "/dad/", ready: () => document.querySelector("#unity-loading-bar")?.style.display === "none" },
   { name: "Slow’em Down", route: "/game-prototype/", build: "/innovative-game-mechanic-redw/", ready: () => document.querySelector("#unity-loading")?.classList.contains("complete") },
-  { name: "Curtain", route: "/bns_gdd/", build: "/curtain/", ready: () => !!window.unityInstance },
+  { name: "Curtain", route: "/curtain/", build: "/curtain-play/", ready: () => !!window.unityInstance },
 ].filter(item => !process.env.AUDIT_PROJECT || item.name === process.env.AUDIT_PROJECT)
 const browser = await chromium.launch({ headless: true })
 const results = []

@@ -63,7 +63,10 @@ async function send(req, res, filePath, status = 200) {
   const isVideo = ext === ".mp4" || ext === ".webm" || ext === ".mov"
   // Asset filenames are stable rather than content-hashed, so cache them for a
   // day without making an updated local build impossible to pick up.
-  const cacheControl = isHtml ? "no-cache" : "public, max-age=86400"
+  // Dev server: never let the browser hold a stale module. A long max-age here
+  // silently serves an old main.js after every edit, which reads as "my change
+  // did nothing". Build output still gets its own caching from the host.
+  const cacheControl = "no-cache"
 
   if (isVideo) {
     const range = req.headers.range

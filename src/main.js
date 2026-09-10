@@ -102,9 +102,9 @@ const projects = [
   {
     pageTitle: "Curtain",
     displayTitle: "Curtain",
-    date: "12/9/2024",
+    date: "12/9/2024-Present",
     path: "/curtain",
-    navHash: "game",
+    navHash: "ongoing",
     image: "assets/framer-live/youtube-pjbu-hq.jpg",
     webglEmbed: "curtain-play/",
   },
@@ -127,17 +127,17 @@ const projects = [
   {
     pageTitle: "Super99",
     displayTitle: "Alternative Controller Game Prototype",
-    date: "11/4/2025",
+    date: "11/4/2025-Present",
     path: "/alt-controller-2025-a",
-    navHash: "game",
+    navHash: "ongoing",
     image: "assets/framer-live/alt-controller-2025-a.png",
   },
   {
     pageTitle: "Shroom Pot Showdown",
     displayTitle: "Alternative Controller Game Prototype",
-    date: "3/30/2026",
+    date: "3/30/2026-Present",
     path: "/shroom-pot-showdown",
-    navHash: "game",
+    navHash: "ongoing",
     image: "assets/case-study/shroom-gameplay.png",
     imagePosition: "center center",
   },
@@ -152,17 +152,17 @@ const projects = [
   {
     pageTitle: "SushiGo",
     displayTitle: "Alternative Controller Game Prototype",
-    date: "11/4/2025",
+    date: "11/4/2025-Present",
     path: "/alt-controller-2025-b",
-    navHash: "game",
+    navHash: "ongoing",
     image: "assets/framer-live/alt-controller-2025-b.png",
   },
   {
     pageTitle: "Slow'em Down",
     displayTitle: "Game Prototype",
-    date: "3/10/2026",
+    date: "3/10/2026-Present",
     path: "/game-prototype",
-    navHash: "game",
+    navHash: "ongoing",
     image: "assets/framer-live/game-prototype-2026.png",
     webglEmbed: "innovative-game-mechanic-redw/",
   },
@@ -179,7 +179,7 @@ const projects = [
     displayTitle: "Narrative Design Document",
     date: "3/10/2025",
     path: "/monologue",
-    navHash: "ongoing",
+    navHash: "game",
     image: "assets/framer-live/narrative-doc-2025-a.png",
   },
   {
@@ -963,6 +963,10 @@ const siteState = {
   // two paths do not force the same geometry read twice in one frame.
   detailHeaderLiveBottom: 0,
   detailHeaderLiveBottomDirty: true,
+  // While a project detail drawer is open, sticky-lead geometry must not track
+  // live site-header height. Upward wheel otherwise expands the header, moves
+  // --project-preview-sticky-top, and yanks 1:1 collapse progress into a jump.
+  detailStickyHeaderBottom: 0,
   catalogContentBottomDocument: null,
   catalogContentBottomHeaderHeight: null,
   catalogContentBottomDirty: true,
@@ -3084,7 +3088,6 @@ function projectLeadMarkup(project, { detail = false } = {}) {
           </p>
         </div>
         <p class="project-preview-summary" data-typewriter-skip>${escapeHtml(projectPreviewSummary(project))}</p>
-        <span class="project-preview-enter">${detail ? "Scroll to view project ↓" : "Click again to view project ↗"}</span>
       </div>
     </section>`
 }
@@ -3133,7 +3136,6 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
           </p>
         </div>
         <p class="project-preview-summary" data-typewriter-skip>${escapeHtml(projectPreviewSummary(project))}</p>
-        <span class="project-preview-enter" data-typewriter-skip>Click again to view project ↗</span>
       </div>
     </a>`
 }
@@ -3278,24 +3280,133 @@ function applyDominantMediaBackground(card) {
   card.style.setProperty("--preview-rule", result.rule)
   media.classList.add("has-media-background")
   // The lead band is a sibling of the case article, so its sampled theme colour
-  // cannot be inherited. Publish it to the nearest shared scope as --case-accent
-  // so case sections can pick out key values in the project's own colour.
+  // cannot be inherited. Publish it only into the active detail scope so one
+  // catalog cover cannot tint every other project's accents.
   publishCaseAccent(card, result.background)
   return true
 }
 
-// Case sections accent with the colour sampled from the project's own cover, so
-// the highlight always belongs to the project being read rather than to a fixed
-// palette. Scoped to whichever container actually wraps this lead.
+function parseCssColorChannels(color) {
+  const raw = String(color || "").trim()
+  if (!raw) return null
+
+  const hex = /^#([\da-f]{3}|[\da-f]{6})$/i.exec(raw)
+  if (hex) {
+    const value = hex[1]
+    const full = value.length === 3
+      ? value.split("").map((ch) => `${ch}${ch}`).join("")
+      : value
+    const rgb = Number.parseInt(full, 16)
+    return { red: (rgb >> 16) & 255, green: (rgb >> 8) & 255, blue: rgb & 255 }
+  }
+
+  const rgb = /^rgba?\(\s*([.\d]+)[%]?\s*[,\s]\s*([.\d]+)[%]?\s*[,\s]\s*([.\d]+)[%]?/i.exec(raw)
+  if (!rgb) return null
+  return {
+    red: Math.round(Number(rgb[1])),
+    green: Math.round(Number(rgb[2])),
+    blue: Math.round(Number(rgb[3])),
+  }
+}
+
+function relativeChannelLuminance(channel) {
+  const value = channel / 255
+  return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+}
+
+function relativeColorLuminance(red, green, blue) {
+  return (
+    0.2126 * relativeChannelLuminance(red) +
+    0.7152 * relativeChannelLuminance(green) +
+    0.0722 * relativeChannelLuminance(blue)
+  )
+}
+
+function caseAccentContrast(background) {
+  const channels = parseCssColorChannels(background)
+  if (!channels) {
+    return { stroke: "#111111", needsStroke: false }
+  }
+
+  const { red, green, blue } = channels
+  const accentLum = relativeColorLuminance(red, green, blue)
+  // Case flow cards sit on paper / surface-soft. If the project header colour is
+  // close to those fills, accents need a reverse stroke to stay readable.
+  const paperLum = relativeColorLuminance(248, 247, 245)
+  const contrast =
+    (Math.max(paperLum, accentLum) + 0.05) / (Math.min(paperLum, accentLum) + 0.05)
+  return {
+    stroke: accentLum > 0.45 ? "#111111" : "#f8f7f5",
+    needsStroke: contrast < 1.85,
+  }
+}
+
+// Case sections accent with the colour of the project's own lead header, so the
+// highlight always belongs to the project being read rather than a shared
+// palette leftover from another catalog card.
+function applyCaseAccentToScope(scope, background) {
+  if (!scope || !background) return
+  const contrast = caseAccentContrast(background)
+  scope.style.setProperty("--case-accent", background)
+  scope.style.setProperty("--case-accent-stroke", contrast.stroke)
+  if (contrast.needsStroke) scope.dataset.caseAccentContrast = "light"
+  else delete scope.dataset.caseAccentContrast
+}
+
 function publishCaseAccent(card, background) {
   if (!card || !background) return
-  const scope = card.closest(".project-detail-drawer-inner") || card.closest(".site-main")
-  if (!scope) return
-  scope.style.setProperty("--case-accent", background)
+
+  const drawerInner = card.closest(".project-detail-drawer-inner")
+  if (drawerInner) {
+    applyCaseAccentToScope(drawerInner, background)
+    return
+  }
+
+  const detailMain = card.closest(".site-main.detail-page")
+  if (detailMain) {
+    applyCaseAccentToScope(detailMain, background)
+    return
+  }
+
+  // Expanded catalog lead is a sibling of its drawer, not a child. Carry the
+  // sampled header colour onto that drawer only — never onto homepage site-main.
+  const drawerState = siteState.projectDetailDrawer
+  if (drawerState?.card === card && drawerState.element?.isConnected) {
+    applyCaseAccentToScope(drawerState.element, background)
+  }
+}
+
+function resolvedCardThemeBackground(card) {
+  if (!card) return ""
+  const inline =
+    card.style.getPropertyValue("--preview-media-bg").trim() ||
+    card.style.getPropertyValue("--media-bg").trim()
+  if (inline) return inline
+  const computed = getComputedStyle(card)
+  return (
+    computed.getPropertyValue("--preview-media-bg").trim() ||
+    computed.getPropertyValue("--media-bg").trim() ||
+    computed.getPropertyValue("--media-surface").trim()
+  )
+}
+
+function syncDetailPageCaseAccent(root = document) {
+  const main = root.querySelector?.(".site-main.detail-page") ||
+    (root.matches?.(".site-main.detail-page") ? root : null)
+  if (!main) return
+  const lead = main.querySelector(".project-lead")
+  const background = resolvedCardThemeBackground(lead) ||
+    main.style.getPropertyValue("--case-accent").trim()
+  if (background) applyCaseAccentToScope(main, background)
 }
 
 function bindDominantMediaBackground(card) {
-  if (!card || card.dataset.mediaBgMode === "fixed") return
+  if (!card) return
+  if (card.dataset.mediaBgMode === "fixed") {
+    const background = resolvedCardThemeBackground(card)
+    if (background) publishCaseAccent(card, background)
+    return
+  }
 
   if (applyDominantMediaBackground(card)) return
 
@@ -3885,9 +3996,15 @@ function caseStudyDetailMarkup(project, detail) {
     "/alt-controller-2025-b": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=176-77",
   }
   const sourceLink = sourceLinks[project.path]
+  const accentBackground = project.mediaBackground || ""
+  const accentContrast = accentBackground ? caseAccentContrast(accentBackground) : null
+  const accentStyle = accentBackground
+    ? ` style="--case-accent: ${escapeHtml(accentBackground)}; --case-accent-stroke: ${escapeHtml(accentContrast.stroke)}"`
+    : ""
+  const accentContrastAttr = accentContrast?.needsStroke ? ` data-case-accent-contrast="light"` : ""
   return `
     ${headerMarkup()}
-    <main class="site-main detail-page framer-case-page case-study-page" data-route="${escapeHtml(project.path)}"${project.mediaBackground ? ` style="--case-accent: ${escapeHtml(project.mediaBackground)}"` : ""}>
+    <main class="site-main detail-page framer-case-page case-study-page" data-route="${escapeHtml(project.path)}"${accentStyle}${accentContrastAttr}>
       ${projectLeadMarkup(project, { detail: true })}
       <article class="framer-case-shell case-study-shell" aria-label="${escapeHtml(detail.title)} case study">
         <header class="framer-case-hero case-study-hero">
@@ -4158,6 +4275,7 @@ function render() {
   refreshDomCache()
   resetCatalogFilterState()
   setupMediaDominantBackgrounds(app)
+  syncDetailPageCaseAccent(app)
   setupHeader()
   setupNavHoverSpacing({ force: true })
   setupNavHoverInteraction()
@@ -4467,12 +4585,18 @@ function applyHeaderProgress(progress, options = {}) {
   setRootStyleProperty("--glass-blur", `${glassBlur.toFixed(2)}px`)
   setRootStyleProperty("--header-glass-shadow-alpha", glassShadowAlpha.toFixed(4))
   setRootStyleProperty("--header-rule-alpha", ruleAlpha.toFixed(4))
-  setRootStyleProperty("--project-preview-sticky-top", `${height.toFixed(2)}px`)
+  const pinnedStickyTop = projectDetailPinnedHeaderBottom()
+  setRootStyleProperty(
+    "--project-preview-sticky-top",
+    `${(pinnedStickyTop > 0 ? pinnedStickyTop : height).toFixed(2)}px`,
+  )
   siteState.headerVisualBottom = height
   // Header progress already knows the intended painted bottom. Reuse it for
   // the sticky detail seam; a native rect is only needed after a mount or a
   // breakpoint change where the browser may have introduced a new offset.
-  siteState.detailHeaderLiveBottom = height
+  // While a detail drawer holds a frozen sticky seam, keep that cached bottom
+  // aligned with the pin rather than the live (possibly expanding) header.
+  siteState.detailHeaderLiveBottom = pinnedStickyTop > 0 ? pinnedStickyTop : height
   siteState.detailHeaderLiveBottomDirty = false
   syncHeaderFlowGap(height)
 
@@ -4505,20 +4629,27 @@ function requestProjectDetailHeaderUpdate() {
   const card = drawerState?.card
   if (!card?.isConnected || !drawerState?.element || drawerState.element.dataset.drawerState === "closing") return
   const scrollY = window.scrollY || window.pageYOffset || 0
-  // Keep the sticky hand-off tied to the header's painted edge. The compact
-  // state can be reached after the header animation has stopped writing its
-  // custom property, leaving the old expanded value in the cascade. Reading
-  // the live rect here corrects that stale frame without scrolling the page.
-  let liveHeaderBottom = Number.isFinite(siteState.detailHeaderLiveBottom)
-    ? Math.max(0, siteState.detailHeaderLiveBottom)
-    : 0
-  if (siteState.detailHeaderLiveBottomDirty || liveHeaderBottom <= 0) {
-    const headerRect = siteState.dom.header?.getBoundingClientRect?.()
-    liveHeaderBottom = headerRect && Number.isFinite(headerRect.bottom)
-      ? Math.max(0, headerRect.bottom)
-      : liveHeaderBottom
-    siteState.detailHeaderLiveBottom = liveHeaderBottom
-    siteState.detailHeaderLiveBottomDirty = false
+  // Prefer the height frozen when the drawer opened. Live header tracking
+  // during upward scroll expands the site chrome and moves the sticky pin,
+  // which reverses collapse progress and jumps the article under the lead.
+  const pinnedHeaderBottom = projectDetailPinnedHeaderBottom()
+  let liveHeaderBottom = pinnedHeaderBottom
+  if (!(liveHeaderBottom > 0)) {
+    // Keep the sticky hand-off tied to the header's painted edge. The compact
+    // state can be reached after the header animation has stopped writing its
+    // custom property, leaving the old expanded value in the cascade. Reading
+    // the live rect here corrects that stale frame without scrolling the page.
+    liveHeaderBottom = Number.isFinite(siteState.detailHeaderLiveBottom)
+      ? Math.max(0, siteState.detailHeaderLiveBottom)
+      : 0
+    if (siteState.detailHeaderLiveBottomDirty || liveHeaderBottom <= 0) {
+      const headerRect = siteState.dom.header?.getBoundingClientRect?.()
+      liveHeaderBottom = headerRect && Number.isFinite(headerRect.bottom)
+        ? Math.max(0, headerRect.bottom)
+        : liveHeaderBottom
+      siteState.detailHeaderLiveBottom = liveHeaderBottom
+      siteState.detailHeaderLiveBottomDirty = false
+    }
   }
   if (liveHeaderBottom > 0) {
     setRootStyleProperty("--project-preview-sticky-top", `${liveHeaderBottom.toFixed(2)}px`)
@@ -4778,7 +4909,10 @@ function projectDetailHeaderStartY(card) {
   const drawerState = activeProjectDetailDrawer()
   if (drawerState?.card === card) syncProjectDetailHeaderAnchor(card, drawerState.element)
   if (!Number.isFinite(card.__detailHeaderStart)) return null
-  const headerHeight = Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
+  const pinnedHeaderBottom = projectDetailPinnedHeaderBottom()
+  const headerHeight = pinnedHeaderBottom > 0
+    ? pinnedHeaderBottom
+    : Math.max(siteState.headerVisualBottom || 0, readHeaderMetrics().compactHeight)
   return Math.max(0, card.__detailHeaderStart - headerHeight)
 }
 
@@ -7304,8 +7438,39 @@ function shouldSuppressHeaderScrollDelta(delta) {
   return Math.abs(delta) <= HEADER_SCROLL_ANCHOR_JITTER_PX * 2.5
 }
 
+function isProjectDetailStickyHeaderLocked() {
+  // Locked for the whole drawer lifetime, including the close animation, until
+  // unlockProjectDetailStickyHeader clears the frozen seam in finish().
+  return siteState.detailStickyHeaderBottom > 0
+}
+
+function lockProjectDetailStickyHeader() {
+  const height = Math.max(
+    Number(siteState.headerVisualBottom) || 0,
+    readHeaderMetrics().compactHeight,
+  )
+  siteState.detailStickyHeaderBottom = height
+  // Snap any in-flight expand/collapse so the sticky seam cannot keep moving
+  // after the drawer opens.
+  setHeaderTarget(siteState.visualProgress, true)
+  setRootStyleProperty("--project-preview-sticky-top", `${height.toFixed(2)}px`)
+}
+
+function unlockProjectDetailStickyHeader() {
+  siteState.detailStickyHeaderBottom = 0
+}
+
+function projectDetailPinnedHeaderBottom() {
+  if (siteState.detailStickyHeaderBottom > 0) return siteState.detailStickyHeaderBottom
+  return 0
+}
+
 function updateHeaderFromScroll(delta) {
   if (isHomeReturnTransitionActive()) return
+  // Detail drawers pin the lead under a fixed sticky-top. Expanding the site
+  // header on upward scroll would move that pin and reverse the 1:1 collapse,
+  // which reads as an instant jump between article sections.
+  if (isProjectDetailStickyHeaderLocked()) return
   const metrics = readHeaderMetrics()
   const scrollY = window.scrollY || window.pageYOffset || 0
   if (scrollY <= 2 && delta <= 0) {
@@ -7443,6 +7608,16 @@ function setupHeader() {
         applyHomeReturnTransitionVisual()
       } else {
         applyHeaderProgress(siteState.visualProgress)
+        if (siteState.detailStickyHeaderBottom > 0 && isProjectDetailStickyHeaderLocked()) {
+          // Viewport changes rewrite header metrics; keep the frozen sticky
+          // seam aligned with the newly painted bottom without re-enabling
+          // scroll-driven expand/collapse.
+          siteState.detailStickyHeaderBottom = siteState.headerVisualBottom
+          setRootStyleProperty(
+            "--project-preview-sticky-top",
+            `${siteState.detailStickyHeaderBottom.toFixed(2)}px`,
+          )
+        }
       }
       setupNavHoverSpacing({ force: true })
       requestLayoutEffectsUpdate({ rules: true, footer: true })
@@ -9147,6 +9322,7 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null, refres
       card.setAttribute("aria-expanded", "true")
     }
     siteState.projectDetailDrawer = null
+    unlockProjectDetailStickyHeader()
     if (refresh) refreshAfterProjectPreviewChange()
     afterClose?.(card)
     if (!immediate) flushProjectPreviewTransitionIntent()
@@ -9285,7 +9461,11 @@ function openProjectDetailDrawer(card, target) {
     cardStyle.getPropertyValue("--preview-media-bg").trim() ||
     cardStyle.getPropertyValue("--media-bg").trim() ||
     cardStyle.getPropertyValue("--media-surface").trim()
-  if (detailTheme) drawer.style.setProperty("--project-detail-theme", detailTheme)
+  if (detailTheme) {
+    drawer.style.setProperty("--project-detail-theme", detailTheme)
+    // Lead header colour owns case accents for this drawer only.
+    applyCaseAccentToScope(drawer, detailTheme)
+  }
   drawer.innerHTML = `<div class="project-detail-drawer-inner">${projectDetailBodyMarkup(project)}</div>`
   // Keep the drawer immediately after the activated card. On compact layouts
   // the neighboring card remains in the same row, so inserting after the row
@@ -9344,6 +9524,9 @@ function openProjectDetailDrawer(card, target) {
   card.setAttribute("data-project-detail-open", "true")
   card.setAttribute("aria-controls", drawer.id)
   card.setAttribute("aria-expanded", "true")
+  // Freeze the sticky seam before the first collapse frame so upward scroll
+  // cannot expand the site header and yank the lead's 1:1 progress.
+  lockProjectDetailStickyHeader()
   // The rect above was taken while the row was still its own sticky element,
   // which sits the lead ~24px away from where it lands once the article opens.
   // Re-anchor against the settled open layout before the first collapse frame,
@@ -9356,7 +9539,7 @@ function openProjectDetailDrawer(card, target) {
   startProjectPreviewAnchor(
     card,
     Number.isFinite(anchoredTop) ? anchoredTop : detailHeaderRect.top,
-    siteState.headerVisualBottom || currentHeaderHeight(),
+    projectDetailPinnedHeaderBottom() || siteState.headerVisualBottom || currentHeaderHeight(),
   )
 
   if (switchingDrawer) {

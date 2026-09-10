@@ -166,8 +166,8 @@
       "route": "/bns_gdd",
       "pageTitle": "Curtain",
       "displayTitle": "Curtain",
-      "date": "12/9/2024",
-      "nav": "game",
+      "date": "12/9/2024-Present",
+      "nav": "ongoing",
       "local": [
         "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/Duo＿Curtain/curtain"
       ],
@@ -220,8 +220,8 @@
       "route": "/alt-controller-2025-a",
       "pageTitle": "Super99",
       "displayTitle": "Alternative Controller Game Prototype",
-      "date": "11/4/2025",
-      "nav": "game",
+      "date": "11/4/2025-Present",
+      "nav": "ongoing",
       "aliases": [
         "Barcode Checkout",
         "Supermarket Scanner",
@@ -263,8 +263,8 @@
       "route": "/shroom-pot-showdown",
       "pageTitle": "Shroom Pot Showdown",
       "displayTitle": "Alternative Controller Game Prototype",
-      "date": "3/30/2026",
-      "nav": "game",
+      "date": "3/30/2026-Present",
+      "nav": "ongoing",
       "local": [
         "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Git/AltControl2_TeamC_MushroomGame"
       ],
@@ -361,8 +361,8 @@
       "route": "/alt-controller-2025-b",
       "pageTitle": "SushiGo",
       "displayTitle": "Alternative Controller Game Prototype",
-      "date": "11/4/2025",
-      "nav": "game",
+      "date": "11/4/2025-Present",
+      "nav": "ongoing",
       "local": [
         "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/SushiGo",
         "/Users/redwang/Desktop/ArtCenter/SushiGo",
@@ -410,8 +410,8 @@
       "route": "/game-prototype",
       "pageTitle": "Slow'em Down",
       "displayTitle": "Game Prototype",
-      "date": "3/10/2026",
-      "nav": "game",
+      "date": "3/10/2026-Present",
+      "nav": "ongoing",
       "local": [
         "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/InnovativeGameMechanicRedW"
       ],
@@ -528,7 +528,7 @@
       "pageTitle": "To Be Chosen",
       "displayTitle": "Narrative Design Document",
       "date": "3/10/2025",
-      "nav": "ongoing",
+      "nav": "game",
       "local": [
         "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Narrative Design/To Be Chosen_Summary_RedWAng.docx"
       ],

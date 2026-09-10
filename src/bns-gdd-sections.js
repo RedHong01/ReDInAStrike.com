@@ -208,6 +208,16 @@ export const bnsGddSections = [
   },
   {
     kind: "flow",
+    title: "Set-Up",
+    steps: [
+      ["COLOURS", "Each player claims one colour for their avatar, level blocks and territory marks.", "每位玩家選定一種顏色，套用在角色、方塊與領地標記上。"],
+      ["TURN ORDER", "Everyone rolls a D6; the highest roll takes the first turn.", "全體擲 D6，點數最高者先手。"],
+      ["STARTING POINT", "In priority order, pick any square inside your own colour area. The area affects nothing after this.", "依順序在自己的顏色區域內任選一格。此後該區域不再影響遊戲。"],
+      ["DEAL", "The GM hands each player 3 action cards, 3 level blocks, 4 HP cards and 56 territory marks.", "GM 發給每位玩家 3 張行動卡、3 塊高度方塊、4 張生命卡與 56 個領地標記。"],
+    ],
+  },
+  {
+    kind: "flow",
     title: "One Turn",
     steps: [
       ["ACTION CARDS", "Spend as many action cards as you hold; each buys one move, shot, build, item or unit placement.", "手上有幾張行動卡就能用幾次，每張換一次移動、射擊、建造、使用物品或放置單位。"],
@@ -243,6 +253,12 @@ export const bnsGddSections = [
     },
   },
   {
+    kind: "callout",
+    title: "Endgame",
+    en: "The game ends when one player is left standing and everyone else has reached 0 HP. There is no score and no alternative victory: the last player alive wins.",
+    zh: "當只剩一位玩家存活、其餘玩家生命歸零時，遊戲結束。沒有分數，也沒有其他勝利條件——最後活著的人獲勝。",
+  },
+  {
     kind: "diagram",
     title: "Movement and Height",
     label: "MOVEMENT SYSTEM",
@@ -264,25 +280,100 @@ export const bnsGddSections = [
   },
   {
     kind: "matrix",
-    title: "AI Behaviour",
+    title: "AI Behaviour — Attack Guard",
     intro: {
-      en: "Each AI unit reads its current state across the top and the situation it meets down the side. The cell is what it does next. This table is the 4th iteration's main revision.",
-      zh: "AI 單位以上方的目前狀態、左側的遭遇情境查表，交會的格子就是它的下一步。這張表是第四次迭代的主要修訂。",
+      en: "The AI runs on a finite state machine. Read the unit's current state across the top and the situation it meets down the side; the cell is what it does next. A bare state name means it stays in or performs that state.",
+      zh: "AI 以有限狀態機運作。上方是單位目前的狀態，左側是它遭遇的情境，交會的格子就是它的下一步。只寫狀態名稱表示維持或執行該狀態。",
     },
     states: ["Idle", "Patrol", "Search", "Attack", "Flee", "Chase", "Restore"],
     rows: [
-      { condition: "No enemy detected", cells: ["Keep Idle", "Switch to Search", "Switch to Idle", "Switch to Search", "Switch to Idle", "Switch to Search", "Keep Restore"] },
-      { condition: "Enemy detected", cells: ["Switch to Chase", "Switch to Chase", "Switch to Chase", "Switch to Chase", "Keep Flee", "Keep Chase", "Switch to Chase"] },
-      { condition: "Enemy in attack range", cells: ["Switch to Attack", "Switch to Attack", "Switch to Attack", "Switch to Attack", "Keep Flee", "Switch to Attack", "Switch to Flee"] },
-      { condition: "Enemy left attack range", cells: ["Switch to Idle", "Switch to Patrol", "Switch to Search", "Switch to Chase", "Keep Flee", "Switch to Search", "Keep Restore"] },
+      { condition: "No enemy player detected", cells: ["Idle", "Switch to Search", "Switch to Idle", "Switch to Search", "Switch to Idle", "Switch to Search", "Keep Flee"] },
+      { condition: "Enemy player detected", cells: ["Switch to Chase", "Switch to Chase", "Switch to Chase", "Switch to Chase", "Keep Flee", "Chase", "Keep Restore"] },
+      { condition: "Enemy player in attack range", cells: ["Attack", "Attack", "Attack", "Attack", "Keep Flee", "Attack", "Switch to Flee"] },
+      { condition: "Enemy player left attack range", cells: ["Idle", "Patrol", "Search", "Switch to Chase", "Keep Flee", "Switch to Search", "Keep Restore"] },
       { condition: "Idle / Restore / Flee for more than 2 turns", cells: ["Switch to Patrol", "N/A", "N/A", "N/A", "Switch to Restore", "N/A", "Switch to Idle"] },
-      { condition: "Low health (HP < 2)", cells: ["Switch to Idle", "Switch to Idle", "Switch to Flee", "Switch to Flee", "Keep Flee", "Switch to Flee", "Keep Restore"] },
-      { condition: "High health (HP > 2)", cells: ["Keep Idle", "Keep Patrol", "Keep Search", "Keep Chase", "Switch to Idle", "Keep Chase", "Switch to Idle"] },
+      { condition: "Low health (HP < 2)", cells: ["Idle", "Idle", "Switch to Flee", "Switch to Flee", "Flee", "Switch to Flee", "Keep Restore"] },
+      { condition: "High health (HP > 2)", cells: ["Idle", "Patrol", "Search", "Chase", "Idle", "Chase", "Switch to Idle"] },
     ],
     legend: {
-      en: "Attack guards upgrade through three levels; each level costs about twice the last, starting at 5 territory marks. The point of the inventory limit is that you cannot simply hold every unit you can afford.",
-      zh: "攻擊守衛可升級三個等級，每級成本約為前一級的兩倍，從 5 個領地標記起跳。物品欄上限的意義，就是讓玩家無法把買得起的單位全部帶在身上。",
+      en: "All levels of Attack Guard behave identically; only damage and range change with level. Transcribed from the source table without correction — including the Restore column's “Keep Flee”, which reads as a slip in the original.",
+      zh: "各等級的攻擊守衛行為相同，只有傷害與射程隨等級改變。此表照原稿轉錄未作修正，包括 Restore 欄的「Keep Flee」——那在原文中看起來是筆誤。",
     },
+  },
+  {
+    kind: "system-grid",
+    title: "What Each State Does",
+    items: [
+      ["IDLE", "Remain stationary in place.", "原地不動。"],
+      ["PATROL", "Move in a loop along a route planned by the player. The path must be continuous, connecting start and end. Moves 2 grid units per turn.", "沿玩家規劃的路線循環移動，路徑必須連續、首尾相接。每回合移動 2 格。"],
+      ["SEARCH", "Act three times in total, moving 3 grid units each time while attempting to locate the player.", "總共行動三次，每次移動 3 格，嘗試找到玩家。"],
+      ["ATTACK", "Inflict damage once on a player within range; the value depends on the guard's level.", "對射程內的玩家造成一次傷害，數值依守衛等級而定。"],
+      ["CHASE", "After discovering an enemy player, advance towards them 2 grid units at a time.", "發現敵方玩家後朝其前進，每次 2 格。"],
+      ["FLEE", "Move in the opposite direction from the nearest enemy player, 3 grid units at a time.", "朝遠離最近敵方玩家的方向移動，每次 3 格。"],
+      ["RESTORE", "Recover 1 HP per turn while in this state.", "處於此狀態時每回合恢復 1 點生命。"],
+    ],
+  },
+  {
+    kind: "matrix",
+    title: "AI Behaviour — Defense and Support Guard",
+    intro: {
+      en: "Both support units share a second state set that replaces Search, Attack and Chase with Locate and Build.",
+      zh: "兩種支援單位共用第二套狀態，以 Locate 與 Build 取代 Search、Attack 與 Chase。",
+    },
+    states: ["Idle", "Patrol", "Locate", "Build", "Flee", "Restore"],
+    rows: [
+      { condition: "No enemy player detected", cells: ["Idle", "Switch to Search", "Switch to Idle", "Switch to Search", "Switch to Idle", "Keep Flee"] },
+      { condition: "Enemy player detected", cells: ["Switch to Chase", "Switch to Chase", "Flee", "Switch to Chase", "Keep Flee", ""] },
+      { condition: "Build location set", cells: ["Attack", "Attack", "Attack", "Attack", "Keep Flee", ""] },
+      { condition: "Idle / Restore / Flee for more than 2 turns", cells: ["Switch to Patrol", "N/A", "N/A", "N/A", "Switch to Restore", "Switch to Idle"] },
+      { condition: "Low health (HP < 2)", cells: ["Idle", "Idle", "Switch to Flee", "Switch to Flee", "Flee", "Keep Restore"] },
+      { condition: "High health (HP > 2)", cells: ["Idle", "Patrol", "Search", "Chase", "Idle", "Switch to Idle"] },
+      { condition: "Build finished", cells: ["Patrol", "Patrol", "", "", "", ""] },
+    ],
+    legend: {
+      en: "Transcribed as written. In the source this table still carries the Attack Guard's labels — several cells switch to Search, Chase or Attack, which are not states these units have, and a few cells are blank. That unresolved ambiguity is what the 4th iteration set out to clear up, and it is left visible here rather than tidied away.",
+      zh: "照原稿轉錄。原文這張表仍沿用攻擊守衛的標籤——有數格切換到 Search、Chase 或 Attack，而這些並不是這兩種單位擁有的狀態，另有幾格是空白。第四次迭代想釐清的正是這種未解決的模糊，因此這裡保留原樣而不加以整理。",
+    },
+  },
+  {
+    kind: "text",
+    title: "Upgrading Attack Guards",
+    paragraphs: [
+      {
+        en: "Each upgrade costs twice the last: Level 1 starts at 5 territory marks, Level 2 costs 10. Upgrading for the first time is what unlocks the right to buy that level at all — a player who has never reached Level 2 cannot buy a Level 2 guard, while a player who has reached it can buy one at any time afterwards.",
+        zh: "每次升級的成本是前一次的兩倍：等級 1 從 5 個領地標記起算，等級 2 為 10 個。首次升級的作用是解鎖購買資格——沒有升到等級 2 的玩家買不到等級 2 守衛，而升過的玩家之後隨時可以購買。",
+      },
+      {
+        en: "The point of the initial upgrade is the licence, not the unit. It is the one place in the economy where spending buys access rather than a thing.",
+        zh: "初次升級買到的是資格而不是單位。這是整個經濟系統裡唯一一處，花費換到的是權限而非實物。",
+      },
+    ],
+  },
+  {
+    kind: "spec-table",
+    title: "Trading System",
+    intro: {
+      en: "Auction items are priced against what they can destroy. Each row states the spend, the least and most it can return, and that return converted back into territory marks.",
+      zh: "拍賣物品以其可摧毀的量定價。每一列列出花費、最少與最多的回報，以及換算回領地標記後的價值。",
+    },
+    head: ["Item", "Spend", "Min benefit", "Max benefit", "Min equivalent", "Max equivalent"],
+    rows: [
+      ["Dirty Bomb", "6 marks", "0 obstacles — nothing in range", "12 obstacles — a 4-unit area up to 3 levels high (4 × 3)", "0 marks", "36 marks"],
+      ["Laser Beam", "7 marks", "0 obstacles — nothing in range", "14 obstacles destroyed in a line", "0 marks", "42 marks"],
+      ["Super Bomb", "8 marks", "0 obstacles — nothing in range", "36 obstacles — a 4-unit area up to 4 levels high (6 × 6)", "0 marks", "108 marks"],
+      ["Obstacle Building", "3 marks", "1 obstacle", "1 obstacle", "3 marks", "3 marks"],
+      ["Wall Building Unit", "5 marks", "1 obstacle", "3 obstacles", "3 marks", "9 marks"],
+    ],
+    note: {
+      en: "Every destructive item is worth nothing on an empty board and several times its price on a crowded one, so the auction is really a bet on how built-up the map will be when you use it.",
+      zh: "所有破壞性物品在空曠棋盤上一文不值，在擁擠棋盤上則值數倍價格；因此拍賣實際上是在賭使用當下棋盤有多密集。",
+    },
+  },
+  {
+    kind: "callout",
+    title: "Economic System",
+    en: "The document opens this section with three headings — Engines, Economies, Ecologies — and stops there. Nothing is written under them. The same three ideas come back as questions in the playtest survey below, also unanswered, which places this analysis at the edge of where the fourth iteration actually got to.",
+    zh: "文件在這一節列出三個標題——Engines、Economies、Ecologies——就此打住，底下沒有任何內容。同樣這三個概念又以問題的形式出現在下方的測試問卷裡，同樣沒有作答；這標記出第四次迭代實際推進到的邊界。",
   },
   {
     kind: "diagram",
@@ -293,5 +384,67 @@ export const bnsGddSections = [
       en: "A 15 × 15 square grid. Each player picks a starting point inside their own colour area; after that the area has no further effect on play.",
       zh: "15 × 15 的方格棋盤。每位玩家在自己的顏色區域內選擇起點；此後該區域不再影響遊戲。",
     },
+  },
+  {
+    kind: "question-list",
+    title: "Playtest & Game Analysis",
+    intro: {
+      en: "The document ends with the survey the fourth iteration was to be tested against. In the source the questions stand on their own — no answers were recorded, and the analysis sections above them are the ones left blank. It is included because the questions themselves show what this iteration was trying to find out.",
+      zh: "文件以第四次迭代預定使用的測試問卷作結。原稿中這些問題單獨存在——沒有記錄任何答案，上方的分析章節也正是留白的那幾節。收錄它是因為問題本身就說明了這次迭代想弄清楚什麼。",
+    },
+    source: "https://docs.google.com/forms/d/1W9eUi115_sYqJcP5bP7Kbc8h68DsBsULKNPoIEV7_l0",
+    groups: [
+    {
+      group: "Comprehension",
+      questions: [
+        "How well did your players understand the game rules, both before starting to play the game and during the game play?",
+        "How difficult did players find your game, both in achieving the intermediate game goals and the overall goal of winning?",
+        "How engaged were players in playing your game at the beginning, middle, and end of your game?",
+        "Did players feel like they were progressing in the game?",
+        "Did players feel like their decisions mattered with respect to winning the game?",
+      ],
+    },
+    {
+      group: "Resources and economy",
+      questions: [
+        "Were there any resources or other ownable game objects that players found so plentiful that they were practically worthless?",
+        "Were there any resources or other ownable objects that players found so hard to obtain that it seemed impossible to win the game?",
+        "Did resource trading feel worthwhile to your players?",
+        "Is any game system in your game an economy? If so, what was it, what makes it that type of system, and what is that system\u2019s impact on gameplay?",
+        "Is your game economy open or closed? What impact does that have on gameplay?",
+        "Was the supply and demand of significant resources, currency, or commodities in your game too low? If so, what was it, and why did you think that? If the supply of one was found to be too low (even if playtesters didn\u2019t report that it was), what could you theoretically do to fix economic stagnation? If the supply of one was found to be too high (even if playtesters didn\u2019t report that it was), what could you theoretically do to fix economic inflation?",
+      ],
+    },
+    {
+      group: "Systems",
+      questions: [
+        "Is any game system in your game a reinforcing engine? If so, what was it, what makes it that type of system, and what is that system\u2019s impact on gameplay?",
+        "Is any game system in your game a balancing engine? If so, what was it, what makes it that type of system, and what is that system\u2019s impact on gameplay?",
+        "Is any game system in your game an ecology? If so, what was it, what makes it that type of system, and what is that system\u2019s impact on gameplay?",
+      ],
+    },
+    {
+      group: "Progression",
+      questions: [
+        "Is any progression in your game horizontal? Why",
+        "Is there any progression in your game vertical? Why or why not? If it is, how does that affect gameplay?",
+        "Is any progression in your game cyclical? Why or why not? If it is, how does that affect gameplay?",
+        "How do narrative, time or turn-based events, or luck (randomness) affect the player's progression experience?",
+      ],
+    },
+    {
+      group: "Failure modes",
+      questions: [
+        "Did any players succumb to power creep in your game? If players tended to do so (even if you didn\u2019t observe them doing so), how would this affect the gameplay experience, and what could you theoretically do to fix that problem?",
+        "Did any players seem to succumb to analysis paralysis in your game? If players tended to do so (even if you didn\u2019t observe them doing so), how would this affect the gameplay experience, and what could you theoretically do to fix that problem?",
+      ],
+    },
+    {
+      group: "Open",
+      questions: [
+        "What other observations did you make while observing players play your game",
+      ],
+    },
+    ],
   },
 ]

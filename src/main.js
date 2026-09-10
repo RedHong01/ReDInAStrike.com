@@ -3901,11 +3901,34 @@ function gddDiagram(section) {
     </section>`
 }
 
+function gddQuestionList(section) {
+  const groups = section.groups
+    .map((group) => {
+      const items = group.questions.map((q) => `<li>${escapeHtml(q)}</li>`).join("")
+      return `
+        <div class="gdd-qgroup">
+          <h3 class="gdd-qgroup-label">${escapeHtml(group.group)}</h3>
+          <ol class="gdd-qlist">${items}</ol>
+        </div>`
+    })
+    .join("")
+  const count = section.groups.reduce((n, g) => n + g.questions.length, 0)
+  return `
+    <section class="framer-case-section gdd-section" aria-label="${escapeHtml(section.title)}">
+      <h2 class="gdd-h2">${escapeHtml(section.title)}</h2>
+      ${section.intro ? `<p class="gdd-intro">${gddPair(section.intro)}</p>` : ""}
+      <p class="gdd-qmeta"><span class="gdd-qcount">${count} questions</span><span class="gdd-qstate">no answers recorded in the source</span></p>
+      <div class="gdd-qgroups">${groups}</div>
+      ${section.source ? `<p class="gdd-note"><a href="${escapeHtml(section.source)}" target="_blank" rel="noreferrer">Original survey form ↗</a></p>` : ""}
+    </section>`
+}
+
 function gddSectionMarkup(section) {
   if (section.kind === "symbol-key") return gddSymbolKey(section)
   if (section.kind === "spec-table") return gddSpecTable(section)
   if (section.kind === "matrix") return gddMatrix(section)
   if (section.kind === "diagram") return gddDiagram(section)
+  if (section.kind === "question-list") return gddQuestionList(section)
   return caseStudySectionMarkup(section)
 }
 

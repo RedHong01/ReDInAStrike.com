@@ -6411,3 +6411,64 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   background: color-mix(in srgb, var(--case-accent, var(--case-ink)) 42%, transparent);
   justify-self: start;
 }
+
+/* Playtest survey: questions only — the source records no answers, so the state
+   is stated plainly instead of being dressed up as findings. */
+.gdd-qmeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 26px;
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gdd-qcount {
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--case-accent, var(--case-ink)) 42%, transparent);
+  color: var(--case-ink);
+}
+
+.gdd-qstate { color: var(--case-muted); }
+
+.gdd-qgroups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.gdd-qgroup {
+  padding: 18px;
+  background: var(--surface-soft);
+  border-top: 3px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-qgroup-label {
+  margin: 0 0 12px;
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.gdd-qlist {
+  margin: 0;
+  padding-left: 1.15em;
+  display: grid;
+  gap: 10px;
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+.gdd-qlist li::marker {
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  color: var(--case-muted);
+}

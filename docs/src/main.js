@@ -3489,7 +3489,21 @@ function applyDominantMediaBackground(card) {
   card.style.setProperty("--preview-ink", result.ink)
   card.style.setProperty("--preview-rule", result.rule)
   media.classList.add("has-media-background")
+  // The lead band is a sibling of the case article, so its sampled theme colour
+  // cannot be inherited. Publish it to the nearest shared scope as --case-accent
+  // so case sections can pick out key values in the project's own colour.
+  publishCaseAccent(card, result.background)
   return true
+}
+
+// Case sections accent with the colour sampled from the project's own cover, so
+// the highlight always belongs to the project being read rather than to a fixed
+// palette. Scoped to whichever container actually wraps this lead.
+function publishCaseAccent(card, background) {
+  if (!card || !background) return
+  const scope = card.closest(".project-detail-drawer-inner") || card.closest(".site-main")
+  if (!scope) return
+  scope.style.setProperty("--case-accent", background)
 }
 
 function bindDominantMediaBackground(card) {
@@ -4062,7 +4076,7 @@ function caseStudyDetailMarkup(project, detail) {
   const sourceLink = sourceLinks[project.path]
   return `
     ${headerMarkup()}
-    <main class="site-main detail-page framer-case-page case-study-page" data-route="${escapeHtml(project.path)}">
+    <main class="site-main detail-page framer-case-page case-study-page" data-route="${escapeHtml(project.path)}"${project.mediaBackground ? ` style="--case-accent: ${escapeHtml(project.mediaBackground)}"` : ""}>
       ${projectLeadMarkup(project, { detail: true })}
       <article class="framer-case-shell case-study-shell" aria-label="${escapeHtml(detail.title)} case study">
         <header class="framer-case-hero case-study-hero">

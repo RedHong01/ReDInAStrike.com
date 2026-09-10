@@ -6222,7 +6222,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   gap: 14px;
   padding: 18px;
   background: var(--surface-soft);
-  border-top: 3px solid var(--case-ink);
+  border-top: 3px solid var(--case-accent, var(--case-ink));
 }
 
 .gdd-symbol-mark {
@@ -6285,7 +6285,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
 .gdd-table thead th {
   padding: 10px 16px 10px 0;
-  border-top: 3px solid var(--case-ink);
+  border-top: 3px solid var(--case-accent, var(--case-ink));
   border-bottom: 1px solid rgba(0, 17, 34, 0.14);
   white-space: nowrap;
 }
@@ -6303,7 +6303,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   vertical-align: top;
 }
 
-.gdd-table tbody tr:hover { background: rgba(0, 17, 34, 0.025); }
+.gdd-table tbody tr:hover { background: color-mix(in srgb, var(--case-accent, var(--case-ink)) 16%, transparent); }
 
 /* State matrix ------------------------------------------------------------- */
 
@@ -6343,7 +6343,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .gdd-figure-art {
   padding: clamp(18px, 3vw, 34px);
   background: var(--surface-soft);
-  border-top: 3px solid var(--case-ink);
+  border-top: 3px solid var(--case-accent, var(--case-ink));
 }
 
 .gdd-figure-art svg {
@@ -6378,4 +6378,36 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 @media (max-width: 720px) {
   .gdd-symbol { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; }
   .gdd-matrix tbody th { max-width: 140px; }
+}
+
+/* Key values carry the project's own sampled colour so a long document does not
+   read as one flat grey. The accent is published by the lead band's sampler, so
+   each project accents in its own hue; --case-ink is the fallback. */
+.gdd-symbol-mark { color: var(--case-ink); }
+
+.gdd-symbol-qty {
+  color: var(--case-ink);
+  padding: 2px 7px;
+  justify-self: start;
+  background: color-mix(in srgb, var(--case-accent, var(--case-ink)) 42%, transparent);
+}
+
+.gdd-table tbody th { color: var(--case-ink); }
+
+.gdd-matrix tbody th {
+  border-left: 3px solid color-mix(in srgb, var(--case-accent, var(--case-ink)) 70%, transparent);
+  padding-left: 12px;
+}
+
+.gdd-cell-switch {
+  color: var(--case-ink);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--case-accent, var(--case-ink)) 55%, transparent);
+}
+
+.case-study-flow-arrow { color: var(--case-accent, var(--case-ink)); }
+
+.gdd-figure-label {
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--case-accent, var(--case-ink)) 42%, transparent);
+  justify-self: start;
 }

@@ -6,6 +6,10 @@
 // rule / soft-surface language rather than page screenshots.
 
 const ink = "var(--case-ink)"
+// Highlighted cells and blocks take the project's sampled theme colour so the
+// diagrams read as part of this project rather than as generic grey figures.
+const accent = "color-mix(in srgb, var(--case-accent, var(--case-ink)) 55%, transparent)"
+const accentSoft = "color-mix(in srgb, var(--case-accent, var(--case-ink)) 30%, transparent)"
 
 // The component symbols. The GDD runs on placeholders, so these are drawn as a
 // consistent key rather than illustrated: one stroke weight, one corner radius,
@@ -23,7 +27,7 @@ function card(letter) {
 
 function block() {
   return svg(
-    `<path d="M17 5 L29 12 L29 24 L17 31 L5 24 L5 12 Z" fill="rgba(0,17,34,0.10)" stroke="${ink}" stroke-width="1.1" stroke-linejoin="round"/>` +
+    `<path d="M17 5 L29 12 L29 24 L17 31 L5 24 L5 12 Z" fill="${accentSoft}" stroke="${ink}" stroke-width="1.1" stroke-linejoin="round"/>` +
       `<path d="M5 12 L17 19 L29 12 M17 19 L17 31" fill="none" stroke="${ink}" stroke-width="0.8" opacity="0.65"/>`,
   )
 }
@@ -38,7 +42,7 @@ function mark() {
 function avatar() {
   return svg(
     `<circle cx="17" cy="12" r="5.5" fill="none" stroke="${ink}" stroke-width="1.1"/>` +
-      `<path d="M7 30 C7 22 27 22 27 30 Z" fill="rgba(0,17,34,0.10)" stroke="${ink}" stroke-width="1.1" stroke-linejoin="round"/>`,
+      `<path d="M7 30 C7 22 27 22 27 30 Z" fill="${accentSoft}" stroke="${ink}" stroke-width="1.1" stroke-linejoin="round"/>`,
   )
 }
 
@@ -61,7 +65,7 @@ function die() {
 function unit() {
   return svg(
     `<path d="M17 4 L28 11 V23 L17 30 L6 23 V11 Z" fill="none" stroke="${ink}" stroke-width="1.1" stroke-linejoin="round"/>` +
-      `<circle cx="17" cy="17" r="4.5" fill="rgba(0,17,34,0.18)" stroke="${ink}" stroke-width="0.9"/>`,
+      `<circle cx="17" cy="17" r="4.5" fill="${accent}" stroke="${ink}" stroke-width="0.9"/>`,
   )
 }
 
@@ -73,10 +77,10 @@ function cell(x, y, s, fill) {
 const levelDiagram = `
 <svg viewBox="0 0 460 190" role="img" aria-label="Climbing level blocks costs an extra dice point per level">
   <g font-family="var(--type-subtitle-font)" font-size="9" letter-spacing="0.06em" fill="${ink}">
-    ${[0, 1, 2, 3, 4, 5].map((i) => cell(20 + i * 46, 118, 46, i === 0 ? "rgba(0,17,34,0.05)" : "none")).join("")}
-    <rect x="112" y="72" width="46" height="46" fill="rgba(0,17,34,0.10)" stroke="${ink}" stroke-width="0.6"/>
-    <rect x="158" y="72" width="46" height="46" fill="rgba(0,17,34,0.10)" stroke="${ink}" stroke-width="0.6"/>
-    <rect x="158" y="26" width="46" height="46" fill="rgba(0,17,34,0.18)" stroke="${ink}" stroke-width="0.6"/>
+    ${[0, 1, 2, 3, 4, 5].map((i) => cell(20 + i * 46, 118, 46, i === 0 ? accentSoft : "none")).join("")}
+    <rect x="112" y="72" width="46" height="46" fill="${accentSoft}" stroke="${ink}" stroke-width="0.6"/>
+    <rect x="158" y="72" width="46" height="46" fill="${accent}" stroke="${ink}" stroke-width="0.6"/>
+    <rect x="158" y="26" width="46" height="46" fill="${accent}" stroke="${ink}" stroke-width="0.6"/>
     <text x="43" y="146" text-anchor="middle">START</text>
     <text x="135" y="100" text-anchor="middle">LV 1</text>
     <text x="181" y="100" text-anchor="middle">LV 2</text>
@@ -92,7 +96,7 @@ const levelDiagram = `
 const bulletDiagram = `
 <svg viewBox="0 0 460 180" role="img" aria-label="A bullet travels its D6 range and gains one unit for each of the player's own territory marks">
   <g font-family="var(--type-subtitle-font)" font-size="9" letter-spacing="0.06em" fill="${ink}">
-    ${[0, 1, 2, 3, 4, 5, 6, 7].map((i) => cell(20 + i * 40, 60, 40, i >= 3 && i <= 4 ? "rgba(0,17,34,0.10)" : "none")).join("")}
+    ${[0, 1, 2, 3, 4, 5, 6, 7].map((i) => cell(20 + i * 40, 60, 40, i >= 3 && i <= 4 ? accent : "none")).join("")}
     <circle cx="40" cy="80" r="7" fill="${ink}"/>
     <text x="40" y="118" text-anchor="middle">AVATAR</text>
     <path d="M52 80 L332 80" fill="none" stroke="${ink}" stroke-width="1.2" marker-end="url(#gddArrow)"/>
@@ -115,7 +119,7 @@ const boardDiagram = `
       Array.from({ length: 15 }, (_, c) => {
         const corner =
           (r < 3 && c < 3) || (r < 3 && c > 11) || (r > 11 && c < 3) || (r > 11 && c > 11)
-        return cell(15 + c * 18, 15 + r * 18, 18, corner ? "rgba(0,17,34,0.12)" : "none")
+        return cell(15 + c * 18, 15 + r * 18, 18, corner ? accentSoft : "none")
       }).join(""),
     ).join("")}
   </g>

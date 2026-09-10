@@ -450,22 +450,6 @@ const framerProjectDetails = {
       },
     ],
   },
-  "/monologue": {
-    year: "2025 Fall",
-    title: "To Be Chosen",
-    category: "Narrative Design / Multi-POV Structure",
-    summary:
-      "A cheer squad\u2019s bus breaks down on the way home and the driver goes missing. Every beat is played through whichever girl is carrying the scene, so each of them ends holding an incomplete account \u2014 and the player is the only one who sees all of them.",
-    heroImage: null,
-    heroAlt: "To Be Chosen POV switch chart",
-    points: [
-      "Narrative Director on a team of four; I owned the perspective structure.",
-      "Five playable viewpoints, charted scene by scene against a single game-time timeline.",
-      "I wrote the revision pass myself: the theme was in the story but not enforced by any mechanism.",
-    ],
-    sections: tbcSections,
-    access: "Written with Jinqi Chang, Kris Kuerten and Bedi Ruan for Storytelling For Games, Fall 2025.",
-  },
 }
 
 const caseStudyDetails = {
@@ -705,19 +689,20 @@ const caseStudyDetails = {
 // matched playtest or a complete interaction recording.
 Object.assign(caseStudyDetails, {
   "/monologue": {
-    year: "2025 Spring",
+    year: "2025 Fall",
     title: "To Be Chosen",
-    category: "Narrative Design / Multi-POV Storytelling",
-    summary: "A survival-horror narrative proposal about a cheerleading team stranded in a fog-covered mountain village. The story moves between characters who know different parts of the situation, letting the player connect clues that no single character can see.",
+    category: "Narrative Design / Multi-POV Structure",
+    summary:
+      "A cheer squad\u2019s bus breaks down on the way home and the driver goes missing. Every beat is played through whichever girl is carrying the scene, so each of them ends holding an incomplete account \u2014 and the player is the only one who sees all of them.",
     heroImage: null,
-    heroAlt: "To Be Chosen narrative design document and POV chart",
+    heroAlt: "To Be Chosen POV switch chart",
     points: [
-      "Proposed player experience: investigate the village, discover records and objects, and compare what each character knows.",
-      "Design question: how can a new perspective change what the player understands before the next action?",
-      "Current version: the document and POV chart are confirmed; a complete playable scene recording is still needed.",
+      "Narrative Director on a team of four; I owned the perspective structure.",
+      "Five playable viewpoints, charted scene by scene against a single game-time timeline.",
+      "I wrote the revision pass myself: the theme was in the story but not enforced by any mechanism.",
     ],
-    sections: supportingReadableSections["/monologue"],
-    access: "The narrative documents establish the premise and the proposed perspective changes. A complete playable scene remains to be documented.",
+    sections: tbcSections,
+    access: "Written with Jinqi Chang, Kris Kuerten and Bedi Ruan for Storytelling For Games, Fall 2025.",
   },
   "/analog-game": {
     year: "2024 Fall",

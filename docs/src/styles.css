@@ -6492,19 +6492,33 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
 .gdd-section,
 .case-study-system-section,
-.case-study-flow-section {
-  --case-bleed-width: min(1280px, calc(100vw - 96px));
+.case-study-flow-section,
+.case-study-media-section {
+  /* Charts, tables and source material all run the full width of the window.
+     --page-gutter is the scrollbar allowance measured at runtime; without it
+     100vw overflows by the scrollbar and the page gains a horizontal scroll. */
+  --case-bleed-width: calc(100vw - var(--page-gutter, 0px));
 }
 
 .gdd-table-scroll,
 .gdd-figure-art,
 .gdd-symbol-key,
-.gdd-qgroups {
+.gdd-qgroups,
+.case-study-media-section .case-study-media {
   width: max(100%, var(--case-bleed-width));
   max-width: none;
   margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
   margin-right: 0;
 }
+
+/* A bled table still needs a gutter so the first and last columns are not
+   flush against the window edge. */
+.gdd-table-scroll { padding-inline: clamp(20px, 4vw, 78px); }
+
+/* Source material is shown whole, not cropped to a 16:9 window. */
+.case-study-media-section .case-study-media { aspect-ratio: auto; }
+.case-study-media-section .case-study-media img { height: auto; object-fit: contain; }
+.case-study-media-section figcaption { padding-inline: clamp(20px, 4vw, 78px); }
 
 /* Keep the drawing off the bled edge. */
 .gdd-figure-art { padding-inline: clamp(18px, 3vw, 34px); }
@@ -6516,10 +6530,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .gdd-table td { min-width: 9ch; }
 .gdd-matrix td { white-space: nowrap; }
 
+/* The bleed is not collapsed on narrow screens. A chart or a wide table needs
+   the window more there, not less; anything genuinely wider than the viewport
+   still scrolls inside its own container rather than pushing the page. */
 @media (max-width: 900px) {
-  .gdd-section,
-  .case-study-system-section,
-  .case-study-flow-section { --case-bleed-width: 100%; }
+  .gdd-table-scroll { padding-inline: 16px; }
+  .case-study-media-section figcaption { padding-inline: 16px; }
 }
 
 /* ---------------------------------------------------------------------------

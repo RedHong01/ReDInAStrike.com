@@ -1,6 +1,23 @@
+import {
+  cancelBinaryPixelVeil,
+  closeBinaryPixelVeil,
+  openBinaryPixelVeil,
+  syncBinaryPixelVeil,
+} from "./binary-pixel-veil.js?v=20260910-plateveil1"
+
+// A project body is the same markup in two containers: the drawer that opens
+// under its card on the home grid, and the route that renders it on its own.
+// The drawer is the real one, and it is the one without a <main> wrapper.
+const PROJECT_BODY_SCOPES = [".detail-page", ".project-detail-drawer"]
+const PROJECT_BODY_SELECTOR = PROJECT_BODY_SCOPES.join(", ")
+// A booklet field is already a page of pixels. Opening a plate out of one hands
+// the rest of the page to the shared binary dissolve rather than a plain fade.
+const PIXEL_VEIL_SELECTOR = ".gdd-plates"
+
 const LIGHTBOX_STYLE_ID = "project-lightbox-style"
 const LIGHTBOX_CLASS = "project-lightbox"
 const LIGHTBOX_OPEN_CLASS = "is-open"
+const VEIL_MODIFIER = "pixel"
 const LIGHTBOX_OPEN_MS = 440
 const LIGHTBOX_CLOSE_MS = 360
 const LIGHTBOX_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
@@ -17,6 +34,11 @@ let previousSourceOpacity = ""
 let closeTimer = 0
 let animationFrame = 0
 let isClosing = false
+let usesPixelVeil = false
+
+function scopedSelector(suffix) {
+  return PROJECT_BODY_SCOPES.map((scope) => `${scope} ${suffix}`).join(",\n      ")
+}
 
 function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true
@@ -29,13 +51,13 @@ function ensureStyles() {
   style.id = LIGHTBOX_STYLE_ID
   style.textContent = `
     @media not ((any-hover: hover) and (any-pointer: fine)) {
-      .detail-page img:not([data-lightbox-disabled="true"]) {
+      ${scopedSelector('img:not([data-lightbox-disabled="true"])')} {
         cursor: zoom-in;
       }
 
-      .detail-page a img,
-      .detail-page button img,
-      .detail-page [role="button"] img {
+      ${scopedSelector("a img")},
+      ${scopedSelector("button img")},
+      ${scopedSelector('[role="button"] img')} {
         cursor: pointer;
       }
 
@@ -78,6 +100,12 @@ function ensureStyles() {
 
     .${LIGHTBOX_CLASS}.${LIGHTBOX_OPEN_CLASS} .${LIGHTBOX_CLASS}__backdrop {
       opacity: 1;
+    }
+
+    /* The dissolve paints its own paper field, so the plain backdrop would only
+       double it. */
+    .${LIGHTBOX_CLASS}--${VEIL_MODIFIER} .${LIGHTBOX_CLASS}__backdrop {
+      display: none;
     }
 
     .${LIGHTBOX_CLASS}__image {
@@ -214,6 +242,7 @@ function openLightbox(sourceImage) {
   isClosing = false
 
   activeSourceImage = sourceImage
+  usesPixelVeil = !prefersReducedMotion() && Boolean(sourceImage.closest(PIXEL_VEIL_SELECTOR))
   previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
 
   const sourceRect = sourceImage.getBoundingClientRect()
@@ -230,9 +259,17 @@ function openLightbox(sourceImage) {
     : transformBetweenRects(sourceRect, activeTargetRect)
 
   root.classList.remove(LIGHTBOX_OPEN_CLASS)
+  root.classList.toggle(`${LIGHTBOX_CLASS}--${VEIL_MODIFIER}`, usesPixelVeil)
   root.hidden = false
   lockArticleScroll()
   hideSourceImage(sourceImage)
+
+  // The dissolve runs on the zoom's own budget, so the page finishes coming
+  // apart on the frame the plate finishes arriving.
+  if (usesPixelVeil && !openBinaryPixelVeil(root, { durationMs: LIGHTBOX_OPEN_MS })) {
+    usesPixelVeil = false
+    root.classList.remove(`${LIGHTBOX_CLASS}--${VEIL_MODIFIER}`)
+  }
 
   if (prefersReducedMotion()) {
     root.classList.add(LIGHTBOX_OPEN_CLASS)
@@ -254,8 +291,11 @@ function openLightbox(sourceImage) {
 
 function finishClose(focusTarget, sourceImage) {
   if (!overlay || !previewImage) return
+  cancelBinaryPixelVeil()
   overlay.hidden = true
   overlay.classList.remove(LIGHTBOX_OPEN_CLASS)
+  overlay.classList.remove(`${LIGHTBOX_CLASS}--${VEIL_MODIFIER}`)
+  usesPixelVeil = false
   previewImage.removeAttribute("src")
   previewImage.style.removeProperty("left")
   previewImage.style.removeProperty("top")
@@ -297,6 +337,8 @@ function closeLightbox() {
     ? sourceImage.getBoundingClientRect()
     : null
 
+  if (usesPixelVeil) closeBinaryPixelVeil({ durationMs: LIGHTBOX_CLOSE_MS })
+
   previewImage.style.transition = `transform ${LIGHTBOX_CLOSE_MS}ms ${LIGHTBOX_EASE}`
   overlay.classList.remove(LIGHTBOX_OPEN_CLASS)
   previewImage.style.transform = sourceRect
@@ -310,7 +352,7 @@ function closeLightbox() {
 
 function isEligibleProjectImage(image) {
   if (!(image instanceof HTMLImageElement)) return false
-  if (!image.closest(".detail-page")) return false
+  if (!image.closest(PROJECT_BODY_SELECTOR)) return false
   if (image.closest(`.${LIGHTBOX_CLASS}`)) return false
   if (image.dataset.lightboxDisabled === "true") return false
   if (image.closest("a[href], button, [role=\"button\"]")) return false
@@ -342,6 +384,7 @@ window.addEventListener("resize", () => {
   const naturalHeight = activeSourceImage.naturalHeight || previewImage.naturalHeight
   if (!naturalWidth || !naturalHeight) return
 
+  syncBinaryPixelVeil()
   activeTargetRect = getPreviewTargetRect(naturalWidth, naturalHeight)
   previewImage.style.transition = "none"
   previewImage.style.transform = "none"

@@ -173,7 +173,10 @@ const projects = [
     date: "12/10/2025",
     path: "/butter-beatdown",
     navHash: "game",
-    image: "assets/case-study/butter-laser-sheet.jpg",
+    image: "assets/case-study/butter-logo.png",
+    imageFit: "contain",
+    imageScale: 0.78,
+    mediaBackground: "#f3ead3",
   },
   {
     pageTitle: "Squirrel Samurai",

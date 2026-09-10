@@ -1346,6 +1346,7 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .project-preview-enter {
+  display: none !important;
   justify-self: end;
   border-bottom: 1px solid currentColor;
   padding-bottom: 2px;
@@ -6470,45 +6471,34 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 /* ---------------------------------------------------------------------------
    Wide content bleeds past the reading column.
    Tables, diagrams and symbol grids need more horizontal room than prose does.
-   The bleed is computed from the parent, not the viewport, so it behaves the
-   same on the standalone route and inside the project drawer — where the shell
-   is not necessarily centred in the window. It collapses to zero on narrow
-   screens, where there is nothing to bleed into.
+   The bled box is centred on its parent's centre and capped by the viewport, so
+   it behaves identically on the standalone route (shell ~1250) and inside the
+   drawer (shell 1000) without either one overflowing. It collapses to the
+   column width on narrow screens, where there is nothing to bleed into.
    --------------------------------------------------------------------------- */
 
 .gdd-section,
 .case-study-system-section,
 .case-study-flow-section {
-  --case-bleed: clamp(0px, 5.2vw, 132px);
+  --case-bleed-width: min(1280px, calc(100vw - 96px));
 }
 
 .gdd-table-scroll,
 .gdd-figure-art,
 .gdd-symbol-key,
 .gdd-qgroups {
-  width: calc(100% + var(--case-bleed) * 2);
+  width: max(100%, var(--case-bleed-width));
   max-width: none;
-  margin-inline: calc(var(--case-bleed) * -1);
+  margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
+  margin-right: 0;
 }
 
-/* The figure keeps its inner padding so the drawing does not touch the bled edge. */
-.gdd-figure-art {
-  padding-inline: calc(clamp(18px, 3vw, 34px) + var(--case-bleed));
-}
+/* Keep the drawing off the bled edge. */
+.gdd-figure-art { padding-inline: clamp(18px, 3vw, 34px); }
 
-/* A bled table scroller still needs its own gutter so the first and last
-   columns are not flush against the edge of the bleed. */
-.gdd-table-scroll {
-  padding-inline: var(--case-bleed);
-  scrollbar-width: thin;
-}
+.gdd-table-scroll { scrollbar-width: thin; }
 
-.gdd-symbol-key,
-.gdd-qgroups {
-  padding-inline: var(--case-bleed);
-}
-
-/* Give the widest tables room to breathe rather than wrapping every cell. */
+/* Let wide tables use the room instead of wrapping every cell to two words. */
 .gdd-table { table-layout: auto; }
 .gdd-table td { min-width: 9ch; }
 .gdd-matrix td { white-space: nowrap; }
@@ -6516,5 +6506,5 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 @media (max-width: 900px) {
   .gdd-section,
   .case-study-system-section,
-  .case-study-flow-section { --case-bleed: 0px; }
+  .case-study-flow-section { --case-bleed-width: 100%; }
 }

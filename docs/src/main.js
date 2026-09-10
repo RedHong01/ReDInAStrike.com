@@ -690,7 +690,7 @@ const caseStudyDetails = {
 // matched playtest or a complete interaction recording.
 Object.assign(caseStudyDetails, {
   "/monologue": {
-    year: "2025 Fall",
+    year: "2025 Spring \u2192 Fall",
     title: "To Be Chosen",
     category: "Narrative Design / Multi-POV Structure",
     summary:
@@ -698,6 +698,7 @@ Object.assign(caseStudyDetails, {
     heroImage: null,
     heroAlt: "To Be Chosen POV switch chart",
     points: [
+      "Two terms: a single-protagonist premise in spring, rebuilt around five viewpoints in autumn.",
       "Narrative Director on a team of four; I owned the perspective structure.",
       "Five playable viewpoints, charted scene by scene against a single game-time timeline.",
       "I wrote the revision pass myself: the theme was in the story but not enforced by any mechanism.",

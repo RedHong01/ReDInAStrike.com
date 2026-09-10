@@ -690,7 +690,7 @@ const caseStudyDetails = {
 // matched playtest or a complete interaction recording.
 Object.assign(caseStudyDetails, {
   "/monologue": {
-    year: "2025 Fall",
+    year: "2025 Spring \u2192 Fall",
     title: "To Be Chosen",
     category: "Narrative Design / Multi-POV Structure",
     summary:
@@ -698,6 +698,7 @@ Object.assign(caseStudyDetails, {
     heroImage: null,
     heroAlt: "To Be Chosen POV switch chart",
     points: [
+      "Two terms: a single-protagonist premise in spring, rebuilt around five viewpoints in autumn.",
       "Narrative Director on a team of four; I owned the perspective structure.",
       "Five playable viewpoints, charted scene by scene against a single game-time timeline.",
       "I wrote the revision pass myself: the theme was in the story but not enforced by any mechanism.",
@@ -3886,9 +3887,14 @@ function gddPlates(section) {
         plate.rotate ? `--plate-rotate:${plate.rotate}deg` : "",
         plate.lift ? `--plate-lift:${plate.lift}` : "",
       ].filter(Boolean).join(";")
+      // The .project-media wrapper is not decoration: it is the box the dither
+      // engine and the colour halftone both mount their canvases into, which is
+      // what lets a held plate use the same surface a filtered card uses.
       return `
         <figure class="gdd-plate${plate.wide ? " gdd-plate--wide" : ""}" style="${style}">
-          <img ${imageSourceAttrs(plate.image)} alt="${escapeHtml(plate.alt || section.title)}" loading="lazy" decoding="async" />
+          <div class="project-media">
+            <img ${imageSourceAttrs(plate.image)} alt="${escapeHtml(plate.alt || section.title)}" loading="lazy" decoding="async" />
+          </div>
           ${plate.label ? `<figcaption>${escapeHtml(plate.label)}</figcaption>` : ""}
         </figure>`
     })

@@ -27,6 +27,16 @@ export const tbcSections = [
     zh: "每一個關鍵節點都透過某一個角色的受限視角來玩，因此每個女孩在故事結束時握有的都是不完整的說法。玩家是唯一看見全部的存在。這就是整個設計：它不是一樁由角色解開的謎，而是一幅只有握著手把的人才能拼起來的畫。",
   },
   {
+    kind: "flow",
+    title: "It Started as One Girl",
+    steps: [
+      ["SPRING 2025", "The first version is single-protagonist: Mia alone breaks into the town, alone finds out what the elders do to outsiders, alone goes back for Sarah.", "最初的版本是單主角：Mia 獨自闖入村莊、獨自查明長老們對外來者做了什麼、再獨自回去救 Sarah。"],
+      ["THE PROBLEM", "One girl who sees everything is a mystery she solves for you. Nothing is withheld, so nothing has to be pieced together.", "一個看見一切的女孩，等於替你把謎解完了。沒有東西被保留，也就沒有東西需要拼湊。"],
+      ["FALL 2025", "Rebuilt around five limited viewpoints. Each girl now ends the story with a partial account, and the assembly moves to the player.", "以五個受限視角重建。每個女孩最終握有的都是片面的說法，而拼合的工作交給了玩家。"],
+      ["WHAT REMAINED", "My own revision pass found discovery still clustering on Mia. The old shape had not fully left the new one.", "我自己的修訂發現，「發現」仍然聚集在 Mia 身上。舊的形狀並沒有真正離開新的結構。"],
+    ],
+  },
+  {
     kind: "image",
     image: "assets/tbc/pov-switch-chart.jpg",
     alt: "The To Be Chosen POV switch chart — a filmstrip timeline showing which character carries each scene",
@@ -89,6 +99,28 @@ export const tbcSections = [
     ],
   },
   {
+    kind: "plates",
+    title: "The Presentation",
+    intro: {
+      en: "Twelve slides taken to the final review: the brief, the character sheets, the three acts and what I concluded. Hover a slide to lift it; click to read it.",
+      zh: "帶去期末評審的十二頁：綱要、角色設定、三幕，以及我的結論。將游標移到任一頁可將它抬起，點擊即可閱讀。",
+    },
+    plates: [
+      { image: "assets/tbc/slide-01.jpg", span: 4, offset: "0px", rotate: -0.5, alt: "Storytelling For Games final presentation, slide 1", label: "SLIDE 01" },
+      { image: "assets/tbc/slide-02.jpg", span: 5, offset: "46px", rotate: 0, alt: "Storytelling For Games final presentation, slide 2", label: "SLIDE 02" },
+      { image: "assets/tbc/slide-03.jpg", span: 4, offset: "14px", rotate: 0.5, alt: "Storytelling For Games final presentation, slide 3", label: "SLIDE 03" },
+      { image: "assets/tbc/slide-04.jpg", span: 5, offset: "62px", rotate: 0, alt: "Storytelling For Games final presentation, slide 4", label: "SLIDE 04" },
+      { image: "assets/tbc/slide-05.jpg", span: 4, offset: "22px", rotate: -0.4, alt: "Storytelling For Games final presentation, slide 5", label: "SLIDE 05" },
+      { image: "assets/tbc/slide-06.jpg", span: 5, offset: "38px", rotate: 0, alt: "Storytelling For Games final presentation, slide 6", label: "SLIDE 06" },
+      { image: "assets/tbc/slide-07.jpg", span: 4, offset: "10px", rotate: 0.5, alt: "Storytelling For Games final presentation, slide 7", label: "SLIDE 07" },
+      { image: "assets/tbc/slide-08.jpg", span: 4, offset: "54px", rotate: 0, alt: "Storytelling For Games final presentation, slide 8", label: "SLIDE 08" },
+      { image: "assets/tbc/slide-09.jpg", span: 5, offset: "26px", rotate: -0.5, alt: "Storytelling For Games final presentation, slide 9", label: "SLIDE 09" },
+      { image: "assets/tbc/slide-10.jpg", span: 4, offset: "44px", rotate: 0, alt: "Storytelling For Games final presentation, slide 10", label: "SLIDE 10" },
+      { image: "assets/tbc/slide-11.jpg", span: 4, offset: "18px", rotate: 0.4, alt: "Storytelling For Games final presentation, slide 11", label: "SLIDE 11" },
+      { image: "assets/tbc/slide-12.jpg", span: 3, offset: "58px", rotate: 0, alt: "Storytelling For Games final presentation, slide 12", label: "SLIDE 12" }
+    ],
+  },
+  {
     kind: "text",
     title: "What the Revision Found",
     paragraphs: [
@@ -111,6 +143,9 @@ export const tbcSections = [
     },
     head: ["Document", "What it holds", "Date"],
     rows: [
+      ["Storytelling For Games — 1st graded assignment", "The original single-protagonist premise, before any of the perspective work.", "2025-02-25"],
+      ["Graded assignment #1, with notes", "The same premise returned with commentary — including a question mark against the title.", "2025-03-10"],
+      ["Graded assignment #2, with notes", "Full character sheets: personal goal, professional goal, emotional needs, strengths.", "2025-04-19"],
       ["Storytelling For Games — final presentation", "12 slides: story brief, protagonist, antagonist Elder Malachi, side characters, three acts, conclusions.", "Fall 2025"],
       ["Narrative Design Vision — 1st iteration", "The asymmetrical episodic premise stated for the first time.", "2025-12-12"],
       ["Narrative Design Vision — 2nd iteration", "The same premise with the POV chart bound into it.", "2025-12-19"],

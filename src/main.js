@@ -193,7 +193,7 @@ const projects = [
     pageTitle: "To Be Chosen",
     displayTitle: "Narrative Design Document",
     date: "3/10/2025",
-    path: "/monologue",
+    path: "/to-be-chosen",
     navHash: "game",
     image: "assets/framer-live/narrative-doc-2025-a.png",
   },
@@ -689,7 +689,7 @@ const caseStudyDetails = {
 // They stay deliberately narrow where the local archive does not contain a
 // matched playtest or a complete interaction recording.
 Object.assign(caseStudyDetails, {
-  "/monologue": {
+  "/to-be-chosen": {
     year: "2025 Spring \u2192 Fall",
     title: "To Be Chosen",
     category: "Narrative Design / Multi-POV Structure",
@@ -4131,7 +4131,7 @@ function caseStudyDetailMarkup(project, detail) {
     "/game-prototype": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=644-422",
     "/shroom-pot-showdown": "https://www.figma.com/design/174btXmgZagM2UU2Ud7TXz/Alt2Team3_ShroomPotShowdown?node-id=102-487",
     "/alt-controller-2025-a": "https://www.figma.com/design/xmD79sBtEvt0lfst75cMDz/Game-Development-4?node-id=67-113",
-    "/monologue": "https://www.figma.com/design/6ff8yXnsbuYuCVlvyWzARc?node-id=2009-5396",
+    "/to-be-chosen": "https://www.figma.com/slides/wSwsDkCUN6ki055dD6gZpG",
     "/curtain": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=963-1231",
     "/alt-controller-2025-b": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=176-77",
   }

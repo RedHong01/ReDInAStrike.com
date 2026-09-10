@@ -68,7 +68,7 @@
       "name": "(Figma Slides deck)",
       "type": "slides",
       "pages": {
-        "2009:5396": "referenced by /monologue"
+        "2009:5396": "referenced by /to-be-chosen"
       },
       "note": "Slides file - get_metadata unsupported; use get_screenshot"
     }
@@ -524,7 +524,7 @@
       ]
     },
     {
-      "route": "/monologue",
+      "route": "/to-be-chosen",
       "pageTitle": "To Be Chosen",
       "displayTitle": "Narrative Design Document",
       "date": "3/10/2025",

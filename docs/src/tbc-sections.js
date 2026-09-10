@@ -167,6 +167,63 @@ export const tbcSections = [
     },
   },
   {
+    kind: "spec-table",
+    title: "How a Line Got Fixed",
+    intro: {
+      en: "Sprint 3 was a barks pass: every line written to an asset ID, a trigger, and a 160-character ceiling, then run through first take → team note → edit → note → final. The notes are the useful part. Almost none of them are about wording; they are about what a character does and does not yet know at that moment in the scene.",
+      zh: "第三次衝刺是一輪環境台詞：每一句都對應一個素材編號、一個觸發條件、以及 160 字元的上限，然後走「初稿 → 組內意見 → 修訂 → 意見 → 定稿」。有價值的是那些意見。它們幾乎都不在談用詞，而在談這個角色在那一刻做了什麼、又還不知道什麼。",
+    },
+    head: ["Asset ID", "First take", "The note", "Final"],
+    rows: [
+      [
+        "SC1_CoachSarah_001",
+        "I'm sure they're pretty down because of the loss so maybe you can cheer them up?",
+        "Sarah is worried about their state after the drive, not about the defeat. She is still waiting for the right moment to raise that.",
+        "I'm sure they're pretty bored, maybe you can see how they're doing?",
+      ],
+      [
+        "SC1_Mia_004",
+        "Can Alexis and her friends take this more seriously? It's crazy how she's acting like nothing's happened after that loss…",
+        "Mia has not brought the loss up yet. It was her call to attempt the hard move, so she is mostly blaming herself and displacing the rest onto Alexis.",
+        "Hey Jodie. It's crazy how care-free Alexis and her friends are. How do you feel?",
+      ],
+      [
+        "SC1_Mia_008",
+        "Hey Serah, seems like everyone is feeling a bit angsty.",
+        "Mia refers to Sarah as Coach.",
+        "Hey Coach, seems like everyone is feeling a bit angsty.",
+      ],
+      [
+        "SC2_Alexis_005",
+        "Quit fucking with the music, Mia. You just had to go and break it.",
+        "Sarah has already pulled her up on language this scene. She reins it in and settles for sarcasm.",
+        "Quit messing with the music, Mia. You just had to go and break it.",
+      ],
+      [
+        "SC2_Lucy_002",
+        "Seems like you enjoy ruining everything you touch.",
+        "The group talks about Mia in the third person on purpose, to keep her outside it.",
+        "She seems to enjoy ruining everything she touches.",
+      ],
+      [
+        "SC3_Brianna_002",
+        "Hey, the match is already over. We don't need to keep fighting about it.",
+        "Brianna should be far more hesitant. She hates watching this and does not believe Mia will answer back.",
+        "Um… c-can we not start fighting again? The match is… it's already over, right?",
+      ],
+      [
+        "SC1_DriverBob_001",
+        "Just so you know girls, we're in for a long ride, so quit your complaining.",
+        "Bob can be warmer than this.",
+        "Just so you know girls, we're in for a long ride, make sure you get comfortable!",
+      ],
+    ],
+    note: {
+      en: "The sheet also caught the period: the story sits around 2000, so a note against Alexis's selfie line and another against a phone playing video both flagged hardware that did not exist yet. Driver Bob and teammate Lucy exist only here — they carry lines but never got a character sheet.",
+      zh: "這份表也抓到了年代：故事設定在 2000 年前後，因此 Alexis 自拍的那句、以及用手機播影片的那句，各被標註了一則「當時還沒有這種東西」。司機 Bob 與隊友 Lucy 只存在於此——他們有台詞，卻從未拿到角色設定。",
+    },
+  },
+  {
     kind: "flow",
     title: "Three Acts",
     steps: [
@@ -229,6 +286,7 @@ export const tbcSections = [
       ["Story Summary", "Act-by-act prose, and the source of the POV chart above.", "2025-12-19"],
       ["3 Scenes", "The scene set the team pitched, plus the credits for who did what.", "2025-12-19"],
       ["Attack Revision Plan", "What worked against what did not, written as a plan rather than a defence.", "2025-12-19"],
+      ["Sprint 3 barks spreadsheet — Team 2", "Roughly 90 lines across three bus scenes, each carried through two rounds of team notes to a final check.", "2025-12-09"],
       ["Story Summary + Vision, with reflection", "The originals preserved with revision commentary set against them in red.", "2025-12-19"],
     ],
     note: {

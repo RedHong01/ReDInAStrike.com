@@ -319,7 +319,7 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 - Codex config.toml still references /Users/redwang/Desktop/ArtCenter/AltControl3 which no longer exists
 
 
-### `/monologue` — To Be Chosen
+### `/to-be-chosen` — To Be Chosen
 
 *Narrative Design Document · 3/10/2025 · nav:game*
 
@@ -469,3 +469,25 @@ Long-unopened Unity projects were moved to an external volume. In most cases the
 ## Last verification
 
 `2026-09-10` — 0 problem(s)
+
+## To Be Chosen — narrative sources (added 2026-09-10)
+
+Outside the repo, in Google Drive `My Drive/Narrative Design/`:
+
+| Document | Holds |
+| --- | --- |
+| `Narrative Design Vision Document2nd　Iteration_RedWang.docx` | Brief, the four narrative mechanisms with worked Act I/II examples, mechanism percentage budget |
+| `To Be Chosen_Summary_RedWAng.docx` | Act-by-act prose plus 20 numbered plot points |
+| `ToBeChosen_AttackRevisionPlan_RedWang.docx` | Pros/cons, revision goal, "What I Will NOT Do" |
+
+Google Sheets — Narrative Design Sprint 3 Deliverable, Team 2:
+`1GpIihvi5n2uFa52qvfMgMc4YhILtVb5hAhXpZ9AJ7lU`. ~90 barks over three bus
+scenes; columns run First Take → Feedback → 1st Edit → Feedback → 2nd Edit →
+Final Check. Source for the "How a Line Got Fixed" section.
+
+Cast reference photographs: the Figma Slides deck caps `download_assets`
+rawImages at 20, which drops several faces. The complete set was recovered by
+extracting embedded image XObjects from the exported page PDFs
+(`scratchpad/pdfimg.py`) — every split page carries the whole deck's object
+table, ColorSpace is ICCBased N=3, and each picture has a paired `/SMask` that
+must be excluded. 16 images landed in `public/assets/tbc/cast/`.

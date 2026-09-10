@@ -6519,6 +6519,9 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .case-study-media-section .case-study-media { aspect-ratio: auto; }
 .case-study-media-section .case-study-media img { height: auto; object-fit: contain; }
 .case-study-media-section figcaption { padding-inline: clamp(20px, 4vw, 78px); }
+/* Source material is shown on the page ground, not on a plate: no fill behind
+   the picture and none behind the type under it. */
+.case-study-media-section .case-study-image { background: none; }
 
 /* Keep the drawing off the bled edge. */
 .gdd-figure-art { padding-inline: clamp(18px, 3vw, 34px); }
@@ -6689,14 +6692,26 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
    --------------------------------------------------------------------------- */
 
 .gdd-halftone-field {
+  /* Twelve columns so every band of cast members closes a whole row; dense
+     packing lets a short member backfill a gap instead of leaving the right
+     edge ragged. */
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: clamp(14px, 2vw, 30px);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  gap: clamp(20px, 2.6vw, 42px) clamp(16px, 2vw, 34px);
+  align-items: start;
   width: max(100%, var(--case-bleed-width));
   max-width: none;
   margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
   padding-inline: clamp(20px, 4vw, 78px);
   position: static;
+}
+
+.gdd-cast-member {
+  grid-column: span var(--cast-span, 4);
+  display: grid;
+  gap: 10px;
+  align-content: start;
 }
 
 .gdd-halftone-plate {
@@ -6713,34 +6728,77 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .gdd-halftone-plate .project-media {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
   overflow: hidden;
-  background: var(--paper);
+  background: none;
 }
 
-.gdd-halftone-plate .project-media img {
+.gdd-halftone-plate--lead .project-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Secondary references sit in a row beneath the lead, cropped to a common
+   band so the strip reads as one object rather than three loose pictures. */
+.gdd-cast-subs {
+  display: flex;
+  gap: clamp(8px, 1vw, 14px);
+}
+
+.gdd-cast-subs .gdd-halftone-plate {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.gdd-halftone-plate--sub .project-media {
+  aspect-ratio: 4 / 3;
+}
+
+.gdd-halftone-plate--sub .project-media img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.gdd-halftone-plate figcaption {
+.gdd-cast-note {
   display: grid;
   gap: 5px;
-  padding-top: 12px;
+  padding-top: 4px;
 }
 
-.gdd-halftone-label {
-  font-family: var(--type-subtitle-font);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.gdd-cast-name {
+  font-family: var(--serif);
+  font-size: clamp(17px, 1.5vw, 21px);
+  line-height: 1.15;
   color: var(--case-ink);
 }
 
-.gdd-halftone-copy {
+.gdd-cast-role {
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--case-accent, var(--case-muted));
+}
+
+.gdd-cast-copy {
+  margin: 2px 0 0;
   font-size: 14px;
-  line-height: calc(1em + 5px);
+  line-height: calc(1em + 6px);
   color: var(--case-copy);
+}
+
+.gdd-cast-credits {
+  margin: 6px 0 0;
+  padding: 6px 0 0;
+  list-style: none;
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid color-mix(in srgb, var(--case-ink) 18%, transparent);
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--case-muted);
 }

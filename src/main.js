@@ -3914,31 +3914,41 @@ function gddPlates(section) {
 // .project-card.is-filter-muted with a .project-media, so the markup reproduces
 // that shape exactly and the existing runtime CSS makes the canvas visible.
 function gddHalftone(section) {
-  const plates = section.plates
-    .map(
-      (plate) => `
-        <figure class="project-card is-filter-muted gdd-halftone-plate">
+  const plate = (entry, variant) => `
+        <figure class="project-card is-filter-muted gdd-halftone-plate gdd-halftone-plate--${variant}">
           <div class="project-media">
-            <img ${imageSourceAttrs(plate.image)} alt="${escapeHtml(plate.alt || section.title)}" loading="lazy" decoding="async" data-lightbox-disabled="true" />
+            <img ${imageSourceAttrs(entry.image)} alt="${escapeHtml(entry.alt || section.title)}" loading="lazy" decoding="async" data-lightbox-disabled="true" />
           </div>
-          <figcaption>
-            <span class="gdd-halftone-label">${escapeHtml(plate.label)}</span>
-            <span class="gdd-halftone-copy">${gddPair(plate.caption)}</span>
-            ${plate.credits?.length ? `<ul class="gdd-halftone-credits">${plate.credits.map((entry) => `<li>${escapeHtml(entry)}</li>`).join("")}</ul>` : ""}
-          </figcaption>
-        </figure>`,
-    )
+        </figure>`
+  const cast = section.cast
+    .map((member) => {
+      const [lead, ...rest] = member.plates
+      // Source credits belong to the typographic system, not baked into the picture.
+      const credits = member.credits?.length
+        ? `<ul class="gdd-cast-credits">${member.credits.map((entry) => `<li>${escapeHtml(entry)}</li>`).join("")}</ul>`
+        : ""
+      return `
+      <article class="gdd-cast-member" style="--cast-span:${member.span}">
+        ${plate(lead, "lead")}
+        ${rest.length ? `<div class="gdd-cast-subs">${rest.map((entry) => plate(entry, "sub")).join("")}</div>` : ""}
+        <div class="gdd-cast-note">
+          <span class="gdd-cast-name">${escapeHtml(member.name)}</span>
+          <span class="gdd-cast-role">${escapeHtml(member.role)}</span>
+          <p class="gdd-cast-copy">${gddPair(member.copy)}</p>
+          ${credits}
+        </div>
+      </article>`
+    })
     .join("")
   return `
     <section class="framer-case-section gdd-section gdd-halftone-section" aria-label="${escapeHtml(section.title)}">
       <h2 class="gdd-h2">${escapeHtml(section.title)}</h2>
       ${section.intro ? `<p class="gdd-intro">${gddPair(section.intro)}</p>` : ""}
-      <div class="catalog gdd-halftone-field" data-active-filter="halftone">${plates}</div>
+      <div class="catalog gdd-halftone-field" data-active-filter="halftone">${cast}</div>
       ${section.note ? `<p class="gdd-note">${gddPair(section.note)}</p>` : ""}
     </section>`
 }
 
-// The engine paints once the bitmap is decoded, so drive it per image.
 function paintHalftonePlates(root = document) {
   const plates = root.querySelectorAll(".gdd-halftone-plate")
   for (const plate of plates) {

@@ -59,36 +59,111 @@ export const tbcSections = [
   },
   {
     kind: "halftone",
-    title: "Casting References",
+    title: "The Cast, and Who I Was Writing Towards",
     intro: {
-      en: "Each character sheet carries a panel of faces I was writing towards before any art existed. The images run through the site\u2019s own halftone \u2014 the effect the catalogue applies to a card outside the selected category \u2014 so what survives is the silhouette and the weight. The credits are set in type rather than left inside the picture.",
-      zh: "每一份角色設定都附有一組臉孔，那是在任何美術產出之前，我書寫時所朝向的樣子。圖像經由網站自身的半調處理\u2014\u2014也就是目錄對非當前分類卡片所套用的效果\u2014\u2014因此留下的是輪廓與份量。出處以文字排版標示，而不是留在圖片裡。",
+      en: "Every character sheet in the deck carries a panel of faces I was writing towards before any art existed. The photographs are the originals out of the presentation, run through the site’s own halftone — the effect the catalogue applies to a card that falls outside the selected category — so what survives is the silhouette and the weight. Where the deck named a source I have set it in type; where it did not, I have left it unattributed rather than invent one.",
+      zh: "簡報裡每一份角色設定都附有一組臉孔，那是在任何美術產出之前，我書寫時所朝向的樣子。這些照片取自簡報中的原圖，經由網站自身的半調處理——也就是目錄對非當前分類卡片所套用的效果——因此留下的是輪廓與份量。簡報有註明出處的，我以文字排版標出；沒有註明的，我寧可留白，也不替它編一個。",
     },
-    plates: [
+    cast: [
       {
-        image: "assets/tbc/ref-mia.jpg",
-        alt: "Halftoned casting reference for the protagonist",
-        label: "PROTAGONIST / MIA THOMPSON",
-        credits: ["Catherine Blades"],
-        caption: {
-          en: "Seventeen, and asked to lead people who did not elect her.",
-          zh: "十七歲，卻被要求去領導一群並非選她出來的人。",
+        span: 7,
+        name: "Mia Thompson",
+        role: "PROTAGONIST / PLAYABLE",
+        copy: {
+          en: "Seventeen. The agile core of a west-coast cheer squad, pushed into leading people who did not elect her. Everything she does is bent on being seen as capable, and as enough. She is also the reason the first version of this story did not work: when one girl sees everything, the player has nothing left to assemble.",
+          zh: "十七歲。西岸高中啦啦隊裡最靈巧的核心，被推去領導一群並非選她出來的人。她所做的一切，都在爭取被看見為「有能力」與「足夠」。她同時也是這個故事第一版失敗的原因——當一個女孩看見了一切，玩家就沒有東西需要拼湊了。",
         },
+        credits: ["Catherine Blades"],
+        plates: [
+          { image: "assets/tbc/cast/mia-a.jpg", alt: "Competition-floor cheerleader reference for Mia Thompson" },
+          { image: "assets/tbc/cast/mia-b.jpg", alt: "Sideline cheerleader reference for Mia Thompson" },
+          { image: "assets/tbc/cast/mia-c.jpg", alt: "Candid reference photograph for Mia Thompson" },
+        ],
       },
       {
-        image: "assets/tbc/ref-malachi.jpg",
-        alt: "Halftoned casting reference for the antagonist",
-        label: "ANTAGONIST / ELDER MALACHI",
-        credits: ["Judge Turpin \u2014 Sweeney Todd", "Sho Murakami \u2014 Life", "Saruman \u2014 The Lord of the Rings"],
-        caption: {
-          en: "Reads 60\u201370, has lived far past it. Once a scholar; the ritual is what he made of the search.",
-          zh: "看上去六十到七十歲，實際遠不止。他曾是學者；那套儀式，是他把追尋做成的東西。",
+        span: 5,
+        name: "Elder Malachi",
+        role: "ANTAGONIST",
+        copy: {
+          en: "Reads sixty to seventy and has lived a long way past it. Once a young scholar after truth and control; the ritual is what he made of the search. What I wanted from the references was the absence of anger — he is never furious with Mia, he is convinced by her, and calls her a perfect vessel as though it were a compliment.",
+          zh: "看上去六十到七十歲，實際遠遠不止。他曾是個追求真理與控制的年輕學者；那套儀式，是他把追尋做成的東西。我要從參考裡取的，是「沒有怒氣」——他從不對 Mia 動怒，他被她說服，並且把「完美的容器」當成一句稱讚說出口。",
         },
+        credits: ["Judge Turpin — Sweeney Todd", "Sho Murakami — Life", "Saruman — The Lord of the Rings"],
+        plates: [
+          { image: "assets/tbc/cast/malachi-a.jpg", alt: "Judge Turpin reference for Elder Malachi" },
+          { image: "assets/tbc/cast/malachi-b.jpg", alt: "Sho Murakami reference for Elder Malachi" },
+          { image: "assets/tbc/cast/malachi-c.jpg", alt: "Saruman reference for Elder Malachi" },
+        ],
+      },
+      {
+        span: 4,
+        name: "Alexis Monroe",
+        role: "PROTAGONIST / PLAYABLE",
+        copy: {
+          en: "The other captain: confident and composed where Mia is meticulous and emotional. Her pride is the friction that opens the story, and it does not break under argument — it breaks in the dark, tied to Mia, when she admits she has always been afraid of being outdone.",
+          zh: "另一位隊長：Mia 細膩而情緒化，她則自信而沉穩。她的驕傲是揭開整個故事的摩擦，而它並不因爭吵而鬆動——它鬆動於黑暗裡，當她與 Mia 被綁在一起，承認自己一直害怕被人比下去的時候。",
+        },
+        plates: [
+          { image: "assets/tbc/cast/alexis-a.jpg", alt: "Composed portrait reference for Alexis Monroe" },
+          { image: "assets/tbc/cast/alexis-b.jpg", alt: "High-school portrait reference for Alexis Monroe" },
+        ],
+      },
+      {
+        span: 4,
+        name: "Jodie Smith",
+        role: "PROTAGONIST / PLAYABLE",
+        copy: {
+          en: "Mia’s best friend since elementary and the squad’s quiet moral anchor. She reads the doubt before anyone says it out loud, and she is the one who answers back when Alexis starts. In the barks she is also the one who falls asleep on the bus.",
+          zh: "從小學就是 Mia 的摯友，也是隊上安靜的道德錨點。她在任何人開口之前就讀出了那份懷疑，也是 Alexis 一開口就會頂回去的人。在對白裡，她同時是那個在車上睡著的人。",
+        },
+        plates: [
+          { image: "assets/tbc/cast/jodie-a.jpg", alt: "Hallway reference photograph for Jodie Smith" },
+          { image: "assets/tbc/cast/jodie-b.jpg", alt: "Night-lit reference photograph for Jodie Smith" },
+        ],
+      },
+      {
+        span: 4,
+        name: "Brianna Reyes",
+        role: "PROTAGONIST / PLAYABLE",
+        copy: {
+          en: "Alexis’s loyal best friend, and the one too frightened to go along — which is exactly why she is somewhere else when things happen, and why her account is the one with the hole in it. Guilt is what eventually sends her into the ventilation shaft.",
+          zh: "Alexis 忠實的摯友，也是那個怕到不敢跟上的人——正因如此，事情發生時她總在別的地方，她的說法也就是有缺口的那一份。最後把她送進通風管的，是愧疚。",
+        },
+        plates: [
+          { image: "assets/tbc/cast/brianna-a.jpg", alt: "Close reference portrait for Brianna Reyes" },
+        ],
+      },
+      {
+        span: 5,
+        name: "Coach Sarah",
+        role: "PROTAGONIST / PLAYABLE",
+        copy: {
+          en: "The only adult on the bus. She goes to check on the driver, meets the villagers first, and is the first to be missed. Her bag holds the ledger with tonight’s names in order — which is not world-building, it is a countdown.",
+          zh: "車上唯一的大人。她去查看司機的狀況、最先遇到村民，也是最先被發現失蹤的人。她的包裡有那本名冊，按順序寫著今晚的名字——那不是世界觀，那是倒數。",
+        },
+        plates: [
+          { image: "assets/tbc/cast/sarah-a.jpg", alt: "Studio reference portrait for Coach Sarah" },
+          { image: "assets/tbc/cast/sarah-b.jpg", alt: "Courtside reference photograph for Coach Sarah" },
+          { image: "assets/tbc/cast/sarah-c.jpg", alt: "Sideline reference photograph for Coach Sarah" },
+        ],
+      },
+      {
+        span: 7,
+        name: "Elder Theo",
+        role: "ANTAGONIST",
+        copy: {
+          en: "The kind man who offers the squad hot food and a bed, and the reason Alexis argues for staying put. He is loyal to Malachi and has no idea what he is loyal to — he reads the ritual as sacred legacy and admires the prophet, while quietly hoping to replace him. He is the character the horror needs most: the one whose warmth is real.",
+          zh: "那位端上熱食與床鋪的好心人，也是 Alexis 主張留下的理由。他忠於 Malachi，卻完全不知道自己忠於的是什麼——他把儀式讀成神聖的傳承，敬慕那位先知，同時悄悄希望取代他。他是這個恐怖故事最需要的角色：那個溫暖是真的的人。",
+        },
+        plates: [
+          { image: "assets/tbc/cast/theo-a.jpg", alt: "Interior reference photograph for Elder Theo" },
+          { image: "assets/tbc/cast/theo-b.jpg", alt: "Formal-wear reference photograph for Elder Theo" },
+        ],
       },
     ],
     note: {
-      en: "These are references I gathered while writing, not artwork for the game.",
-      zh: "這些是我寫作期間蒐集的參考，並非遊戲的美術稿。",
+      en: "These are casting references gathered while writing, not artwork for the game. Driver Bob and teammate Lucy speak in the dialogue sprint but were never given a sheet.",
+      zh: "這些是我寫作期間蒐集的選角參考，並非遊戲的美術稿。司機 Bob 與隊友 Lucy 在對白衝刺裡有台詞，但從未拿到一份角色設定。",
     },
   },
   {

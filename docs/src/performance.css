@@ -22,6 +22,11 @@ html.red-perf-pass-1 .site-header::before {
   will-change: backdrop-filter;
 }
 
+/* Containment also makes each row a stacking context at z-index auto, so the
+   catalogue paints strictly in DOM order and no descendant's z-index can reach
+   past its own row. That is deliberate, but it is why an open drawer's sticky
+   lead is layered by `.project-row[data-project-detail-open]{z-index:18}` in
+   styles.css rather than by the card. Raise rows, never cards. */
 html.red-perf-pass-1 .project-row {
   contain: layout paint;
 }

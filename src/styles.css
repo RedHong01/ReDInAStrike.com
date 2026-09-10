@@ -1985,8 +1985,13 @@ body[data-layout-transition="true"] .about-section {
 .project-row.has-project-preview[data-project-detail-open="true"] {
   position: relative;
   top: auto;
-  /* Keep the whole detail block above following catalogue cards (which create
-     their own stacking contexts via transform) for the article's lifetime.
+  /* Keep the whole detail block above following catalogue cards for the
+     article's lifetime. The layer has to live on the ROW: performance.css
+     gives every .project-row `contain: layout paint` (and `contain: layout`
+     once a preview is open), and containment makes each row its own stacking
+     context at z-index auto — so rows paint in DOM order and the sticky lead's
+     own z-index (28) is sealed inside this one. Raising the card does nothing;
+     only this row-level value keeps the compact bar off the cards below.
      Stay below the site header (20). */
   z-index: 18;
 }
@@ -4875,6 +4880,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   padding-bottom: 0;
   position: relative;
   top: auto;
+  /* Same row-level layer as the base rule above; see the note there for why a
+     z-index on the sticky card itself cannot do this job. */
   z-index: 18;
   background: var(--paper);
 }

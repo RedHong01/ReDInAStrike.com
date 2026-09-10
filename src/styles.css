@@ -6466,3 +6466,55 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   font-size: 11px;
   color: var(--case-muted);
 }
+
+/* ---------------------------------------------------------------------------
+   Wide content bleeds past the reading column.
+   Tables, diagrams and symbol grids need more horizontal room than prose does.
+   The bleed is computed from the parent, not the viewport, so it behaves the
+   same on the standalone route and inside the project drawer — where the shell
+   is not necessarily centred in the window. It collapses to zero on narrow
+   screens, where there is nothing to bleed into.
+   --------------------------------------------------------------------------- */
+
+.gdd-section,
+.case-study-system-section,
+.case-study-flow-section {
+  --case-bleed: clamp(0px, 5.2vw, 132px);
+}
+
+.gdd-table-scroll,
+.gdd-figure-art,
+.gdd-symbol-key,
+.gdd-qgroups {
+  width: calc(100% + var(--case-bleed) * 2);
+  max-width: none;
+  margin-inline: calc(var(--case-bleed) * -1);
+}
+
+/* The figure keeps its inner padding so the drawing does not touch the bled edge. */
+.gdd-figure-art {
+  padding-inline: calc(clamp(18px, 3vw, 34px) + var(--case-bleed));
+}
+
+/* A bled table scroller still needs its own gutter so the first and last
+   columns are not flush against the edge of the bleed. */
+.gdd-table-scroll {
+  padding-inline: var(--case-bleed);
+  scrollbar-width: thin;
+}
+
+.gdd-symbol-key,
+.gdd-qgroups {
+  padding-inline: var(--case-bleed);
+}
+
+/* Give the widest tables room to breathe rather than wrapping every cell. */
+.gdd-table { table-layout: auto; }
+.gdd-table td { min-width: 9ch; }
+.gdd-matrix td { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .gdd-section,
+  .case-study-system-section,
+  .case-study-flow-section { --case-bleed: 0px; }
+}

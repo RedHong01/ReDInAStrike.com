@@ -2,34 +2,24 @@
   const STYLE_ID = "red-invert-cursor-style"
   const CURSOR_CLASS = "red-invert-cursor"
   const ACTIVE_CLASS = "has-red-invert-cursor"
+  const LABEL_CLASS = "is-preview-label"
   const CURSOR_SIZE = 14
+  const LABEL_TEXT = "Click again to view"
   const POINTER_MEDIA = "(any-hover: hover) and (any-pointer: fine)"
+  // Match --nav-ease used across the paper UI.
+  const MOTION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
+  const EXPAND_MS = 420
+  const LABEL_FADE_MS = 260
 
-  const VERTEX_SHADER_SOURCE = `
-    attribute vec2 a_position;
-
-    void main() {
-      gl_Position = vec4(a_position, 0.0, 1.0);
-    }
-  `
-
-  const FRAGMENT_SHADER_SOURCE = `
-    precision mediump float;
-
-    void main() {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-  `
-
-  let canvas = null
-  let gl = null
-  let program = null
-  let positionLocation = -1
-  let buffer = null
+  let host = null
+  let chip = null
+  let label = null
   let frame = 0
   let pointerX = 0
   let pointerY = 0
   let pointerVisible = false
+  let labelActive = false
+  let labelWidth = 0
   let mounted = false
 
   function ensureStyle() {
@@ -44,25 +34,78 @@
         top: 0;
         z-index: 2147483647;
         display: none;
-        width: ${CURSOR_SIZE}px;
-        height: ${CURSOR_SIZE}px;
         margin: 0;
         padding: 0;
         border: 0;
-        border-radius: 0;
-        background: #fff;
+        background: transparent;
         opacity: 0;
         pointer-events: none;
         mix-blend-mode: difference;
-        image-rendering: pixelated;
         transform: translate3d(-100px, -100px, 0);
         will-change: transform, opacity;
-        contain: strict;
         cursor: none !important;
       }
 
       .${CURSOR_CLASS}.is-visible {
         opacity: 1;
+      }
+
+      .${CURSOR_CLASS}__chip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        width: ${CURSOR_SIZE}px;
+        height: ${CURSOR_SIZE}px;
+        padding: 0;
+        overflow: hidden;
+        background: #fff;
+        color: #000;
+        white-space: nowrap;
+        image-rendering: pixelated;
+        transform: translate(-50%, -50%);
+        transform-origin: center center;
+        transition:
+          width ${EXPAND_MS}ms ${MOTION_EASE},
+          height ${EXPAND_MS}ms ${MOTION_EASE},
+          padding ${EXPAND_MS}ms ${MOTION_EASE};
+      }
+
+      .${CURSOR_CLASS}.${LABEL_CLASS} .${CURSOR_CLASS}__chip {
+        height: 22px;
+        padding: 0 12px;
+      }
+
+      .${CURSOR_CLASS}__label {
+        display: block;
+        max-width: 0;
+        opacity: 0;
+        overflow: hidden;
+        font-family: var(--type-subtitle-font, var(--mono, "Courier New", monospace));
+        font-size: var(--project-caption-size, var(--type-subtitle-size, 13px));
+        line-height: 1;
+        letter-spacing: 0.01em;
+        text-transform: none;
+        transform: translate3d(-6px, 0, 0);
+        transition:
+          opacity ${LABEL_FADE_MS}ms ease,
+          max-width ${EXPAND_MS}ms ${MOTION_EASE},
+          transform ${EXPAND_MS}ms ${MOTION_EASE};
+      }
+
+      .${CURSOR_CLASS}.${LABEL_CLASS} .${CURSOR_CLASS}__label {
+        max-width: 18rem;
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        transition-delay: 48ms, 0ms, 0ms;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .${CURSOR_CLASS}__chip,
+        .${CURSOR_CLASS}__label {
+          transition-duration: 1ms !important;
+          transition-delay: 0ms !important;
+        }
       }
 
       @media ${POINTER_MEDIA} {
@@ -98,91 +141,52 @@
     return false
   }
 
-  function createShader(type, source) {
-    const shader = gl?.createShader(type)
-    if (!shader) return null
-    gl.shaderSource(shader, source)
-    gl.compileShader(shader)
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      gl.deleteShader(shader)
-      return null
-    }
-    return shader
-  }
-
-  function createRenderer() {
-    gl = canvas?.getContext("webgl", {
-      alpha: true,
-      antialias: false,
-      depth: false,
-      premultipliedAlpha: true,
-      preserveDrawingBuffer: false,
-      stencil: false,
-    })
-    if (!gl) return false
-
-    const vertexShader = createShader(gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE)
-    const fragmentShader = createShader(gl.FRAGMENT_SHADER, FRAGMENT_SHADER_SOURCE)
-    if (!vertexShader || !fragmentShader) return false
-
-    program = gl.createProgram()
-    if (!program) return false
-    gl.attachShader(program, vertexShader)
-    gl.attachShader(program, fragmentShader)
-    gl.linkProgram(program)
-    gl.deleteShader(vertexShader)
-    gl.deleteShader(fragmentShader)
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      gl.deleteProgram(program)
-      program = null
-      return false
-    }
-
-    positionLocation = gl.getAttribLocation(program, "a_position")
-    buffer = gl.createBuffer()
-    if (positionLocation < 0 || !buffer) return false
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-      gl.STATIC_DRAW,
-    )
-    gl.useProgram(program)
-    gl.enableVertexAttribArray(positionLocation)
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
+  function isPreviewLabelTarget(node) {
+    if (!node || typeof node.closest !== "function") return false
+    const card = node.closest(".project-card.is-project-preview")
+    if (!card) return false
+    if (card.classList.contains("project-preview-exit-ghost")) return false
+    if (card.classList.contains("project-preview-expand-ghost")) return false
+    // Once the article drawer is open, the second click has already happened.
+    if (card.hasAttribute("data-project-detail-open")) return false
     return true
   }
 
-  function resizeCanvas() {
-    if (!canvas) return
-    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1))
-    const pixels = Math.max(1, Math.round(CURSOR_SIZE * dpr))
-    if (canvas.width === pixels && canvas.height === pixels) return
+  function measureLabelWidth() {
+    if (!label) return CURSOR_SIZE
+    const prevMax = label.style.maxWidth
+    const prevOpacity = label.style.opacity
+    label.style.maxWidth = "none"
+    label.style.opacity = "0"
+    const textWidth = Math.ceil(label.scrollWidth)
+    label.style.maxWidth = prevMax
+    label.style.opacity = prevOpacity
+    // Match expanded horizontal padding (12px * 2).
+    return Math.max(CURSOR_SIZE, textWidth + 24)
+  }
 
-    canvas.width = pixels
-    canvas.height = pixels
-    if (gl) gl.viewport(0, 0, pixels, pixels)
+  function setLabelActive(next) {
+    if (!host || !chip || !label) return
+    if (labelActive === next) {
+      if (next && labelWidth > 0) chip.style.width = `${labelWidth}px`
+      return
+    }
+    labelActive = next
+    host.classList.toggle(LABEL_CLASS, next)
+    if (next) {
+      labelWidth = measureLabelWidth()
+      chip.style.width = `${labelWidth}px`
+    } else {
+      chip.style.width = `${CURSOR_SIZE}px`
+    }
   }
 
   function render() {
     frame = 0
-    if (!canvas) return
-
-    resizeCanvas()
-    canvas.style.transform = `translate3d(${Math.round(pointerX - CURSOR_SIZE / 2)}px, ${Math.round(pointerY - CURSOR_SIZE / 2)}px, 0)`
-    canvas.classList.toggle("is-visible", pointerVisible)
-
-    if (!gl || !program) return
-    gl.viewport(0, 0, canvas.width, canvas.height)
-    gl.clearColor(0, 0, 0, 0)
-    gl.clear(gl.COLOR_BUFFER_BIT)
-    gl.useProgram(program)
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.enableVertexAttribArray(positionLocation)
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    if (!host) return
+    // Chip self-centers via translate(-50%, -50%), so the host tracks the tip.
+    host.style.transform = `translate3d(${Math.round(pointerX)}px, ${Math.round(pointerY)}px, 0)`
+    host.classList.toggle("is-visible", pointerVisible)
   }
 
   function scheduleRender() {
@@ -192,13 +196,15 @@
 
   function hideCursor() {
     pointerVisible = false
+    setLabelActive(false)
     scheduleRender()
   }
 
-  function showCursorAt(x, y) {
+  function showCursorAt(x, y, target) {
     pointerX = x
     pointerY = y
     pointerVisible = true
+    setLabelActive(isPreviewLabelTarget(target))
     scheduleRender()
   }
 
@@ -213,7 +219,7 @@
       return
     }
 
-    showCursorAt(event.clientX, event.clientY)
+    showCursorAt(event.clientX, event.clientY, event.target)
   }
 
   function handlePointerDown(event) {
@@ -226,7 +232,7 @@
     // Re-assert native hide on press; some engines briefly restore the OS cursor
     // when hit-testing clickable controls with leftover cursor:* declarations.
     setNativeCursorHidden(true)
-    showCursorAt(event.clientX, event.clientY)
+    showCursorAt(event.clientX, event.clientY, event.target)
   }
 
   function handlePointerOut(event) {
@@ -250,16 +256,21 @@
     ensureStyle()
     setNativeCursorHidden(true)
 
-    canvas = document.createElement("canvas")
-    canvas.className = CURSOR_CLASS
-    canvas.setAttribute("aria-hidden", "true")
-    canvas.width = CURSOR_SIZE
-    canvas.height = CURSOR_SIZE
-    document.body.appendChild(canvas)
+    host = document.createElement("div")
+    host.className = CURSOR_CLASS
+    host.setAttribute("aria-hidden", "true")
 
-    const renderedWithWebGL = createRenderer()
-    canvas.dataset.renderer = renderedWithWebGL ? "webgl" : "fallback"
-    resizeCanvas()
+    chip = document.createElement("div")
+    chip.className = `${CURSOR_CLASS}__chip`
+
+    label = document.createElement("span")
+    label.className = `${CURSOR_CLASS}__label`
+    label.textContent = LABEL_TEXT
+
+    chip.appendChild(label)
+    host.appendChild(chip)
+    document.body.appendChild(host)
+
     window.addEventListener("pointermove", handlePointerMove, { passive: true })
     window.addEventListener("pointerdown", handlePointerDown, { passive: true })
     window.addEventListener("pointerup", handlePointerDown, { passive: true })

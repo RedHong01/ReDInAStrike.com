@@ -1,75 +1,23 @@
 // Readable adaptations of legacy project boards. Provenance lives in the audit workspace.
 export const editorialReadableSections = {
-  "myfridge": [
-    {
-      "heading": "The project starts with a household planning problem.",
-      "body": "The project frames refrigerator management and food-waste monitoring as an interaction problem. Instead of presenting every screen at once, the page should begin with the situation the team was trying to make easier: keeping track of what is present, what needs attention, and what decision comes next."
-    },
-    {
-      "heading": "Research was translated into a problem statement, interviews, insights, and a persona.",
-      "body": "The source page visibly includes Problem Statement, Interview, Insights and Results, How Might We, Persona, and Competitor Analysis sections. Treat these as the documented process spine. Quote a finding only after matching it to the original interview or research file; the screenshot alone is too small to support exact participant claims."
-    },
-    {
-      "heading": "How might the app turn scattered food information into one usable decision flow?",
-      "body": "The page's green How Might We panel should become the central design question. Keep the original statement as an image or transcription only after checking the source text; the surrounding explanation can state the intended relationship between freshness, storage, planning, and shopping without adding an outcome."
-    },
-    {
-      "heading": "The answer is shown as a flow before it becomes a screen set.",
-      "body": "Show the User Flow and Red's wireframes as the bridge between research and high fidelity. Then introduce the final screens—onboarding, inventory, receipt scanning, waste tracking, and item details—as the interface response to that flow. This makes the page explain why the screens exist instead of treating them as a gallery."
-    },
-    {
-      "heading": "A team project needs a clear account of Red's contribution.",
-      "body": "The site currently credits Red, Mika, and Kaiyi as a team. Keep that credit, then add Red's specific responsibility only after the project source confirms it. The available evidence supports a process and interface case; it does not yet support a measured result or a single-person ownership claim."
-    }
+  myfridge: [
+    { heading: "What is in the fridge?", body: "MyFridge brings food inventory, freshness, storage and shopping into one interface. The starting problem is simple: a household can buy food without keeping track of what is already there or when it needs to be used.", zh: "MyFridge 把食材庫存、新鮮度、儲存與購物放進同一個介面。起點很簡單：家裡可能持續購買食物，卻沒有掌握冰箱裡已經有什麼，以及何時需要用掉。" },
+    { heading: "Research before screens", body: "The process board moves through a problem statement, interviews, insights, a How Might We question, a persona and competitor analysis. Those steps connect the household situation to the user flow. The preserved board documents the process, but it does not establish a measured reduction in food waste.", zh: "流程板依序整理問題陳述、訪談、洞察、How Might We、人物誌與競品分析。這些步驟把家庭裡的實際情境連到使用者流程。原稿記錄了這個過程，還不能用來宣稱食物浪費已經減少。" },
+    { heading: "From flow to interface", body: "The screens cover onboarding, inventory, receipt scanning, waste tracking and item details. Receipt scanning belongs to the interface prototype. Inventory and item details organize what is present and what needs attention, while the waste view makes past decisions visible.", zh: "畫面涵蓋引導、庫存、收據掃描、浪費追蹤與品項詳情。收據掃描屬於介面原型。庫存與品項詳情整理目前有什麼、什麼需要注意；浪費紀錄則讓過去的選擇變得可見。" },
+    { heading: "Team and scope", body: "The project credits Red, Mika and Kaiyi. The available material supports a research and interface case. Individual ownership of each research step and the outcome of a usability test remain to be matched to the original records.", zh: "專案由 Red、Mika 與 Kaiyi 共同完成。目前材料支持研究與介面案例；每個研究步驟的個人分工，以及易用性測試的結果，仍需要對照原始記錄。" },
   ],
-  "assethub": [
-    {
-      "heading": "Production assets become difficult to use when their location and context are split apart.",
-      "body": "The original page describes a collection of images, videos, 3D models, and text resources spread across devices and platforms. AssetHub proposes a central place to locate those resources while keeping the file context visible."
-    },
-    {
-      "heading": "The interface combines a resource index with previews and file context.",
-      "body": "Use the visible file tables, thumbnail browser, login state, and preview windows to explain the structure: identify the resource, inspect its preview, and keep its location and metadata in view. This is a description of the shown interface, not a claim that every platform integration is implemented."
-    },
-    {
-      "heading": "Follow one asset from search to use.",
-      "body": "The replacement page should demonstrate one concrete workflow: locate a file, inspect it, and reach the point where it can be used in a production context. The current screenshot suggests this structure but does not provide a verified task recording, so label the section as a design walkthrough until a matched prototype interaction is captured."
-    },
-    {
-      "heading": "One project, two legacy entrances.",
-      "body": "Keep `/assethub` as the canonical route and either redirect `/uiux-prototype` or label it as an alternate presentation of the same AssetHub work. If the source later proves they are distinct, split the copy and media then; the current evidence does not justify two separate stories."
-    }
+  assethub: [
+    { heading: "Find the asset without losing its context", body: "AssetHub addresses collections of images, videos, 3D models and text spread across devices and platforms. The interface proposes one place to locate a resource while keeping its preview, location and file information together.", zh: "AssetHub 處理散落在不同裝置與平台的圖片、影片、3D 模型與文字資源。介面希望在同一處找到資源，同時保留預覽、位置與檔案資訊。" },
+    { heading: "Index, preview, inspect", body: "File tables and thumbnail views offer two ways into the collection. Preview windows show the resource before it is used. Keeping metadata beside the preview helps the user check the file in context instead of relying on its name alone.", zh: "檔案表格與縮圖提供兩種瀏覽收藏的方式。預覽視窗讓使用者在使用前先看見資源；把資料放在預覽旁，讓確認檔案不必只依賴名稱。" },
+    { heading: "Prototype boundary", body: "The shown interface defines a locate → inspect → use direction. A matched task recording is still needed to demonstrate the whole interaction and confirm which platform integrations are implemented. The two legacy site entries present this same AssetHub work.", zh: "現有介面定義了尋找 → 檢查 → 使用的方向。仍需要對應的任務錄影展示完整互動，並確認哪些平台整合已經完成。網站中的兩個舊入口展示的是同一份 AssetHub 作品。" },
   ],
-  "pitchfork": [
-    {
-      "heading": "Build one cover around a clear editorial subject.",
-      "body": "The finished cover centers Beyoncé and Cowboy Carter. The readable page should identify that subject first, then explain how the title, masthead, portrait crop, release line, and barcode establish a magazine hierarchy."
-    },
-    {
-      "heading": "Scale does the editorial work.",
-      "body": "The oversized Pitchfork masthead anchors the page; the portrait sits below it as the visual subject; the album line, date, and barcode remain secondary. Use detail crops to let the reader inspect the relationship between image, type, and negative space rather than describing the cover in generic terms."
-    },
-    {
-      "heading": "The result is a resolved print object.",
-      "body": "Keep the cover large and quiet. Follow it with a small page-by-page strip or two selected spreads from the local artwork folder, each captioned by what to inspect: crop, masthead, type hierarchy, or barcode placement. Do not add a player-experience claim to this graphic-design case."
-    }
+  pitchfork: [
+    { heading: "Beyoncé / Cowboy Carter", body: "The cover is built around Beyoncé and Cowboy Carter. The portrait provides the subject; the masthead gives the page its publication identity. Album information, the release line and the barcode sit below those two priorities.", zh: "封面圍繞 Beyoncé 與 Cowboy Carter 展開。肖像提供主體，刊頭建立出版物身分；專輯資訊、發行文字與條碼位於這兩個重點之下。" },
+    { heading: "Scale and crop", body: "An oversized masthead, a deliberate portrait crop and a restrained black-and-white palette organize the cover. The hierarchy comes from the relative size and placement of type and image, with smaller supporting details held at the edge of the composition.", zh: "放大的刊頭、經過選擇的肖像裁切與克制的黑白配色共同組織封面。層級來自文字與影像的相對大小和位置，較小的補充資訊則被放到構圖邊緣。" },
+    { heading: "The finished object", body: "This is an editorial design exercise. The cover is the main result: a study of type proportion, image placement, negative space and print information rather than a gameplay case.", zh: "這是一個編輯設計練習，封面就是主要成果。它研究字體比例、影像位置、留白與印刷資訊，屬於平面設計案例。" },
   ],
   "untitled-sans": [
-    {
-      "heading": "Untitled Sans was studied as a neutral, everyday type system.",
-      "body": "The research document identifies Untitled Sans as a contemporary neo-grotesque sans serif designed by Kris Sowersby and released by Klim Type Foundry in 2017. It describes open counters, balanced spacing, softened terminals, and a restrained visual personality. Keep this as source research, distinct from Red's own specimen decisions."
-    },
-    {
-      "heading": "Under the Skin supplied a visual and editorial reference for the specimen.",
-      "body": "The research combines Untitled Sans with a study of Jonathan Glazer's Under the Skin. The visible cover image uses a street photograph, a halftone field, and a vertical Untitled Sans title with Jonathan Glazer named beside it. Explain that relationship as a reference and layout decision; do not turn it into a film-analysis claim beyond the sourced research."
-    },
-    {
-      "heading": "Read the booklet from observation to use.",
-      "body": "Replace the long screenshot with a readable sequence: type history and character observations; the Under the Skin reference; large and small type samples; spacing and hierarchy; then the final booklet spreads. The page should show how scale, rhythm, and composition make the typeface legible and felt across a page."
-    },
-    {
-      "heading": "A legacy route name should not describe the work.",
-      "body": "The public title should become Untitled Sans once the final booklet source is confirmed. Keep the old `/narrative-design-document` path as a compatibility alias if needed, but remove Narrative Design Document from the card and page title so this typography case is not confused with To Be Chosen."
-    }
-  ]
+    { heading: "A quiet typeface, examined closely", body: "My research studies Untitled Sans through its open counters, balanced spacing and restrained shapes. The specimen makes those qualities visible at different scales instead of relying on the typeface name to explain its character.", zh: "研究從 Untitled Sans 的開放字腔、均衡字距與克制字形開始。Specimen 用不同尺度讓這些特徵可見，而不是只靠字體名稱來解釋性格。" },
+    { heading: "Under the Skin as a reference", body: "The booklet connects the type study to Under the Skin. The cover combines street photography, a halftone field and a vertical title. That reference gives the specimen a visual setting for testing scale, crop and rhythm.", zh: "小冊子把字體研究連到《Under the Skin》。封面結合街頭攝影、半色調區域與垂直標題；這個參考為字級、裁切與節奏提供了視覺情境。" },
+  ],
 }

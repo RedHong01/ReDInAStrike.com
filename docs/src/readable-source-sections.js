@@ -202,8 +202,8 @@ export const supportingReadableSections = {
       "title": "Scope and Iteration",
       "paragraphs": [
         {
-          "en": "The Figma record labels four phases and then notes “All four now,” with a 48-second pass aimed at a 3–5 minute demo experience. That note documents a target and a stage of iteration; it does not provide a measured completion rate or a player study. The public page should therefore show the sequence and the reward rule, then keep longer runtime and outcome claims tied to a matched recording.",
-          "zh": "Figma 記錄列出四個階段，之後標註「All four now」，並以 48 秒流程作為 3–5 分鐘 demo 體驗的目標。這段文字記錄了迭代目標與階段，不代表完成率或玩家研究結果。因此公開頁面先展示流程和獎勵規則，較長的遊玩時間與結果仍要對應到正確錄影。"
+          "en": "The Figma record labels four phases and then notes “All four now,” with a 48-second pass aimed at a 3–5 minute demo experience. That note documents a target and a stage of iteration; it does not provide a measured completion rate or a player study. The tutorial sequence and reward rule are documented. A continuous demo recording is still needed to show the experience at that length.",
+          "zh": "Figma 記錄列出四個階段，之後標註「All four now」，並以 48 秒流程作為 3–5 分鐘 demo 體驗的目標。這段文字記錄了迭代目標與階段，不代表完成率或玩家研究結果。教學流程與獎勵規則已有記錄；完整 demo 錄影仍需要展示這個時長下的體驗。"
         },
         {
           "en": "The current verified project materials are the visionOS interaction scripts and the Unity/Figma gesture sources. Deprecated Ultraleap material is not part of this page’s interaction account.",
@@ -377,7 +377,7 @@ export const supportingReadableSections = {
     },
     {
       "kind": "flow",
-      "title": "Spatial Proposal / [VERIFY]",
+      "title": "Reading the Spatial Study",
       "steps": [
         [
           "UNIT",
@@ -396,8 +396,8 @@ export const supportingReadableSections = {
         ],
         [
           "ACTION",
-          "Player response and complete interaction loop: [VERIFY].",
-          "玩家回應與完整互動循環：[待核對]。"
+          "The complete player response still needs a matching walkthrough.",
+          "完整玩家回應仍需要對應的操作示範。"
         ]
       ]
     },
@@ -406,8 +406,8 @@ export const supportingReadableSections = {
       "title": "Current Build Boundary",
       "paragraphs": [
         {
-          "en": "The local Curtain project contains a current Unity/WebGL build and scenes, while CurtainGame.pdf is image-only in the extracted local evidence. The Figma page can support the unit, boundary, and request language; it cannot by itself support a complete gameplay loop or a claim about Red’s role. Keep the playable build beside this short source reading until a matching walkthrough is recorded.",
-          "zh": "本機 Curtain 專案包含目前的 Unity／WebGL build 與場景，但本機抽取到的 CurtainGame.pdf 只有圖片，沒有可讀文字。Figma 頁面可以支持單位、邊界與邀請的語言，卻不能單獨支持完整玩法循環或 Red 的職責說明。在錄下對應 walkthrough 之前，應把可玩 build 和這段短原稿閱讀並列。"
+          "en": "A Unity/WebGL prototype is available below. The design drawings establish the spatial units, the boundary, and the request at the door. A matching walkthrough is still needed to explain the player’s complete objective, response, and result.",
+          "zh": "下方提供 Unity／WebGL 原型。設計圖確立了空間單位、邊界，以及門外的請求；完整的玩家目標、回應與結果，仍需要一段對應的操作示範來說明。"
         }
       ]
     }

@@ -1,0 +1,702 @@
+{
+  "generated": "2026-09-09",
+  "scope": "All ArtCenter design work + the 17 routes published on ReDInAStrike.com",
+  "figmaFiles": {
+    "gd4": {
+      "key": "xmD79sBtEvt0lfst75cMDz",
+      "name": "Game Development 4",
+      "type": "design",
+      "pages": {
+        "0:1": "Jam #1 Dev Log",
+        "67:113": "Week1 Assignment Data Game Pitch",
+        "6:19": "Week2 Data Game System Diagram",
+        "318:98": "Week6 Cover1",
+        "352:297": "Week7 Cover1 System Diagram",
+        "132:142": "Page 4",
+        "436:101": "Page 8",
+        "363:101": "Immersive Design Final",
+        "447:58": "Week11 System Diagram_Dad",
+        "683:134": "Visual",
+        "598:166": "Page 11 (playtest results)",
+        "589:134": "Page 10"
+      }
+    },
+    "altcontrol": {
+      "key": "0tCbAiVUlrPId3RWd9LRif",
+      "name": "AltControl",
+      "type": "design",
+      "pages": {
+        "0:1": "LABO_",
+        "644:422": "Innovative Game mechanic",
+        "963:1231": "Curtains",
+        "1158:140": "ShroomPotShowdown",
+        "176:77": "SushiGo",
+        "1801:8": "SushiGo / Current Unity UI",
+        "1818:8": "SushiGo / All Unity UI Inventory",
+        "1820:22": "SushiGo / Unity UI Typography Review",
+        "1914:8": "DAD UI Recreation",
+        "51:2": "Twitch Game",
+        "368:2": "FInalProject",
+        "595:110": "Type2",
+        "659:453": "Page 10",
+        "578:8": "Page 6",
+        "579:8": "Page 7",
+        "752:2": "Page 11",
+        "122:80": "Page 3"
+      }
+    },
+    "shroom": {
+      "key": "174btXmgZagM2UU2Ud7TXz",
+      "name": "Alt2Team3_ShroomPotShowdown",
+      "type": "design",
+      "pages": {
+        "102:487": "Game Design Document",
+        "864:980": "Purchase List",
+        "0:1": "week 4",
+        "86:479": "week 5",
+        "297:511": "week 6",
+        "604:843": "Week 7",
+        "890:328": "week 8 (moodboard/visual)",
+        "1649:699": "Week 9",
+        "2083:1308": "Week 10",
+        "2694:95": "Week 11",
+        "3021:68": "Week 13"
+      }
+    },
+    "slides_monologue": {
+      "key": "6ff8yXnsbuYuCVlvyWzARc",
+      "name": "(Figma Slides deck)",
+      "type": "slides",
+      "pages": {
+        "2009:5396": "referenced by /monologue"
+      },
+      "note": "Slides file - get_metadata unsupported; use get_screenshot"
+    }
+  },
+  "routes": [
+    {
+      "route": "/serialdeminer",
+      "pageTitle": "Serial Deminer",
+      "displayTitle": "ArtCenter Game Jam Submission",
+      "date": "10/29/2024",
+      "nav": "game",
+      "local": [],
+      "figma": [],
+      "media": {
+        "images": "public/assets/serial-deminer (16 files)"
+      },
+      "siteStatus": "Full framer case page (the layout template all other case pages follow)",
+      "gaps": [
+        "No local Unity root located under ArtCenter at depth<=4",
+        "No Figma board mapped"
+      ]
+    },
+    {
+      "route": "/pitchfork",
+      "pageTitle": "Pitchfork",
+      "displayTitle": "Magazine Design",
+      "date": "12/9/2024",
+      "nav": "graphic",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/ArtWorks/PitchforkMagazinePageByPage"
+      ],
+      "figma": [],
+      "siteStatus": "Image-led page",
+      "gaps": [
+        "Print source (indd/ai) not indexed"
+      ]
+    },
+    {
+      "route": "/analog-game",
+      "pageTitle": "Build and Shoot",
+      "displayTitle": "Analog Game",
+      "date": "11/15/2024",
+      "nav": "game",
+      "local": [],
+      "figma": [],
+      "media": {
+        "images": "public/assets/case-study/build-shoot.png"
+      },
+      "siteStatus": "Case page",
+      "gaps": [
+        "Local rules/print source not located"
+      ]
+    },
+    {
+      "route": "/myfridge",
+      "pageTitle": "MyFridge",
+      "displayTitle": "UI/UX Prototype",
+      "date": "4/29/2024",
+      "nav": "interaction",
+      "local": [],
+      "figma": [],
+      "siteStatus": "Case page",
+      "gaps": [
+        "No local source located",
+        "No Figma board mapped"
+      ]
+    },
+    {
+      "route": "/assethub",
+      "pageTitle": "Assets Hub",
+      "displayTitle": "Production Design",
+      "date": "12/9/2024",
+      "nav": "interaction",
+      "local": [],
+      "figma": [],
+      "siteStatus": "Case page",
+      "gaps": [
+        "No local source located"
+      ]
+    },
+    {
+      "route": "/uiux-prototype",
+      "pageTitle": "Assets Hub",
+      "displayTitle": "UI/UX Prototype",
+      "date": "12/9/2024",
+      "nav": "interaction",
+      "local": [],
+      "figma": [],
+      "siteStatus": "Case page",
+      "gaps": [
+        "Shares pageTitle 'Assets Hub' with /assethub - confirm these are two deliverables of one project, not a duplicate route"
+      ]
+    },
+    {
+      "route": "/bns_gdd",
+      "pageTitle": "Curtain",
+      "displayTitle": "Curtain",
+      "date": "12/9/2024",
+      "nav": "game",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/Duo＿Curtain/curtain"
+      ],
+      "unity": {
+        "productName": "curtain",
+        "editor": "6000.3.10f1"
+      },
+      "figma": [
+        {
+          "file": "altcontrol",
+          "page": "963:1231",
+          "name": "Curtains",
+          "textNodes": 92,
+          "content": "Bilingual CN/EN design notes: window states (full open/closed/half), blind light transmission, monster spawn logic keyed to footprints, day/night event branching, cursor-reach interaction model (arm range vs pointer max range), house backstory research"
+        }
+      ],
+      "media": {
+        "docs": [
+          "/Users/redwang/Desktop/ArtCenter/Curtain/CurtainGame.pdf"
+        ]
+      },
+      "siteStatus": "Playable WebGL restored + case copy",
+      "gaps": [
+        "Figma Curtains board content not yet transferred to page copy"
+      ]
+    },
+    {
+      "route": "/service-game-ui",
+      "pageTitle": "The Mystery of Instrument",
+      "displayTitle": "Service Game UI Prototype",
+      "date": "3/10/2026",
+      "nav": "interaction",
+      "local": [],
+      "figma": [],
+      "media": {
+        "videos": [
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Game as Service/The Mystery of Instrument.mov",
+            "seconds": 836.96
+          }
+        ]
+      },
+      "siteStatus": "Case page, no media embedded",
+      "gaps": [
+        "837s recording never cut or embedded",
+        "No Figma board mapped"
+      ]
+    },
+    {
+      "route": "/alt-controller-2025-a",
+      "pageTitle": "Super99",
+      "displayTitle": "Alternative Controller Game Prototype",
+      "date": "11/4/2025",
+      "nav": "game",
+      "aliases": [
+        "Barcode Checkout",
+        "Supermarket Scanner",
+        "GD4 Data Jam"
+      ],
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Game Develepment 4/GD4_DataGame_RW",
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Game Develepment 4/Vuforia Barcode Sample",
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/scanner.html"
+      ],
+      "unity": {
+        "productName": "GD4_DataGame_RW",
+        "editor": "6000.2.4f1"
+      },
+      "figma": [
+        {
+          "file": "gd4",
+          "page": "67:113",
+          "name": "Week1 Assignment Data Game Pitch",
+          "keyNodes": {
+            "94:157": "cashier + restock loop",
+            "94:158": "request attributes (name/size/brand/qty/sugar-free/gluten-free/discount)",
+            "94:169": "customer patience + stock state",
+            "94:182": "product data to physical shelf mapping",
+            "94:183": "physical scanner, QR/barcode input intent",
+            "94:192": "sample product JSON",
+            "94:203": "hiring frame, Press [Start] again to reapply"
+          }
+        }
+      ],
+      "siteStatus": "Case page from Figma only - NO video",
+      "gaps": [
+        "missingProjectMedia in Codex manifest: no confirmed complete-loop recording",
+        "Vuforia Barcode Sample + scanner.html are the barcode/scanner tech line - never surfaced on the site",
+        "Confirm whether Barcode Checkout / Supermarket Scanner are aliases or separate deliverables"
+      ]
+    },
+    {
+      "route": "/shroom-pot-showdown",
+      "pageTitle": "Shroom Pot Showdown",
+      "displayTitle": "Alternative Controller Game Prototype",
+      "date": "3/30/2026",
+      "nav": "game",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Git/AltControl2_TeamC_MushroomGame"
+      ],
+      "unity": {
+        "productName": "Alt2TeamC Mushroom",
+        "editor": "6000.3.10f1"
+      },
+      "figma": [
+        {
+          "file": "shroom",
+          "page": "102:487",
+          "name": "Game Design Document"
+        },
+        {
+          "file": "shroom",
+          "pages_all": "week 4 -> week 13 weekly progression (11 pages)"
+        },
+        {
+          "file": "altcontrol",
+          "page": "1158:140",
+          "name": "ShroomPotShowdown"
+        }
+      ],
+      "media": {
+        "videos": [
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Screen Recording 2026-03-30 at 10.22.40 PM.mov",
+            "seconds": 41.52,
+            "onSite": "shroom-pot-result.mp4 FULL"
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Alt2Progess_GyroControl_V2Together.mov",
+            "seconds": 29.4,
+            "onSite": "shroom-pot-two-player.mp4 FULL"
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Alt2Progess_GyroControl_Chopsticks.mov",
+            "seconds": 23.86,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Alt2Progess_GyroControl_SmallGyro.mov",
+            "seconds": 23.15,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Alt2Progess_GyroControl_DisOptimized.mov",
+            "seconds": 18.06,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Screen Recording 2026-03-15 at 1.32.16 AM.mov",
+            "seconds": 28.05,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/Screen Recording 2026-03-15 at 1.41.31 AM.mov",
+            "seconds": 37.63,
+            "onSite": null
+          }
+        ]
+      },
+      "siteStatus": "2 full recordings embedded",
+      "gaps": [
+        "Own Figma file (week4-13) never mined for the page",
+        "5 more source recordings unused",
+        "Yoga-ball proposal is a proposal, not a tested device"
+      ]
+    },
+    {
+      "route": "/service-game-ui-2",
+      "pageTitle": "Space Bounty Hunter",
+      "displayTitle": "Service Game UI Prototype",
+      "date": "3/10/2026",
+      "nav": "interaction",
+      "local": [],
+      "figma": [],
+      "media": {
+        "videos": [
+          {
+            "path": "/Users/redwang/Downloads/SpaceBountyHunters.mov",
+            "seconds": 274.02,
+            "onSite": null
+          }
+        ]
+      },
+      "siteStatus": "Case page, no media",
+      "gaps": [
+        "274s recording unused",
+        "Source lives in ~/Downloads - not archived into ArtCenter"
+      ]
+    },
+    {
+      "route": "/alt-controller-2025-b",
+      "pageTitle": "SushiGo",
+      "displayTitle": "Alternative Controller Game Prototype",
+      "date": "11/4/2025",
+      "nav": "game",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/SushiGo",
+        "/Users/redwang/Desktop/ArtCenter/SushiGo",
+        "/Users/redwang/Desktop/ArtCenter/SushiGo-success-cfe6b16",
+        "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Alt Control 2/SushiGo_VisionPro",
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Alt Controller/3LeapMotion/leapmotion"
+      ],
+      "unity": {
+        "productName": "SushiGo",
+        "editor": "6000.3.10f1"
+      },
+      "figma": [
+        {
+          "file": "altcontrol",
+          "page": "176:77",
+          "name": "SushiGo"
+        },
+        {
+          "file": "altcontrol",
+          "page": "1801:8",
+          "name": "SushiGo / Current Unity UI"
+        },
+        {
+          "file": "altcontrol",
+          "page": "1818:8",
+          "name": "SushiGo / All Unity UI Inventory"
+        },
+        {
+          "file": "altcontrol",
+          "page": "1820:22",
+          "name": "SushiGo / Unity UI Typography Review"
+        }
+      ],
+      "media": {
+        "images": "public/assets/case-study/sushigo-gesture.png"
+      },
+      "siteStatus": "Case page",
+      "gaps": [
+        "3 dedicated SushiGo UI pages in Figma never used",
+        "SushiGo tree is 248G + a 32G duplicate + VisionPro Xcode variant - needs a canonical root decision",
+        "LeapMotion project (3LeapMotion/leapmotion) holds SushiGo countdown music - relationship unconfirmed"
+      ]
+    },
+    {
+      "route": "/game-prototype",
+      "pageTitle": "Slow'em Down",
+      "displayTitle": "Game Prototype",
+      "date": "3/10/2026",
+      "nav": "game",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/InnovativeGameMechanicRedW"
+      ],
+      "unity": {
+        "productName": "innovativeGameMechanic RedW",
+        "editor": "6000.3.10f1"
+      },
+      "figma": [
+        {
+          "file": "altcontrol",
+          "page": "644:422",
+          "name": "Innovative Game mechanic",
+          "textNodes": 177,
+          "content": "Pitch: solve puzzles by altering the environment with time-slowing. Idea II Subjective Time Distortion; refs Superhot + Return of the Obra Dinn (time-stopped murder case). Week6 note: changed from global to local slow. Week8: players read which objects can be slowed. Week10: Kyle still confused by the mechanic.",
+          "keyNodes": {
+            "881:14": "Week6 global->local change",
+            "1187:79": "Week8 test note",
+            "1145:71": "Week10 Kyle note",
+            "870:4889": "Define Your Concept / pitch statement"
+          }
+        }
+      ],
+      "media": {
+        "videos": [
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/InnovativeGameMechanic.mp4",
+            "seconds": 96.33,
+            "onSite": "slow-em-down-mechanic.mp4 FULL"
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/Screen Recording 2026-04-02 at 1.23.19 PM.mov",
+            "seconds": 128.12,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/Screen Recording 2026-02-26 at 4.12.21 PM.mov",
+            "seconds": 358.92,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/TermReview - 1080WebShareName.mov",
+            "seconds": 96.3,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Spring26(T6)/Innovative Game Deisgn/InnovativeMechanics_Progess.mov",
+            "seconds": 21.65,
+            "onSite": null
+          }
+        ],
+        "unattributed": [
+          "location.mov 27.3s",
+          "Book.mov 29.6s",
+          "Victim.mov 3.9s",
+          "identiy recognized.mov 7.2s",
+          "4.mov 3.5s",
+          "5.mov 31.4s",
+          "Screen Recording 2026-03-12 at 7.34.18 PM.mov 22.3s",
+          "ScreenRecording for Innovative agme mechanics.mov 17.9s"
+        ],
+        "hypothesis": "The Victim/Book/location/identity-recognized set matches the Obra Dinn murder-case reference in the Figma concept - likely Slow'em Down scenario footage, NOT confirmed"
+      },
+      "siteStatus": "Full 96.34s recording embedded",
+      "gaps": [
+        "8 unattributed videos in the same folder",
+        "128s and 359s recordings unused"
+      ]
+    },
+    {
+      "route": "/alt-controller-2025-c",
+      "pageTitle": "Squirrel Samurai",
+      "displayTitle": "Alternative Controller Game Prototype",
+      "date": "11/4/2025",
+      "nav": "game",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Game Develepment 4/AltControl3"
+      ],
+      "unity": {
+        "productName": "AltControl3",
+        "editor": "6000.2.5f1"
+      },
+      "figma": [],
+      "media": {
+        "videos": [
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/SquirelSameri.mp4",
+            "seconds": 117.23,
+            "onSite": null
+          }
+        ]
+      },
+      "siteStatus": "Case page, no media",
+      "gaps": [
+        "117s two-player recording (SquirelSameri.mp4) unused",
+        "No Figma board mapped",
+        "Codex config.toml still references /Users/redwang/Desktop/ArtCenter/AltControl3 which no longer exists"
+      ]
+    },
+    {
+      "route": "/monologue",
+      "pageTitle": "To Be Chosen",
+      "displayTitle": "Narrative Design Document",
+      "date": "3/10/2025",
+      "nav": "ongoing",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Narrative Design/To Be Chosen_Summary_RedWAng.docx"
+      ],
+      "figma": [
+        {
+          "file": "slides_monologue",
+          "page": "2009:5396",
+          "name": "(Figma Slides)"
+        }
+      ],
+      "media": {
+        "videos": "Fall25(T5)/Narrative Design/1-5.mov (6.1s / 15s / 15s / 15s / 17.2s)"
+      },
+      "siteStatus": "Case page",
+      "gaps": [
+        "Figma Slides not readable via get_metadata - use get_screenshot",
+        "5 narrative videos unused"
+      ]
+    },
+    {
+      "route": "/ongoing-game-project",
+      "pageTitle": "DAD",
+      "displayTitle": "Ongoing Game Project",
+      "date": "11/4/2025-Present",
+      "nav": "ongoing",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Game Develepment 4/GD4Final"
+      ],
+      "unity": {
+        "productName": "GD4Final",
+        "editor": "6000.3.10f1",
+        "scene": "Assets/.../DAD.unity"
+      },
+      "figma": [
+        {
+          "file": "gd4",
+          "page": "447:58",
+          "name": "Week11 System Diagram_Dad",
+          "textNodes": 430,
+          "content": "Full system diagram: Time(1s=1day, 30s=1month, 360s=1yr), Drive(HP)/Money(AMMO)/Time resources, bill enemy classes (WaterBill/Rent/PowerBill/Tax/Subscription .cs), DAD anger + Phase II boss, Loan vs Allowance economy, 6x6 grid with 3x3 DAD domain, wave manager, playtest results",
+          "keyNodes": {
+            "598:184": "testers don't know when DAD entered Phase II / became the enemy",
+            "598:187": "tile function unclear",
+            "598:203": "tile size too small",
+            "598:207": "run out of ammo, enemies pile up, battlefield a mess",
+            "598:213": "can't interact with DAD in Phase I",
+            "598:217": "need many actions but don't know which steps",
+            "598:197": "playtester loves paying bills with gold coins"
+          }
+        },
+        {
+          "file": "altcontrol",
+          "page": "1914:8",
+          "name": "DAD UI Recreation"
+        }
+      ],
+      "media": {
+        "videos": [
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Game Develepment 4/DADGOTMONEY.mov",
+            "seconds": 7.77,
+            "onSite": "dad-wave-teaser.mp4 FULL"
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/TermReviewDad - 1080WebShareName.mov",
+            "seconds": 114.32,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Game Develepment 4/Screen Recording 2025-12-19 at 7.41.48 AM.mov",
+            "seconds": 114.5,
+            "onSite": null
+          },
+          {
+            "path": "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Game Develepment 4/Screen Recording 2025-12-19 at 7.41.48 AM.mp4",
+            "seconds": 114.35,
+            "onSite": null
+          }
+        ]
+      },
+      "siteStatus": "Playable WebGL + full 7.77s recording",
+      "gaps": [
+        "'DAD UI Recreation' Figma page never used",
+        "Three ~114s recordings unused",
+        "On-screen Feb 15 / Feb 18 are in-game dates, NOT build dates - do not build a timeline from them"
+      ]
+    },
+    {
+      "route": "/narrative-design-document",
+      "pageTitle": "Narrative Design Document",
+      "displayTitle": "Narrative Design Document",
+      "date": "3/10/2025",
+      "nav": "ongoing",
+      "local": [
+        "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Narrative Design/"
+      ],
+      "docs": [
+        "Narrative Design Vision Document 1st Iteration_RedWang.docx",
+        "Narrative Design Vision Document 2nd Iteration_RedWang.docx",
+        "NarrativeVision_RedW.docx",
+        "Narrative Strategy_Week4_RedW.pdf"
+      ],
+      "figma": [],
+      "siteStatus": "Case page",
+      "gaps": [
+        "Two documented iterations never surfaced as a design-change story"
+      ]
+    }
+  ],
+  "notOnSite": [
+    {
+      "name": "Butter Beat Down",
+      "local": "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Alt Controller/FinalAssignment/Butter_Beatdown2/Butter Beatdown",
+      "unity": {
+        "productName": "Butter Beatdown",
+        "editor": "6000.3.10f1"
+      },
+      "art": "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Alt Controller/ButterBeatDown.ai",
+      "note": "Alt Controller FINAL assignment. No route, no video located."
+    },
+    {
+      "name": "Teeth Lab / Teeth Game",
+      "local": "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Alt Controller/Alternative_Controlers_Assignment-1/Alternative_Controllers-Assignment_1_Teeth_Game",
+      "unity": {
+        "productName": "Alternative Controllers - Assignment #1_Teeth_Game",
+        "editor": "2022.3.28f1"
+      },
+      "note": "Alt Controller assignment 1. Oldest Unity version in the set. Has its own .git. No route."
+    },
+    {
+      "name": "Twitch Game",
+      "local": "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Alt Controller/2TwitchGame/AltControlProject2",
+      "figma": {
+        "file": "altcontrol",
+        "page": "51:2",
+        "name": "Twitch Game"
+      },
+      "note": "Alt Controller assignment 2. Figma page exists, no route. The project directory is a SYMLINK to /Volumes/UnityProjectsArchive (archived 2026-08-31) and that volume is NOT mounted, so the project is currently unreachable. A local copy remains at AltControlProject2.codex-local-delete-pending-1788207504.",
+      "archived": true
+    },
+    {
+      "name": "ModernDronefare",
+      "local": "/Users/redwang/Desktop/ArtCenter/Fall25(T5)/Alt Controller/ModernDronefare",
+      "unity": {
+        "productName": "ModernDronefare",
+        "editor": "6000.3.10f1"
+      },
+      "note": "No route. Has video assets in-project."
+    }
+  ],
+  "gotchas": [
+    "Filenames from macOS screen recordings contain U+202F NARROW NO-BREAK SPACE before AM/PM. A plain space will not match.",
+    "The term review file is 'Red Wang  - 6th Term Review - 04082026.mp4' with a DOUBLE space after 'Wang'.",
+    "iCloud conflict copies ('name 2', 'name 3') exist throughout Desktop, including dist/ and docs/. _ProjectCatalog symlink counts are inflated by them (264 unity links for 66 real projects).",
+    "4.mov and 5.mov exist in BOTH Narrative Design and Innovative Game Deisgn as DIFFERENT files.",
+    "node is not on PATH; the repo build uses /Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node (v24.20.0, satisfies engines>=24).",
+    "figma get_metadata with no nodeId under-reports pages (returned 1 of 17 for AltControl). Use the evidence index-*.json page lists.",
+    "Figma <text> nodes carry their content in the name attribute - that is how board copy is read.",
+    "A 'name 2' directory on this machine is EITHER an iCloud conflict copy OR an archive symlink to /Volumes/UnityProjectsArchive. Run `readlink` before treating one as junk.",
+    "/Volumes/UnityProjectsArchive is not mounted. 13 Unity projects archived 2026-08-31 are unreachable until it is."
+  ],
+  "archivedProjects": {
+    "date": "2026-08-31",
+    "volume": "/Volumes/UnityProjectsArchive (one entry on /Volumes/PS2000W)",
+    "mounted": false,
+    "scheme": "Long-unopened Unity projects were moved to an external volume. In most cases the real local directory was kept and a sibling symlink named 'X 2' points at the archived copy. In one case (2TwitchGame/AltControlProject2) the primary name itself is the symlink, so that project is only reachable when the volume is mounted.",
+    "warning": "A 'X 2' suffix here does NOT automatically mean an iCloud conflict copy. Check with `readlink` before deleting: archive symlinks point at /Volumes/..., iCloud conflict copies are real directories.",
+    "entries": [
+      "Spring25(T4)/2025 Game Jam/PuzzleGameALz_RedW",
+      "Spring25(T4)/2025 Game Jam/My project (1)",
+      "Spring25(T4)/2025 Game Jam/TestProject",
+      "Spring25(T4)/2025 Game Jam/HighandLow25",
+      "Spring25(T4)/Game Dev 3/GD3Cover2_Red Wang",
+      "Fall25(T5)/Alt Controller/ModernDronefare",
+      "Fall23(T1)/Game is software/Assassin in Position",
+      "Fall23(T1)/Game is software/Asteroids_2023",
+      "Fall23(T1)/GD1/BSS",
+      "Spring24(T2)/GameDev/Zip-Zap",
+      "Fall25(T5)/Alt Controller/2TwitchGame/AltControlProject2  <-- primary name is the symlink",
+      "Fall25(T5)/Alt Controller/FinalAssignment/Butter_Beatdown2",
+      "Fall25(T5)/Game Develepment 4/Cover #1/GD4Cover1"
+    ]
+  }
+}

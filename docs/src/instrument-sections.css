@@ -1,0 +1,20 @@
+/* Instrument reuses SBH typography, grids, figures and chapter controls.
+   Additional rules affect only its sheet-derived visual and long chapter list. */
+.instrument-rules {display:grid;gap:clamp(38px,5vw,76px)}
+.instrument-rules .gdd-table {width:100%}
+.instrument-rules .gdd-table caption {text-align:left;padding:0 0 12px;font-family:var(--type-subtitle-font);font-size:11px;color:var(--case-muted)}
+.instrument-rewards .gdd-table td {font-variant-numeric:tabular-nums;text-align:right}
+.instrument-rewards .gdd-table th:not(:first-child) {text-align:right}
+.instrument-levels {list-style:none;display:grid;grid-template-columns:repeat(20,minmax(0,1fr));gap:clamp(6px,1vw,16px);padding:12px 0 0;margin:0 0 32px;min-width:760px}
+.instrument-level {display:grid;grid-template-rows:24px 180px 28px;align-items:end;text-align:center}
+.instrument-level-value,.instrument-level-number,.instrument-chart-unit {font-family:var(--type-subtitle-font);font-size:11px;color:var(--case-muted);font-variant-numeric:tabular-nums}
+.instrument-chart-unit {margin:0}
+.instrument-level-value {font-size:10px;letter-spacing:-.03em}
+.instrument-level-track {height:180px;display:flex;align-items:end;background:linear-gradient(to top,var(--sbh-grid) 1px,transparent 1px);background-size:100% 45px;border-bottom:1px solid var(--sbh-rule)}
+.instrument-level-track i {display:block;width:100%;min-height:3px;background:var(--sbh-c)}
+.instrument-level.is-milestone .instrument-level-track i {background:var(--sbh-a)}
+.instrument-level.is-milestone .instrument-level-number {color:var(--case-ink);font-weight:600}
+.instrument-level-scroll {overflow-x:auto;max-width:100%}
+.instrument-level-scroll:focus-visible {outline:1px solid var(--case-ink);outline-offset:4px}
+@media(min-width:1201px){[aria-label="The Mystery of Instrument case study"] .sbh-chapters ol {max-height:660px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}}
+@media(max-width:700px){.instrument-levels {min-width:650px;gap:7px}.instrument-level {grid-template-rows:24px 140px 28px}.instrument-level-track {height:140px;background-size:100% 35px}}

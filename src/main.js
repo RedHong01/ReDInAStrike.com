@@ -21,6 +21,8 @@ import { extraSectionRenderers } from "./extra-section-renderers.js"
 import { rebuiltCaseStudies } from "./rebuilt-case-studies.js"
 import { sbhCaseStudies, sbhCopyTranslations } from "./sbh-sections.js"
 import { sbhSectionRenderers } from "./sbh-renderers.js"
+import { extendInstrumentCase, instrumentCopyTranslations } from "./instrument-sections.js"
+import { instrumentSectionRenderers } from "./instrument-renderers.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -765,6 +767,8 @@ for (const [path, sections] of Object.entries(editorialReadableSections)) {
 Object.assign(caseStudyDetails, rebuiltCaseStudies)
 // Space Bounty Hunter is rebuilt in its own module, with its own section kinds.
 Object.assign(caseStudyDetails, sbhCaseStudies)
+caseStudyDetails["/service-game-ui"] = extendInstrumentCase(caseStudyDetails["/service-game-ui"])
+Object.assign(extraSectionRenderers, instrumentSectionRenderers)
 Object.assign(extraSectionRenderers, sbhSectionRenderers)
 framerProjectDetails["/uiux-prototype"] = framerProjectDetails["/assethub"]
 
@@ -2896,6 +2900,7 @@ const copyTranslations = new Map([
   ],
 ])
 for (const [english, chinese] of sbhCopyTranslations) copyTranslations.set(english, chinese)
+for (const [english, chinese] of instrumentCopyTranslations) copyTranslations.set(english, chinese)
 
 function bilingualText(value) {
   const english = escapeHtml(value)

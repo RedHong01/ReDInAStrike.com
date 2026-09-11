@@ -813,3 +813,508 @@
     border-top: 1px dashed rgba(0, 17, 34, 0.22);
   }
 }
+
+/* Survey --------------------------------------------------------------------- */
+
+/* Diverging palette, validated with the dataviz validator against the page
+   ground #f8f7f5: each arm passes as an ordinal ramp, adjacent pairs clear the
+   normal-vision floor (worst ΔE 17.1) and CVD separation. The two light steps sit
+   under 3:1, so every bar carries direct end labels and the table view exists.
+   The neutral answer is a gray, never a hue. Dumbbells use one hue in two shades
+   (the page ink, and a 55% ink step at 3.98:1) so blue and red keep one meaning
+   on this page: the positive and negative side of an answer. */
+.gdd-survey {
+  --lk-pos2: #256abf;
+  --lk-pos1: #6da7ec;
+  --lk-neu: #d4d2ca;
+  --lk-neg1: #ee8e89;
+  --lk-neg2: #d6403f;
+  --db-first: #767b82;
+  --db-last: var(--case-ink);
+  --survey-rule: rgba(0, 17, 34, 0.14);
+  --survey-grid: rgba(0, 17, 34, 0.09);
+  --survey-ground: var(--paper, #f8f7f5);
+  width: max(100%, var(--case-bleed-width));
+  max-width: none;
+  margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
+  padding-inline: clamp(20px, 4vw, 78px);
+  display: grid;
+  gap: clamp(30px, 3.4vw, 52px);
+  padding-top: 22px;
+  border-top: 3px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-survey .is-pos2 { --seg: var(--lk-pos2); }
+.gdd-survey .is-pos1 { --seg: var(--lk-pos1); }
+.gdd-survey .is-neu { --seg: var(--lk-neu); }
+.gdd-survey .is-neg1 { --seg: var(--lk-neg1); }
+.gdd-survey .is-neg2 { --seg: var(--lk-neg2); }
+
+.gdd-survey-figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(16px, 2vw, 32px);
+}
+
+.gdd-survey-figure {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding-top: 10px;
+  border-top: 1px solid var(--survey-rule);
+}
+
+.gdd-survey-figure-value {
+  font-family: var(--serif);
+  font-size: clamp(28px, 2.8vw, 40px);
+  line-height: 1;
+  color: var(--case-ink);
+}
+
+.gdd-survey-figure-label {
+  font-family: var(--body-latin-font);
+  font-size: 14px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+/* Likert rows: the question on the left, one bar per round on the right, every
+   bar sharing the same centre so the rounds and the questions line up. */
+.gdd-lk {
+  display: grid;
+}
+
+.gdd-lk-row {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(16px, 2vw, 32px);
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--survey-rule);
+}
+
+.gdd-lk-row:first-child {
+  border-top: 1px solid var(--survey-rule);
+}
+
+.gdd-lk-question {
+  grid-column: span 4;
+  display: grid;
+  gap: 10px;
+}
+
+.gdd-lk-question-text {
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-ink);
+}
+
+.gdd-lk-legend,
+.gdd-db-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-lk-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gdd-lk-key i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--seg);
+}
+
+.gdd-lk-bars {
+  grid-column: span 8;
+  display: grid;
+  gap: 10px;
+}
+
+.gdd-lk-bar {
+  display: grid;
+  grid-template-columns: 5.6em minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.gdd-lk-round {
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+  white-space: nowrap;
+}
+
+.gdd-lk-round em {
+  font-style: normal;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+/* Inset so the end labels have room on both sides of a near-100% bar. */
+.gdd-lk-track {
+  position: relative;
+  height: 16px;
+  margin-inline: 2.8em;
+}
+
+/* The neutral centre line. */
+.gdd-lk-track::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  left: 50%;
+  width: 1px;
+  background: rgba(0, 17, 34, 0.35);
+}
+
+.gdd-lk-seg {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  box-sizing: border-box;
+  border-inline: 1px solid var(--survey-ground);
+  background: var(--seg);
+  cursor: default;
+}
+
+.gdd-lk-seg.is-first { border-radius: 4px 0 0 4px; }
+.gdd-lk-seg.is-last { border-radius: 0 4px 4px 0; }
+.gdd-lk-seg.is-first.is-last { border-radius: 4px; }
+
+/* The hit target is taller than the 16px mark. */
+.gdd-lk-seg::before {
+  content: "";
+  position: absolute;
+  inset: -7px 0;
+}
+
+.gdd-lk-seg:hover,
+.gdd-lk-seg:focus-visible {
+  z-index: 3;
+  box-shadow: 0 0 0 1.5px var(--case-ink);
+  outline: none;
+}
+
+.gdd-lk-total {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  color: var(--case-ink);
+  white-space: nowrap;
+}
+
+.gdd-lk-total.is-pos { padding-left: 7px; }
+.gdd-lk-total.is-neg { padding-right: 7px; }
+
+/* Tooltips: the value leads, the answer and round follow with a line key. */
+.gdd-survey-tip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 6;
+  display: grid;
+  gap: 3px;
+  padding: 7px 9px;
+  border: 1px solid rgba(0, 17, 34, 0.12);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 17, 34, 0.08);
+  transform: translateX(-50%);
+  font-family: var(--body-latin-font);
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--case-copy);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.gdd-survey-tip strong {
+  font-family: var(--type-subtitle-font);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--case-ink);
+}
+
+.gdd-survey-tip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gdd-survey-tip i {
+  width: 12px;
+  height: 2px;
+  background: var(--seg, var(--db-c, var(--case-ink)));
+}
+
+.gdd-lk-seg:hover .gdd-survey-tip,
+.gdd-lk-seg:focus-visible .gdd-survey-tip,
+.gdd-db-dot:hover .gdd-survey-tip,
+.gdd-db-dot:focus-visible .gdd-survey-tip {
+  opacity: 1;
+}
+
+/* Dumbbells ------------------------------------------------------------------- */
+
+.gdd-dbs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(24px, 3vw, 48px);
+}
+
+.gdd-db {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  margin: 0;
+}
+
+.gdd-db-title {
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-ink);
+}
+
+.gdd-db-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.gdd-db-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--db-c);
+}
+
+.gdd-db .is-mar { --db-c: var(--db-first); }
+.gdd-db .is-apr { --db-c: var(--db-last); }
+
+.gdd-db-rows {
+  display: grid;
+}
+
+.gdd-db-axis,
+.gdd-db-row {
+  display: grid;
+  grid-template-columns: minmax(8.5em, 36%) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.gdd-db-ticks {
+  position: relative;
+  height: 14px;
+  margin-inline: 14px 34px;
+}
+
+.gdd-db-ticks i {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  font-style: normal;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-db-row {
+  min-height: 40px;
+}
+
+.gdd-db-label {
+  display: grid;
+  font-family: var(--body-latin-font);
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--case-ink);
+}
+
+.gdd-db-label em {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+/* Solid hairline gridlines at 0, 25, 50, 75 and 100%. */
+.gdd-db-track {
+  position: relative;
+  height: 40px;
+  margin-inline: 14px 34px;
+  background:
+    linear-gradient(var(--survey-grid), var(--survey-grid)) 0 0 / 1px 100% no-repeat,
+    linear-gradient(var(--survey-grid), var(--survey-grid)) 25% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--survey-grid), var(--survey-grid)) 50% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--survey-grid), var(--survey-grid)) 75% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--survey-grid), var(--survey-grid)) 100% 0 / 1px 100% no-repeat;
+}
+
+.gdd-db-line {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  background: rgba(0, 17, 34, 0.28);
+  transform: translateY(-50%);
+}
+
+.gdd-db-dot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--db-c);
+  box-shadow: 0 0 0 2px var(--survey-ground);
+  cursor: default;
+}
+
+.gdd-db-dot.is-apr { z-index: 1; }
+
+/* 24px hit area around a 10px dot. */
+.gdd-db-dot::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+}
+
+.gdd-db-dot:hover,
+.gdd-db-dot:focus-visible {
+  z-index: 3;
+  box-shadow: 0 0 0 2px var(--survey-ground), 0 0 0 3.5px var(--case-ink);
+  outline: none;
+}
+
+.gdd-db-value {
+  position: absolute;
+  top: 50%;
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  color: var(--case-ink);
+  white-space: nowrap;
+}
+
+.gdd-db-value.is-right { transform: translate(11px, -50%); }
+.gdd-db-value.is-left { transform: translate(calc(-100% - 11px), -50%); }
+
+.gdd-db-note {
+  margin: 0;
+  font-family: var(--body-latin-font);
+  font-size: 13px;
+  line-height: calc(1em + 5px);
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+/* Quotes and the table view --------------------------------------------------- */
+
+.gdd-survey-quotes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(24px, 3vw, 48px);
+}
+
+.gdd-survey-quote-col {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.gdd-survey-quote-round {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--survey-rule);
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.gdd-survey-quote-col blockquote {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--case-ink);
+}
+
+.gdd-survey-details summary {
+  cursor: pointer;
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.gdd-survey-details[open] summary {
+  margin-bottom: 8px;
+}
+
+.gdd-survey-tables {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px clamp(20px, 2.4vw, 40px);
+}
+
+/* Already inside a bled block: do not bleed again. */
+.gdd-survey .gdd-table-scroll {
+  width: 100%;
+  margin-left: 0;
+  padding-inline: 0;
+}
+
+.gdd-survey-table caption {
+  caption-side: top;
+  padding: 14px 0 8px;
+  text-align: left;
+  font-family: var(--body-latin-font);
+  font-size: 14px;
+  line-height: calc(1em + 4px);
+  color: var(--case-ink);
+}
+
+.gdd-survey-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-case-accent-contrast="light"] .gdd-survey {
+  border-top-color: var(--case-accent-stroke, #111111);
+}
+
+@media (max-width: 900px) {
+  .gdd-survey-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gdd-lk-question,
+  .gdd-lk-bars {
+    grid-column: 1 / -1;
+  }
+
+  .gdd-dbs,
+  .gdd-survey-quotes,
+  .gdd-survey-tables {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

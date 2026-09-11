@@ -14,8 +14,8 @@ Each confirmed row was paired from the main chat UI using the visible date/time 
 
 ## Current boundary
 
-The roster is complete and the indexed-history count is confirmed. Message-level sender pairing is complete for the high/medium-confidence rows in `message_media_map.csv`; one low-confidence row remains because the exact bubble position has not yet been visually resolved. Deleted/expired UI items are recorded as unavailable when encountered and are not fabricated.
+The roster is complete and the indexed-history count is confirmed. The main chat was scrolled back to the group creation boundary on 2026-01-28 and forward-scanned through the latest locally indexed history; the screen-verified transcript now contains 96 dated frames and 760 ordered entry bullets. Message-level media pairing remains confidence-labeled in `message_media_map.csv`; one low-confidence row remains because the exact bubble position has not yet been visually resolved. Deleted/expired UI items are recorded as unavailable when encountered and are not fabricated.
 
 ## Current screen-OCR additions
 
-The transcript now includes additional screen-verified text sections from 2026-04-18 and 2026-04-23 through 2026-05-11. The HTML transcript embeds these text sections alongside playable videos and readable image derivatives.
+The transcript now includes screen-verified sections from the group creation date (2026-01-28) through the latest indexed history. The HTML and Markdown companions embed or link the available readable media beside the transcript and preserve original `.dat`/file attachments.

@@ -1,6 +1,6 @@
-# Alt2 Team C — visually paired transcript (partial)
+# Alt2 Team C — visually paired transcript (screen-verified coverage)
 
-The entries below are paired from the visible chat layout: date divider, sender avatar/name, bubble alignment, and media thumbnail. `medium`/`low` entries remain explicitly marked for another visual pass.
+The entries below are paired from the visible chat layout: date divider, sender avatar/name, bubble alignment, and media thumbnail. Where the original media is deleted, expired, or remains encrypted as `.dat`, that status is kept explicit instead of inventing a decode.
 
 ## 2026-03-31
 
@@ -773,3 +773,246 @@ The entries below are paired from the visible chat layout: date divider, sender 
 - 12:27 — DUO：red 你几点到学校。
 - 12:32 — DUO：两三点这样可以吗？
 - 2/23 15:48 — 刹那繁红：我到了。
+- 2/23 14:47 — DUO：可。
+- 14:47 — DUO：我马上过去。
+- 14:47 — DUO：👌。
+
+## Screen-OCR verified frame — 2026-02-21 22:59–2026-02-23 02:59
+- 2/21 22:59 — DUO：笑鼠。
+- 22:59 — DUO：可以可以。
+- 22:59 — 刹那繁红：就是一碟餐碟从左边入画之后倒入蘑菇火锅菜品什么的。
+- 22:59 — 刹那繁红：就算是玩家 2 补生命了。
+- 22:59 — DUO：okok。
+- 22:59 — DUO：我等会 unity 录个屏。
+- 22:59 — 刹那繁红：目前就先不管熟了没熟，只是单纯的移动什么的。
+- 22:59 — 刹那繁红：你是在我们的 git 里做的吗？（引用 DUO“我等会 unity 录个屏”。）
+- 22:59 — DUO：对。
+- 22:59 — DUO：但我还没 push。
+- 2/22 22:27 — DUO：腮红嘛。（引用刹那繁红“我喜欢那个淡淡的红晕”。）
+- 22:35 — pingpingdandancaishizhen：yessss。
+- 22:55 — pingpingdandancaishizhen：okk。
+- 2/23 02:40 — 刹那繁红：我们的食材要有脸吗？
+- 02:40 — 刹那繁红：3d 建模。
+- 02:45 — 刹那繁红：放进看看呗。
+- 02:45 — 刹那繁红：好看的话就留着。
+- 02:45 — 刹那繁红：行吧不会感觉怪怪的吗？
+- 2/21 22:59 — DUO：dc 一下。
+
+## Screen-OCR verified frame — 2026-02-20 14:09–2026-02-21 01:36
+- 2/20 14:09 — DUO：我晚上没空。
+- 14:16 — Jason Tan：@刹那繁红 能帮我同意一下不？
+- 14:16 — Jason Tan：图片，Google Drive/文档权限请求页面截图。
+- 14:22 — Juliaaaaaa_桐：我都可以哦。（引用 DUO“来的人想几点来”。）
+- 2/21 01:28 — 刹那繁红：周日晚上我们 update 一下这周各位任务的进程吧，我今晚做大家的 game design document。
+- 01:36 — pingpingdandancaishizhen：辛苦啦。
+
+## Screen-OCR verified frame — 2026-02-18 18:28
+- 18:28 — pingpingdandancaishizhen：这里哦。
+- 18:28 — pingpingdandancaishizhen：对。（引用 Jason“面对校门的右侧吗”。）
+- 18:28 — Jason Tan：我到了。
+- 18:28 — Jason Tan：没见我呀。
+- 18:28 — Jason Tan：你们是开车了吗？
+- 18:28 — pingpingdandancaishizhen：是开车的。
+- 18:28 — Jason Tan：要不把车开到校门口吧，这样少搬一点路。
+- 18:28 — Jason Tan：贴纸/动图。
+
+## Screen-OCR verified frame — 2026-02-18 17:41–17:56
+- 17:41 — DUO：哇塞。
+- 17:41 — DUO：好好好。
+- 17:56 — 刹那繁红：图片，双栏 UI mock-up/操作示意图（箭头和火锅/食材视角示意）。
+- 17:56 — 刹那繁红：我做了一个 ui mock up。
+- 17:56 — 刹那繁红：你是怎么想那个火锅的呢？
+- 17:56 — DUO：我想的没那么偏视角诶。
+- 17:56 — DUO：不过好像还是得转视角。
+- 17:56 — DUO：想想怎么弄。
+- 17:56 — pingpingdandancaishizhen：我们借到啦，一会到了可以来停车场帮我们拿一下嘛，有亿点重。
+
+## Screen-OCR verified frame — 2026-02-17 19:56–21:44
+- 19:56 — 刹那繁红：ok。
+- 19:56 — 刹那繁红：我来了。
+- 19:56 — Jason Tan：可以帮我通过一些吗？
+- 19:56 — Jason Tan：thx。
+- 19:56 — 刹那繁红：approved。
+- 19:56 — Jason Tan：图片，文档权限界面截图，显示 “View only”。
+- 19:56 — Jason Tan：ok。
+- 19:56 — 刹那繁红：现在可以编辑了吗？
+- 19:56 — Jason Tan：可以了！
+- 21:44 — DUO：下一条消息在当前帧底部被截断。
+
+## Screen-OCR verified frame — 2026-02-17 16:50–17:19
+- 16:50 — 软隽辰：今天不用交作业。
+- 16:50 — 软隽辰：justin 的意思是让我们搞个 gdd。
+- 16:50 — 软隽辰：一边做一边往文档里面加内容。
+- 16:50 — Juliaaaaaa_桐：所以我们编辑那个文档呀。
+- 16:50 — 软隽辰：之后再问一下吧。
+- 16:50 — Juliaaaaaa_桐：图片，关于本周作业/展示要求的文字截图。
+- 17:19 — 刹那繁红：就是做一个那种共享的 GDD 大家一起编辑的。
+- 17:19 — 刹那繁红：图片，设备/控制器或原型零件照片（当前帧只显示部分）。
+
+## Screen-OCR verified frame — 2026-02-17 15:32–15:45
+- 15:32 — Jason Tan：我们能想到坐在网上占格子或者杀对手的砍子都已经脑细胞爆炸了。（原字“砍子/棋子”在截图中略模糊。）
+- 15:32 — Jason Tan：笑死我了。
+- 15:32 — Jason Tan：我等下下课来。
+- 15:32 — DUO：其实我们那个文档里写的蛮多的。
+- 15:32 — DUO：可以稍稍拓展一下。
+- 15:32 — Jason Tan：好！
+- 15:45 — 软隽辰：图片，Discord 聊天/讨论截图。
+
+## Screen-OCR verified frame — 2026-02-17 15:16–15:24
+- 15:16 — pingpingdandancaishizhen：这个基础改一改呢👀。
+- 15:16 — pingpingdandancaishizhen：图片，粉色 UI/标题页草图，标题为 “Mushroom Rider by Team C”，下方有多张小页面缩略图。
+- 15:16 — Jason Tan：可以先把颜色改了吧。
+- 15:16 — pingpingdandancaishizhen：可（表情/贴纸）。
+- 15:24 — Jason Tan：请问这三个 ideas 是根据我们上周讨论得出的新的想法吗？
+- 15:24 — Jason Tan：我没太懂到底要做啥。
+- 15:24 — DUO：我也没看懂。
+- 15:24 — DUO：我在问别的组。
+
+## Screen-OCR verified frame — 2026-02-12 11:04–12:29
+- 11:04 — pingpingdandancaishizhen：各位我在做那个蘑菇帽子的框架我们可以就把它作在这个帽子藏在里面。（原字“作/做”略有模糊，意为把装置/结构藏在蘑菇帽子里面。）
+- 11:22 — DUO：哇塞。
+- 11:42 — pingpingdandancaishizhen：图片，镜子前试戴/制作蘑菇帽子结构的照片。
+- 11:42 — pingpingdandancaishizhen：还没封边但具其形哈哈哈哈。（文字部分略模糊。）
+- 12:29 — pingpingdandancaishizhen：图片，红白相间的布料/图案测试图（当前帧只显示部分）。
+
+## Screen-OCR verified frame — 2026-02-10 16:58–18:28
+- 16:58 — DUO：现在是分两个屏幕了。
+- 16:58 — DUO：不是分屏。
+- 16:58 — DUO：贴纸/动图。
+- 16:58 — DUO：jaylin 刚画了小地图和幻觉效果。
+- 17:24 — pingpingdandancaishizhen：好的好的我们刚 break。
+- 18:28 — Jason Tan：今天是去南校吗还是？
+- 18:28 — DUO：对。
+- 18:28 — Jason Tan：okok。
+
+## Screen-OCR verified frame — 2026-02-10 14:16–14:22
+- 14:16 — 软隽辰：没关系。
+- 14:16 — Jason Tan：我在上课。
+- 14:16 — Jason Tan：图片，童年照片。
+- 14:16 — 软隽辰：有课的话就别来了吧。
+- 14:16 — 软隽辰：我们就把 slide 搞一下。
+- 14:16 — Jason Tan：👌。
+- 14:16 — 愿有月光相伴：我过 10 分钟进去。
+- 14:22 — DUO：我也十分钟。
+
+## Screen-OCR verified frame — 2026-02-07 18:24–2026-02-09 21:23
+- 2/7 18:24 — 软隽辰：行。
+- 2/9 02:44 — 软隽辰：我感觉不管之后 idea 怎么改。
+- 02:44 — 软隽辰：地面上种出来的小蘑菇应该是需要的。
+- 02:44 — 软隽辰：这部分我觉得还是得 3d 建模。
+- 02:44 — 软隽辰：伪 3d 玩家很难看出来实际范围。
+- 02:44 — 软隽辰：可以的话有空可以先简单地建一下然后我来 prototype。
+- 2/9 21:23 — Jason Tan：咱 ppt 为啥智能 view 了呀？
+- 21:23 — Jason Tan：我编辑不了。
+
+## Screen-OCR verified frame — 2026-02-06 19:31–2026-02-07 16:43
+- 2/6 19:31 — Juliaaaaaa_桐：我下午和晚上都 ok。
+- 19:31 — 软隽辰：我也可以。
+- 21:02 — 愿有月光相伴：我得晚上 8 点。
+- 2/7 16:16 — 愿有月光相伴：我现在其实 5 点后也可以只是可能不能弄太久。
+- 16:16 — DUO：🤔。
+- 16:16 — DUO：我都可以。
+- 16:43 — Jason Tan：所以我们是几点呢？
+- 16:43 — Jason Tan：我五点也可以。
+- 2/9 21:23 — Jason Tan：sos。
+
+## Screen-OCR verified frame — 2026-02-05 14:03
+- 14:03 — DUO：不过这个是那个咖啡球的套子吗？（引用 pingpingdandancaishizhen 的图片。）
+- 14:03 — Juliaaaaaa_桐：Justine Parish。
+- 14:03 — Juliaaaaaa_桐：Justine.parish@artcenter.edu。
+- 14:03 — pingpingdandancaishizhen：哦哦我今天没找到一个圆形的东西😢。
+- 14:03 — Juliaaaaaa_桐：这个应该就是个普通的。
+- 14:03 — pingpingdandancaishizhen：不过伞盖道理是一样的。（原文用词略模糊。）
+- 14:03 — DUO：sogasoga。
+- 14:03 — Juliaaaaaa_桐：我们这周会研究下怎么在里面装个咖啡球。
+- 14:03 — Juliaaaaaa_桐：不过如果是装饰作用的话这个够了（消息在当前帧底部被截断）。
+
+## Screen-OCR verified frame — 2026-02-03 20:46–2026-02-05 13:06
+- 2/3 20:46 — DUO：照着那个稍微写一下。
+- 20:46 — 软隽辰：我现在写一下。
+- 20:46 — DUO：表情/贴纸。
+- 2/4 19:52 — Jason Tan：图片，手机备忘录/文字内容截图。
+- 21:52 — DUO：这周六下午或者晚上见。
+- 2/5 13:06 — pingpingdandancaishizhen：图片消息（当前帧只显示上缘，内容待下一帧确认）。
+
+## Screen-OCR verified frame — 2026-02-03 17:58
+- 17:58 — DUO：弄点图标拼一下也可以的。
+- 17:58 — Juliaaaaaa_桐：我看看。
+- 17:58 — Juliaaaaaa_桐：UI 相关我写点。
+- 17:58 — DUO：ui 我不知道咋写😂。
+- 17:58 — DUO：还是你们写吧。
+- 17:58 — DUO：谢谢泥。
+- 17:58 — DUO：在第六页。
+- 17:58 — Juliaaaaaa_桐：看看删写或者不用全讲。（引用 DUO“我们只能讲十五分钟”。）
+- 17:58 — DUO：表情/贴纸。
+
+## Screen-OCR verified frame — 2026-02-03 16:13
+- 16:13 — Jason Tan：图片，蓝色界面/复古视觉参考图（含城市/装置照片）。
+- 16:13 — 软隽辰：不一定是要写实的。
+- 16:13 — Jason Tan：ok。
+- 16:13 — 软隽辰：这个是 cassette futurism 的 ref。
+- 16:13 — Jason Tan：那咱是希望风格上以 retrofuturism 为主嘛。
+- 16:13 — 软隽辰：是的。
+- 16:13 — Jason Tan：icic。
+
+## Screen-OCR verified frame — 2026-02-03 12:38
+- 12:38 — 刹那繁红：就是 UI UX 的你自己有一个 vision 吗，还是我们一起构思构思。
+- 12:38 — 刹那繁红：大概游戏看起来什么样子，我们会真的做一个 human figuring 吗？
+- 12:38 — 刹那繁红：然后它身上有各个区域可以交互那种。
+- 12:38 — 软隽辰：差不多是这样的。
+- 12:38 — 软隽辰：我现在在外面。
+- 12:38 — 软隽辰：@Bedi Bedi 你的那个 doctor 的你准备怎么搞？（引用刹那繁红的消息。）
+- 12:38 — 软隽辰：等会我大概两三点去学校搞一下。
+- 12:38 — 软隽辰：UIUX 现在可以简单搞一下。
+- 12:38 — 刹那繁红：我看一下你这个可以总结成几个核心部分。
+- 12:38 — 刹那繁红：图片，Figma/网页上的 UI 讨论板截图（当前帧底部部分可见）。
+
+## Screen-OCR verified frame — 2026-02-03 00:34–01:42
+- 00:34 — DUO：ixd 和美术可以根据我们写的写每个 idea 的第二页。
+- 00:34 — DUO：这样如何？
+- 00:34 — DUO：其他有想加的也都随便加。
+- 00:34 — DUO：不管是哪页。
+- 00:45 — DUO：说错了是第三页 美术和 ui 的那页。（引用上一条消息。）
+- 01:42 — pingpingdandancaishizhen：sorry，才看到消息我直接都写了不过你们可以直接在上面做改动。
+- 01:42 — pingpingdandancaishizhen：图片，橙色手绘风格的角色/蘑菇锅草图。
+
+## Screen-OCR verified frame — 2026-01-31 17:56–18:48
+- 17:56 — Jason Tan：我们是七点在 dc meet 是吧？
+- 17:56 — 刹那繁红：yes。
+- 17:56 — Jason Tan：okok。
+- 18:37 — pingpingdandancaishizhen：《[GMTK 2024 游戏开发大赛 top20 作品盘点]》B 站链接：<https://www.bilibili.com/video/BV192pAemE1A/?vd_source=e79172d09b4ea d5ac531930c48998c84>（原始链接在聊天记录中）。
+- 18:37 — pingpingdandancaishizhen：分享一下感觉 built to scale 这个主题还蛮有趣的。
+- 18:37 — 刹那繁红：👍。
+- 18:48 — DUO：图片，霓虹绿色/青色抽象图形参考。
+
+## Screen-OCR verified frame — 2026-01-30 14:02–14:29
+- 14:02 — 刹那繁红：okok。
+- 14:02 — 刹那繁红：那我们周六见。
+- 14:23 — 刹那繁红：我们明天是线上还是线下？咱们确定一下我在 dis 同步一下信息。
+- 14:23 — Juliaaaaaa_桐：我线上线下都 ok。
+- 14:23 — 愿有月光相伴：我也都 ok。
+- 14:29 — 刹那繁红：我也是都 OK，看着其他人安排。
+- 14:29 — Jason Tan：我可能只能线上。
+- 14:29 — Jason Tan：看情况。
+- 14:29 — 软隽辰：我也都可以。
+- 1/30 14:29 — 软隽辰：不行的话就线上吧。（引用 Jason“我可能只能线上”。）
+
+## Screen-OCR verified frame — 2026-01-29 16:17–16:55
+- 16:17 — 刹那繁红：我也沟通了两位其他 game designer 一起分享各自的 pitch，大家可以参考有没有感兴趣的玩法/技术等，不担心有重复因为这些都是 pitch 没有做出来～甚至 mesh up 现有的也可以。以及各位如果在社交媒体/其他平台有自己感兴趣的作品案例也可以分享在群里，一起集思广益。
+- 16:17 — Jason Tan：👌。
+- 16:42 — 软隽辰：Canva 设计链接：<https://www.canva.com/design/DAG5kThzfa4/GJ_z6g5-QEPCksgnwTZFjQ/edit?utm_content=DAG5kThzfa4&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton>。
+- 16:55 — Juliaaaaaa_桐：贴纸/表情。
+- 16:55 — Juliaaaaaa_桐：🤔感觉可以每个人想 1–2 个想法，然后 meeting 的时候我们讨论下投个票。
+- 16:55 — 软隽辰：我还是更倾向于大家一起讨论出想法（消息在当前帧底部被截断）。
+
+## Screen-OCR verified frame — 2026-01-28 22:59–23:32
+- 22:59 — 系统事件：你邀请 Juliaaaaaa_桐 加入群聊。
+- 22:59 — 系统事件：你邀请 pingpingdandancaishizhen 加入群聊。
+- 22:59 — 系统事件：DUO（软隽辰）已被添加为群管理员。
+- 23:15 — pingpingdandancaishizhen：大家我在 discord 群放了一个统一 meet time 的链接有时间可以填一下。
+- 23:15 — pingpingdandancaishizhen：贴纸/动图，一只猫用喇叭喊话。
+- 23:26 — 系统事件：你邀请 Jason Tan 加入群聊。
+- 23:26 — 系统事件：Jason Tan 不是本群其他成员的好友。
+- 23:26 — 系统事件：Jason Tan 邀请 愿有月光相伴 加入群聊。
+- 23:26 — 系统事件：愿有月光相伴 不是本群其他成员的好友。
+- 23:32 — Jason Tan：图片/贴纸，红色箭头标注的装置/场景照片（当前帧只显示部分）。

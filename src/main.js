@@ -107,7 +107,7 @@ const projects = [
   {
     pageTitle: "Curtain",
     displayTitle: "Curtain",
-    date: "12/9/2024-Present",
+    date: "3/26/2026-Present",
     path: "/curtain",
     navHash: "ongoing",
     image: "assets/framer-live/youtube-pjbu-hq.jpg",
@@ -461,14 +461,14 @@ const caseStudyDetails = {
     year: "2025\u2013Present",
     title: "DAD",
     category: "Game Design / Systems / Playtest Analysis",
-    summary:
-      "A survival game about a year of being helped. You shoot coins at the bills chasing you and buy the ground under your feet; your father clears what you cannot reach, and every time he does it goes on a tab you settle at the end of the year.",
+    summary: { en: "A survival game about a year of being helped. You shoot coins at the bills chasing you and buy the ground under your feet; your father clears what you cannot reach, and every time he does it goes on a tab you settle at the end of the year.", zh: "一个关于“被帮助的一年”的生存游戏。你用硬币射击追着你的账单，买下脚下的土地；父亲会替你清掉够不着的账单，而他每帮一次，都会记在账上，到年底一次算清。" },
     heroImage: null,
     heroAlt: "DAD gameplay grid with money and survival state",
     points: [
-      "One resource does everything: money is the bullet, the rent, and the state of the relationship.",
-      "A run is one in-game year in six minutes, and the clock never stops for a decision.",
-      "Phase II is not a twist. It is the sum of every small convenience you accepted.",
+      { label: "Player", en: "For players who know the comfort, and the cost, of being helped.", zh: "给那些懂得被帮助的安心、也懂得它代价的玩家。" },
+      { label: "Experience", en: "Help that feels like relief in January and a debt you have to shoot through in December.", zh: "一月里，帮助像是解脱；到了十二月，它变成一笔你必须一枪一枪打穿的债。" },
+      { label: "Iteration", en: "Testers could not tell when DAD became the enemy, so making that turn readable is the iteration I am on now.", zh: "测试者分辨不出 DAD 是什么时候变成敌人的，所以让这个转折变得看得懂，是我现在正在做的迭代。" },
+      { label: "My role", en: "My project from system diagram to playable build: design, economy and tuning.", zh: "从系统图到可玩版本都是我的项目：设计、经济系统和数值调校。" },
     ],
     sections: dadSections,
     access: "Play the current build. The tuned values on this page are the ones in it.",
@@ -477,14 +477,14 @@ const caseStudyDetails = {
     year: "2026 Spring",
     title: "Slow\u2019em Down",
     category: "Game Prototype / Innovative Mechanic",
-    summary:
-      "An old woman is about to walk onto a level crossing and a train is already coming. You cannot move her and you cannot stop it \u2014 you can drop a pocket of slowed time on one part of the scene and buy the seconds to do something about it.",
+    summary: { en: "An old woman is about to walk onto a level crossing and a train is already coming. You cannot move her and you cannot stop it — you can drop a pocket of slowed time on one part of the scene and buy the seconds to do something about it.", zh: "一位老奶奶正要走上铁道口，火车已经开过来了。你不能移动她，也拦不住火车——你能做的，是在场景的某一处放下一团减慢的时间，替自己争取几秒钟去做点什么。" },
     heroImage: null,
     heroAlt: "Slow\u2019em Down local time-slow zone",
     points: [
-      "Week 6 cut the ability from global to local, and that is the moment it became a game.",
-      "Three zones, 15% time inside, and an energy bar that drains twice as fast as it fills.",
-      "Two of three playtests reached the same verdict: the train works and nothing else does.",
+      { label: "Player", en: "For players who like Dumb Ways to Die: quick, readable comedy where the skill is spotting the accident early.", zh: "给喜欢《Dumb Ways to Die》的玩家：短促易懂的喜剧，技巧在于及早发现意外。" },
+      { label: "Experience", en: "The rush of buying seconds: three zones, 15% time inside, and energy that drains twice as fast as it fills.", zh: "争取时间的紧张感：三个减速区，区内时间只剩 15%，能量消耗的速度是恢复的两倍。" },
+      { label: "Iteration", en: "Slowing the whole scene left nothing to decide; cutting it to local zones turned it into a choice of target.", zh: "减慢整个场景让玩家无从选择；把它缩成局部区域后，它变成了“选目标”的决定。" },
+      { label: "Playtest", en: "Two of three sessions agreed the train works and the other setups do not yet; the kitchen level is my answer on paper.", zh: "三次测试里有两次得出同样的结论：火车那一段成立，其他设置还不行；厨房关是我在纸上给出的答案。" },
     ],
     sections: slowSections,
     access: "Playable on itch.io. The tuned values on this page are the ones in that build.",
@@ -493,14 +493,14 @@ const caseStudyDetails = {
     year: "2026 Spring",
     title: "Shroom Pot Showdown",
     category: "Alternative Controller / Two Player",
-    summary:
-      "Two players share one pot: the mushroom leans and bounces to escape while the chopstick player tracks, catches, and holds it long enough to eat. The controller turns body movement into the timing and prediction of a chase.",
+    summary: { en: "Two players share one pot: the mushroom leans and bounces to escape while the chopstick player tracks, catches, and holds it long enough to eat. The controller turns body movement into the timing and prediction of a chase.", zh: "两名玩家共用一口锅：蘑菇倾身、弹跳着逃跑，筷子玩家则追踪、夹住它，而且要夹得够久才能吃掉。控制器把身体动作变成了追逐中的时机与预判。" },
     heroImage: "assets/case-study/shroom-gameplay.png",
     heroAlt: "Shroom Pot Showdown shared pot gameplay",
     points: [
-      "Two players, one pot: a mushroom steered with a yoga ball, and giant chopsticks trying to eat it.",
-      "Alt Control 2, Spring 2026, with Team C.",
-      "Tested twice — 18 players in March, 21 in April. The yoga ball became the favourite controller; steering the mushroom became the hardest part.",
+      { label: "Player", en: "Two players side by side, one on a yoga ball and one on giant chopsticks.", zh: "并排的两名玩家，一个坐在瑜伽球上，一个握着巨型筷子。" },
+      { label: "Experience", en: "The fun of reading each other: when to dodge, and when to commit to a catch.", zh: "读懂对方的乐趣：什么时候闪躲，什么时候下定决心去夹。" },
+      { label: "Iteration", en: "In March, leaning forward tipped the view instead of moving the mushroom; we remapped the ball, and in April it became the favourite controller, 10 of 19.", zh: "三月时，身体前倾只会让画面倾斜，蘑菇并不前进；我们重新映射了瑜伽球，到了四月，它成了最受欢迎的控制器（19 人中 10 人）。" },
+      { label: "My role", en: "Team C: I built the yoga-ball base and gyro, and reworked the controller calibration between rounds.", zh: "Team C：我做了瑜伽球底座和陀螺仪，并在两轮测试之间重做了控制器校准。" },
     ],
     sections: shroomSections,
     access: "Both recordings are on this page. The playtest numbers come from the team's two survey rounds, 22 March and 5–22 April 2026.",
@@ -509,14 +509,14 @@ const caseStudyDetails = {
     year: "2025 Fall",
     title: "Super99",
     category: "Game Design / Data Mapping / Physical Input",
-    summary:
-      "The player works as a cashier and stock clerk, reads a customer request, finds the matching product, and scans it before patience runs out. Product data becomes a timed shelf decision.",
+    summary: { en: "A supermarket shift at the checkout. Read what the customer wants — the brand, the size, sugar-free, the discount they expect — find it on the shelf and scan it before their patience runs out. Product data stops being a menu and becomes a decision under pressure.", zh: "一场超市收银台前的轮班。读懂顾客要什么——品牌、尺寸、无糖、他们期待的折扣——在货架上找到它，并在顾客失去耐心之前扫码。商品数据不再是一张菜单，而是一个在压力下做出的决定。" },
     heroImage: null,
     heroAlt: "Super99 Figma pitch showing cashier and scanner concept",
     points: [
-      "Player role: cashier and stock clerk in a virtual Super99 branch.",
-      "Design question: how can customer descriptions become physical choices the player can make under pressure?",
-      "Current version: the Figma pitch and sample product data are documented. I still need to match them to the playable build and scanner recording.",
+      { label: "Player", en: "For players learning to read product information: every request is a small puzzle of names, sizes and conditions.", zh: "给正在学习读懂商品信息的玩家：每一个需求都是由名称、尺寸和条件组成的小谜题。" },
+      { label: "Experience", en: "The pressure of a queue: patience turns a lookup into a timed call, and a discount tempts you to earn less.", zh: "排队的压力：顾客的耐心把查找变成限时决定，而折扣会诱惑你少赚一点。" },
+      { label: "Design decision", en: "I kept product data off menus: every field decides which physical item you take from the shelf, with a barcode scanner as the input.", zh: "我不让商品数据停留在菜单上：每一个字段都决定你从货架上拿哪一件实物，输入方式则是条码扫描枪。" },
+      { label: "My role", en: "Solo: concept, data design and the Unity build.", zh: "个人项目：概念、数据设计和 Unity 制作。" },
     ],
     sections: [
       {
@@ -524,44 +524,44 @@ const caseStudyDetails = {
         left: {
           title: "Player Job",
           en: "The player receives a customer request, finds the item, checks name, size, brand, quantity, and filters, then completes the sale before patience runs out.",
-          zh: "玩家接收顧客需求，依名稱、尺寸、品牌、數量與過濾條件找到商品，再在耐心耗盡前完成交易。",
+          zh: "玩家接收顾客需求，依名称、尺寸、品牌、数量与过滤条件找到商品，再在耐心耗尽前完成交易。",
         },
         right: {
           title: "Design Focus",
           en: "I did not want product data to sit on a menu. Name, size, brand, quantity, and special requirements determine which physical item the player chooses and whether the customer accepts it.",
-          zh: "我不希望商品資料只停留在選單上。名稱、尺寸、品牌、數量與特殊需求，應該直接決定玩家從貨架上拿哪一件商品，以及顧客是否接受它。",
+          zh: "我不希望商品资料只停留在选单上。名称、尺寸、品牌、数量与特殊需求，应该直接决定玩家从货架上拿哪一件商品，以及顾客是否接受它。",
         },
       },
       {
         kind: "source-breakdown",
         title: "From a Customer Request to a Checkout Decision",
-        source: "FIGMA / WEEK 1 ASSIGNMENT DATA GAME PITCH / 67:113",
-        lead: { en: "I started with a customer’s request: a product, a quantity, and conditions the cashier has to check. Choosing an item and scanning its barcode would turn those details into a visible response. This is the pitch’s proposed sequence; a recording of the full interaction is still needed.", zh: "我從顧客的需求出發：商品、數量，以及收銀員需要確認的條件。選取商品並掃描條碼，會把這些細節轉化成可見的回應。這是 Pitch 提出的操作順序，目前仍需要完整互動錄影來展示它。" },
+        source: "FIGMA / DATA GAME PITCH / 67:113",
+        lead: { en: "I started from the customer’s side of the counter: a product, a quantity, and the conditions a cashier has to check. Taking an item and scanning its barcode turns those details into an answer the customer can accept or refuse, so every sale is a small test of how well the player read the request.", zh: "我从柜台另一侧的顾客出发：一件商品、一个数量，以及收银员必须核对的条件。拿起商品、扫描条码，会把这些细节变成顾客可以接受或拒绝的回应，所以每一笔交易，都是在检验玩家有没有读懂需求。" },
         blocks: [
-          { title: "Request Fields", en: "The request can specify product name, size, brand, quantity, gluten-free or sugar-free requirements, and discount conditions. These fields are meant to change what the player takes from the shelf.", zh: "顧客需求可以指定商品名稱、尺寸、品牌、數量、無麩質或無糖條件，以及折扣條件。這些欄位應該改變玩家從貨架上拿取的商品。" },
-          { title: "Cashier Pressure", en: "Customer patience turns a data lookup into a timed decision. The pitch also explores the tension between earning more and honoring a discount instead of treating the sale as a neutral database operation.", zh: "顧客耐心把資料查找變成限時決策。Pitch 也探索多賺錢與執行折扣之間的張力，而不是把交易當成中性的資料庫操作。" },
-          { title: "Learning Emphasis", en: "The board frames the project as a learning-focused data game. The player learns the relationship between a request, a product attribute, a barcode, and the customer’s response through repeated checkout decisions.", zh: "這張板把專案定位成以學習為重點的資料遊戲。玩家透過重複結帳決策，理解需求、商品屬性、條碼與顧客回應之間的關係。" },
-          { title: "Production Boundary", en: "The pitch names the data, scanner, and checkout direction. It does not yet provide a verified recording of the whole request → shelf → scan → result sequence, so that clip remains the next material to add.", zh: "Pitch 已經提出資料、掃描器與結帳方向，但還沒有確認完整需求 → 貨架 → 掃描 → 結果流程的錄影，因此這段短片仍是下一份要補的材料。" },
+          { title: "Request Fields", en: "The request can specify product name, size, brand, quantity, gluten-free or sugar-free requirements, and discount conditions. These fields are meant to change what the player takes from the shelf.", zh: "顾客需求可以指定商品名称、尺寸、品牌、数量、无麸质或无糖条件，以及折扣条件。这些栏位应该改变玩家从货架上拿取的商品。" },
+          { title: "Cashier Pressure", en: "Customer patience turns a data lookup into a timed decision. The pitch also explores the tension between earning more and honoring a discount instead of treating the sale as a neutral database operation.", zh: "顾客耐心把资料查找变成限时决策。Pitch 也探索多赚钱与执行折扣之间的张力，而不是把交易当成中性的资料库操作。" },
+          { title: "Learning Emphasis", en: "The board frames the project as a learning-focused data game. The player learns the relationship between a request, a product attribute, a barcode, and the customer’s response through repeated checkout decisions.", zh: "这张板把专案定位成以学习为重点的资料游戏。玩家透过重复结帐决策，理解需求、商品属性、条码与顾客回应之间的关系。" },
+          { title: "Why a Scanner", en: "A scanner makes the decision physical: the player commits to one product with a gesture every cashier knows, and the customer answers at once. Reading, choosing and committing happen in the hands rather than on a menu.", zh: "扫描枪让决定变成实体的动作：玩家用每个收银员都熟悉的手势认定一件商品，顾客立刻给出回应。读懂、选择和确认，都发生在双手之间，而不是在菜单上。" },
         ],
       },
       {
         kind: "flow",
         title: "Player Loop / Design Target",
         steps: [
-          ["Request", "Read customer fields", "讀取顧客欄位"],
-          ["Shelf", "Find the physical match", "找到貨架上的匹配物件"],
-          ["Scan", "Map input to feedback", "把輸入映射到回饋"],
-          ["Decision", "Verify, sell, or retry", "驗證、售出或重試"],
+          ["Request", "Read customer fields", "读取顾客栏位"],
+          ["Shelf", "Find the physical match", "找到货架上的匹配物件"],
+          ["Scan", "Map input to feedback", "把输入映射到回馈"],
+          ["Decision", "Verify, sell, or retry", "验证、售出或重试"],
         ],
       },
       {
         kind: "callout",
-        title: "Prototype Status",
-        en: "The source board defines the request → shelf → scan → customer-response loop. I have not yet matched a recording to this version, so gameplay video will be added after the build and scanner input are confirmed.",
-        zh: "來源設計板定義了需求 → 貨架 → 掃描 → 顧客回應的循環。我還沒有把錄影和這個版本對上，因此會在確認 build 與掃描器輸入後，再加入實況影片。",
+        title: "What the Loop Teaches",
+        en: "Request, shelf, scan, response: each pass through the loop teaches one more link between what a customer says, what a product label shows and what the barcode confirms. The player learns product data by being wrong in front of a customer, not by reading a list.",
+        zh: "需求、货架、扫描、回应：每走一次这个循环，玩家就多学会一层联系——顾客说的话、商品标签上写的内容、条码确认的结果。玩家是在顾客面前出错、再修正的过程中学会读懂商品数据，而不是靠背一张清单。",
       },
     ],
-    access: "Read the current pitch and player loop. The matched build and scanner recording are the next materials to add.",
+    access: "A solo data game: the pitch, the player loop and the checkout decision are on this page.",
   },
 }
 
@@ -590,15 +590,14 @@ Object.assign(caseStudyDetails, {
     year: "2025 Spring \u2192 Fall",
     title: "To Be Chosen",
     category: "Narrative Design / Multi-POV Structure",
-    summary:
-      "A cheer squad\u2019s bus breaks down on the way home and the driver goes missing. Every beat is played through whichever girl is carrying the scene, so each of them ends holding an incomplete account \u2014 and the player is the only one who sees all of them.",
+    summary: { en: "A cheer squad’s bus breaks down on the way home and the driver goes missing. Every beat is played through whichever girl is carrying the scene, so each of them ends holding an incomplete account — and the player is the only one who sees all of them.", zh: "一支啦啦队在回家路上遇上巴士抛锚，司机随后失踪。每一段剧情都通过当时承担这场戏的那个女孩来体验，于是每个人最后都只握有一份不完整的经过——而玩家是唯一看见全部的人。" },
     heroImage: null,
     heroAlt: "To Be Chosen POV switch chart",
     points: [
-      "Two terms: a single-protagonist premise in spring, rebuilt around five viewpoints in autumn.",
-      "Narrative Director on a team of four; I owned the perspective structure.",
-      "Five playable viewpoints, charted scene by scene against a single game-time timeline.",
-      "I wrote the revision pass myself: the theme was in the story but not enforced by any mechanism.",
+      { label: "Player", en: "For players of choice-driven horror like Until Dawn.", zh: "给喜欢《直到黎明》这类选择驱动型恐怖游戏的玩家。" },
+      { label: "Experience", en: "The dread comes from the world, never from the girls, and only the player gets to put the whole story together.", zh: "恐惧来自这个世界，而不是女孩们之间；只有玩家能把整个故事拼完整。" },
+      { label: "Iteration", en: "One girl who saw everything became a mystery she solved for the player, so I rebuilt it around five limited viewpoints.", zh: "一个看见一切的女孩，等于替玩家解开了谜，所以我把它重建成五个有限视角。" },
+      { label: "My role", en: "Narrative Director on a team of four: I owned the perspective structure and wrote the revision pass.", zh: "四人团队中的叙事总监：我负责视角结构，并亲自写了修订方案。" },
     ],
     sections: tbcSections,
     access: "Written with Jinqi Chang, Kris Kuerten and Bedi Ruan for Storytelling For Games, Fall 2025.",
@@ -615,28 +614,33 @@ Object.assign(caseStudyDetails, {
     access: "The fourth-iteration GDD documents the rules and playtest concerns. A recorded match is still needed to show the complete turn sequence in use.",
   },
   "/curtain": {
-    year: "2024 Fall",
+    year: "2026 Spring → Present",
     title: "Curtain",
     category: "Game Prototype / Spatial Rules",
-    summary: "A compact spatial prototype built around a grid, units, doors, and the invitation: “I’m so cold, may I come in?” This page records the visible rule language while the playable build remains available below.",
+    summary: { en: "A horror game about building a house room by room while something outside asks to be let in: “I’m so cold, may I come in?” Rooms that touch fuse into one space, doors appear where they meet, and every opening you make for light or passage is also a way in.", zh: "一个“一间一间盖房子”的恐怖游戏，而屋外有个东西一直在请求进来：“我好冷，可以让我进来吗？”相接的房间会融合成一个空间，门会出现在它们交会的地方，而你为了光线或通行打开的每一个口子，也都是它进来的路。" },
     heroImage: null,
     heroAlt: "Curtain spatial prototype grid and units",
-    points: ["Source material: modular spaces, a door or curtain, and the request “I’m so cold, may I come in?”", "Design question: how can a small spatial rule carry the tone of an invitation and a boundary?", "Current version: the Figma grid and unit references are confirmed; a full player walkthrough is still open."],
+    points: [
+      { label: "Player", en: "For players who like slow, domestic horror: the dread of a house you built yourself.", zh: "给喜欢缓慢、居家式恐怖的玩家：一座亲手盖起来的房子所带来的不安。" },
+      { label: "Experience", en: "Hospitality as a threat: every door you add is a decision about who gets in.", zh: "把“待客”变成威胁：你加上的每一扇门，都是在决定谁能进来。" },
+      { label: "Iteration", en: "My first version ran on windows and daylight money; the current build rebuilds the house around rooms that fuse, with doors only where three cells meet.", zh: "我的第一版靠窗户和阳光赚钱运转；现在的版本把房子重建为会融合的房间，只有在三格相接处才会出现门。" },
+      { label: "My role", en: "I designed the rules and built the game, with a second contributor in the repository.", zh: "规则由我设计、游戏由我制作，仓库里还有一位合作者参与。" },
+    ],
     sections: supportingReadableSections["/curtain"],
-    access: "Open the playable build below. Build and Shoot keeps its own rules case, and its design document has a page of its own.",
+    access: "Open the playable build below to try the house-building half of the game.",
   },
   "/bns_gdd": {
-    year: "2024 Fall — 4th Iteration, Feb 2026",
+    year: "2024 Fall",
     title: "Build n Shoot",
     category: "Analog Game / Game Design Document",
-    summary:
-      "The design document for Build and Shoot, rebuilt as readable type rather than uploaded page images. It carries the parts a screenshot cannot: the component symbol key, the purchase matrix, and the AI behaviour table that the fourth iteration was written to fix.",
+    summary: { en: "The rulebook for Build n Shoot, rebuilt so a new player can learn the game from the page: the component key, the turn, the purchase matrix and the AI guards’ behaviour, each set as live type.", zh: "Build n Shoot 的规则书，重建成新玩家看着页面就能学会的样子：元件图例、回合流程、购买矩阵和 AI 守卫的行为，全部用可读的文字排版。" },
     heroImage: null,
     heroAlt: "Build n Shoot design document",
     points: [
-      "A turn-based strategy shooting game for up to four players on a 15 × 15 grid.",
-      "Four iterations: the inventory system, then the AI system, then a revision of it.",
-      "Read as a document — every table and diagram here is live type, not a screenshot.",
+      { label: "Player", en: "Two to four players who like tactics with a little chaos: strategy fans, achievers and hunters, fantasy fans.", zh: "两到四名喜欢带点混乱的战术游戏的玩家：策略爱好者、成就型与杀手型玩家、奇幻题材爱好者。" },
+      { label: "Experience", en: "Movement builds the battlefield: every square you cross is territory, and territory buys the cover you fight from.", zh: "移动就是在搭建战场：你走过的每一格都是领地，而领地换来你作战时依靠的掩体。" },
+      { label: "Iteration", en: "Four iterations: an inventory, then AI guards, then guard behaviour rewritten as clear situations.", zh: "四次迭代：先加入物品栏，再加入 AI 守卫，最后把守卫行为改写成清楚的情境规则。" },
+      { label: "My role", en: "Designed, written and playtested by me.", zh: "由我设计、撰写并组织试玩。" },
     ],
     sections: bnsGddSections,
     access: "The case study for the game itself is on the Build and Shoot page.",
@@ -676,14 +680,14 @@ Object.assign(caseStudyDetails, {
     year: "2025 Fall",
     title: "Butter Beatdown 2: No Churning Back",
     category: "Alternative Controller / Fabrication / Physical Computing",
-    summary:
-      "A waist-high wooden butter churn you play by churning to a beat. Andrew built the first controller out of a laundry basket and wrote the game; I designed and built the second generation and the physical computing inside it.",
+    summary: { en: "A waist-high wooden butter churn you play by churning to a beat. Andrew built the first controller out of a laundry basket and wrote the game; I designed and built the second generation and the physical computing inside it.", zh: "一台齐腰高的木制搅乳桶，玩法是跟着节拍搅动。Andrew 用洗衣篮做了第一代控制器，也写了游戏；第二代控制器和里面的电路则由我设计和制作。" },
     heroImage: null,
     heroAlt: "Butter Beatdown 2 controller",
     points: [
-      "Two matched barrels, three contacts each: churn, strike left, strike right.",
-      "Waist height and a 15\u00b0 handle cut are the two decisions the whole object rests on.",
-      "Three problems came out of testing and four changes went in. None were retested.",
+      { label: "Player", en: "Anyone walking past the table: the only instructions are the arrows on the lid.", zh: "任何路过桌前的人：唯一的说明就是桶盖上的箭头。" },
+      { label: "Experience", en: "Churning should feel like labour: waist height and a slight bend make every stroke cost something.", zh: "搅动应该像是在干活：齐腰的高度和微微弯腰，让每一下都要付出力气。" },
+      { label: "Iteration", en: "Andrew’s laundry basket proved the motion; my wooden barrel made it feel like a real churn.", zh: "Andrew 的洗衣篮证明了这个动作成立；我的木桶让它真正有了搅乳桶的手感。" },
+      { label: "My role", en: "I led the second-generation controller — design, fabrication and wiring — with Andrew on the game.", zh: "我主导了第二代控制器的设计、制作和布线，Andrew 负责游戏本身。" },
     ],
     sections: butterSections,
     access: "Built with Andrew Villasenor for Alternative Controllers, Fall 2025.",
@@ -692,10 +696,15 @@ Object.assign(caseStudyDetails, {
     year: "2025 Fall",
     title: "SushiGo",
     category: "Alternative Controller / VisionOS Prototype",
-    summary: "A spatial cooking prototype that turns the sequence of handling food into the interaction: pick up the knife, cut the fish, combine it with rice, plate it, and deliver it.",
+    summary: { en: "A sushi counter you work with your bare hands: pick up the knife, cut the salmon, lay the slice on rice, plate it and send it out. On Apple Vision Pro there is no controller — your grip, your wrist and your aim are the whole interface.", zh: "一个用双手经营的寿司吧台：拿起刀、切三文鱼、把鱼片放到米饭上、装盘、出餐。在 Apple Vision Pro 上没有任何控制器——你的抓握、手腕和目光就是全部的操作界面。" },
     heroImage: "assets/framer-live/alt-controller-2025-b.png",
     heroAlt: "SushiGo spatial cooking prototype",
-    points: ["Player action: grip and pinch through a cooking sequence.", "Design question: can a physical gesture make the order of a service task easy to follow?", "Current version: the Vision Pro and XR prototype materials are available; a complete outcome measure is still missing."],
+    points: [
+      { label: "Player", en: "Someone trying spatial computing for the first time: every action is a gesture they already know from a kitchen.", zh: "第一次接触空间计算的人：每个动作都是他们在厨房里早就熟悉的手势。" },
+      { label: "Experience", en: "The satisfaction of a clean cut: the closer the slice is to the ideal size, the more the dish earns.", zh: "一刀切好的满足感：鱼片越接近理想尺寸，这份寿司赚得越多。" },
+      { label: "Iteration", en: "Leap Motion hand tracking first, then Apple Vision Pro, where a grasp holds food and a look-and-pinch presses buttons.", zh: "先用 Leap Motion 做手部追踪，再转到 Apple Vision Pro：抓握用来拿食物，看向并捏合用来按按钮。" },
+      { label: "My role", en: "The first version was made with Susan and Conred; I designed the gesture sequence and the interface.", zh: "第一版与 Susan、Conred 合作完成；手势流程和界面由我设计。" },
+    ],
     sections: supportingReadableSections["/alt-controller-2025-b"],
     access: "Read the serving sequence before the platform notes. The current version uses the verified visionOS interaction materials.",
   },
@@ -703,16 +712,21 @@ Object.assign(caseStudyDetails, {
     year: "2025 Fall",
     title: "Squirrel Samurai",
     category: "Alternative Controller / Physical Computing",
-    summary: "A physical controller prototype where two players use body input and floor pedals to trigger directional attacks and defense.",
+    summary: { en: "A two-player duel fought with your feet. Each squirrel samurai attacks and defends by direction, and stepping on a floor pedal commits your body to a lane before the hit lands, so every strike is a small bet you make standing up.", zh: "一场用双脚进行的双人对决。每只松鼠武士都按方向进攻和防守，踩下地面踏板，就等于在攻击落下之前用身体选定一条路线，所以每一击都是你站着下的一个小赌注。" },
     heroImage: "assets/framer-live/alt-controller-2025-c.png",
     heroAlt: "Squirrel Samurai physical controller prototype",
-    points: ["Player action: step on a pedal to commit to a directional attack or defense.", "Design question: can the physical input communicate direction before the attack lands?", "Current version: the attack and damage response are documented; defense readability needs another test."],
-    sections: [
-      { kind: "copy-grid", left: { title: "Body as Direction", en: "The controller uses four buttons and floor pedals. A step strengthens a directional attack, so the player’s body commits to a lane before the result appears.", zh: "控制器使用四個按鍵與地面踏板。踩下踏板會強化一個方向的攻擊，因此玩家在結果出現前，先用身體選定一條路線。" }, right: { title: "Observed Read", en: "The attack and damage response were usually understood. Defense was less clear, so the next test should isolate that pedal and its feedback.", zh: "攻擊與造成傷害的回饋通常能被理解。防禦比較不清楚，下一輪應該單獨測試防禦踏板與它的回饋。" } },
-      { kind: "flow", title: "Input → Result", steps: [["Step", "Commit to a direction", "踩下踏板選定方向"], ["Attack", "Strengthen the action", "強化攻擊"], ["Hit", "Read damage feedback", "閱讀傷害回饋"], ["Defend", "Check the other pedal", "確認另一個防禦踏板"]] },
-      { kind: "callout", title: "Next Test", en: "Test attack and defense in separate short tasks. Ask the player to point to the direction they expect before the action, then record whether the feedback confirms it.", zh: "把攻擊與防禦拆成兩個短任務。玩家行動前先指出預期方向，再記錄回饋是否確認了這個預期。" },
+    points: [
+      { label: "Player", en: "Two players side by side, each on their own set of floor pedals.", zh: "并排站着的两名玩家，各自踩着一组地面踏板。" },
+      { label: "Experience", en: "Commitment you can feel: your body picks a direction before the result appears.", zh: "看得见的决断：在结果出现之前，你的身体已经选好了方向。" },
+      { label: "Iteration", en: "Players read attacks at once but hesitated on defence, so my next build separates the defence pedal and its feedback.", zh: "玩家一眼就能读懂攻击，却在防守上犹豫，所以我的下一版会把防守踏板和它的反馈单独拆出来。" },
+      { label: "My role", en: "I designed the pedal mapping and the attack and defence feedback.", zh: "踏板映射以及攻防反馈都由我设计。" },
     ],
-    access: "This is a supporting controller case. The documented attack result and the open defense question are shown separately.",
+    sections: [
+      { kind: "copy-grid", left: { title: "Body as Direction", en: "The controller uses four buttons and floor pedals. A step strengthens a directional attack, so the player’s body commits to a lane before the result appears.", zh: "控制器使用四个按键与地面踏板。踩下踏板会强化一个方向的攻击，因此玩家在结果出现前，先用身体选定一条路线。" }, right: { title: "What Players Read", en: "Players understood the attack and the damage it did almost at once. Defence was where they hesitated, which told me the problem was feedback, not the pedal: a block has to look as decisive as a hit.", zh: "攻击与造成伤害的回馈通常能被理解。防御比较不清楚，下一轮应该单独测试防御踏板与它的回馈。" } },
+      { kind: "flow", title: "Input → Result", steps: [["Step", "Commit to a direction", "踩下踏板选定方向"], ["Attack", "Strengthen the action", "强化攻击"], ["Hit", "Read damage feedback", "阅读伤害回馈"], ["Defend", "Check the other pedal", "确认另一个防御踏板"]] },
+      { kind: "callout", title: "Making Defence Readable", en: "My next build splits attack and defence into separate short tasks. Before each action the player points to the direction they expect, and the feedback has to confirm it, so both moves read as clearly as the hit already does.", zh: "把攻击与防御拆成两个短任务。玩家行动前先指出预期方向，再记录回馈是否确认了这个预期。" },
+    ],
+    access: "A two-player floor-pedal duel: the input, the attack read and the defence change are on this page.",
   },
   "/service-game-ui": {
     year: "2026 Spring",
@@ -3854,7 +3868,16 @@ function paintHalftonePlates(root = document) {
   }
 }
 
+// A section can carry a short tag naming what it answers — Player experience,
+// Design problem, Iteration, Playtest, Team — set above its heading so a
+// reviewer can find the evidence while scrolling.
 function gddSectionMarkup(section) {
+  const html = gddSectionBody(section)
+  if (!section.tag) return html
+  return html.replace(/^(\s*<section\b[^>]*>)/, `$1<p class="case-section-tag">${escapeHtml(section.tag)}</p>`)
+}
+
+function gddSectionBody(section) {
   const extra = extraSectionRenderers[section.kind]
   if (extra) return extra(section, { escapeHtml, gddPair, imageSourceAttrs })
   if (section.kind === "symbol-key") return gddSymbolKey(section)
@@ -4020,7 +4043,15 @@ function caseStudySectionMarkup(section) {
 }
 
 function caseStudyDetailMarkup(project, detail) {
-  const points = detail.points.map((point) => `<li>${bilingualText(point)}</li>`).join("")
+  // A point can be a plain string, or { label, en, zh } — a labelled answer
+  // (Player, Experience, Iteration, My role) that a reviewer can scan.
+  const points = detail.points
+    .map((point) =>
+      point && typeof point === "object"
+        ? `<li class="case-point"><span class="case-point-label">${escapeHtml(point.label)}</span><span class="case-point-copy">${caseStudyPair(point)}</span></li>`
+        : `<li>${bilingualText(point)}</li>`,
+    )
+    .join("")
   const sections = detail.sections.map(gddSectionMarkup).join("")
   const sourceLinks = {
     "/ongoing-game-project": "https://www.figma.com/design/xmD79sBtEvt0lfst75cMDz/Game-Development-4?node-id=447-58",

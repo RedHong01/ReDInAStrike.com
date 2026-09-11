@@ -62,8 +62,8 @@ export const sbhSections = [
     },
     right: {
       title: "Team and my part",
-      en: "Kaine, Weiting and me. The GDD and the data sheet live in Kaine’s Drive, and our weekly hand-ins in Weiting’s. My part, as the files show it: the character-creation screens and the visual kit behind them — the body silhouettes, the vertical step rails, the contour-map texture and the ₿ on every price — drawn in Illustrator on 3/18 and 3/19 and brought into our shared Figma. I also asked the question that put the background choice in front of the twelve stats.",
-      zh: "Kaine、Weiting 和我。GDD 和数据表存在 Kaine 的 Drive 里，每周的作业提交在 Weiting 的文件夹里。按文件能看到的，我负责的是角色创建的界面，以及它背后的视觉素材——人物剪影、竖向的步骤标签、等高线地图纹理，还有每个价格旁边的 ₿——3 月 18、19 日在 Illustrator 里画好，再导进我们共用的 Figma。让“选择背景”排到十二项属性前面的那个问题，也是我提出来的。",
+      en: "Kaine, Weiting and me. The GDD and the data sheet live in Kaine’s Drive, and our weekly hand-ins in Weiting’s. I designed the hunt loop — take a bounty, land, kill, craft, take the next one — and I made the visual UI and the UX that let a player click that whole circle: title screen, character creation, tutorial, Star Map, guild hall, upgrades, Headless Hunts, crafting and the store. The kit behind those screens I drew in Illustrator on 3/18 and 3/19 and brought into our shared Figma.",
+      zh: "Kaine、Weiting 和我。GDD 和数据表存在 Kaine 的 Drive 里，每周的作业提交在 Weiting 的文件夹里。狩猎循环是我设计的——接下悬赏，降落，猎杀，制作，再接下一份——这一圈的视觉 UI 和整套 UX 也是我做的：标题画面、角色创建、教程、星图、公会大厅、升级、无头狩猎、制作和商店。这些界面背后的素材，我 3 月 18、19 日在 Illustrator 里画好，再导进我们共用的 Figma。",
     },
   },
   {
@@ -77,24 +77,35 @@ export const sbhSections = [
       { week: 7, date: "3/5", title: "Kickoff", en: "The slides and the data sheet are opened the day the project starts.", zh: "项目开始当天，演示文稿和数据表就建好了。", lesson: pair("Syllabus: begin an MMORPG, weeks 7–14", "教学大纲：第 7–14 周开始一款 MMORPG") },
       { week: 8, date: "3/12", title: "First deck", en: "SCI-FI FPS MMORPG: twelve attributes, a four-step loop, Credits as the currency, three social systems, and an art-direction slide that still says Placeholder.", zh: "第一版演示文稿：十二项属性、四步循环、叫作 Credits 的货币、三个社交系统，以及一张还写着 Placeholder 的美术方向页。", lesson: pair("Week 1: the eight-slide pitch deck", "第 1 周：八页提案演示文稿") },
       { week: 9, date: "3/18–3/19", title: "Numbers and a look", en: "My 3/18 copy of the sheet: 22 grades, five of twelve attributes doing nothing, the weapon tab empty. The next day my Illustrator kit goes into Figma.", zh: "我在 3/18 下载的那份数据表：22 个评级，十二项属性里有五项什么也不影响，武器页还是空的。第二天，我的 Illustrator 素材导进了 Figma。", lesson: pair("Week 4: put the attributes in a spreadsheet", "第 4 周：把属性放进表格") },
-      { week: 10, date: "3/26–3/27", title: "Prototype and playtest", en: "The clickable prototype goes in with ten playtest questions. The deck gains guild halls, raids, faction wars and a Halloween event, Headless Hunts.", zh: "可点击原型连同十个试玩问题一起提交。演示文稿加上了公会大厅、团队副本、阵营战，以及万圣节活动 Headless Hunts。", lesson: pair("Week 5: event frameworks and holidays", "第 5 周：活动框架与节日") },
+      { week: 10, date: "3/26–3/27", title: "Prototype and playtest", en: "The clickable prototype goes in with ten playtest questions. The deck gains guild halls, raids, faction wars and a Halloween event, Headless Hunts.", zh: "可点击原型连同十个试玩问题一起提交。演示文稿加上了公会大厅、团队副本、阵营战，以及万圣节活动 Headless Hunts。", lesson: pair("Event frameworks and holidays", "活动框架与节日") },
       { week: 11, date: "4/2", empty: true, en: "Nothing in the files is dated this week.", zh: "文件里没有这一周的记录。" },
       { week: 12, date: "4/9", title: "The pitch", en: "Eleven slides for an imaginary publisher: free to play, cosmetic sales, a 70/30 split between the game and live ops, launch in March 2031.", zh: "给一个假想发行商的十一页提案：免费游玩、只卖外观、本体与长线运营按 70/30 分配人力，2031 年 3 月上线。", lesson: pair("Outcome 5: plan a roadmap and explain it", "学习目标 5：规划路线图并讲清楚") },
-      { week: 13, date: "4/16", title: "GDD and final deck", en: "The GDD follows the course template, milestones and all. The deck fills in the playtest feedback, the metagame and a persona.", zh: "GDD 按课程模板来写，连里程碑都照着填。演示文稿补上了试玩反馈、元游戏设计和用户画像。", lesson: pair("Week 5: a good GDD settles arguments", "第 5 周：好的 GDD 能平息争论") },
-      { week: 14, date: "4/23", title: "Final hand-in", en: "The sheet ends at 55 grades, 30 levels, 30 guns and a year of live ops. With it: the GDD, five written playtest summaries and the 4:34 recording.", zh: "数据表最终有 55 个评级、30 个等级、30 把枪和一整年的运营日历。一起交上的还有 GDD、五份文字试玩总结，以及 4 分 34 秒的录屏。", lesson: pair("Week 5: video, slides, wireframes, spreadsheets, GDD", "第 5 周：视频、演示文稿、线框、表格、GDD") },
+      { week: 13, date: "4/16", title: "GDD and final deck", en: "The GDD follows the course template, milestones and all. The deck fills in the playtest feedback, the metagame and a persona.", zh: "GDD 按课程模板来写，连里程碑都照着填。演示文稿补上了试玩反馈、元游戏设计和用户画像。", lesson: pair("A good GDD settles arguments", "好的 GDD 能平息争论") },
+      { week: 14, date: "4/23", title: "Final hand-in", en: "The sheet ends at 55 grades, 30 levels, 30 guns and a year of live ops. With it: the GDD, five written playtest summaries and the 4:34 recording.", zh: "数据表最终有 55 个评级、30 个等级、30 把枪和一整年的运营日历。一起交上的还有 GDD、五份文字试玩总结，以及 4 分 34 秒的录屏。", lesson: pair("Video, slides, wireframes, spreadsheets, GDD", "视频、演示文稿、线框、表格、GDD") },
     ],
   },
   {
-    kind: "copy-grid",
+    kind: "sbh-mantra-grid",
     left: {
       title: "The Pitch",
-      en: "Our pitch line was “Star Wars meets Monster Hunter.” The gap we claimed: shooters rarely give you deep builds and long progression, and MMOs rarely give you precise gunplay. So the hunt is the progression. You don’t level by finishing quests; you get stronger because the thing you killed dropped the material your next gun needs. The audience line was wide, 14 to 50 on console and PC, but the player we pictured was narrower: someone who likes grinding for a gun with friends.",
-      zh: "我们的一句话提案是“星球大战遇上怪物猎人”。我们认定的空缺是：射击游戏很少给你深度的构筑和长线成长，MMO 又很少给你精准的枪感。所以狩猎本身就是成长。你不是靠做任务升级，而是因为你猎杀的东西，掉落了下一把枪需要的材料。受众写得很宽，14 到 50 岁、主机与 PC，但我们心里想的玩家更窄：喜欢和朋友一起为一把枪反复刷的人。",
+      en: "“Star Wars meets Monster Hunter.” The gap we claimed: shooters rarely give you deep builds and long progression, and MMOs rarely give you precise gunplay. So the hunt is the progression. You don’t level by finishing quests; you get stronger because the thing you killed dropped the material your next gun needs. The audience line was wide, 14 to 50 on console and PC, but the player we pictured was narrower: someone who likes grinding for a gun with friends.",
+      zh: "“星球大战遇上怪物猎人”。我们认定的空缺是：射击游戏很少给你深度的构筑和长线成长，MMO 又很少给你精准的枪感。所以狩猎本身就是成长。你不是靠做任务升级，而是因为你猎杀的东西，掉落了下一把枪需要的材料。受众写得很宽，14 到 50 岁、主机与 PC，但我们心里想的玩家更窄：喜欢和朋友一起为一把枪反复刷的人。",
     },
     right: {
       title: "The Mantra",
-      en: "The GDD opens with one question for every feature: “Does this make me feel like a bounty hunter prepping for the next big hunt?” Under it sit three pillars: customization and expression, fast and responsive first-person combat, and progression through loot and destinations. The pillars also set what the rest of this page measures: builds in the stat sheet, combat in the prototype, loot and destinations in the grind and the calendar.",
-      zh: "GDD 开头写着一个问题，每个功能都要回答它：“这会让我觉得自己是一名正在为下一场大狩猎做准备的赏金猎人吗？”下面是三根支柱：定制与表达、快速灵敏的第一人称战斗、由战利品和目的地推动的成长。这三根支柱也决定了这一页接下来度量什么：属性表里的构筑、原型里的战斗、刷取时长与运营日历里的战利品和目的地。",
+      open: pair(
+        "The GDD opens with one question for every feature: “Does this make me feel like a bounty hunter prepping for the next big hunt?” Under it sit three pillars:",
+        "GDD 开头写着一个问题，每个功能都要回答它：“这会让我觉得自己是一名正在为下一场大狩猎做准备的赏金猎人吗？”下面是三根支柱：",
+      ),
+      pillars: [
+        pair("Customization and expression", "定制与表达"),
+        pair("Fast and responsive first-person combat", "快速灵敏的第一人称战斗"),
+        pair("Progression through loot and destinations", "由战利品和目的地推动的成长"),
+      ],
+      close: pair(
+        "The pillars also set what the rest of this page measures: builds in the stat sheet, combat in the prototype, loot and destinations in the grind and the calendar.",
+        "这三根支柱也决定了这一页接下来度量什么：属性表里的构筑、原型里的战斗、刷取时长与运营日历里的战利品和目的地。",
+      ),
     },
   },
   {
@@ -653,7 +664,6 @@ const summary = "A sci-fi FPS MMORPG for Game as Service: take a bounty, hunt th
 const points = [
   "Game as Service, Spring 2026: weeks 7 to 14, with Kaine and Weiting.",
   "Design question: can the hunt itself be the progression, with builds deep enough to plan around?",
-  "Current version: slides, a seven-tab data sheet, a GDD, a clickable Figma prototype and its 4:34 recording. It is a design, not a build.",
 ]
 const access = "Designed with Kaine and Weiting for Game as Service, Spring 2026. The prototype link opens our Figma file at the title screen; the recording above plays the same flow."
 
@@ -684,6 +694,5 @@ export const sbhCopyTranslations = [
   [summary, "为 Game as Service 课程设计的科幻第一人称射击 MMORPG：接下悬赏，猎杀怪物，把它变成装备，再用一整年的长线运营让银河保持热闹。"],
   [points[0], "2026 年春季 Game as Service：第 7 到第 14 周，与 Kaine、Weiting 合作。"],
   [points[1], "设计问题：狩猎本身能不能就是成长，而且构筑深到值得提前规划？"],
-  [points[2], "当前版本：演示文稿、七个分页的数据表、GDD、可点击的 Figma 原型，以及它的 4 分 34 秒录屏。这是一套设计，而不是做出来的游戏。"],
   [access, "2026 年春季与 Kaine、Weiting 为 Game as Service 课程设计。原型链接会从标题画面打开我们的 Figma 文件；上面的录屏播放的是同一条流程。"],
 ]

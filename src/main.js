@@ -93,7 +93,7 @@ const projects = [
   {
     pageTitle: "Assets Hub",
     displayTitle: "Production Design",
-    date: "12/9/2024",
+    date: "Spring 2024",
     path: "/assethub",
     navHash: "interaction",
     image: "assets/case-study/assets-hub/poster.jpg",
@@ -2974,6 +2974,8 @@ function projectPreviewSummary(project) {
     "/shroom-pot-showdown": "An asymmetric chase between a drifting mushroom and hungry chopsticks.",
     "/alt-controller-2025-a": "A data-driven supermarket game about turning customer fields into shelf decisions.",
     "/myfridge": "A fridge app for people in their first job: food comes in from the receipt, and the waste is counted in dollars.",
+    "/assethub": "A single searchable desktop for the images, clips, 3D files, and documents scattered across computer and cloud drives.",
+    "/analog-game": "A turn-based fight where movement paints territory, building changes cover, and every shot reshapes the floating island.",
   }
   if (caseStudyLeadSummaries[project.path]) return caseStudyLeadSummaries[project.path]
 
@@ -4046,7 +4048,7 @@ function caseStudyDetailMarkup(project, detail) {
         <header class="framer-case-hero case-study-hero">
           <div class="case-study-hero-grid${detail.heroImage ? "" : " case-study-hero-grid--text"}">
             ${detail.heroImage ? `<figure class="case-study-hero-image"><img ${imageSourceAttrs(detail.heroImage)} alt="${escapeHtml(detail.heroAlt)}" loading="lazy" decoding="async" /></figure>` : ""}
-            <div class="case-study-hero-copy"><p>${bilingualText(detail.summary)}</p><ul>${points}</ul></div>
+          <div class="case-study-hero-copy"><p>${detail.summary && typeof detail.summary === "object" ? caseStudyPair(detail.summary) : bilingualText(detail.summary)}</p><ul>${points}</ul></div>
           </div>
         </header>
         ${projectPlayableMarkup(project)}

@@ -339,7 +339,7 @@ function survey(section, helpers) {
       return `
         <figure class="gdd-db">
           <figcaption class="gdd-db-title">${gddPair(chart)}</figcaption>
-          <p class="gdd-db-legend" aria-hidden="true">${rounds.map((round) => `<span class="is-${round.key}"><i></i>${escapeHtml(round.label)} · ${chart.base[round.key]}</span>`).join("")}</p>
+          <p class="gdd-db-legend" aria-hidden="true">${rounds.map((round) => `<span class="is-${round.key}"><i></i><strong>${escapeHtml(round.label)}</strong><em> · ${chart.base[round.key]}</em></span>`).join("")}</p>
           <div class="gdd-db-rows">
             <div class="gdd-db-axis" aria-hidden="true"><span></span><span class="gdd-db-ticks"><i style="left:0%">0%</i><i style="left:25%">25%</i><i style="left:50%">50%</i><i style="left:75%">75%</i><i style="left:100%">100%</i></span></div>
             ${rows}

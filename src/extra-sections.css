@@ -834,6 +834,16 @@
   --survey-rule: rgba(0, 17, 34, 0.14);
   --survey-grid: rgba(0, 17, 34, 0.09);
   --survey-ground: var(--paper, #f8f7f5);
+  /* Survey copy sits on a low-contrast paper field. These local values keep
+     secondary English copy readable without changing the page's overall ink
+     system. */
+  --survey-copy: rgb(58, 58, 58);
+  --survey-muted: rgb(94, 94, 94);
+  --survey-body-size: 16px;
+  --survey-body-leading: calc(var(--survey-body-size) + 5px);
+  --survey-small-body-size: 15px;
+  --survey-small-body-leading: calc(var(--survey-small-body-size) + 4px);
+  --survey-round-size: 14px;
   width: max(100%, var(--case-bleed-width));
   max-width: none;
   margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
@@ -873,9 +883,9 @@
 
 .gdd-survey-figure-label {
   font-family: var(--body-latin-font);
-  font-size: 14px;
-  line-height: calc(1em + 5px);
-  color: var(--case-copy);
+  font-size: var(--survey-small-body-size);
+  line-height: var(--survey-small-body-leading);
+  color: var(--survey-copy);
 }
 
 /* Likert rows: the question on the left, one bar per round on the right, every
@@ -905,8 +915,8 @@
 
 .gdd-lk-question-text {
   font-family: var(--body-latin-font);
-  font-size: 15px;
-  line-height: calc(1em + 5px);
+  font-size: var(--survey-body-size);
+  line-height: var(--survey-body-leading);
   color: var(--case-ink);
 }
 
@@ -919,7 +929,7 @@
   font-family: var(--type-subtitle-font);
   font-size: 10px;
   letter-spacing: 0.03em;
-  color: var(--case-muted, rgb(136, 136, 136));
+  color: var(--survey-muted);
 }
 
 .gdd-lk-key {
@@ -949,17 +959,22 @@
 }
 
 .gdd-lk-round {
-  font-family: var(--type-subtitle-font);
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-family: var(--body-latin-font);
+  font-size: var(--survey-round-size);
+  font-weight: 700;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--case-ink);
   white-space: nowrap;
 }
 
 .gdd-lk-round em {
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
   font-style: normal;
-  color: var(--case-muted, rgb(136, 136, 136));
+  color: var(--survey-muted);
 }
 
 /* Inset so the end labels have room on both sides of a near-100% bar. */
@@ -1036,9 +1051,9 @@
   box-shadow: 0 6px 18px rgba(0, 17, 34, 0.08);
   transform: translateX(-50%);
   font-family: var(--body-latin-font);
-  font-size: 12px;
-  line-height: 1.3;
-  color: var(--case-copy);
+  font-size: var(--survey-small-body-size);
+  line-height: 1.35;
+  color: var(--survey-copy);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
@@ -1046,9 +1061,9 @@
 }
 
 .gdd-survey-tip strong {
-  font-family: var(--type-subtitle-font);
-  font-size: 12px;
-  font-weight: 400;
+  font-family: var(--body-latin-font);
+  font-size: var(--survey-small-body-size);
+  font-weight: 700;
   color: var(--case-ink);
 }
 
@@ -1088,8 +1103,8 @@
 
 .gdd-db-title {
   font-family: var(--body-latin-font);
-  font-size: 15px;
-  line-height: calc(1em + 5px);
+  font-size: var(--survey-body-size);
+  line-height: var(--survey-body-leading);
   color: var(--case-ink);
 }
 
@@ -1098,6 +1113,23 @@
   align-items: center;
   gap: 6px;
   text-transform: uppercase;
+}
+
+.gdd-db-legend strong {
+  font-family: var(--body-latin-font);
+  font-size: var(--survey-round-size);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--case-ink);
+}
+
+.gdd-db-legend em {
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--survey-muted);
 }
 
 .gdd-db-legend i {
@@ -1145,15 +1177,16 @@
 .gdd-db-label {
   display: grid;
   font-family: var(--body-latin-font);
-  font-size: 14px;
-  line-height: 1.25;
+  font-size: var(--survey-small-body-size);
+  line-height: var(--survey-small-body-leading);
   color: var(--case-ink);
 }
 
 .gdd-db-label em {
-  font-size: 12px;
+  font-size: 13px;
   font-style: normal;
-  color: var(--case-muted, rgb(136, 136, 136));
+  line-height: calc(1em + 3px);
+  color: var(--survey-muted);
 }
 
 /* Solid hairline gridlines at 0, 25, 50, 75 and 100%. */
@@ -1221,9 +1254,9 @@
 .gdd-db-note {
   margin: 0;
   font-family: var(--body-latin-font);
-  font-size: 13px;
-  line-height: calc(1em + 5px);
-  color: var(--case-muted, rgb(136, 136, 136));
+  font-size: var(--survey-small-body-size);
+  line-height: var(--survey-small-body-leading);
+  color: var(--survey-muted);
 }
 
 /* Quotes and the table view --------------------------------------------------- */
@@ -1243,10 +1276,10 @@
 .gdd-survey-quote-round {
   padding-bottom: 6px;
   border-bottom: 1px solid var(--survey-rule);
-  font-family: var(--type-subtitle-font);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--body-latin-font);
+  font-size: var(--survey-round-size);
+  font-weight: 700;
+  letter-spacing: 0.01em;
   color: var(--case-ink);
 }
 
@@ -1289,8 +1322,8 @@
   padding: 14px 0 8px;
   text-align: left;
   font-family: var(--body-latin-font);
-  font-size: 14px;
-  line-height: calc(1em + 4px);
+  font-size: var(--survey-small-body-size);
+  line-height: var(--survey-small-body-leading);
   color: var(--case-ink);
 }
 

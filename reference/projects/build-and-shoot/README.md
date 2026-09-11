@@ -12,7 +12,7 @@ This folder joins the early Movement Game export with the fourth-iteration GDD s
 | Qualitative test synthesis: basics understood, flow and AI memory were hard | `extracted/iteration-4-layout.txt` (pp.25–28) | — |
 | Course constraints: combat FSM, terrain/cover, economy and playtesting | `extracted/GDF3 09 Lab_ Combat Game Instructions.pdf.txt`, `extracted/GDF3 Lab_ Economic Trading Game.pdf.txt`, `extracted/GDF3 11 Lecture Slides.pdf.txt` | — |
 
-## Questionnaire status
+## Questionnaire status (rechecked 2026-09-11)
 
 Two owner forms were verified in the authenticated personal Drive, read-only:
 
@@ -20,6 +20,8 @@ Two owner forms were verified in the authenticated personal Drive, read-only:
 - `GDF3 Build N Shoot Survey（3rd）.gform` — ID `1W9eUi115_sYqJcP5bP7Kbc8h68DsBsULKNPoIEV7_l0` (document label 3rd; content title 4th).
 
 Both currently show **0 responses** and no linked response sheet. The page therefore uses the fourth GDD’s authored qualitative synthesis and labels the questionnaire dataset as unavailable; it does not draw zero bars or invent participant counts.
+
+The mounted Drive search was also repeated for `Build N Shoot` / `Movement`; it returned the two `.gform` definitions above and no exported response workbook or linked response sheet.
 
 ## Dependency manifest
 

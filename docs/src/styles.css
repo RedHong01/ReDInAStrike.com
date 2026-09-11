@@ -128,8 +128,11 @@
   --type-caption-leading: calc(var(--type-caption-size) + 2px);
   --type-subtitle-size: calc(var(--type-caption-size) + 1px);
   --type-subtitle-leading: calc(var(--type-subtitle-size) + 2px);
-  --type-body-size: clamp(13px, 0.868vw, 15px);
-  --type-body-leading: calc(var(--type-body-size) + 2px);
+  /* Body copy was reading one step too small beside the serif display type.
+     Keep the same fluid behaviour, but give English reading text a usable
+     14px floor and 16px ceiling at the wide desktop sizes. */
+  --type-body-size: clamp(14px, 0.93vw, 16px);
+  --type-body-leading: calc(var(--type-body-size) + 3px);
   --type-bilingual-gap: 5px;
   --type-strong-color: #000000;
   --type-latin-strong-weight: 650;

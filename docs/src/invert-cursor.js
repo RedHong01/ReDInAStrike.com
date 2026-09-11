@@ -143,13 +143,20 @@
 
   function isPreviewLabelTarget(node) {
     if (!node || typeof node.closest !== "function") return false
+    // The same expanding chip used by catalog previews also describes the
+    // existing project lightbox. Keep its eligibility rules aligned.
+    const image = node.closest('img:not([data-lightbox-disabled="true"])')
+    if (image?.closest(".detail-page, .project-detail-drawer") &&
+        !image.closest('a[href], button, [role="button"], .project-lightbox')) {
+      return "Click to view detail"
+    }
     const card = node.closest(".project-card.is-project-preview")
     if (!card) return false
     if (card.classList.contains("project-preview-exit-ghost")) return false
     if (card.classList.contains("project-preview-expand-ghost")) return false
     // Once the article drawer is open, the second click has already happened.
     if (card.hasAttribute("data-project-detail-open")) return false
-    return true
+    return LABEL_TEXT
   }
 
   function measureLabelWidth() {
@@ -172,8 +179,9 @@
       return
     }
     labelActive = next
-    host.classList.toggle(LABEL_CLASS, next)
+    host.classList.toggle(LABEL_CLASS, Boolean(next))
     if (next) {
+      label.textContent = next
       labelWidth = measureLabelWidth()
       chip.style.width = `${labelWidth}px`
     } else {

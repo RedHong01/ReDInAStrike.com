@@ -5,7 +5,7 @@
 import { instrumentChapters, instrumentRewardRows, instrumentLevelRows } from "./instrument-source-data.js"
 
 const pair = (en, zh) => ({ en, zh })
-const frame = (name, label, alt) => ({ image: `assets/instrument/screens/${name}.jpg`, name: label, alt })
+const frame = (name, label, alt) => ({ image: `assets/instrument/screens/${name}.png`, name: label, alt })
 const screens = (title, intro, groups, columns = 3) => ({ kind: "sbh-screens", title, intro, groups, columns })
 
 export const instrumentOpening = {

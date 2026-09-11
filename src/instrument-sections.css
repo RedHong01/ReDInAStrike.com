@@ -18,3 +18,9 @@
 .instrument-level-scroll:focus-visible {outline:1px solid var(--case-ink);outline-offset:4px}
 @media(min-width:1201px){[aria-label="The Mystery of Instrument case study"] .sbh-chapters ol {max-height:660px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}}
 @media(max-width:700px){.instrument-levels {min-width:650px;gap:7px}.instrument-level {grid-template-rows:24px 140px 28px}.instrument-level-track {height:140px;background-size:100% 35px}}
+.sbh-screen img[src*="/instrument/screens/"] {
+  aspect-ratio: auto;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}

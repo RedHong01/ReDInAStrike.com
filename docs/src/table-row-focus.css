@@ -1,0 +1,29 @@
+.gdd-table tbody th:has(.table-row-label) { vertical-align: middle; white-space: normal; }
+.table-row-label { display: inline-grid; align-items: center; max-width: 100%; }
+.table-row-label > span {
+  grid-area: 1 / 1;
+  transform-origin: left center;
+  transition: opacity 260ms ease, transform 420ms var(--nav-ease);
+}
+.table-row-label-title {
+  font-family: var(--body-latin-font);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0;
+  transform: translateY(3px) scale(.72);
+}
+.gdd-table tbody tr { transition: background-color 420ms var(--nav-ease); }
+.gdd-table tbody tr:focus { outline: none; }
+.gdd-table tbody tr:focus-visible { outline: 1px solid currentColor; outline-offset: -1px; }
+.gdd-table tbody tr:focus-within .table-row-label-subtitle { opacity: 0; transform: scale(.92); }
+.gdd-table tbody tr:focus-within .table-row-label-title { opacity: 1; transform: none; }
+@media (hover: hover) {
+  .gdd-table tbody tr:hover .table-row-label-subtitle { opacity: 0; transform: scale(.92); }
+  .gdd-table tbody tr:hover .table-row-label-title { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-row-label > span, .gdd-table tbody tr { transition: none; }
+}

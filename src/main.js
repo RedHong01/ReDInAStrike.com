@@ -23,6 +23,8 @@ import { sbhCaseStudies, sbhCopyTranslations } from "./sbh-sections.js"
 import { sbhSectionRenderers } from "./sbh-renderers.js"
 import { extendInstrumentCase, instrumentCopyTranslations } from "./instrument-sections.js"
 import { instrumentSectionRenderers } from "./instrument-renderers.js"
+import { prototypeHeroMarkup, projectPrototypes } from "./prototype-embeds.js"
+import { enhanceProjectTables } from "./table-row-focus.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -4043,8 +4045,8 @@ function caseStudyDetailMarkup(project, detail) {
       ${projectLeadMarkup(project, { detail: true })}
       <article class="framer-case-shell case-study-shell" aria-label="${escapeHtml(detail.title)} case study">
         <header class="framer-case-hero case-study-hero">
-          <div class="case-study-hero-grid${detail.heroImage ? "" : " case-study-hero-grid--text"}">
-            ${detail.heroImage ? `<figure class="case-study-hero-image"><img ${imageSourceAttrs(detail.heroImage)} alt="${escapeHtml(detail.heroAlt)}" loading="lazy" decoding="async" /></figure>` : ""}
+          <div class="case-study-hero-grid${detail.heroImage || projectPrototypes[project.path] ? "" : " case-study-hero-grid--text"}">
+            ${prototypeHeroMarkup(project, { escapeHtml }) || (detail.heroImage ? `<figure class="case-study-hero-image"><img ${imageSourceAttrs(detail.heroImage)} alt="${escapeHtml(detail.heroAlt)}" loading="lazy" decoding="async" /></figure>` : "")}
           <div class="case-study-hero-copy"><p>${detail.summary && typeof detail.summary === "object" ? caseStudyPair(detail.summary) : bilingualText(detail.summary)}</p><ul>${points}</ul></div>
           </div>
         </header>
@@ -9585,6 +9587,8 @@ function openProjectDetailDrawer(card, target) {
     applyCaseAccentToScope(drawer, detailTheme)
   }
   drawer.innerHTML = `<div class="project-detail-drawer-inner">${projectDetailBodyMarkup(project)}</div>`
+  drawer.querySelectorAll(".framer-case-footer, .case-study-footer").forEach((footer) => footer.remove())
+  enhanceProjectTables(drawer)
   paintHalftonePlates(drawer)
   // Keep the drawer immediately after the activated card. On compact layouts
   // the neighboring card remains in the same row, so inserting after the row

@@ -234,6 +234,182 @@ function flowLanes(section, helpers) {
   return sectionShell(section, `<div class="gdd-flow-lanes" style="--lane-count:${section.lanes.length}">${lanes}</div>${key}`, helpers, "gdd-flow-section")
 }
 
+// Survey results from repeated playtest rounds, drawn in type and CSS rather than
+// pasted as a spreadsheet screenshot. Ordered answers (Likert-style) become
+// diverging stacked bars centred on the neutral answer, one bar per round, so the
+// rounds read against each other on a shared centre line; single-choice questions
+// become dumbbells (earlier round -> later round). Every value reachable in a
+// tooltip is also in the table at the end, and the bar ends carry direct labels.
+function survey(section, helpers) {
+  const { escapeHtml, gddPair } = helpers
+  const rounds = section.rounds
+  const pct = (count, total) => (total ? Math.round((count / total) * 100) : 0)
+  const tone = { 2: "is-pos2", 1: "is-pos1", 0: "is-neu", "-1": "is-neg1", "-2": "is-neg2" }
+
+  const figures = section.figures?.length
+    ? `<div class="gdd-survey-figures">${section.figures
+        .map(
+          (figure) => `
+          <div class="gdd-survey-figure">
+            <span class="gdd-survey-figure-value">${escapeHtml(figure.value)}</span>
+            <span class="gdd-survey-figure-label">${gddPair(figure.label)}</span>
+          </div>`,
+        )
+        .join("")}</div>`
+    : ""
+
+  const likert = section.likert
+    .map((question) => {
+      const legend = question.scale
+        .map((label, i) => `<span class="gdd-lk-key ${tone[question.poles[i]]}"><i aria-hidden="true"></i>${escapeHtml(label)}</span>`)
+        .join("")
+      const bars = rounds
+        .map((round) => {
+          const counts = question.counts[round.key]
+          const total = counts.reduce((sum, count) => sum + count, 0)
+          const answers = question.scale
+            .map((label, i) => ({ label, pole: question.poles[i], count: counts[i] }))
+            .filter((answer) => answer.count > 0)
+            .sort((a, b) => a.pole - b.pole)
+          const countWhere = (test) => answers.filter(test).reduce((sum, answer) => sum + answer.count, 0)
+          const negative = countWhere((answer) => answer.pole < 0)
+          const neutral = countWhere((answer) => answer.pole === 0)
+          const positive = countWhere((answer) => answer.pole > 0)
+          // The track spans -100%..+100% of answers; the neutral share straddles the centre.
+          const start = 50 - ((negative + neutral / 2) / total) * 50
+          const end = start + ((negative + neutral + positive) / total) * 50
+          // Each segment sits on the track by its own offset, so widths are shares
+          // of the track itself and nothing overhangs the track's box.
+          let offset = start
+          const segments = answers
+            .map((answer, i) => {
+              const width = (answer.count / total) * 50
+              const ends = `${i === 0 ? " is-first" : ""}${i === answers.length - 1 ? " is-last" : ""}`
+              const text = `${answer.count} of ${total}, ${pct(answer.count, total)}% — ${answer.label}, ${round.label}`
+              const html = `<span class="gdd-lk-seg ${tone[answer.pole]}${ends}" style="left:${offset.toFixed(3)}%;width:${width.toFixed(3)}%" tabindex="0" aria-label="${escapeHtml(text)}"><span class="gdd-survey-tip" aria-hidden="true"><strong>${answer.count} of ${total} · ${pct(answer.count, total)}%</strong><span><i></i>${escapeHtml(answer.label)} — ${escapeHtml(round.label)}</span></span></span>`
+              offset += width
+              return html
+            })
+            .join("")
+          const blank = question.blank?.[round.key] ? ` · ${question.blank[round.key]} blank` : ""
+          return `
+            <div class="gdd-lk-bar">
+              <span class="gdd-lk-round">${escapeHtml(round.short)} <em>${total}${blank}</em></span>
+              <div class="gdd-lk-track">
+                ${negative ? `<span class="gdd-lk-total is-neg" style="right:${(100 - start).toFixed(3)}%">${pct(negative, total)}%</span>` : ""}
+                ${segments}
+                ${positive ? `<span class="gdd-lk-total is-pos" style="left:${end.toFixed(3)}%">${pct(positive, total)}%</span>` : ""}
+              </div>
+            </div>`
+        })
+        .join("")
+      return `
+        <div class="gdd-lk-row">
+          <div class="gdd-lk-question">
+            <span class="gdd-lk-question-text">${gddPair(question)}</span>
+            <span class="gdd-lk-legend">${legend}</span>
+          </div>
+          <div class="gdd-lk-bars">${bars}</div>
+        </div>`
+    })
+    .join("")
+
+  const dumbbells = (section.dumbbells || [])
+    .map((chart) => {
+      const [first, last] = rounds
+      const rows = chart.items
+        .map((item) => {
+          const a = (item[first.key] / chart.base[first.key]) * 100
+          const b = (item[last.key] / chart.base[last.key]) * 100
+          const low = Math.min(a, b)
+          const dot = (round, value, count) =>
+            `<span class="gdd-db-dot is-${round.key}" style="left:${value.toFixed(3)}%" tabindex="0" aria-label="${escapeHtml(`${count} of ${chart.base[round.key]}, ${Math.round(value)}% — ${item.label}, ${round.label}`)}"><span class="gdd-survey-tip" aria-hidden="true"><strong>${count} of ${chart.base[round.key]} · ${Math.round(value)}%</strong><span><i></i>${escapeHtml(round.label)}</span></span></span>`
+          return `
+            <div class="gdd-db-row">
+              <span class="gdd-db-label">${escapeHtml(item.label)}<em lang="zh-Hans">${escapeHtml(item.zh)}</em></span>
+              <div class="gdd-db-track">
+                <span class="gdd-db-line" style="left:${low.toFixed(3)}%;width:${Math.abs(b - a).toFixed(3)}%"></span>
+                ${dot(first, a, item[first.key])}
+                ${dot(last, b, item[last.key])}
+                <span class="gdd-db-value ${b >= a ? "is-right" : "is-left"}" style="left:${b.toFixed(3)}%">${Math.round(b)}%</span>
+              </div>
+            </div>`
+        })
+        .join("")
+      return `
+        <figure class="gdd-db">
+          <figcaption class="gdd-db-title">${gddPair(chart)}</figcaption>
+          <p class="gdd-db-legend" aria-hidden="true">${rounds.map((round) => `<span class="is-${round.key}"><i></i>${escapeHtml(round.label)} · ${chart.base[round.key]}</span>`).join("")}</p>
+          <div class="gdd-db-rows">
+            <div class="gdd-db-axis" aria-hidden="true"><span></span><span class="gdd-db-ticks"><i style="left:0%">0%</i><i style="left:25%">25%</i><i style="left:50%">50%</i><i style="left:75%">75%</i><i style="left:100%">100%</i></span></div>
+            ${rows}
+          </div>
+          ${chart.note ? `<p class="gdd-db-note">${gddPair(chart.note)}</p>` : ""}
+        </figure>`
+    })
+    .join("")
+
+  const quotes = section.quotes
+    ? `<div class="gdd-survey-quotes">${rounds
+        .map(
+          (round) => `
+          <div class="gdd-survey-quote-col">
+            <span class="gdd-survey-quote-round">${escapeHtml(round.label)} · ${escapeHtml(round.date)}</span>
+            ${(section.quotes[round.key] || []).map((quote) => `<blockquote>${gddPair(quote)}</blockquote>`).join("")}
+          </div>`,
+        )
+        .join("")}</div>`
+    : ""
+
+  const tableFor = (title, head, rows) => `
+    <div class="gdd-table-scroll gdd-survey-table">
+      <table class="gdd-table">
+        <caption>${title}</caption>
+        <thead><tr>${head.map((cell) => `<th scope="col">${escapeHtml(cell)}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map((row) => `<tr>${row.map((cell, i) => (i === 0 ? `<th scope="row">${escapeHtml(cell)}</th>` : `<td>${escapeHtml(cell)}</td>`)).join("")}</tr>`).join("")}</tbody>
+      </table>
+    </div>`
+  const roundHead = ["Answer", ...rounds.map((round) => `${round.label} (${round.n})`)]
+  const tables = [
+    ...section.likert.map((question) =>
+      tableFor(
+        escapeHtml(question.en),
+        roundHead,
+        [
+          ...question.scale.map((label, i) => [label, ...rounds.map((round) => String(question.counts[round.key][i]))]),
+          ...(question.blank ? [["No answer", ...rounds.map((round) => String(question.blank[round.key] || 0))]] : []),
+        ],
+      ),
+    ),
+    ...(section.dumbbells || []).map((chart) =>
+      tableFor(
+        escapeHtml(chart.en),
+        roundHead,
+        [
+          ...chart.items.map((item) => [item.label, ...rounds.map((round) => String(item[round.key]))]),
+          ...(chart.blank ? [["No answer", ...rounds.map((round) => String(chart.blank[round.key] || 0))]] : []),
+        ],
+      ),
+    ),
+    ...(section.extraTables || []).map((extra) => tableFor(escapeHtml(extra.en), extra.head, extra.rows)),
+  ].join("")
+  const tableView = `
+    <details class="gdd-survey-details">
+      <summary>${escapeHtml(section.tableLabel || "Every count, both rounds")}</summary>
+      <div class="gdd-survey-tables">${tables}</div>
+    </details>`
+
+  const body = `
+    <div class="gdd-survey">
+      ${figures}
+      <div class="gdd-lk">${likert}</div>
+      ${dumbbells ? `<div class="gdd-dbs">${dumbbells}</div>` : ""}
+      ${quotes}
+      ${tableView}
+    </div>`
+  return sectionShell(section, body, helpers, "gdd-survey-section")
+}
+
 export const extraSectionRenderers = {
   acts,
   "pov-lanes": povLanes,
@@ -241,4 +417,5 @@ export const extraSectionRenderers = {
   persona,
   screens,
   "flow-lanes": flowLanes,
+  survey,
 }

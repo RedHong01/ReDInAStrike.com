@@ -16,6 +16,7 @@ import { butterSections } from "./butter-sections.js"
 import { pitchforkPlates, specimenPlates } from "./booklet-plates.js"
 import { tbcSections } from "./tbc-sections.js"
 import { myfridgeSections } from "./myfridge-sections.js"
+import { shroomSections } from "./shroom-sections.js"
 import { extraSectionRenderers } from "./extra-section-renderers.js"
 import {
   boundaryMetrics,
@@ -497,135 +498,12 @@ const caseStudyDetails = {
     heroImage: "assets/case-study/shroom-gameplay.png",
     heroAlt: "Shroom Pot Showdown shared pot gameplay",
     points: [
-      "Player action: tilt or close a physical controller to move, catch, and escape inside the pot.",
-      "Design question: how can physical motion remain legible enough for players to predict the next movement?",
-      "Current version: gameplay and controller recordings are available. The proposed yoga-ball mapping still needs a follow-up test.",
+      "Two players, one pot: a mushroom steered with a yoga ball, and giant chopsticks trying to eat it.",
+      "Alt Control 2, Spring 2026, with Team C.",
+      "Tested twice — 18 players in March, 21 in April. The yoga ball became the favourite controller; steering the mushroom became the hardest part.",
     ],
-    sections: [
-      {
-        kind: "copy-grid",
-        left: {
-          title: "Two Players / Two Reads",
-          en: "The mushroom leans and bounces to survive. The chopstick player tries to catch it. Countdown, lives, hunger, and a shared pot turn a simple physical setup into a chase.",
-          zh: "蘑菇玩家透過傾斜與彈跳求生；筷子玩家則試圖捕捉它。倒數、生命、飢餓與共享的鍋，把簡單的實體裝置轉化成追逃。",
-        },
-        right: {
-          title: "Player Experience",
-          en: "The fun should come from reading the other player—when to dodge, commit to a catch, or change direction. If either controller needs constant correction, that attention leaves the chase.",
-          zh: "遊戲的樂趣應該來自讀懂對手：什麼時候閃避、什麼時候抓取，以及什麼時候改變方向。如果任一控制器都需要持續修正，玩家的注意力就會離開追逃本身。",
-        },
-      },
-      {
-        kind: "video",
-        video: "assets/videos/shroom-pot-result.mp4",
-        poster: "assets/case-study/shroom-gameplay.png",
-        alt: "Shroom Pot Showdown gameplay recording",
-        label: "GAMEPLAY VIDEO / CURRENT POT CHASE / FULL RECORDING 0:42",
-        caption: {
-          en: "The full recording of the chase: both roles share the pot while the countdown, lives, and hunger states change around them.",
-          zh: "追逃過程的完整錄影：兩個角色共享同一口鍋，倒數、生命與飢餓狀態在周圍持續變化。",
-        },
-      },
-      {
-        kind: "video",
-        video: "assets/videos/shroom-pot-two-player.mp4",
-        poster: "assets/case-study/shroom-gameplay.png",
-        alt: "Shroom Pot Showdown two-player controller recording",
-        label: "GAMEPLAY VIDEO / GYROCONTROL V2 TOGETHER / FULL RECORDING 0:29",
-        caption: {
-          en: "This recording shows both players’ physical inputs beside the shared game view, making it possible to compare a body movement with the response on screen.",
-          zh: "這段錄影同時拍到兩位玩家的身體輸入與共享遊戲畫面，可以直接對照身體動作和螢幕上的回應。",
-        },
-      },
-      {
-        kind: "text",
-        title: "Design Problem",
-        paragraphs: [
-          {
-            en: "My playtest notes describe the mushroom movement as unstable, overly sensitive, and difficult to aim. Players spent time correcting the controller instead of dodging or predicting the chopsticks.",
-            zh: "我的測試筆記形容蘑菇移動不穩定、過度敏感，也很難瞄準。玩家花時間修正控制器，而不是閃避筷子或預判下一次夾取。",
-          },
-          {
-            en: "I proposed mapping the yoga ball’s roll more directly to the mushroom’s direction. That change is the next test; it is not yet a measured improvement.",
-            zh: "我提出把瑜伽球的滾動更直接地映射到蘑菇的方向。這個改動是下一輪測試，還不能寫成已經量化的改善。",
-          },
-        ],
-      },
-      {
-        kind: "source-breakdown",
-        title: "One Pot, Two Kinds of Pressure",
-        source: "FIGMA / GAME DESIGN DOCUMENT / 102:487",
-        lead: {
-          en: "In the original GDD, both players share a countdown but manage different pressures. The mushroom protects its lives and avoids the pot’s heat. The chopstick player manages hunger while trying to catch, hold, and eat. The values below describe that design version; they are not a balance result from the current build.",
-          zh: "原始 GDD 讓兩位玩家共享倒數，卻面對不同的壓力。蘑菇保護生命並躲避鍋中的熱度；筷子玩家則一邊維持飢餓值，一邊嘗試捕捉、握住並吃掉食物。以下數值屬於這一版設計，並不代表目前 build 已完成平衡測試。",
-        },
-        blocks: [
-          {
-            title: "Mushroom / Player 1",
-            en: "The mushroom starts with three lives. Being caught and eaten removes one life. Staying in the boiling water raises Cook Level; the lower area raises it faster, the upper area raises it more slowly, and leaving the water stops it. When Cook Level reaches its limit, the mushroom loses a life.",
-            zh: "蘑菇從三條生命開始。被筷子抓住並吃掉會失去一條生命。留在沸水裡會增加 Cook Level；下層增加較快，上層增加較慢，離開水面則停止增加。Cook Level 到達上限時，蘑菇會失去一條生命。",
-          },
-          {
-            title: "Chopsticks / Player 2",
-            en: "The chopsticks move on two axes. Bringing the tips together triggers a catch. Holding a caught item for two seconds eats it; releasing earlier lets it fall back into the pot. Eating raises hunger by 20%, while hunger drains when the player is not eating.",
-            zh: "筷子可以在兩個軸向上移動。兩支筷子尖端碰到一起時會觸發捕捉。抓住物件後維持兩秒會吃掉它，提早放開則會讓物件掉回鍋裡。吃東西會增加 20% 飢餓值，沒有進食時飢餓值會下降。",
-          },
-          {
-            title: "Pressure States",
-            en: "Below 20% hunger, the chopsticks player enters an illusion state such as ghosting, chromatic aberration, camera shake, or lost control. Above 80%, the player becomes too full and cannot move or catch for five seconds. The pressure is shared, but the decision is asymmetric.",
-            zh: "飢餓值低於 20% 時，筷子玩家會進入幻覺狀態，例如殘影、色差、鏡頭晃動或失去控制。高於 80% 時，玩家會過飽，五秒內不能移動或捕捉。兩位玩家共享同一個壓力，但決策是不對稱的。",
-          },
-          {
-            title: "Pot and Food",
-            en: "Every five seconds, one area of the water boils and pushes submerged food upward. Vegetables take longer to chew, tofu takes a medium time, and meat is quicker. This gives the chopsticks player changing targets while the mushroom reads where the pressure is about to move.",
-            zh: "每五秒，鍋裡會有一個區域開始沸騰，把水下食物往上推。蔬菜需要較長咀嚼時間，豆腐是中等時間，肉類較快。這讓筷子玩家持續面對變動目標，也讓蘑菇需要預判壓力即將移向哪裡。",
-          },
-        ],
-      },
-      {
-        kind: "source-breakdown",
-        title: "Physical Input and Visual Language",
-        source: "FIGMA / CONTROLLER + VISUAL STUDY / 731:34 · 731:52 · 436:2485 · 436:2590",
-        lead: {
-          en: "The controller proposal maps one physical cause to one visible game response. The yoga-ball sensor reads tilt for turning and acceleration for jumping. The chopsticks sensor maps gyro X/Y to movement, while a button detects the tips coming together and separates catch from the two-second eat action.",
-          zh: "控制器提案把一個身體動作對應到一個可見的遊戲反應。瑜伽球裡的感測器用傾斜控制轉向，用加速度觸發跳躍。筷子控制器把陀螺儀 X/Y 對應到移動，再用按鈕區分筷子碰合時的捕捉與兩秒後的進食。",
-        },
-        blocks: [
-          {
-            title: "Mushroom Input",
-            en: "Lean left or right to turn. Bounce to jump in the current facing direction. The proposed parts are a gyroscope, accelerometer, mini module board, and Arduino board.",
-            zh: "向左或向右傾斜來轉向，跳動來朝目前面向的方向跳躍。提案使用陀螺儀、加速度計、小型模組板與 Arduino 主板。",
-          },
-          {
-            title: "Chopsticks Input",
-            en: "Tilt the giant chopsticks to move through gyro X and Y. Press the enlarged button once to catch. Hold it for two seconds to eat. The contact surface is enlarged so the catch action does not depend on a tiny switch.",
-            zh: "傾斜大型筷子，透過陀螺儀 X/Y 移動。按一下加大的按鈕來捕捉，按住兩秒來進食。按鈕增加接觸面積，讓捕捉不依賴一個難以按中的小開關。",
-          },
-          {
-            title: "Visual and UI Direction",
-            en: "The visual study calls for minimal lines, cute flat shapes, paper or fabric-like texture, warm medium-saturation colors, large color blocks, and ingredients with distinct faces. The GDD compares Fredoka and Baloo; the selected direction is Baloo 2 for the game UI.",
-            zh: "視覺研究提出簡約線條、可愛扁平形狀、紙張或布料質感、中飽和暖色、大色塊，以及有明確表情的食材。GDD 比較了 Fredoka 與 Baloo，遊戲 UI 最後選擇 Baloo 2。",
-          },
-        ],
-      },
-      {
-        kind: "flow",
-        title: "Intent → Iteration → Observation → Decision",
-        steps: [
-          ["Intent", "Make body movement part of the chase", "讓身體動作成為追逃的一部分"],
-          ["Iteration", "Tilt / chopsticks / gyro", "傾斜、筷子與陀螺儀"],
-          ["Observation", "Control can interrupt prediction", "控制會打斷玩家的預判"],
-          ["Decision", "Test a direct rolling mapping", "測試更直接的滾動映射"],
-        ],
-      },
-      {
-        kind: "callout",
-        title: "Next Test",
-        en: "Before each trial, ask the player to point to the direction they expect the mushroom to move. Record that prediction, the controller version, and the resulting movement in the same clip.",
-        zh: "每次測試前，先請玩家指出他們預期蘑菇會移動的方向。把這個預測、控制器版本和實際移動記錄在同一段影片裡。",
-      },
-    ],
-    access: "Watch the gameplay overview and the two-player controller recording. The yoga-ball revision remains the next test.",
+    sections: shroomSections,
+    access: "Both recordings are on this page. The playtest numbers come from the team's two survey rounds, 22 March and 5–22 April 2026.",
   },
   "/alt-controller-2025-a": {
     year: "2025 Fall",

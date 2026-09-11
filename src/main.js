@@ -4079,6 +4079,7 @@ function framerProjectDetailMarkup(project, detail) {
     <main class="site-main detail-page framer-derived-page" data-route="${escapeHtml(project.path)}">
       ${projectLeadMarkup(project, { detail: true })}
       <article class="framer-derived-shell" aria-label="${escapeHtml(detail.title)} project page">
+        ${prototypeHeroMarkup(project, { escapeHtml }) ? `<section class="framer-case-section framer-prototype-section" aria-label="Interactive Figma prototype">${prototypeHeroMarkup(project, { escapeHtml })}</section>` : ""}
         <section class="framer-derived-intro">
           <figure>
             <img ${imageSourceAttrs(detail.leadImage)} alt="${escapeHtml(detail.leadAlt)}" loading="eager" decoding="async" />
@@ -9587,7 +9588,7 @@ function openProjectDetailDrawer(card, target) {
     applyCaseAccentToScope(drawer, detailTheme)
   }
   drawer.innerHTML = `<div class="project-detail-drawer-inner">${projectDetailBodyMarkup(project)}</div>`
-  drawer.querySelectorAll(".framer-case-footer, .case-study-footer").forEach((footer) => footer.remove())
+  drawer.querySelectorAll(".framer-case-footer, .case-study-footer, .framer-derived-footer").forEach((footer) => footer.remove())
   enhanceProjectTables(drawer)
   paintHalftonePlates(drawer)
   // Keep the drawer immediately after the activated card. On compact layouts

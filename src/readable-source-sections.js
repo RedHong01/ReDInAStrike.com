@@ -337,77 +337,87 @@ export const supportingReadableSections = {
   "/curtain": [
     {
       "kind": "copy-grid",
-      "title": "The Fragment We Can Verify",
+      "title": "The House and the Visitor",
       "left": {
-        "title": "Unit and Boundary",
-        "en": "The Curtain source page repeats a 5 × 5 unit, a 2 × 5 unit, and a door or curtain arrangement. The diagram language is compact and modular: the units establish the available spatial pieces before the sentence gives them a social situation.",
-        "zh": "Curtain 的來源頁面反覆出現 5 × 5 單位、2 × 5 單位，以及門或簾子的排列。圖表語言簡短而模組化：先由單位建立空間元件，再由文字給它們一個社會情境。"
+        "title": "The House",
+        "en": "Curtain is a game about building a house while you live in it. You buy rooms, carry them into place, and rooms that touch fuse into one space. Where two rooms share an edge exactly three cells long, a door appears; anywhere else the seam simply opens. The shape you build is the shape of every way out you will have later.",
+        "zh": "Curtain 是一个“边住边盖房子”的游戏。你买下房间、把它们搬到位，相接的房间会融合成一个空间。两个房间的共享边正好三格长时，那里会出现一扇门；其他地方的接缝则直接打通。你盖出来的形状，就是之后你所有退路的形状。"
       },
       "right": {
-        "title": "The Request",
-        "en": "The repeated line is “I’m so cold, may I come in?” It establishes an invitation and a boundary, but the source material does not yet specify a complete player objective, progression, or authored role for the person outside the door.",
-        "zh": "反覆出現的句子是「I’m so cold, may I come in?」。它建立了邀請與邊界，但目前來源材料還沒有說明完整的玩家目標、進程，或門外角色的明確身份。"
+        "title": "The Visitor",
+        "en": "Outside, something asks the only line the game ever writes down: “I’m so cold, may I come in?” It watches through open windows, walks to a door on the outside, breaks it, and follows you room by room — seen only as footprints. The request is the horror: every opening you make for light or passage is also a way in.",
+        "zh": "屋外，有个东西说出游戏里唯一写下的一句话：“我好冷，可以让我进来吗？”它透过打开的窗户看着你，走到外侧的门前，把门撞开，再一间一间地跟着你——你只看得到它的脚印。这句请求本身就是恐怖所在：你为了光线或通行而打开的每一个口子，也都是它进来的路。"
       }
     },
     {
       "kind": "system-grid",
-      "title": "Spatial Vocabulary",
+      "title": "The Rules the House Runs On",
       "items": [
         [
-          "5 × 5 UNIT",
-          "A repeated square spatial unit shown in the diagram set.",
-          "圖表中反覆出現的方形空間單位。"
+          "BUY",
+          "Rooms come from a shop with a two-click confirm, and a new room sticks to your cursor until you place it.",
+          "房间从商店买，需要点两次确认；买下的房间会吸附在光标上，直到你把它放好。"
         ],
         [
-          "2 × 5 UNIT",
-          "A narrower unit used beside the larger block in the source layouts.",
-          "來源版面中與較大方塊並列的狹長單位。"
+          "MANAGE",
+          "Enter switches between walking and managing. Managing freezes you in place and lets you pick up whole rooms, with you inside them.",
+          "Enter 在行走和管理之间切换。管理时你会停在原地，可以把整个房间连同屋里的你一起搬走。"
         ],
         [
-          "DOOR / CURTAIN",
-          "The boundary element that gives the request a place to happen.",
-          "讓邀請發生在某個位置上的邊界元素。"
+          "FUSE",
+          "Rooms that overlap or share an edge become one room. Touching only at a corner does not count.",
+          "重叠或共享一条边的房间会合成一个房间；只在角上相碰不算。"
         ],
         [
-          "REQUEST",
-          "“I’m so cold, may I come in?”—the only fully written narrative prompt in the extracted page.",
-          "「我好冷，可以讓我進來嗎？」——目前抽取頁面中唯一完整寫出的敘事提示。"
+          "DOOR",
+          "A door appears only at the moment two rooms fuse, on a shared edge exactly three cells long: the middle cell opens, the two sides stay wall.",
+          "门只在两个房间融合的那一刻出现，而且共享边必须正好三格：中间一格是门洞，两侧仍是墙。"
+        ],
+        [
+          "WINDOW",
+          "Scroll a curtain open to let daylight in. In my first version daylight paid for new rooms, and an open window was also how the visitor saw you.",
+          "滚动鼠标拉开窗帘，让阳光进来。在我的第一版里，阳光能换来新房间，而一扇开着的窗，也正是访客看见你的途径。"
+        ],
+        [
+          "NIGHT",
+          "A day runs from morning to afternoon to dusk to night, and the sky behind the house follows it. Night is when the visitor comes.",
+          "一天从早晨、下午、黄昏走到夜晚，房子背后的天色随之变化。夜晚，就是访客到来的时候。"
         ]
       ]
     },
     {
       "kind": "flow",
-      "title": "Reading the Spatial Study",
+      "title": "One Day in the House",
       "steps": [
         [
-          "UNIT",
-          "Read the 5 × 5 and 2 × 5 spatial pieces.",
-          "閱讀 5 × 5 與 2 × 5 的空間單位。"
+          "MORNING",
+          "Open the curtains and let the light in",
+          "拉开窗帘，让光进来"
         ],
         [
-          "BOUNDARY",
-          "Locate the door or curtain in the arrangement.",
-          "在排列中找到門或簾子的邊界。"
+          "BUILD",
+          "Buy a room and fit it to the house",
+          "买一个房间，把它接到房子上"
         ],
         [
-          "REQUEST",
-          "Read the invitation attached to that boundary.",
-          "閱讀附著在邊界上的邀請。"
+          "DUSK",
+          "The light stops paying; open windows become a risk",
+          "阳光不再带来收入，开着的窗成了风险"
         ],
         [
-          "ACTION",
-          "The complete player response still needs a matching walkthrough.",
-          "完整玩家回應仍需要對應的操作示範。"
+          "NIGHT",
+          "The visitor asks to come in, and footprints show where it goes",
+          "访客请求进门，脚印显示它往哪里走"
         ]
       ]
     },
     {
       "kind": "text",
-      "title": "Current Build Boundary",
+      "title": "What the Build Plays Today",
       "paragraphs": [
         {
-          "en": "A Unity/WebGL prototype is available below. The design drawings establish the spatial units, the boundary, and the request at the door. A matching walkthrough is still needed to explain the player’s complete objective, response, and result.",
-          "zh": "下方提供 Unity／WebGL 原型。設計圖確立了空間單位、邊界，以及門外的請求；完整的玩家目標、回應與結果，仍需要一段對應的操作示範來說明。"
+          "en": "The build below is the house-building half: the shop, managing and fusing rooms, doors that appear where rooms meet, and the day turning behind them. The visitor and the window economy come from my first version and are being reconnected to fused rooms, so this is the version to try the building in, and the next one is where the night comes back.",
+          "zh": "下面的版本是“盖房子”的那一半：商店、管理和融合房间、在房间交界处出现的门，以及背后流转的一天。访客和窗户经济来自我的第一版，正在重新接到融合后的房间上。所以这一版适合体验盖房子，而下一版会把夜晚带回来。"
         }
       ]
     }

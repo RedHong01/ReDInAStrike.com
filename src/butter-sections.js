@@ -35,30 +35,30 @@ export const butterSections = [
     left: {
       title: "Brief",
       en: "In the dusty fields of Dairyville a centuries-old tournament reawakens to find its new champion. You stand over a butter churn, take the rod in both hands, and churn to the beat. Churn too fast and the churn jams — then you bang the rod against the sides of the barrel to free it and keep going.",
-      zh: "在 Dairyville 塵土飛揚的田野上，一場延續數百年的錦標賽再度甦醒，要選出新的冠軍。你站在攪乳桶前，雙手握住攪桿，跟著節拍攪動。攪得太快，桶就會卡住——這時你要用攪桿敲擊桶身兩側把它弄開，再繼續。",
+      zh: "在 Dairyville 尘土飞扬的田野上，一场延续数百年的锦标赛再度甦醒，要选出新的冠军。你站在搅乳桶前，双手握住搅杆，跟着节拍搅动。搅得太快，桶就会卡住——这时你要用搅杆敲击桶身两侧把它弄开，再继续。",
     },
     right: {
       title: "My part",
       en: "Andrew built the first controller out of a laundry basket and wrote the game. I designed and built the second generation — the wooden barrel this page is about — and the physical computing inside it.",
-      zh: "Andrew 用洗衣籃做出了第一代控制器，並負責遊戲程式。我設計並製作了第二代——也就是這一頁談的木桶——以及它內部的實體運算。",
+      zh: "Andrew 用洗衣篮做出了第一代控制器，并负责游戏程式。我设计并制作了第二代——也就是这一页谈的木桶——以及它内部的实体运算。",
     },
   },
   {
     kind: "system-grid",
     title: "The Loop, in Three Verbs",
     items: [
-      ["CHURN", "Work the rod up and down in time with the beat. The meter fills while you stay on rhythm.", "跟著節拍上下推動攪桿。只要維持節奏，計量條就會累積。"],
-      ["JAM", "Rush it and the churn seizes. The meter stops, and so do you.", "操之過急，桶就會卡死。計量條停止，你也停下。"],
-      ["BANG", "Strike the rod against the side of the barrel to break the jam and resume.", "用攪桿敲擊桶身側面，解除卡死並恢復攪動。"],
+      ["CHURN", "Work the rod up and down in time with the beat. The meter fills while you stay on rhythm.", "跟着节拍上下推动搅杆。只要维持节奏，计量条就会累积。"],
+      ["JAM", "Rush it and the churn seizes. The meter stops, and so do you.", "操之过急，桶就会卡死。计量条停止，你也停下。"],
+      ["BANG", "Strike the rod against the side of the barrel to break the jam and resume.", "用搅杆敲击桶身侧面，解除卡死并恢复搅动。"],
     ],
   },
   {
     kind: "flow",
     title: "Two Generations of Controller",
     steps: [
-      ["V1 — ANDREW", "A laundry basket with a rod through it. Enough to prove the churning motion was worth building a game around.", "一個中間插著攪桿的洗衣籃。足以證明「攪動」這個動作值得為它做一款遊戲。"],
-      ["THE PROBLEM", "A basket does not feel like a churn. The gap between the object in your hands and the thing on screen was the whole design problem.", "但籃子摸起來不像攪乳桶。手中之物與螢幕之物的落差，正是整個設計問題所在。"],
-      ["V2 — RED", "A wooden barrel built to the size and weight of a real churn, with the circuitry hidden inside the handle.", "一個依照真實攪乳桶尺寸與重量製作的木桶，線路藏在手柄內部。"],
+      ["V1 — ANDREW", "A laundry basket with a rod through it. Enough to prove the churning motion was worth building a game around.", "一个中间插着搅杆的洗衣篮。足以证明「搅动」这个动作值得为它做一款游戏。"],
+      ["THE PROBLEM", "A basket does not feel like a churn. The gap between the object in your hands and the thing on screen was the whole design problem.", "但篮子摸起来不像搅乳桶。手中之物与荧幕之物的落差，正是整个设计问题所在。"],
+      ["V2 — RED", "A wooden barrel built to the size and weight of a real churn, with the circuitry hidden inside the handle.", "一个依照真实搅乳桶尺寸与重量制作的木桶，线路藏在手柄内部。"],
     ],
   },
   {
@@ -68,7 +68,7 @@ export const butterSections = [
     label: "V2 / PLAYERBLUE",
     caption: {
       en: "The second-generation controller finished: a faceted barrel with rivet bands, the nameplate and directional arrows on the lid, and the wiring running up through the handle rod.",
-      zh: "完成後的第二代控制器：多面桶身、鉚釘帶、桶蓋上的銘牌與方向箭頭，線路沿著攪桿向上穿出。",
+      zh: "完成后的第二代控制器：多面桶身、铆钉带、桶盖上的铭牌与方向箭头，线路沿着搅杆向上穿出。",
     },
   },
   {
@@ -78,7 +78,7 @@ export const butterSections = [
     svg: churnDiagram,
     caption: {
       en: "I sized it to the waist so a player stands upright, grips both handles, and has to bend slightly to churn — the posture does most of the work of making it feel like labour. The handle stick is cut on a table saw with the blade set to 15°, which opens a cavity for the wiring and keeps the contact stable while the rod is being gripped and shoved.",
-      zh: "我把高度定在腰部，讓玩家站直、雙手握把，並且必須略微彎身才能攪動——光是這個姿勢，就完成了「這是勞動」的大半說服力。攪桿以台鋸斜切 15 度，藉此讓出走線空間，並在攪桿被握住、推壓時維持接點穩定。",
+      zh: "我把高度定在腰部，让玩家站直、双手握把，并且必须略微弯身才能搅动——光是这个姿势，就完成了「这是劳动」的大半说服力。搅杆以台锯斜切 15 度，借此让出走线空间，并在搅杆被握住、推压时维持接点稳定。",
     },
   },
   {
@@ -86,7 +86,7 @@ export const butterSections = [
     title: "Tools and Procedures",
     intro: {
       en: "Four steps, and each one is a decision about how the object should feel rather than how it should look.",
-      zh: "四個步驟，而每一步都是關於「這個物件應該有什麼手感」的決定，而不是關於它該長什麼樣。",
+      zh: "四个步骤，而每一步都是关于「这个物件应该有什么手感」的决定，而不是关于它该长什么样。",
     },
     head: ["Step", "What I did", "Why"],
     rows: [
@@ -104,7 +104,7 @@ export const butterSections = [
     label: "LASER CUT / SPRAY PAINT",
     caption: {
       en: "Both logo lockups, the PlayerRed and PlayerBlue nameplates and every directional arrow, cut from one sheet and painted before being freed from it. The arrows are the only instruction the object gives you.",
-      zh: "兩組 logo、PlayerRed 與 PlayerBlue 銘牌，以及所有方向箭頭，都從同一張板材上切出、上色後才取下。那些箭頭是這個物件給你的唯一說明。",
+      zh: "两组 logo、PlayerRed 与 PlayerBlue 铭牌，以及所有方向箭头，都从同一张板材上切出、上色后才取下。那些箭头是这个物件给你的唯一说明。",
     },
   },
   {
@@ -112,7 +112,7 @@ export const butterSections = [
     title: "What Each Contact Sends",
     intro: {
       en: "Three contacts per controller, two controllers, six keys. The game reads nothing else.",
-      zh: "每個控制器三個接點，兩個控制器共六個按鍵。遊戲不讀取其他任何輸入。",
+      zh: "每个控制器三个接点，两个控制器共六个按键。游戏不读取其他任何输入。",
     },
     head: ["Contact", "Player 1", "Player 2", "Action"],
     rows: [
@@ -122,7 +122,7 @@ export const butterSections = [
     ],
     note: {
       en: "The circuit diagram on the fabrication board labels both bottom contacts “Down Arrow”. That is right for player 2 and wrong for player 1, whose bottom contact sends S in the shipped code. The drawing was made once and reused for the second panel without relabelling.",
-      zh: "製作板上的電路圖把兩個底部接點都標成「Down Arrow」。這對玩家 2 是正確的，對玩家 1 則是錯的——在實作程式中，玩家 1 的底部接點送出的是 S。那張圖畫過一次後被複製到第二個面板，卻沒有改標籤。",
+      zh: "制作板上的电路图把两个底部接点都标成「Down Arrow」。这对玩家 2 是正确的，对玩家 1 则是错的——在实作程式中，玩家 1 的底部接点送出的是 S。那张图画过一次后被复制到第二个面板，却没有改标签。",
     },
   },
   {
@@ -130,7 +130,7 @@ export const butterSections = [
     title: "What Testing Broke, and What I Changed",
     intro: {
       en: "Players found the churning funny and the loop simple enough to hold. Three things went wrong, and four changes came out of them.",
-      zh: "玩家覺得攪動的動作很好笑，循環也簡單到能撐住。但有三件事出了問題，並由此產生四項修改。",
+      zh: "玩家觉得搅动的动作很好笑，循环也简单到能撑住。但有三件事出了问题，并由此产生四项修改。",
     },
     head: ["What went wrong", "What I changed", "Retested?"],
     rows: [
@@ -140,8 +140,8 @@ export const butterSections = [
       ["Meter response did not match what hands were doing.", "Retuned fill rates and timing against the controller inputs.", "No"],
     ],
     note: {
-      en: "None of the four were put back in front of players. The presentation records the changes, not their effect, and I would rather say that here than let a list of fixes imply a result it never measured.",
-      zh: "這四項修改都沒有再次交到玩家手上驗證。簡報記錄的是「改了什麼」，而不是「改得有沒有用」；與其讓一串修正清單暗示一個從未被量測過的結果，我寧可在這裡把話說明白。",
+      en: "None of the four has been back in front of players yet. The first thing I would test is the jam: whether players now work out on their own how to free the churn, because that is where they got stuck.",
+      zh: "这四项修改都还没有再交到玩家手上。我最先要测的是卡住的那一刻：玩家现在能不能自己想到怎么把搅乳桶敲开，因为他们正是在那里卡住的。",
     },
   },
   {
@@ -151,26 +151,26 @@ export const butterSections = [
     label: "V2 / PLAYERRED",
     caption: {
       en: "The second of the pair. Two identical builds in opposing colours is what makes the local competition legible before anyone reads a screen.",
-      zh: "成對中的第二台。兩台構造相同、顏色相對的控制器，讓本地對戰在任何人看螢幕之前就已經一目了然。",
+      zh: "成对中的第二台。两台构造相同、颜色相对的控制器，让本地对战在任何人看荧幕之前就已经一目了然。",
     },
   },
   {
     kind: "callout",
-    title: "What My Teammate Wrote",
-    en: "Andrew's own line in the final presentation: “Collaboration went smoothly with Red doing an incredible job taking the lead on revising the controller.” I am quoting it as what he wrote, not as evidence that the collaboration worked — the term reviewer made exactly that distinction, and he was right to. What the record does support is the handover itself: his basket, my barrel.",
-    zh: "Andrew 在期末簡報中的原話：「Collaboration went smoothly with Red doing an incredible job taking the lead on revising the controller.」我引用它，是把它當作「他寫下的話」，而不是「協作有效的證據」——期末評審正是做了這個區分，而他是對的。這份記錄真正能支撐的，是那次交接本身：他的籃子，我的木桶。",
+    title: "Working With Andrew",
+    en: "Andrew built the first controller and wrote the game; I took the lead on the second controller, and we split the work the way the object splits — his code, my barrel. When testing turned up the noise, the broken wiring and the jam nobody could clear, the fixes on the barrel side were mine. In his words from our final presentation: “Collaboration went smoothly with Red doing an incredible job taking the lead on revising the controller.”",
+    zh: "Andrew 做了第一代控制器，也写了游戏；第二代控制器由我主导，我们按照这个物件本身的结构分工——他负责代码，我负责木桶。测试暴露出噪音太大、线路断开、没人知道怎么把卡住的桶敲开这些问题时，木桶这一侧的修改都是我做的。用他在我们期末展示里的原话：“Collaboration went smoothly with Red doing an incredible job taking the lead on revising the controller.”",
   },
   {
     kind: "text",
-    title: "What the Repository Says, and What It Cannot",
+    title: "What Is Built, and What Is Waiting",
     paragraphs: [
       {
-        en: "The git history holds five commits between 2 and 10 December 2025, all of them Andrew's. Mine are not there and were never going to be — my work was a barrel, a table saw and a soldering iron. A code repository is simply the wrong instrument for measuring half of this project, and it is worth saying so rather than letting an empty commit log stand as a verdict.",
-        zh: "Git 歷史裡有五個提交，時間在 2025 年 12 月 2 日至 10 日之間，全部出自 Andrew。我的提交不在其中，而且本來也不會在——我的工作是一個木桶、一台台鋸和一支烙鐵。程式碼倉庫本來就不是衡量這個專案另一半的正確儀器；與其讓一份空白的提交紀錄充當判決，不如把這件事講清楚。",
+        en: "Our work split cleanly between the screen and the object. Andrew's five commits in early December are the game; my half is the barrel in your hands, built with a table saw and a soldering iron. In a controller game, the half players meet first is the object.",
+        zh: "我们的分工在屏幕和实物之间划得很清楚。Andrew 在十二月初的五次提交就是游戏本身；我的那一半，是你握在手里的木桶，用台锯和烙铁做出来。在控制器游戏里，玩家最先接触到的，正是实物那一半。",
       },
       {
-        en: "One thing the project files do show plainly: the versus scene exists but is not in the build. SampleScene 1.unity holds 75 objects including a second churn, against 39 in the single-player scene — and the build settings enable only the single-player one. The two-controller competition the presentation is built around is finished work sitting outside the shipping configuration.",
-        zh: "專案檔案倒是明白顯示了一件事：對戰場景存在，但不在建置設定裡。SampleScene 1.unity 有 75 個物件、包含第二個攪乳桶，相較之下單人場景只有 39 個——而建置設定只啟用了單人那一個。簡報整份圍繞的雙控制器對戰，其實是一份完成了、卻被留在出貨設定之外的工作。",
+        en: "The versus mode is built but not yet in the playable build: the scene with a second churn sits in the project while the build ships the single-player scene. The two matched controllers were made for that head-to-head, so switching it on is the next step for the game.",
+        zh: "对战模式已经做好，但还没有进入可玩版本：带第二个搅乳桶的场景在项目里，而目前打包的是单人场景。两台成对的控制器本来就是为这场正面对决而做的，所以把它打开，就是这个游戏的下一步。",
       },
     ],
   },

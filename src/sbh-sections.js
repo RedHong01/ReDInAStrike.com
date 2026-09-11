@@ -227,10 +227,10 @@ export const sbhSections = [
   },
   {
     kind: "sbh-playtest",
-    title: "Week 10: Five Testers",
+    title: "Five Testers",
     intro: pair(
-      "In Week 10 we put the clickable prototype in front of players with ten questions. Our deck kept three strengths and three weaknesses; the written summaries in our final folder keep five people’s answers. All five had trouble with how the stats were shown, and no two picked the same favourite.",
-      "第 10 周，我们带着十个问题，把可点击原型交给玩家试玩。演示文稿记下了三个优点和三个缺点；最终文件夹里的文字总结，保留了五个人的回答。五个人都觉得属性的呈现方式有问题，而且没有两个人选中同一项最喜欢的属性。",
+      "We put the clickable prototype in front of players with ten questions. Our deck kept three strengths and three weaknesses; the written summaries in our final folder keep five people’s answers. All five had trouble with how the stats were shown, and no two picked the same favourite.",
+      "我们带着十个问题，把可点击原型交给玩家试玩。演示文稿记下了三个优点和三个缺点；最终文件夹里的文字总结，保留了五个人的回答。五个人都觉得属性的呈现方式有问题，而且没有两个人选中同一项最喜欢的属性。",
     ),
     strengthsTitle: "What held up",
     strengths: [

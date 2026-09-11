@@ -360,7 +360,7 @@ export const tbcSections = [
     paragraphs: [
       {
         en: "I wrote a revision pass on my own document rather than defending it. What held up: a clean high concept, and an emotional spine that runs from team fracture to alliance without needing anyone to betray anyone. What did not: escalation leaned on late information dumps and on discovery being concentrated in the protagonist, which is exactly the thing a multi-POV structure is supposed to avoid.",
-        zh: "我没有替自己的文件辯护，而是为它写了一份修订。撑得住的部分：一个干净的高概念，以及一条从团队破裂走向结盟、不需要任何人背叛任何人的情感主轴。撑不住的部分：张力升级太依赖后段的资讯倾倒，而且「发现」高度集中在主角身上——那恰恰是多视角结构本该避免的事。",
+        zh: "我没有替自己的文件辩护，而是为它写了一份修订。撑得住的部分：一个干净的高概念，以及一条从团队破裂走向结盟、不需要任何人背叛任何人的情感主轴。撑不住的部分：张力升级太依赖后段的资讯倾倒，而且「发现」高度集中在主角身上——那恰恰是多视角结构本该避免的事。",
       },
       {
         en: "The sharper version of the problem: the theme was present in the story but not enforced by any mechanism. Player responsibility and uncertainty were the two things the premise promised, and neither was being produced by the structure — they were being described by it. The revision plan is about closing that gap, and it is the part of this project I would do differently first.",
@@ -398,7 +398,7 @@ export const tbcSections = [
     kind: "system-grid",
     title: "What the Sprints Changed",
     items: [
-      ["CAMERA → TRIGGER", "In class we found that much of the meaning in our draft scenes was carried by camera language — framing, pans, emphasis — none of which survives implementation. Writing the dialogue, I had to translate those non-verbal beats into something the other writers could build on.", "课堂上我们发现，初稿场景里很多意义是由镜头语言承载的——构图、摇镜、强调——而这些在实作中都留不下来。负责写对白的我，必须把这些非语言的节点，转译成其他编剧真正能接着写的东西。"],
+      ["CAMERA → TRIGGER", "Reading our first drafts aloud, we found that much of the meaning in our scenes was carried by camera language — framing, pans, emphasis — none of which survives implementation. Writing the dialogue, I had to translate those non-verbal beats into something the other writers could build on.", "把初稿读出来之后，我们发现场景里很多意义是由镜头语言承载的——构图、摇镜、强调——而这些在实作中都留不下来。负责写对白的我，必须把这些非语言的节点，转译成其他编剧真正能接着写的东西。"],
       ["ACTION IN THE LINE", "Once each line carried the player’s action beside it — walking to an object, checking on someone, triggering an interaction — the lines stopped reading like a screenplay and started reading like gameplay feedback. It also showed me which beats in my own summary were still film logic rather than moments a game can trigger.", "当每一句台词旁边都写上玩家的动作——走向某个物件、查看某人的状态、触发一次互动——台词就不再像剧本，而开始像游戏的回馈。这也让我看清，自己的大纲里有哪些节点仍是电影的逻辑，而不是游戏能够触发的时刻。"],
       ["READ EACH OTHER", "Drafting alone let character voices drift and broke the transitions between neighbouring lines. Cross-reading fixed it — and it matters most once the story is split across five viewpoints written by different people.", "各自闭门写作，会让角色的声音跑掉，也会让相邻台词之间的衔接断裂。互相阅读修正了这一点——而当故事被拆成五个视角、由不同的人来写时，这一点最为重要。"],
     ],
@@ -464,8 +464,8 @@ export const tbcSections = [
     kind: "plates",
     title: "The Presentation",
     intro: {
-      en: "Twelve slides taken to the final review: the brief, the character sheets, the three acts and what I concluded. Hover a slide to lift it; click to read it.",
-      zh: "带去期末评审的十二页：纲要、角色设定、三幕，以及我的结论。将游标移到任一页可将它抬起，点击即可阅读。",
+      en: "Twelve slides from our final presentation: the story brief, the character sheets, the three acts and what I concluded. Hover a slide to lift it; click to read it.",
+      zh: "我们最终展示的十二页：故事简介、角色设定、三幕，以及我的结论。将光标移到任一页可将它抬起，点击即可阅读。",
     },
     plates: [
       { image: "assets/tbc/slide-01.jpg", span: 5, offset: "0px", rotate: -0.5, alt: "Storytelling For Games final presentation, slide 1", label: "SLIDE 01" },
@@ -491,10 +491,10 @@ export const tbcSections = [
     },
     head: ["Document", "What it holds", "Date"],
     rows: [
-      ["Storytelling For Games — 1st graded assignment", "The original single-protagonist premise, before any of the perspective work.", "2025-02-25"],
-      ["Graded assignment #1, with notes", "The same premise returned with commentary — including a question mark against the title.", "2025-03-10"],
-      ["Graded assignment #2, with notes", "Full character sheets: personal goal, professional goal, emotional needs, strengths.", "2025-04-19"],
-      ["Storytelling For Games — final presentation", "12 slides: story brief, protagonist, antagonist Elder Malachi, side characters, three acts, conclusions.", "Fall 2025"],
+      ["Premise draft — first version", "The original single-protagonist premise, before any of the perspective work.", "2025-02-25"],
+      ["Premise draft, with feedback", "The same premise returned with commentary — including a question mark against the title.", "2025-03-10"],
+      ["Character sheets, with feedback", "Full character sheets: personal goal, professional goal, emotional needs, strengths.", "2025-04-19"],
+      ["Final presentation", "12 slides: story brief, protagonist, antagonist Elder Malachi, side characters, three acts, conclusions.", "Fall 2025"],
       ["Narrative Design Vision — 1st iteration", "The asymmetrical episodic premise stated for the first time.", "2025-12-12"],
       ["Narrative Design Vision — 2nd iteration", "The same premise with the POV chart bound into it.", "2025-12-19"],
       ["Story Summary", "Act-by-act prose, and the source of the POV chart above.", "2025-12-19"],

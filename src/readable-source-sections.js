@@ -157,7 +157,17 @@ export const supportingReadableSections = {
         [
           "PINCH",
           "Use gaze and pinch for menu buttons and setup controls.",
-          "用凝视与捏取操作选单按钮和设定控制。"
+          "用凝视与捏取操作菜单按钮和设置控制。"
+        ],
+        [
+          "MEASURE",
+          "The slice is measured against an ideal cut, so a steadier hand earns more.",
+          "鱼片会和理想尺寸比较，所以手越稳，赚得越多。"
+        ],
+        [
+          "NO CONTROLLER",
+          "There is nothing to hold but the food: grip, wrist and gaze are the whole interface.",
+          "除了食物，手里什么都不用拿：抓握、手腕和目光就是全部的操作界面。"
         ]
       ]
     },
@@ -199,6 +209,7 @@ export const supportingReadableSections = {
     },
     {
       "kind": "text",
+      "kicker": "Iteration",
       "title": "Scope and Iteration",
       "paragraphs": [
         {
@@ -337,6 +348,7 @@ export const supportingReadableSections = {
   "/curtain": [
     {
       "kind": "copy-grid",
+      "kicker": "Player experience",
       "title": "The House and the Visitor",
       "left": {
         "title": "The House",
@@ -387,6 +399,7 @@ export const supportingReadableSections = {
     },
     {
       "kind": "flow",
+      "kicker": "Player flow",
       "title": "One Day in the House",
       "steps": [
         [

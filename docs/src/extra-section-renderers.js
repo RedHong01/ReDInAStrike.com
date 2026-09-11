@@ -421,6 +421,7 @@ export const extraSectionRenderers = {
   "case-gallery": caseGallery,
   "evidence-table": evidenceTable,
   "reference-links": referenceLinks,
+  audience,
 }
 
 function caseGallery(section, { escapeHtml, gddPair, imageSourceAttrs }) {
@@ -436,4 +437,46 @@ function evidenceTable(section, { escapeHtml, gddPair }) {
 function referenceLinks(section, { escapeHtml, gddPair }) {
   const links = section.items.map((item) => `<li><a href="${escapeHtml(item.href)}"${item.external ? ' target="_blank" rel="noreferrer"' : ""}>${escapeHtml(item.label)} ↗</a><span>${gddPair(item.copy)}</span></li>`).join("")
   return sectionShell(section, `<ul class="case-reference-links">${links}</ul>`, { escapeHtml, gddPair }, "case-reference-section")
+}
+
+// Who a game is for, opening the drawer: the player experience goal and the
+// target audience as type, beside a positioning map — solo ↔ social across,
+// casual ↔ hardcore up. The project's target is a shaded zone; neighbouring
+// player groups sit as chips, filled when they are the core of the audience.
+// Coordinates run from -1 to 1 on both axes.
+function audience(section, { escapeHtml, gddPair }) {
+  const map = section.map
+  const pct = (value) => Math.round(((value + 1) / 2) * 1000) / 10
+  const zone = map.target
+  const [solo, social] = map.x || ["Solo", "Social"]
+  const [casual, hardcore] = map.y || ["Casual", "Hardcore"]
+  const chips = map.groups
+    .map(
+      (group, index) =>
+        `<li class="case-audience-chip${group.core ? " is-core" : ""}" style="left:${pct(group.x)}%;top:${100 - pct(group.y)}%;--i:${index}">${escapeHtml(group.label)}</li>`,
+    )
+    .join("")
+  const plane = `
+      <figure class="case-audience-map" aria-label="${escapeHtml(map.alt || `Target audience map for ${zone.label}`)}">
+        <div class="case-audience-plane">
+          <span class="case-audience-axis case-audience-axis--x" aria-hidden="true"></span>
+          <span class="case-audience-axis case-audience-axis--y" aria-hidden="true"></span>
+          <span class="case-audience-pole case-audience-pole--top">${escapeHtml(hardcore)}</span>
+          <span class="case-audience-pole case-audience-pole--bottom">${escapeHtml(casual)}</span>
+          <span class="case-audience-pole case-audience-pole--left">${escapeHtml(solo)}</span>
+          <span class="case-audience-pole case-audience-pole--right">${escapeHtml(social)}</span>
+          <div class="case-audience-zone" style="left:${pct(zone.x0)}%;top:${100 - pct(zone.y1)}%;width:${pct(zone.x1) - pct(zone.x0)}%;height:${pct(zone.y1) - pct(zone.y0)}%"><span>${escapeHtml(zone.label)}</span></div>
+          <ul class="case-audience-chips">${chips}</ul>
+        </div>
+      </figure>`
+  const copy = `
+      <div class="case-audience-copy">
+        <h3 class="case-audience-heading">Player Experience Goal</h3>
+        <p>${gddPair(section.goal)}</p>
+      </div>
+      <div class="case-audience-copy">
+        <h3 class="case-audience-heading">Target Audience</h3>
+        <p>${gddPair(section.audience)}</p>
+      </div>`
+  return sectionShell({ ...section, title: section.title || "Who It Is For" }, `<div class="case-audience-grid">${copy}${plane}</div>`, { escapeHtml, gddPair }, "case-audience-section")
 }

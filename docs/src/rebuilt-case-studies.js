@@ -144,10 +144,14 @@ export const rebuiltCaseStudies = {
     ),
     heroImage: null,
     heroAlt: "Build n Shoot cover art",
+    audience: {
+      goal: { en: "Players should feel the board change under them: every route they walk becomes cover, and every purchase is a move everyone can read.", zh: "玩家应该感受到脚下的棋盘在变化：走过的每条路线都会变成掩体，每一次购买都是所有人看得见的一步棋。" },
+      audience: { en: "Two to four strategy board gamers, the Catan and Risk crowd, achievers and hunters who like to win by position, with a taste for fantasy.", zh: "两到四名策略桌游玩家——喜欢《卡坦岛》《战国风云》的人、靠位置取胜的成就型与杀手型玩家——并且对奇幻题材有兴趣。" },
+      map: { target: { label: "Build and Shoot", x0: 0.15, x1: 0.92, y0: -0.08, y1: 0.78 }, groups: [{ label: "Catan and Risk players", x: 0.55, y: 0.36, core: true }, { label: "Chess and abstract players", x: -0.42, y: 0.62 }, { label: "Fantasy fans", x: 0.6, y: -0.4 }] },
+    },
     points: [
-      "My board game for Game Design Fundamentals 3 (GDF3): rules, components and playtests.",
-      "Four iterations in one term, with playtests between them.",
-      "The full fourth-iteration rules live in the Build n Shoot GDD drawer; this page is how the game got there.",
+      { label: "Iteration", en: "Version two’s players found the difficulty right; version four’s found the turn too heavy, because learning the guards up front asked too much.", zh: "第二版的玩家觉得难度刚好；第四版的玩家觉得回合太重，因为一开始就要学会守卫的规则，要求太多了。" },
+      { label: "My role", en: "Designed, written and playtested by me across four iterations in one term.", zh: "由我设计、撰写并组织试玩，一个学期内完成四次迭代。" },
     ],
     sections: [
       {
@@ -165,7 +169,8 @@ export const rebuiltCaseStudies = {
       },
       {
         kind: "flow",
-        title: "Four versions in one term",
+        kicker: "Iteration",
+    title: "Four versions in one term",
         steps: [
           ["1ST · NOV 2024", "Move, mark, settle, build, shoot: territory pays out ammo and blocks, and everyone starts with 10 HP", "移动、标记、结算、建造、射击：领地换来弹药和方块，每人开局 10 点生命"],
           ["2ND", "An inventory counted in weight, ten to a hand, with every item and action card rewritten around it", "按负重计算的物品栏，每人上限十个单位，所有道具和行动卡都围绕它重写"],
@@ -175,12 +180,14 @@ export const rebuiltCaseStudies = {
       },
       {
         kind: "callout",
-        title: "Why the dice stayed",
+        kicker: "Design intent",
+    title: "Why the dice stayed",
         en: "I put a D6 into movement in the first version to add some chance, because every other resource in the game came from fixed rules. By the fourth version the same roll also sets how far a shot travels.",
         zh: "第一版里我让一颗 D6 决定移动距离，是想加一点随机性，因为游戏里其他资源都按固定规则产生。到了第四版，同一颗骰子也决定子弹能飞多远。",
       },
       {
         kind: "copy-grid",
+        kicker: "Playtest",
         left: {
           title: "Playtest · version two",
           en: "The difficulty landed about where I wanted it, so I left the other values alone, carried them into the next version and kept testing them.",
@@ -194,7 +201,8 @@ export const rebuiltCaseStudies = {
       },
       {
         kind: "spec-table",
-        title: "What the questionnaire asked",
+        kicker: "Playtest",
+    title: "What the questionnaire asked",
         intro: pair(
           "I used the same questionnaire for the second and the fourth versions. It also asked which earlier versions a player had seen, how many board games they had played and which genre they played most.",
           "第二版和第四版用的是同一份问卷。问卷还会问玩家之前玩过哪几个版本、玩过多少款桌游，以及最常玩哪一类。",
@@ -214,21 +222,22 @@ export const rebuiltCaseStudies = {
       },
       {
         kind: "spec-table",
-        title: "What GDF3 asked for, and where it shows up",
+        kicker: "Design intent",
+    title: "The Systems I Built Into the Board",
         intro: pair(
-          "GDF3 moved through combat, economies and progression, and its design documents had to be complete enough to play from. Each of those briefs has a counterpart in the game.",
-          "GDF3 这门课依次讲了战斗、经济和成长系统，设计文档要完整到照着就能玩。每一个课题，在这个游戏里都有对应的部分。",
+          "I built four systems into the board, each for a feeling I wanted at the table, and wrote the rules so a new group could play from the page alone.",
+          "我在棋盘里放进了四个系统，每一个都对应我希望玩家在桌边感受到的一种体验；规则也写得让一群新玩家只看文字就能开始。",
         ),
-        head: ["Course brief", "What it asked for", "Where it shows up in Build n Shoot"],
+        head: ["System", "What I wanted players to feel", "How the game does it"],
         rows: [
-          ["Combat game lab", "Enemies run by a game master through a state machine of five or more states that reads players and terrain, on a grid with elevation and cover", "Attack guards run seven states and defense and support guards six, from idle and patrol to flee and restore; level blocks add height and stop shots"],
-          ["Economic trading lab", "An engine, an economy that grows through uneven exchange, an ecology that balances it, and trading between players", "Territory marks spent through a purchase matrix, and a trading system between players"],
-          ["Progression systems", "Progression that follows the core mechanics, respects player choice and stays visible", "Territory turns into purchases, attack guards level up from 1 to 3, and every mark sits on the board where everyone can see it"],
-          ["GDD template", "A document complete enough to play the game from alone", "The 28-page fourth-iteration GDD, rebuilt in the Build n Shoot GDD drawer"],
+          ["Guards with minds of their own", "The board fights back even on turns when no player is moving", "Attack guards run seven states and defense and support guards six, from idle and patrol to flee and restore; level blocks add height and stop shots"],
+          ["An economy on the board", "Spending is a visible choice that everyone at the table can read", "Territory marks spent through a purchase matrix, and a trading system between players"],
+          ["Progression you can see", "Getting stronger shows on the table, not in a hidden number", "Territory turns into purchases, attack guards level up from 1 to 3, and every mark sits on the board where everyone can see it"],
+          ["A rulebook to play from", "A new group can start without me standing there explaining", "The 28-page fourth-iteration GDD, rebuilt in the Build n Shoot GDD drawer"],
         ],
       },
     ],
-    access: "Designed and written by me for Game Design Fundamentals 3 (GDF3) at ArtCenter, Fall 2024.",
+    access: "Designed, written and playtested by me, Fall 2024.",
     sourceLinks: [{ label: "Read the full rules in the Build n Shoot GDD →", href: bnsGddHref }],
     currentVersion: "The fourth iteration. Its components, turn, purchase matrix and guard behaviour are laid out in the Build n Shoot GDD drawer.",
   },

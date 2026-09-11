@@ -54,6 +54,7 @@ export const butterSections = [
   },
   {
     kind: "flow",
+    kicker: "Iteration",
     title: "Two Generations of Controller",
     steps: [
       ["V1 — ANDREW", "A laundry basket with a rod through it. Enough to prove the churning motion was worth building a game around.", "一个中间插着搅杆的洗衣篮。足以证明「搅动」这个动作值得为它做一款游戏。"],
@@ -127,6 +128,7 @@ export const butterSections = [
   },
   {
     kind: "spec-table",
+    kicker: "Playtest",
     title: "What Testing Broke, and What I Changed",
     intro: {
       en: "Players found the churning funny and the loop simple enough to hold. Three things went wrong, and four changes came out of them.",
@@ -156,6 +158,7 @@ export const butterSections = [
   },
   {
     kind: "callout",
+    kicker: "Team",
     title: "Working With Andrew",
     en: "Andrew built the first controller and wrote the game; I took the lead on the second controller, and we split the work the way the object splits — his code, my barrel. When testing turned up the noise, the broken wiring and the jam nobody could clear, the fixes on the barrel side were mine. In his words from our final presentation: “Collaboration went smoothly with Red doing an incredible job taking the lead on revising the controller.”",
     zh: "Andrew 做了第一代控制器，也写了游戏；第二代控制器由我主导，我们按照这个物件本身的结构分工——他负责代码，我负责木桶。测试暴露出噪音太大、线路断开、没人知道怎么把卡住的桶敲开这些问题时，木桶这一侧的修改都是我做的。用他在我们期末展示里的原话：“Collaboration went smoothly with Red doing an incredible job taking the lead on revising the controller.”",

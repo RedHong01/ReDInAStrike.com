@@ -68,6 +68,7 @@ export const sbhSections = [
   },
   {
     kind: "sbh-timeline",
+    kicker: "Iteration",
     title: "Seven Weeks, From Pitch to Package",
     weeks: [
       { week: 7, date: "3/5", title: "Kickoff", en: "The slides and the data sheet are opened the day the project starts.", zh: "项目开始当天，演示文稿和数据表就建好了。", lesson: pair("Pick one fantasy: the hunt", "只抓一个幻想：狩猎") },
@@ -227,6 +228,7 @@ export const sbhSections = [
   },
   {
     kind: "sbh-playtest",
+    kicker: "Playtest",
     title: "Five Testers",
     intro: pair(
       "We put the clickable prototype in front of players with ten questions. Our deck kept three strengths and three weaknesses; the written summaries in our final folder keep five people’s answers. All five had trouble with how the stats were shown, and no two picked the same favourite.",
@@ -421,7 +423,7 @@ export const sbhSections = [
     title: "₿, Seven Raw Materials, Thirty Guns",
     intro: pair(
       "A currency needs one name players can hold on to. Ours had three: Credits in March, Bits on the loop slide and the stat screen, and Bitcoin, ₿, in the GDD, the sheet and the store. What held still was the split. ₿ comes from bounties, challenges, events and leaderboards and goes into gear; materials come off the planets and whatever lives on them. Repeat clears pay less ₿ but the same materials, so farming one monster stays worth it.",
-      "第 4 周的作业要求：游戏里要有货币，而且货币要有名字。我们的货币有过三个名字：三月叫 Credits，在循环页和属性界面里叫 Bits，在 GDD、数据表和商店里叫 Bitcoin，也就是 ₿。一直没变的是分工：₿ 来自悬赏、挑战、活动和排行榜，花在装备上；材料来自星球和星球上的生物。重复通关给的 ₿ 会变少，材料却一样多，所以反复刷同一只怪物依然值得。",
+      "货币需要一个玩家记得住的名字。我们的货币有过三个名字：三月叫 Credits，在循环页和属性界面里叫 Bits，在 GDD、数据表和商店里叫 Bitcoin，也就是 ₿。一直没变的是分工：₿ 来自悬赏、挑战、活动和排行榜，花在装备上；材料来自星球和星球上的生物。重复通关给的 ₿ 会变少，材料却一样多，所以反复刷同一只怪物依然值得。",
     ),
     currency: {
       title: "₿ in and out, on the GDD’s own scale",
@@ -634,7 +636,7 @@ export const sbhSections = [
     blocks: [
       { title: "Reference decks", en: "The lecture decks we worked from: the pitch, then economy, attributes, level curve, rarity and metagame, then live ops, events, holidays, monetization, the GDD, the persona and the video.", zh: "2026 年春季 Game as Service：第 1 周的课件（四个项目、五个学习目标、八页提案），第 4 周（经济、属性、等级曲线、稀有度、元游戏），第 5 周（长线运营、活动、节日、商业化、GDD、用户画像、视频）。" },
       { title: "Decks", en: "MMORPG Slides (3/12), the 3/27 deck, Space Bounty Hunters_Pitch as PDF and PPTX (4/9), and the final Slides Space Bounty Hunters (4/16).", zh: "MMORPG Slides（3/12）、第 10 周的演示文稿（3/27）、Space Bounty Hunters_Pitch 的 PDF 与 PPTX（4/9），以及最终版 Slides Space Bounty Hunters（4/16）。" },
-      { title: "Numbers", en: "Data Sheets Space Bounty Hunters, seven tabs, last edited 4/23, and my 3/18 download of it. The derivations live in reference/projects/space-bounty-hunter/sheet-derivations.py.", zh: "Data Sheets Space Bounty Hunters，七个分页，最后编辑于 4/23，以及我在 3/18 下载的那一份。推导脚本在 reference/projects/space-bounty-hunter/sheet-derivations.py。" },
+      { title: "Numbers", en: "Data Sheets Space Bounty Hunters, seven tabs, last edited 4/23, and my 3/18 download of it. Every number on this page is re-derived from them.", zh: "Data Sheets Space Bounty Hunters，七个分页，最后编辑于 4/23，以及我在 3/18 下载的那一份。这一页上的每个数字都是从它们重新推算出来的。" },
       { title: "Design", en: "GDD Space Bounty Hunters (4/16 to 4/23) and our Figma file, page “Project 2: Space Bounty Hunters”: the screens, the player-journey flow chart and our sticky notes.", zh: "GDD Space Bounty Hunters（4/16 至 4/23），以及我们的 Figma 文件中“Project 2: Space Bounty Hunters”页面：界面、玩家旅程流程图和我们的便签。" },
       { title: "Playtest", en: "The ten playtest questions, the feedback slides, and Qualitative Playtest Summaries: five testers, seven questions each.", zh: "第 10 周的十个问题、反馈页，以及 Qualitative Playtest Summaries：五名测试者，每人七个问题。" },
       { title: "Recording and art", en: "SpaceBountyHunters.mov (4:34, uploaded 4/23) and my SpaceBountyHuntersDesign.ai with its SVG exports (3/18 to 3/19).", zh: "SpaceBountyHunters.mov（4 分 34 秒，4/23 上传），以及我的 SpaceBountyHuntersDesign.ai 和它导出的 SVG（3/18 至 3/19）。" },

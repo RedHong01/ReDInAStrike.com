@@ -139,3 +139,44 @@
 - **原始会话记录：**
   - Claude：`~/.claude/projects/-Users-redwang-Desktop-ArtCenter-ReDInAStrike-com/` 下的 `49e8907f-af67-469e-af54-da04b97ebd7e.jsonl` 和 `0cf4c004-3143-4f73-b623-02fe3e39ebdb.jsonl`
   - Codex：`~/.codex/sessions/2026/09/11/rollout-2026-09-11T00-29-09-01a08f5e-cb3f-7f20-80ec-4a5341b32748.jsonl`
+
+---
+
+# 第二轮：游戏项目的设计叙事（2026-09-11，Claude）
+
+范围：14 个游戏项目。My Fridge、Assets Hub、Untitled Sans、Pitchfork 暂不纳入（Red 的决定）。
+
+## 这一轮的标准（所有游戏页的文案都按这个写）
+
+- 设计意图 → 迭代 → 结果；写清楚想达到什么、想法怎么演变、为什么这样决定。
+- 讲游戏设计问题（玩家体验、清晰度、投入感、机制），不讲开发问题；每个问题要写"问题 / 为什么对玩家重要 / 怎么解决"。
+- 叙事：玩家做什么、体验到什么、叙事结构怎样支撑这个体验。
+- 合作：怎么和队友共事、怎么处理分歧、对团队的贡献（而不是文档交接）。
+- 以玩家为中心：玩家是谁、应该感受到什么、设计怎样做到。
+- 技术只作为服务玩家体验的手段出现。
+- 删掉 "Week N"、"the brief asked / the course required / assignment" 这类措辞；设计迭代默认是 Red 做的，用第一人称写。
+- 不虚构结果：没有做成的写成"学到了什么 / 下一步怎么测"，数据只用问卷和 GDD 里真实存在的。
+
+## 做了什么
+
+- **开场**：一句话介绍改成中英双语；要点改成带标签的答案（`{ label, en, zh }`，Iteration / My role / Design goal / Playtest），渲染在 `caseStudyDetailMarkup`（`src/main.js`）。
+- **"Who It Is For" 版块**：每个游戏抽屉的第一个版块（在试玩构建之前）——体验目标 + 目标受众 + 定位图（独自↔社交 × 休闲↔硬核）。数据在各项目的 `audience` 字段；渲染器是 `extra-section-renderers.js` 的 `audience`；Serial Deminer 用 `serialDeminerAudience`（`main.js`）。
+- **章节标签**：有 `kicker` 字段的章节在标题上方显示小标签（Design intent / Iteration / Design problem / Playtest / Team / Storytelling / Player flow / Narrative design）。注意是 `kicker`，不是 `tag`——My Fridge 和 SBH 自己用 `tag` 字段做别的事。
+- **样式**：全部在新文件 `src/review-emphasis.css`（`index.html` 已链接）。单张图片不再被拉伸超过原图或超过 82% 屏高（修掉了 Shroom Pot 那张 720×1280 被放大到近 3 屏高的竖图）。
+- **Slow'em Down 新材料**：Figma 第一关九格分镜（`public/assets/case-study/slow-em-down/storyboard-0*.jpg`）、两轮录像对比（round-1/round-2 截图 + `assets/videos/slow-em-down-round-2.mp4`）、"为什么是局部时间"（Figma Idea II 原文）、试玩流程规划表（标明哪些做了）。
+- **Curtain**：按 `FusionDesignStatus.md` 的已确认规则重写；日期改为 3/26/2026-Present。**更正：Curtain 不是联网游戏**——项目里的 "Fusion" 是房间融合系统，不是 Photon。
+- **日期**：Assets Hub 8/14/2024（海报里最晚的时间戳）；`/bns_gdd` 12/9/2024（旧卡片日期，第 4 版问卷 2024-12-11 前已存在）。
+- 中文全部转成简体：工具是 macOS ICU 的 Hant-Hans（会正确保留"显著、著作、乾坤"）。
+
+## 验收（2026-09-11 11:00，1440 和 600 宽，Playwright 无头打开抽屉）
+
+- 14 个游戏抽屉：无 `[object Object]`、无横向溢出、无繁体残留、无课程措辞（"Week" 只剩 SBH 游戏内的"Year One, Week by Week"，属于游戏内容）。
+- 13 张定位图：两种宽度下标签无重叠、无越界、不压目标区名字。
+- 控制台报错都是原有的：Curtain 和 Slow'em Down 的 Unity WebGL 构建、SBH/Instrument 的 Figma 原型嵌入（403）。
+
+## 还没做 / 需要 Red 决定
+
+- SushiGo：把 Leap Motion 旧版和 Vision Pro 新版并排展示需要旧版素材；Drive 里的 `Susan_Conred_Red_Sushi_Go Playtest Side-by-Side.mp4` 有队友和玩家出镜，要 Red 同意才能放。
+- 留白规则的原有例外：To Be Chosen 的 5 人网格、`/bns_gdd` 的 7 格网格、Butter Beatdown 的 3 步流程——都是内容本身的数量，没有硬凑。
+- `reference/projects/assets-hub/figma/img8-430-550.png` 是 Red 本人照片图库的截图（有个人自拍），已在公开仓库里，建议撤下。
+- 演讲稿在仓库外（私人文件），不要放进仓库。

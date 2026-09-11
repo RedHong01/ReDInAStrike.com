@@ -45,6 +45,7 @@ export const shroomSections = [
   },
   {
     kind: "text",
+    kicker: "Design problem",
     title: "Design Problem",
     paragraphs: [
       {
@@ -65,7 +66,8 @@ export const shroomSections = [
       zh: "我负责蘑菇控制器的实体底座与陀螺仪设置。我把底座装在半个瑜伽球上，准备陀螺仪接口，协助连接测试用的两台屏幕和 Arduino，并提交了蘑菇的 3D 资产。",
     },
     right: {
-      title: "A Team Problem",
+      kicker: "Team",
+    title: "A Team Problem",
       en: "The controller was only one part of the problem. The team also had to make the tutorial, chopstick feedback, sound, story beats, wiring, and physical setup readable at the same time. My work had to stay connected to those shared player-facing questions.",
       zh: "控制器只是问题的一部分。团队还要同时让教程、筷子反馈、声音、故事节奏、线路和现场装置都变得易懂。我的工作必须持续回应这些共同面对玩家的问题。",
     },
@@ -82,6 +84,7 @@ export const shroomSections = [
   },
   {
     kind: "evidence-table",
+    kicker: "Team",
     title: "How Feedback Became a Shared Build",
     intro: {
       en: "The collaboration was a chain of small decisions rather than one handoff. I kept my physical work tied to the same player questions the rest of the team was solving.",
@@ -111,6 +114,7 @@ export const shroomSections = [
   },
   {
     kind: "survey",
+    kicker: "Playtest",
     title: "Two Rounds of Playtests",
     intro: {
       en: "The team ran the same survey after each round: 18 players on one afternoon in March, 21 across three sessions in April. Most questions were asked both times, so the rounds can be read against each other. They were not the same players, and these are small groups — the bars show what each room said, not a measured effect.",
@@ -234,6 +238,7 @@ export const shroomSections = [
   },
   {
     kind: "spec-table",
+    kicker: "Iteration",
     title: "What Changed Between the Rounds",
     intro: {
       en: "The team repository shows what went into the build between the two surveys, and March’s answers show why.",

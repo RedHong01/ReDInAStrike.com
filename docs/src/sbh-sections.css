@@ -128,6 +128,62 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sbh-tip { transition-duration: 0.01ms; }
+  .sbh-pillar { animation: none; }
+}
+
+/* Pitch + Mantra: three pillars breathe and scale in place ------------------- */
+
+.sbh-mantra {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.sbh-mantra > p {
+  margin: 0;
+}
+
+.sbh-pillars {
+  display: grid;
+  gap: 10px;
+  margin: 2px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.sbh-pillar {
+  display: grid;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  transform-origin: left center;
+  color: var(--case-ink);
+  font-family: var(--body-latin-font, inherit);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: calc(1em + 4px);
+  letter-spacing: 0;
+  will-change: transform;
+  animation: sbh-pillar-breathe 2.8s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.42s);
+}
+
+.sbh-pillar-zh {
+  color: var(--sbh-muted, var(--case-muted, rgb(112, 112, 112)));
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@keyframes sbh-pillar-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.88;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
 }
 
 /* Timeline --------------------------------------------------------------------- */

@@ -49,12 +49,12 @@ export const dadSections = [
     left: {
       title: "Brief",
       en: "DAD is a survival game about a year of being helped. You run a grid, shoot coins at the bills chasing you, and buy the ground under your feet. Your father clears bills you cannot reach — and every time he does, he gets angrier, and the help goes on a tab you settle at the end of the year.",
-      zh: "DAD 是一款關於「被幫助的一年」的生存遊戲。你在格子地圖上奔跑，朝追著你的帳單射出硬幣，並買下腳下的土地。父親會替你清掉你來不及處理的帳單——但他每幫一次就更憤怒一分，而這些幫助會記在一筆帳上，年底結算。",
+      zh: "DAD 是一款关于「被帮助的一年」的生存游戏。你在格子地图上奔跑，朝追着你的帐单射出硬币，并买下脚下的土地。父亲会替你清掉你来不及处理的帐单——但他每帮一次就更愤怒一分，而这些帮助会记在一笔帐上，年底结算。",
     },
     right: {
       title: "Where it came from",
       en: "I wanted one resource to carry the whole thing, so money is the bullet, the rent, the health of the relationship, and the score. Spending it solves the problem in front of you and writes the next one.",
-      zh: "我希望用單一資源撐起整部作品，所以金錢同時是子彈、是房租、是這段關係的健康度，也是分數。花掉它能解決眼前的問題，同時寫下下一個問題。",
+      zh: "我希望用单一资源撑起整部作品，所以金钱同时是子弹、是房租、是这段关系的健康度，也是分数。花掉它能解决眼前的问题，同时写下下一个问题。",
     },
   },
   {
@@ -65,16 +65,16 @@ export const dadSections = [
     label: "GAMEPLAY VIDEO / DADGOTMONEY.MOV / FULL RECORDING 0:08",
     caption: {
       en: "The first wave, uncut: cross the grid, collect coins, hold ground, and get ready for what the next month sends.",
-      zh: "第一波：穿過格線、收集硬幣、守住地面，並為下個月送來的東西做準備。",
+      zh: "第一波：穿过格线、收集硬币、守住地面，并为下个月送来的东西做准备。",
     },
   },
   {
     kind: "system-grid",
     title: "Three Numbers You Watch",
     items: [
-      ["DRIVE", "Your health. Bills, their bullets, and DAD's curses all take it down.", "你的生命值。帳單、帳單的子彈與父親的咒罵都會扣減它。"],
-      ["MONEY", "Your ammunition. Every shot costs a coin, so shooting and saving are the same decision.", "你的彈藥。每次射擊都要花掉一枚硬幣，因此開火與存錢是同一個決定。"],
-      ["TIME", "One second is a day. You cannot pause it, and it is the only resource nobody can give you.", "一秒即一天。它無法暫停，也是唯一沒有人能給你的資源。"],
+      ["DRIVE", "Your health. Bills, their bullets, and DAD's curses all take it down.", "你的生命值。帐单、帐单的子弹与父亲的咒骂都会扣减它。"],
+      ["MONEY", "Your ammunition. Every shot costs a coin, so shooting and saving are the same decision.", "你的弹药。每次射击都要花掉一枚硬币，因此开火与存钱是同一个决定。"],
+      ["TIME", "One second is a day. You cannot pause it, and it is the only resource nobody can give you.", "一秒即一天。它无法暂停，也是唯一没有人能给你的资源。"],
     ],
   },
   {
@@ -82,7 +82,7 @@ export const dadSections = [
     title: "What You Start With",
     intro: {
       en: "The diagram fixes the opening state, and the build keeps it. You begin with nothing to shoot and a full year in front of you.",
-      zh: "圖表訂下了開局狀態，實作也保持一致：你手上沒有任何可以射出去的東西，面前是一整年。",
+      zh: "图表订下了开局状态，实作也保持一致：你手上没有任何可以射出去的东西，面前是一整年。",
     },
     head: ["Value", "At start", "What moves it"],
     rows: [
@@ -98,8 +98,8 @@ export const dadSections = [
     label: "TIME SYSTEM",
     svg: clockDiagram,
     caption: {
-      en: "The build runs one in-game day per real second, thirty days to a month, twelve months to a run — the scale I drew in the Week 11 diagram, shipped unchanged. Each month spawns a wave of bills, and month ten is the birthday the whole run is counting towards.",
-      zh: "遊戲以現實一秒對應遊戲一天、三十天一個月、十二個月一局運作——這正是我在第 11 週圖表中畫下的比例，原封不動地實作了。每個月生成一波帳單，而第十個月就是整局一直在倒數的那個生日。",
+      en: "The build runs one in-game day per real second, thirty days to a month, twelve months to a run — the scale I drew in my system diagram, shipped unchanged. Each month spawns a wave of bills, and month ten is the birthday the whole run is counting towards.",
+      zh: "游戏以现实一秒对应游戏一天、三十天一个月、十二个月一局运作——这正是我在第 11 周图表中画下的比例，原封不动地实作了。每个月生成一波帐单，而第十个月就是整局一直在倒数的那个生日。",
     },
   },
   {
@@ -107,7 +107,7 @@ export const dadSections = [
     title: "The Calendar",
     intro: {
       en: "Twelve months, one wave of bills each. Two of them are marked in the diagram, and the game is built to arrive at them.",
-      zh: "十二個月，每個月一波帳單。圖表標出了其中兩個月份，而整個遊戲就是為了抵達它們而設計的。",
+      zh: "十二个月，每个月一波帐单。图表标出了其中两个月份，而整个游戏就是为了抵达它们而设计的。",
     },
     head: ["Month", "What it is", "In the diagram"],
     rows: [
@@ -119,41 +119,43 @@ export const dadSections = [
     ],
     note: {
       en: "The diagram planned to double Phase II months to sixty seconds each, for a 450-second run. The build never did \u2014 every month is thirty seconds, so a run is six minutes and the last act arrives faster than I designed it to.",
-      zh: "圖表原本計畫把第二階段的月份加倍為六十秒，全局 450 秒。實作並未如此\u2014\u2014每個月都是三十秒，因此一局是六分鐘，最後一幕比我設計時來得更快。",
+      zh: "图表原本计划把第二阶段的月份加倍为六十秒，全局 450 秒。实作并未如此\u2014\u2014每个月都是三十秒，因此一局是六分钟，最后一幕比我设计时来得更快。",
     },
   },
   {
     kind: "flow",
     title: "How a Run Moves",
     steps: [
-      ["PREPARE", "“Prepare for the first wave!” — the board is quiet and you learn the ground.", "「Prepare for the first wave!」——棋盤安靜，你先熟悉地形。"],
-      ["PHASE I", "“YOU + DAD VS. THE BILLS.” He is on your side, and you are counting waves.", "「YOU + DAD VS. THE BILLS」。他站在你這邊，你數著波次。"],
-      ["TRANSITION", "“THINGS ARE CHANGING.” Five seconds of fade, and the tiles begin to turn.", "「THINGS ARE CHANGING」。五秒淡出，地塊開始翻面。"],
-      ["PHASE II", "“YOU VS. DAD.” The boss health row appears, and the help becomes the fight.", "「YOU VS. DAD」。頭目血條出現，先前的幫助變成了這場戰鬥。"],
+      ["PREPARE", "“Prepare for the first wave!” — the board is quiet and you learn the ground.", "「Prepare for the first wave!」——棋盘安静，你先熟悉地形。"],
+      ["PHASE I", "“YOU + DAD VS. THE BILLS.” He is on your side, and you are counting waves.", "「YOU + DAD VS. THE BILLS」。他站在你这边，你数着波次。"],
+      ["TRANSITION", "“THINGS ARE CHANGING.” Five seconds of fade, and the tiles begin to turn.", "「THINGS ARE CHANGING」。五秒淡出，地块开始翻面。"],
+      ["PHASE II", "“YOU VS. DAD.” The boss health row appears, and the help becomes the fight.", "「YOU VS. DAD」。头目血条出现，先前的帮助变成了这场战斗。"],
     ],
   },
   {
     kind: "callout",
+    kicker: "Storytelling",
     title: "Two Lines Carry the Whole Thing",
     en: "The HUD says “YOU + DAD VS. THE BILLS”, and later it says “YOU VS. DAD”. I never wrote the premise down anywhere else in the game; those two strings do it in eight words. Everything else I built — the loan meter, the tiles that flip, the anger bar — is there to make the second line land.",
-    zh: "HUD 先寫「YOU + DAD VS. THE BILLS」，之後寫「YOU VS. DAD」。遊戲裡沒有任何其他地方陳述這個前提；這兩行字用八個詞說完，而其餘一切——貸款計量、會翻面的地塊、憤怒條——都是為了讓第二行成立。",
+    zh: "HUD 先写「YOU + DAD VS. THE BILLS」，之后写「YOU VS. DAD」。游戏里没有任何其他地方陈述这个前提；这两行字用八个词说完，而其余一切——贷款计量、会翻面的地块、愤怒条——都是为了让第二行成立。",
   },
   {
     kind: "spec-table",
+    kicker: "Design intent",
     title: "Where Money Comes From",
     intro: {
       en: "I split income three ways because receiving money should not always mean the same thing. What you take decides which pressure comes back.",
-      zh: "我把收入拆成三種，因為拿到錢不該永遠代表同一件事。你拿的是哪一種，決定了之後回來的是哪一種壓力。",
+      zh: "我把收入拆成三种，因为拿到钱不该永远代表同一件事。你拿的是哪一种，决定了之后回来的是哪一种压力。",
     },
-    head: ["Source", "What you do", "What it costs later", "In the build"],
+    head: ["Source", "What you do", "What it costs later", "Why it is there"],
     rows: [
-      ["Work", "Reach the briefcase and finish the task before the money lands.", "Nothing — but it costs the seconds you spent standing still.", "DADWorkPoint"],
-      ["Allowance", "Walk over the coins DAD drops in his own territory.", "Nothing, if you pick them all up before the month ends.", "DADAllowanceSpawner"],
-      ["Loan", "Shoot DAD when you are out of ammunition and take what he gives.", "It is tracked separately and comes back as boss health in Phase II.", "DADWallet · DADLoanRepaymentPoint"],
+      ["Work", "Reach the briefcase and finish the task before the money lands.", "Nothing — but it costs the seconds you spent standing still.", "So earning money feels like giving up time."],
+      ["Allowance", "Walk over the coins DAD drops in his own territory.", "Nothing, if you pick them all up before the month ends.", "So help arrives whether you asked for it or not."],
+      ["Loan", "Shoot DAD when you are out of ammunition and take what he gives.", "It is tracked separately and comes back as boss health in Phase II.", "So borrowing is easy in the moment and expensive in December."],
     ],
     note: {
       en: "Coins you leave on the floor when the month rolls over stop being allowance and become loan. I wanted forgetting to collect to cost exactly what borrowing costs, because that is how it works.",
-      zh: "月份翻頁時仍留在地上的硬幣，會從零用錢變成貸款。忘了撿，等同於借了。",
+      zh: "月份翻页时仍留在地上的硬币，会从零用钱变成贷款。忘了捡，等同于借了。",
     },
   },
   {
@@ -161,7 +163,7 @@ export const dadSections = [
     title: "Shooting Costs Money",
     intro: {
       en: "There is no separate ammunition. The gun spends the wallet, so every shot is a small purchase and running dry is a budgeting failure rather than a combat one.",
-      zh: "遊戲沒有獨立的彈藥。槍花的是錢包裡的錢，所以每一發都是一筆小額支出，打光了是預算失誤，而不是戰鬥失誤。",
+      zh: "游戏没有独立的弹药。枪花的是钱包里的钱，所以每一发都是一笔小额支出，打光了是预算失误，而不是战斗失误。",
     },
     head: ["Rule", "Value", "Why"],
     rows: [
@@ -177,16 +179,16 @@ export const dadSections = [
     kind: "callout",
     title: "What He Actually Says",
     en: "DAD fires a barrage of profanity on a timer, and each line that lands takes Drive off you. There are three: \u201cThat\u2019s MY FUXKing Money.\u201d \u201cI Put FOOD on the table.\u201d \u201cOnly BAD KIDS talk back.\u201d I wrote the damage model around them so the thing that hurts you most in Phase I is not an enemy at all \u2014 it is being spoken to.",
-    zh: "父親會定時發射一連串咒罵，每一句命中都會扣掉 Drive。總共三句：「That\u2019s MY FUXKing Money.」「I Put FOOD on the table.」「Only BAD KIDS talk back.」我把傷害模型建立在它們之上，好讓第一階段裡最傷你的東西根本不是敵人\u2014\u2014而是被這樣說話。",
+    zh: "父亲会定时发射一连串咒骂，每一句命中都会扣掉 Drive。总共三句：「That\u2019s MY FUXKing Money.」「I Put FOOD on the table.」「Only BAD KIDS talk back.」我把伤害模型建立在它们之上，好让第一阶段里最伤你的东西根本不是敌人\u2014\u2014而是被这样说话。",
   },
   {
     kind: "flow",
     title: "What Happens When the Month Turns",
     steps: [
-      ["COINS", "Any allowance still on the floor becomes loan, and the converted coins are cleared.", "任何仍留在地上的零用錢會轉為貸款，已轉換的硬幣隨即清除。"],
-      ["BILLS", "Any bill you did not pay or kill that month goes straight to DAD.", "當月沒有付掉或擊殺的帳單，會直接跑到父親那裡。"],
-      ["ANGER", "His anger is recalculated from the loans and the unpaid bills that reached him, then pushed to the HUD.", "依據貸款與抵達他那裡的未付帳單重算憤怒值，再送到 HUD 顯示。"],
-      ["NEXT LIST", "The next month's bill list is prepared and spawned.", "準備並生成下個月的帳單清單。"],
+      ["COINS", "Any allowance still on the floor becomes loan, and the converted coins are cleared.", "任何仍留在地上的零用钱会转为贷款，已转换的硬币随即清除。"],
+      ["BILLS", "Any bill you did not pay or kill that month goes straight to DAD.", "当月没有付掉或击杀的帐单，会直接跑到父亲那里。"],
+      ["ANGER", "His anger is recalculated from the loans and the unpaid bills that reached him, then pushed to the HUD.", "依据贷款与抵达他那里的未付帐单重算愤怒值，再送到 HUD 显示。"],
+      ["NEXT LIST", "The next month's bill list is prepared and spawned.", "准备并生成下个月的帐单清单。"],
     ],
   },
   {
@@ -196,24 +198,25 @@ export const dadSections = [
     svg: angerDiagram,
     caption: {
       en: "Anger runs 0–100 through four bands and drifts back down half a point per in-game day. Every bill you let reach him and every loan you leave uncollected pushes it up. I built it this way so that Phase II would never read as a scripted twist — by the time it arrives, it is simply the sum of a year of small conveniences you chose to accept.",
-      zh: "憤怒值在 0–100 之間分四段，並以每遊戲日 0.5 的速度自行回落。每一張讓他碰到的帳單、每一筆沒收走的貸款都會推高它——所以第二階段並不是預設的劇情轉折，而是一整年小小方便累積出來的總和。",
+      zh: "愤怒值在 0–100 之间分四段，并以每游戏日 0.5 的速度自行回落。每一张让他碰到的帐单、每一笔没收走的贷款都会推高它——所以第二阶段并不是预设的剧情转折，而是一整年小小方便累积出来的总和。",
     },
   },
   {
     kind: "text",
+    kicker: "Narrative design",
     title: "How Phase II Is Built Out of Phase I",
     paragraphs: [
       {
         en: "When the eleventh month arrives, DAD reads two numbers off the year you just played: how much loan you still carry, and how much anger you accumulated. Those two values generate his health bars. A loan that was never repaid is finalised \u2014 it stops being money you owe and becomes a segment of the boss you have to shoot through.",
-        zh: "第十一個月到來時，父親會從你剛玩完的這一年裡讀取兩個數字：你還背著多少貸款，以及你累積了多少憤怒。這兩個值生成他的血條。沒有還掉的貸款會被定案\u2014\u2014它不再是你欠的錢，而變成你必須打穿的一段頭目血量。",
+        zh: "第十一个月到来时，父亲会从你刚玩完的这一年里读取两个数字：你还背着多少贷款，以及你累积了多少愤怒。这两个值生成他的血条。没有还掉的贷款会被定案\u2014\u2014它不再是你欠的钱，而变成你必须打穿的一段头目血量。",
       },
       {
         en: "At the same moment the map turns over. Every DAD-linked tile flips back to its original state, and only the ground you bought yourself is retained as beneficial. You can repay a loan at any point before that settlement; after it, the number is fixed and it is standing in front of you.",
-        zh: "同一時刻地圖翻面。所有與父親連結的地塊回到原始狀態，只有你自己買下的土地保留為有利地形。在結算之前你隨時可以償還貸款；結算之後數字就定死了，而且正站在你面前。",
+        zh: "同一时刻地图翻面。所有与父亲连结的地块回到原始状态，只有你自己买下的土地保留为有利地形。在结算之前你随时可以偿还贷款；结算之后数字就定死了，而且正站在你面前。",
       },
       {
         en: "The diagram is explicit that the player should see this coming: subtitles run through Phase I showing DAD's impending state and the challenges it will bring. Getting blindsided is the one outcome the design was trying to avoid \u2014 and, as the playtests below show, the one it kept producing.",
-        zh: "圖表明確要求玩家應該預見這件事：第一階段全程有字幕顯示父親即將進入的狀態與隨之而來的挑戰。「被打個措手不及」是設計最想避免的結果\u2014\u2014而下方的測試記錄顯示，它恰恰一再發生。",
+        zh: "图表明确要求玩家应该预见这件事：第一阶段全程有字幕显示父亲即将进入的状态与随之而来的挑战。「被打个措手不及」是设计最想避免的结果\u2014\u2014而下方的测试记录显示，它恰恰一再发生。",
       },
     ],
   },
@@ -222,7 +225,7 @@ export const dadSections = [
     title: "The Bills",
     intro: {
       en: "I shipped four kinds of bill, and made each one a different enemy — different movement, different way of reaching you — so that a month of debt never feels like one repeated problem.",
-      zh: "遊戲中實作了四種帳單，每一種都是有自己移動方式與接近手段的敵人。",
+      zh: "游戏中实作了四种帐单，每一种都是有自己移动方式与接近手段的敌人。",
     },
     head: ["Bill", "Reads as", "Behaviour in play"],
     rows: [
@@ -233,7 +236,7 @@ export const dadSections = [
     ],
     note: {
       en: "Tax is the rule I care most about: the more freely you spend to survive this month, the bigger the wave that spending buys you next month.",
-      zh: "稅是我最在意的一條規則：你這個月為了活下去花得越爽快，這筆花費為下個月買來的浪潮就越大。",
+      zh: "税是我最在意的一条规则：你这个月为了活下去花得越爽快，这笔花费为下个月买来的浪潮就越大。",
     },
   },
   {
@@ -241,7 +244,7 @@ export const dadSections = [
     title: "The Ground Is Not Neutral",
     intro: {
       en: "I gave every square four properties and had the HUD read them out as you stand on it — “HOME · FIRING ALLOWED · FAST GROUND”. I did not want territory to be decoration: where you stand should change what you are allowed to do.",
-      zh: "每一格都帶有四項屬性，你站上去時 HUD 會直接讀出來——「HOME · FIRING ALLOWED · FAST GROUND」。領地不是裝飾，它決定你能做什麼。",
+      zh: "每一格都带有四项属性，你站上去时 HUD 会直接读出来——「HOME · FIRING ALLOWED · FAST GROUND」。领地不是装饰，它决定你能做什么。",
     },
     head: ["Tile", "What it is", "Move speed", "Can shoot", "Spawns bills"],
     rows: [
@@ -253,45 +256,47 @@ export const dadSections = [
     ],
     note: {
       en: "When Phase II starts I flip the DAD-linked tiles against you, and only the ground you paid for keeps its advantage. That is the argument of the whole game drawn as a map: independence is the part of the board you bought yourself.",
-      zh: "進入第二階段時，與父親連結的地塊會反過來對你不利，只有你自己付錢買下的地面保有優勢。這就是整部作品的論點用地圖說出來：獨立，就是棋盤上你自己買下的那一塊。",
+      zh: "进入第二阶段时，与父亲连结的地块会反过来对你不利，只有你自己付钱买下的地面保有优势。这就是整部作品的论点用地图说出来：独立，就是棋盘上你自己买下的那一块。",
     },
   },
   {
     kind: "text",
+    kicker: "Playtest",
     title: "What Playtesters Could Not Read",
     paragraphs: [
       {
-        en: "The Week 11 board records what testers said, and most of it is about legibility rather than difficulty. They did not know when DAD entered his second phase, or when he had become the enemy. They could not tell what the different floor tiles did. They ran out of ammunition without noticing, and once the enemies piled up they said the board looked like a mess. One tester summed up the failure exactly: they knew they had to act constantly, but not which action to take.",
-        zh: "第 11 週的板子記錄了測試者的說法，而多數意見都關於「看不看得懂」而不是「難不難」。他們不知道父親何時進入第二階段，也不知道他何時變成了敵人；分不清不同地塊的作用；彈藥見底卻沒察覺，敵人一多就說畫面像一團亂。有位測試者精準地總結了這個失敗：他們知道必須不停行動，卻不知道該做哪一個動作。",
+        en: "My playtest board records what testers said, and most of it is about legibility rather than difficulty. They did not know when DAD entered his second phase, or when he had become the enemy. They could not tell what the different floor tiles did. They ran out of ammunition without noticing, and once the enemies piled up they said the board looked like a mess. One tester summed up the failure exactly: they knew they had to act constantly, but not which action to take.",
+        zh: "我的试玩记录板记下了测试者说的话，其中大部分关于“看不看得懂”，而不是难度。他们不知道 DAD 什么时候进入第二阶段，也不知道他什么时候变成了敌人；分不清不同地块有什么作用；子弹用光了也没察觉；敌人一多，他们就说画面乱成一团。有一位测试者把问题说得很准：他们知道自己必须一直行动，却不知道该做哪一个动作。",
       },
       {
         en: "One line went the other way. A tester said they loved paying bills with gold coins — the single moment where the metaphor and the mechanic were the same gesture. That is the part I am protecting while I fix the rest.",
-        zh: "只有一句話是反方向的。一位測試者說他很喜歡用金幣付帳單的感覺——那是隱喻與機制合為同一個動作的唯一時刻。修其他部分的時候，我要保住的就是這裡。",
+        zh: "只有一句话是反方向的。一位测试者说他很喜欢用金币付帐单的感觉——那是隐喻与机制合为同一个动作的唯一时刻。修其他部分的时候，我要保住的就是这里。",
       },
     ],
   },
   {
     kind: "text",
-    title: "The Diagram and the Build Disagree",
+    kicker: "Iteration",
+    title: "Where the Build Drifted From the Plan",
     paragraphs: [
       {
-        en: "The Week 11 diagram names classes I never wrote — Player.cs, Work.cs, Rent.cs, WaterBill.cs. What shipped is seventy files under a DAD prefix with a different shape: DADWallet holds cash, allowance and loan as separate ledgers; DADMonthResolver and DADYearResolver do the settling; DADPhaseManager owns the turn. Rent survived only as an inactive panel still sitting in the scene.",
-        zh: "第 11 週的圖表點名了一些我從未寫過的類別——Player.cs、Work.cs、Rent.cs、WaterBill.cs。真正實作出來的是七十個以 DAD 為前綴、結構不同的檔案：DADWallet 把現金、零用錢與貸款分成三本獨立帳；DADMonthResolver 與 DADYearResolver 負責結算；DADPhaseManager 掌管回合。Rent 只以一個仍留在場景裡、未啟用的面板形式倖存。",
+        en: "My system diagram planned one set of pieces, and the game I shipped grew a different shape. The biggest change is one players never see directly: the money you earn, the money he gives you and the money you borrow are kept as three separate accounts, because each comes back at you differently at the end of the month and at the end of the year.",
+        zh: "我的系统图规划的是一套结构，最后做出来的游戏长成了另一种样子。最大的改变玩家不会直接看到：你赚的钱、他给你的钱和你借的钱被记成三本不同的账，因为它们会在月底和年底以不同的方式找上你。",
       },
       {
-        en: "The clock drifted too. The diagram sets a 450-second run by doubling Phase II months to sixty seconds; DADTimeSystem ships one uniform value with no phase awareness at all, so the finale runs at the same speed as January and the whole year is six minutes. I only found that by reading the two side by side.",
-        zh: "時鐘也偏移了。圖表把第二階段的月份加倍為六十秒，全局 450 秒；而 DADTimeSystem 只有一個統一數值、完全沒有階段判斷，因此終章與一月同速，整年是六分鐘。這是我把兩者並排讀才發現的。",
+        en: "The clock drifted too. The diagram gives the last act more room, doubling Phase II months to sixty seconds for a 450-second run; the build runs every month at thirty, so the finale moves as fast as January and the fight you spent a year building towards is over sooner than it should be. I only found that by reading the two side by side.",
+        zh: "时钟也偏离了计划。系统图给最后一幕留了更多空间：第二阶段每个月加倍到六十秒，一局共 450 秒；而现在的版本每个月都是三十秒，于是结局和一月跑得一样快，你花一整年铺垫的那场对决结束得比它应有的更早。我是把两者并排对照时才发现这一点的。",
       },
       {
-        en: "I kept the old canvas objects in the scene rather than deleting them, and rebuilt them in Figma as editable components beside the shipped HUD. The runtime hides them through DADGameplayHUD.HideLegacyGraphics(); they are still there because the handmade version is the thing I am iterating away from, and I want to be able to see both.",
-        zh: "我沒有刪掉舊的 canvas 物件，而是把它們留在場景裡，並在 Figma 中重建為可編輯元件，與正式 HUD 並列。執行時由 DADGameplayHUD.HideLegacyGraphics() 隱藏它們；之所以保留，是因為手工版正是我逐步離開的起點，而我希望能同時看見兩者。",
+        en: "I kept the first, handmade HUD in the scene instead of deleting it, and rebuilt it in Figma as editable components beside the one players see now. It stays hidden in play; I keep it because the handmade version is the thing I am iterating away from, and I want to be able to see both.",
+        zh: "我没有删掉最早那版手工做的 HUD，而是把它留在场景里，并在 Figma 中把它重建成可编辑的组件，放在玩家现在看到的界面旁边。游戏里它是隐藏的；我留着它，是因为那个手工版本正是我在迭代中要离开的东西，而我希望两者都看得见。",
       },
     ],
   },
   {
     kind: "callout",
-    title: "A Console for the Numbers",
-    en: "Every value on this page is tuned through an editor window I built for the project — thirteen categories from Player and Weapon through Economy and Flow, reading and writing serialized fields by reflection with undo, prefab overrides and preset snapshots, without touching a line of game logic. It exists because a game about money needs its economy adjustable in the same session it is played.",
-    zh: "這一頁上的每個數值，都透過我為本專案自建的編輯器視窗調整——從 Player、Weapon 到 Economy、Flow 共十三個分類，以反射讀寫序列化欄位，支援復原、prefab override 與預設快照，且不動任何一行遊戲邏輯。它之所以存在，是因為一款關於金錢的遊戲，必須能在同一次遊玩中即時調整它的經濟。",
+    title: "Tuning It While Playing",
+    en: "I tune every value on this page in the same session I play it, through an editor window I built with thirteen categories, from Player and Weapon through Economy and Flow. A game about money only feels fair once its economy has been felt at the controls, so I made changing a number as quick as noticing it was wrong.",
+    zh: "这一页上的每个数值，我都是在试玩的同一轮里调整的，用的是我为这个项目做的一个编辑器窗口，从 Player、Weapon 一直到 Economy、Flow，共十三类。一个关于钱的游戏，只有在手上真正感受过它的经济，才知道公不公平，所以我让“改一个数”和“发现它不对”一样快。",
   },
 ]

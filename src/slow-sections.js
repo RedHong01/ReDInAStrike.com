@@ -88,6 +88,7 @@ export const slowSections = [
   },
   {
     kind: "callout",
+    kicker: "Design intent",
     title: "Why Local Time",
     en: "Most games bend time for the whole world at once: slow everything, freeze everything. I wanted the distortion to belong to the player, a small, personal and limited pocket of slowed time, so the challenge is not stopping events but choosing when and where to spend it. The idea is older than the level crossing. I first wrote it in January for a detective concept, and it is the part that survived.",
     zh: "大多数游戏一次就改变整个世界的时间：全部变慢，或者全部冻结。我希望这种扭曲属于玩家自己：一小团私人的、有限的减速时间，于是挑战不在于阻止事件，而在于选择何时、何地把它用掉。这个想法比铁道口更早。我一月时为一个侦探题材的构想第一次写下它，而它正是那个构想里留下来的部分。",
@@ -122,6 +123,7 @@ export const slowSections = [
   },
   {
     kind: "diagram",
+    kicker: "Iteration",
     title: "The Decision That Made It a Game",
     label: "SCOPE CHANGE — WHOLE SCENE TO ZONES",
     svg: scopeDiagram,
@@ -152,6 +154,7 @@ export const slowSections = [
   },
   {
     kind: "spec-table",
+    kicker: "Design problem",
     title: "What I Wanted After the Cut, and What Shipped",
     intro: {
       en: "After the scope change I wrote down five things I wanted players to get. Four of them are in the build; the one that matters most is not.",
@@ -172,6 +175,7 @@ export const slowSections = [
   },
   {
     kind: "case-gallery",
+    kicker: "Iteration",
     title: "Two Rounds, Side by Side",
     intro: {
       en: "The first round of recordings, from late February, shows a zone as a flat disc painted on the road and energy as a bare number. By the second round in March the zone had risen into a translucent dome you can see into, markers counted the zones you had left, the bar turned red as it ran out, and the scene waited on a start screen until the player was ready.",
@@ -205,6 +209,7 @@ export const slowSections = [
   },
   {
     kind: "spec-table",
+    kicker: "Playtest",
     title: "Three Tests, One Answer",
     intro: {
       en: "I put the mechanic in front of players three times. My notes from each session are on the board, in my own words, and they converge.",
@@ -237,6 +242,7 @@ export const slowSections = [
   },
   {
     kind: "spec-table",
+    kicker: "Player flow",
     title: "The Five Minutes I Planned",
     intro: {
       en: "I planned the demo as one player's five minutes, screen by screen, with a time budget for each. What shipped is the part that tests the mechanic.",

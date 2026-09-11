@@ -107,7 +107,7 @@ const projects = [
   {
     pageTitle: "Curtain",
     displayTitle: "Curtain",
-    date: "12/9/2024-Present",
+    date: "3/26/2026-Present",
     path: "/curtain",
     navHash: "ongoing",
     image: "assets/framer-live/youtube-pjbu-hq.jpg",
@@ -461,14 +461,17 @@ const caseStudyDetails = {
     year: "2025\u2013Present",
     title: "DAD",
     category: "Game Design / Systems / Playtest Analysis",
-    summary:
-      "A survival game about a year of being helped. You shoot coins at the bills chasing you and buy the ground under your feet; your father clears what you cannot reach, and every time he does it goes on a tab you settle at the end of the year.",
+    summary: { en: "A survival game about a year of being helped. You shoot coins at the bills chasing you and buy the ground under your feet; your father clears what you cannot reach, and every time he does it goes on a tab you settle at the end of the year.", zh: "一个关于“被帮助的一年”的生存游戏。你用硬币射击追着你的账单，买下脚下的土地；父亲会替你清掉够不着的账单，而他每帮一次，都会记在账上，到年底一次算清。" },
     heroImage: null,
     heroAlt: "DAD gameplay grid with money and survival state",
+    audience: {
+      goal: { en: "Players should feel help as relief in January and as weight by December: every coin they accept makes this month easier and the ending harder.", zh: "玩家应该在一月把帮助当作解脱，到十二月却感到它的重量：每接受一枚硬币，这个月就轻松一点，结局就更难一点。" },
+      audience: { en: "Solo players of short arcade survival games like Vampire Survivors who also want the systems to carry a story, the way Papers, Please does.", zh: "喜欢《吸血鬼幸存者》这类短局街机生存游戏、同时希望系统本身能讲故事（就像《请出示文件》那样）的单人玩家。" },
+      map: { target: { label: "DAD", x0: -0.92, x1: -0.18, y0: -0.3, y1: 0.7 }, groups: [{ label: "Vampire Survivors players", x: -0.5, y: 0.05, core: true }, { label: "Papers, Please players", x: -0.55, y: 0.5, core: true }, { label: "Twin-stick shooter fans", x: 0.3, y: 0.55 }] },
+    },
     points: [
-      "One resource does everything: money is the bullet, the rent, and the state of the relationship.",
-      "A run is one in-game year in six minutes, and the clock never stops for a decision.",
-      "Phase II is not a twist. It is the sum of every small convenience you accepted.",
+      { label: "Iteration", en: "Testers could not tell when DAD became the enemy, so making that turn readable is the iteration I am on now.", zh: "测试者分辨不出 DAD 是什么时候变成敌人的，所以让这个转折变得看得懂，是我现在正在做的迭代。" },
+      { label: "My role", en: "My project from system diagram to playable build: design, economy and tuning.", zh: "从系统图到可玩版本都是我的项目：设计、经济系统和数值调校。" },
     ],
     sections: dadSections,
     access: "Play the current build. The tuned values on this page are the ones in it.",
@@ -477,14 +480,17 @@ const caseStudyDetails = {
     year: "2026 Spring",
     title: "Slow\u2019em Down",
     category: "Game Prototype / Innovative Mechanic",
-    summary:
-      "An old woman is about to walk onto a level crossing and a train is already coming. You cannot move her and you cannot stop it \u2014 you can drop a pocket of slowed time on one part of the scene and buy the seconds to do something about it.",
+    summary: { en: "An old woman is about to walk onto a level crossing and a train is already coming. You cannot move her and you cannot stop it — you can drop a pocket of slowed time on one part of the scene and buy the seconds to do something about it.", zh: "一位老奶奶正要走上铁道口，火车已经开过来了。你不能移动她，也拦不住火车——你能做的，是在场景的某一处放下一团减慢的时间，替自己争取几秒钟去做点什么。" },
     heroImage: null,
     heroAlt: "Slow\u2019em Down local time-slow zone",
+    audience: {
+      goal: { en: "Players should feel the comic panic of an accident assembling in front of them, and the relief of buying just enough seconds to stop it. The skill is noticing early, not reacting fast.", zh: "玩家应该感受到一场意外在眼前一点点成形时那种带点滑稽的慌张，以及刚好争取到几秒、及时阻止它的如释重负。技巧在于及早察觉，而不是反应快。" },
+      audience: { en: "Solo players of quick, dark-comic puzzle games like Dumb Ways to Die, and fans of time-bending action like Superhot who enjoy reading a scene and stepping in once.", zh: "喜欢《Dumb Ways to Die》这类短促黑色幽默解谜的单人玩家，以及喜欢《Superhot》这类操控时间玩法、享受“先读懂场景再出手一次”的玩家。" },
+      map: { target: { label: "Slow’em Down", x0: -0.92, x1: -0.12, y0: -0.78, y1: 0.2 }, groups: [{ label: "Dumb Ways to Die players", x: -0.52, y: -0.42, core: true }, { label: "Superhot players", x: -0.5, y: 0.52 }, { label: "Casual puzzle players", x: 0.12, y: -0.62 }] },
+    },
     points: [
-      "Week 6 cut the ability from global to local, and that is the moment it became a game.",
-      "Three zones, 15% time inside, and an energy bar that drains twice as fast as it fills.",
-      "Two of three playtests reached the same verdict: the train works and nothing else does.",
+      { label: "Iteration", en: "Slowing the whole scene left nothing to decide; cutting it to local zones turned it into a choice of target.", zh: "减慢整个场景让玩家无从选择；把它缩成局部区域后，它变成了“选目标”的决定。" },
+      { label: "Playtest", en: "Two of three sessions agreed the train works and the other setups do not yet; the kitchen level is my answer on paper.", zh: "三次测试里有两次得出同样的结论：火车那一段成立，其他设置还不行；厨房关是我在纸上给出的答案。" },
     ],
     sections: slowSections,
     access: "Playable on itch.io. The tuned values on this page are the ones in that build.",
@@ -493,14 +499,17 @@ const caseStudyDetails = {
     year: "2026 Spring",
     title: "Shroom Pot Showdown",
     category: "Alternative Controller / Two Player",
-    summary:
-      "Two players share one pot: the mushroom leans and bounces to escape while the chopstick player tracks, catches, and holds it long enough to eat. The controller turns body movement into the timing and prediction of a chase.",
+    summary: { en: "Two players share one pot: the mushroom leans and bounces to escape while the chopstick player tracks, catches, and holds it long enough to eat. The controller turns body movement into the timing and prediction of a chase.", zh: "两名玩家共用一口锅：蘑菇倾身、弹跳着逃跑，筷子玩家则追踪、夹住它，而且要夹得够久才能吃掉。控制器把身体动作变成了追逐中的时机与预判。" },
     heroImage: "assets/case-study/shroom-gameplay.png",
     heroAlt: "Shroom Pot Showdown shared pot gameplay",
+    audience: {
+      goal: { en: "Two players should feel a chase they read in each other’s bodies: the mushroom’s lean, the chopsticks’ hesitation, and the laugh when a catch slips.", zh: "两名玩家应该感受到一场从对方身体上读出来的追逐：蘑菇的倾身、筷子的迟疑，以及一夹落空时的大笑。" },
+      audience: { en: "Friends side by side at showcases and parties who like physical, local multiplayer: the crowd for Overcooked-style couch play and alternative-controller arcades.", zh: "在展会和聚会上并排玩的朋友，喜欢身体参与的本地多人游戏——也就是《胡闹厨房》式沙发游戏和另类控制器街机的那群玩家。" },
+      map: { target: { label: "Shroom Pot Showdown", x0: 0.18, x1: 0.95, y0: -0.88, y1: -0.05 }, groups: [{ label: "Couch co-op players", x: 0.6, y: -0.32, core: true }, { label: "Alt-controller showcase visitors", x: 0.52, y: -0.7, core: true }, { label: "Motion game players", x: -0.3, y: -0.25 }] },
+    },
     points: [
-      "Two players, one pot: a mushroom steered with a yoga ball, and giant chopsticks trying to eat it.",
-      "Alt Control 2, Spring 2026, with Team C.",
-      "Tested twice — 18 players in March, 21 in April. The yoga ball became the favourite controller; steering the mushroom became the hardest part.",
+      { label: "Iteration", en: "In March, leaning forward tipped the view instead of moving the mushroom; we remapped the ball, and in April it became the favourite controller, 10 of 19.", zh: "三月时，身体前倾只会让画面倾斜，蘑菇并不前进；我们重新映射了瑜伽球，到了四月，它成了最受欢迎的控制器（19 人中 10 人）。" },
+      { label: "My role", en: "Team C: I built the yoga-ball base and gyro, and reworked the controller calibration between rounds.", zh: "Team C：我做了瑜伽球底座和陀螺仪，并在两轮测试之间重做了控制器校准。" },
     ],
     sections: shroomSections,
     access: "Both recordings are on this page. The playtest numbers come from the team's two survey rounds, 22 March and 5–22 April 2026.",
@@ -509,14 +518,17 @@ const caseStudyDetails = {
     year: "2025 Fall",
     title: "Super99",
     category: "Game Design / Data Mapping / Physical Input",
-    summary:
-      "The player works as a cashier and stock clerk, reads a customer request, finds the matching product, and scans it before patience runs out. Product data becomes a timed shelf decision.",
+    summary: { en: "A supermarket shift at the checkout. Read what the customer wants — the brand, the size, sugar-free, the discount they expect — find it on the shelf and scan it before their patience runs out. Product data stops being a menu and becomes a decision under pressure.", zh: "一场超市收银台前的轮班。读懂顾客要什么——品牌、尺寸、无糖、他们期待的折扣——在货架上找到它，并在顾客失去耐心之前扫码。商品数据不再是一张菜单，而是一个在压力下做出的决定。" },
     heroImage: null,
     heroAlt: "Super99 Figma pitch showing cashier and scanner concept",
+    audience: {
+      goal: { en: "Players should feel the pressure of a queue and the small pride of reading a request right the first time.", zh: "玩家应该感受到排队的压力，以及第一次就读对顾客需求时那一点小小的得意。" },
+      audience: { en: "Casual players and learners who enjoy job simulators like Supermarket Simulator and want to understand product information by using it.", zh: "喜欢《超市模拟器》这类职业模拟游戏的休闲玩家和学习者，他们想在使用中读懂商品信息。" },
+      map: { target: { label: "Super99", x0: -0.92, x1: -0.1, y0: -0.88, y1: -0.12 }, groups: [{ label: "Supermarket Simulator players", x: -0.48, y: -0.36, core: true }, { label: "Learners", x: -0.7, y: -0.72, core: true }, { label: "Overcooked players", x: 0.55, y: -0.42 }] },
+    },
     points: [
-      "Player role: cashier and stock clerk in a virtual Super99 branch.",
-      "Design question: how can customer descriptions become physical choices the player can make under pressure?",
-      "Current version: the Figma pitch and sample product data are documented. I still need to match them to the playable build and scanner recording.",
+      { label: "Design decision", en: "I kept product data off menus: every field decides which physical item you take from the shelf, with a barcode scanner as the input.", zh: "我不让商品数据停留在菜单上：每一个字段都决定你从货架上拿哪一件实物，输入方式则是条码扫描枪。" },
+      { label: "My role", en: "Solo: concept, data design and the Unity build.", zh: "个人项目：概念、数据设计和 Unity 制作。" },
     ],
     sections: [
       {
@@ -524,44 +536,45 @@ const caseStudyDetails = {
         left: {
           title: "Player Job",
           en: "The player receives a customer request, finds the item, checks name, size, brand, quantity, and filters, then completes the sale before patience runs out.",
-          zh: "玩家接收顧客需求，依名稱、尺寸、品牌、數量與過濾條件找到商品，再在耐心耗盡前完成交易。",
+          zh: "玩家接收顾客需求，依名称、尺寸、品牌、数量与过滤条件找到商品，再在耐心耗尽前完成交易。",
         },
         right: {
           title: "Design Focus",
           en: "I did not want product data to sit on a menu. Name, size, brand, quantity, and special requirements determine which physical item the player chooses and whether the customer accepts it.",
-          zh: "我不希望商品資料只停留在選單上。名稱、尺寸、品牌、數量與特殊需求，應該直接決定玩家從貨架上拿哪一件商品，以及顧客是否接受它。",
+          zh: "我不希望商品资料只停留在选单上。名称、尺寸、品牌、数量与特殊需求，应该直接决定玩家从货架上拿哪一件商品，以及顾客是否接受它。",
         },
       },
       {
         kind: "source-breakdown",
         title: "From a Customer Request to a Checkout Decision",
-        source: "FIGMA / WEEK 1 ASSIGNMENT DATA GAME PITCH / 67:113",
-        lead: { en: "I started with a customer’s request: a product, a quantity, and conditions the cashier has to check. Choosing an item and scanning its barcode would turn those details into a visible response. This is the pitch’s proposed sequence; a recording of the full interaction is still needed.", zh: "我從顧客的需求出發：商品、數量，以及收銀員需要確認的條件。選取商品並掃描條碼，會把這些細節轉化成可見的回應。這是 Pitch 提出的操作順序，目前仍需要完整互動錄影來展示它。" },
+        source: "FIGMA / DATA GAME PITCH / 67:113",
+        lead: { en: "I started from the customer’s side of the counter: a product, a quantity, and the conditions a cashier has to check. Taking an item and scanning its barcode turns those details into an answer the customer can accept or refuse, so every sale is a small test of how well the player read the request.", zh: "我从柜台另一侧的顾客出发：一件商品、一个数量，以及收银员必须核对的条件。拿起商品、扫描条码，会把这些细节变成顾客可以接受或拒绝的回应，所以每一笔交易，都是在检验玩家有没有读懂需求。" },
         blocks: [
-          { title: "Request Fields", en: "The request can specify product name, size, brand, quantity, gluten-free or sugar-free requirements, and discount conditions. These fields are meant to change what the player takes from the shelf.", zh: "顧客需求可以指定商品名稱、尺寸、品牌、數量、無麩質或無糖條件，以及折扣條件。這些欄位應該改變玩家從貨架上拿取的商品。" },
-          { title: "Cashier Pressure", en: "Customer patience turns a data lookup into a timed decision. The pitch also explores the tension between earning more and honoring a discount instead of treating the sale as a neutral database operation.", zh: "顧客耐心把資料查找變成限時決策。Pitch 也探索多賺錢與執行折扣之間的張力，而不是把交易當成中性的資料庫操作。" },
-          { title: "Learning Emphasis", en: "The board frames the project as a learning-focused data game. The player learns the relationship between a request, a product attribute, a barcode, and the customer’s response through repeated checkout decisions.", zh: "這張板把專案定位成以學習為重點的資料遊戲。玩家透過重複結帳決策，理解需求、商品屬性、條碼與顧客回應之間的關係。" },
-          { title: "Production Boundary", en: "The pitch names the data, scanner, and checkout direction. It does not yet provide a verified recording of the whole request → shelf → scan → result sequence, so that clip remains the next material to add.", zh: "Pitch 已經提出資料、掃描器與結帳方向，但還沒有確認完整需求 → 貨架 → 掃描 → 結果流程的錄影，因此這段短片仍是下一份要補的材料。" },
+          { title: "Request Fields", en: "The request can specify product name, size, brand, quantity, gluten-free or sugar-free requirements, and discount conditions. These fields are meant to change what the player takes from the shelf.", zh: "顾客需求可以指定商品名称、尺寸、品牌、数量、无麸质或无糖条件，以及折扣条件。这些栏位应该改变玩家从货架上拿取的商品。" },
+          { title: "Cashier Pressure", en: "Customer patience turns a data lookup into a timed decision. The pitch also explores the tension between earning more and honoring a discount instead of treating the sale as a neutral database operation.", zh: "顾客耐心把资料查找变成限时决策。Pitch 也探索多赚钱与执行折扣之间的张力，而不是把交易当成中性的资料库操作。" },
+          { title: "Learning Emphasis", en: "The board frames the project as a learning-focused data game. The player learns the relationship between a request, a product attribute, a barcode, and the customer’s response through repeated checkout decisions.", zh: "这张板把专案定位成以学习为重点的资料游戏。玩家透过重复结帐决策，理解需求、商品属性、条码与顾客回应之间的关系。" },
+          { title: "Why a Scanner", en: "A scanner makes the decision physical: the player commits to one product with a gesture every cashier knows, and the customer answers at once. Reading, choosing and committing happen in the hands rather than on a menu.", zh: "扫描枪让决定变成实体的动作：玩家用每个收银员都熟悉的手势认定一件商品，顾客立刻给出回应。读懂、选择和确认，都发生在双手之间，而不是在菜单上。" },
         ],
       },
       {
         kind: "flow",
         title: "Player Loop / Design Target",
         steps: [
-          ["Request", "Read customer fields", "讀取顧客欄位"],
-          ["Shelf", "Find the physical match", "找到貨架上的匹配物件"],
-          ["Scan", "Map input to feedback", "把輸入映射到回饋"],
-          ["Decision", "Verify, sell, or retry", "驗證、售出或重試"],
+          ["Request", "Read customer fields", "读取顾客栏位"],
+          ["Shelf", "Find the physical match", "找到货架上的匹配物件"],
+          ["Scan", "Map input to feedback", "把输入映射到回馈"],
+          ["Decision", "Verify, sell, or retry", "验证、售出或重试"],
         ],
       },
       {
         kind: "callout",
-        title: "Prototype Status",
-        en: "The source board defines the request → shelf → scan → customer-response loop. I have not yet matched a recording to this version, so gameplay video will be added after the build and scanner input are confirmed.",
-        zh: "來源設計板定義了需求 → 貨架 → 掃描 → 顧客回應的循環。我還沒有把錄影和這個版本對上，因此會在確認 build 與掃描器輸入後，再加入實況影片。",
+        kicker: "Player experience",
+        title: "What the Loop Teaches",
+        en: "Request, shelf, scan, response: each pass through the loop teaches one more link between what a customer says, what a product label shows and what the barcode confirms. The player learns product data by being wrong in front of a customer, not by reading a list.",
+        zh: "需求、货架、扫描、回应：每走一次这个循环，玩家就多学会一层联系——顾客说的话、商品标签上写的内容、条码确认的结果。玩家是在顾客面前出错、再修正的过程中学会读懂商品数据，而不是靠背一张清单。",
       },
     ],
-    access: "Read the current pitch and player loop. The matched build and scanner recording are the next materials to add.",
+    access: "A solo data game: the pitch, the player loop and the checkout decision are on this page.",
   },
 }
 
@@ -590,15 +603,17 @@ Object.assign(caseStudyDetails, {
     year: "2025 Spring \u2192 Fall",
     title: "To Be Chosen",
     category: "Narrative Design / Multi-POV Structure",
-    summary:
-      "A cheer squad\u2019s bus breaks down on the way home and the driver goes missing. Every beat is played through whichever girl is carrying the scene, so each of them ends holding an incomplete account \u2014 and the player is the only one who sees all of them.",
+    summary: { en: "A cheer squad’s bus breaks down on the way home and the driver goes missing. Every beat is played through whichever girl is carrying the scene, so each of them ends holding an incomplete account — and the player is the only one who sees all of them.", zh: "一支啦啦队在回家路上遇上巴士抛锚，司机随后失踪。每一段剧情都通过当时承担这场戏的那个女孩来体验，于是每个人最后都只握有一份不完整的经过——而玩家是唯一看见全部的人。" },
     heroImage: null,
     heroAlt: "To Be Chosen POV switch chart",
+    audience: {
+      goal: { en: "Players should feel dread coming from the world, never from the girls, and the unease of being the only one who holds the whole picture.", zh: "玩家应该感受到恐惧来自这个世界、而不是女孩们之间，以及“只有自己握有全貌”的那种不安。" },
+      audience: { en: "Players of choice-driven, multi-perspective horror like Until Dawn and The Quarry, often played on a couch with friends calling out the choices.", zh: "喜欢《直到黎明》《采石场惊魂》这类选择驱动、多视角恐怖游戏的玩家——常常是几个朋友坐在沙发上一起喊着做选择。" },
+      map: { target: { label: "To Be Chosen", x0: -0.5, x1: 0.6, y0: -0.4, y1: 0.45 }, groups: [{ label: "Until Dawn players", x: 0.12, y: 0.05, core: true }, { label: "Narrative adventure fans", x: -0.28, y: -0.32, core: true }, { label: "Horror fans", x: -0.35, y: 0.72 }] },
+    },
     points: [
-      "Two terms: a single-protagonist premise in spring, rebuilt around five viewpoints in autumn.",
-      "Narrative Director on a team of four; I owned the perspective structure.",
-      "Five playable viewpoints, charted scene by scene against a single game-time timeline.",
-      "I wrote the revision pass myself: the theme was in the story but not enforced by any mechanism.",
+      { label: "Iteration", en: "One girl who saw everything became a mystery she solved for the player, so I rebuilt it around five limited viewpoints.", zh: "一个看见一切的女孩，等于替玩家解开了谜，所以我把它重建成五个有限视角。" },
+      { label: "My role", en: "Narrative Director on a team of four: I owned the perspective structure and wrote the revision pass.", zh: "四人团队中的叙事总监：我负责视角结构，并亲自写了修订方案。" },
     ],
     sections: tbcSections,
     access: "Written with Jinqi Chang, Kris Kuerten and Bedi Ruan for Storytelling For Games, Fall 2025.",
@@ -615,28 +630,36 @@ Object.assign(caseStudyDetails, {
     access: "The fourth-iteration GDD documents the rules and playtest concerns. A recorded match is still needed to show the complete turn sequence in use.",
   },
   "/curtain": {
-    year: "2024 Fall",
+    year: "2026 Spring → Present",
     title: "Curtain",
     category: "Game Prototype / Spatial Rules",
-    summary: "A compact spatial prototype built around a grid, units, doors, and the invitation: “I’m so cold, may I come in?” This page records the visible rule language while the playable build remains available below.",
+    summary: { en: "A horror game about building a house room by room while something outside asks to be let in: “I’m so cold, may I come in?” Rooms that touch fuse into one space, doors appear where they meet, and every opening you make for light or passage is also a way in.", zh: "一个“一间一间盖房子”的恐怖游戏，而屋外有个东西一直在请求进来：“我好冷，可以让我进来吗？”相接的房间会融合成一个空间，门会出现在它们交会的地方，而你为了光线或通行打开的每一个口子，也都是它进来的路。" },
     heroImage: null,
     heroAlt: "Curtain spatial prototype grid and units",
-    points: ["Source material: modular spaces, a door or curtain, and the request “I’m so cold, may I come in?”", "Design question: how can a small spatial rule carry the tone of an invitation and a boundary?", "Current version: the Figma grid and unit references are confirmed; a full player walkthrough is still open."],
+    audience: {
+      goal: { en: "Players should feel hospitality turn into threat: the house they built to be comfortable is the house the visitor walks into.", zh: "玩家应该感受到“待客”变成威胁：为了住得舒服而盖起来的房子，正是访客走进来的那座房子。" },
+      audience: { en: "Solo players of slow, domestic horror, the audience for That’s Not My Neighbor and Five Nights at Freddy’s, who also like shaping their own space.", zh: "喜欢缓慢、居家式恐怖的单人玩家——《那不是我的邻居》《玩具熊的五夜后宫》的受众——同时也喜欢亲手塑造自己的空间。" },
+      map: { target: { label: "Curtain", x0: -0.92, x1: -0.12, y0: -0.35, y1: 0.62 }, groups: [{ label: "That’s Not My Neighbor players", x: -0.5, y: 0.05, core: true }, { label: "Five Nights at Freddy’s fans", x: -0.5, y: 0.45, core: true }, { label: "Cozy builders", x: -0.3, y: -0.66 }] },
+    },
+    points: [
+      { label: "Iteration", en: "My first version ran on windows and daylight money; the current build rebuilds the house around rooms that fuse, with doors only where three cells meet.", zh: "我的第一版靠窗户和阳光赚钱运转；现在的版本把房子重建为会融合的房间，只有在三格相接处才会出现门。" },
+      { label: "My role", en: "I designed the rules and built the game, with a second contributor in the repository.", zh: "规则由我设计、游戏由我制作，仓库里还有一位合作者参与。" },
+    ],
     sections: supportingReadableSections["/curtain"],
-    access: "Open the playable build below. Build and Shoot keeps its own rules case, and its design document has a page of its own.",
+    access: "Open the playable build below to try the house-building half of the game.",
   },
   "/bns_gdd": {
-    year: "2024 Fall — 4th Iteration, Feb 2026",
+    year: "2024 Fall",
     title: "Build n Shoot",
     category: "Analog Game / Game Design Document",
-    summary:
-      "The design document for Build and Shoot, rebuilt as readable type rather than uploaded page images. It carries the parts a screenshot cannot: the component symbol key, the purchase matrix, and the AI behaviour table that the fourth iteration was written to fix.",
+    summary: { en: "The rulebook for Build n Shoot, rebuilt so a new player can learn the game from the page: the component key, the turn, the purchase matrix and the AI guards’ behaviour, each set as live type.", zh: "Build n Shoot 的规则书，重建成新玩家看着页面就能学会的样子：元件图例、回合流程、购买矩阵和 AI 守卫的行为，全部用可读的文字排版。" },
     heroImage: null,
     heroAlt: "Build n Shoot design document",
     points: [
-      "A turn-based strategy shooting game for up to four players on a 15 × 15 grid.",
-      "Four iterations: the inventory system, then the AI system, then a revision of it.",
-      "Read as a document — every table and diagram here is live type, not a screenshot.",
+      { label: "Player", en: "Two to four players who like tactics with a little chaos: strategy fans, achievers and hunters, fantasy fans.", zh: "两到四名喜欢带点混乱的战术游戏的玩家：策略爱好者、成就型与杀手型玩家、奇幻题材爱好者。" },
+      { label: "Experience", en: "Movement builds the battlefield: every square you cross is territory, and territory buys the cover you fight from.", zh: "移动就是在搭建战场：你走过的每一格都是领地，而领地换来你作战时依靠的掩体。" },
+      { label: "Iteration", en: "Four iterations: an inventory, then AI guards, then guard behaviour rewritten as clear situations.", zh: "四次迭代：先加入物品栏，再加入 AI 守卫，最后把守卫行为改写成清楚的情境规则。" },
+      { label: "My role", en: "Designed, written and playtested by me.", zh: "由我设计、撰写并组织试玩。" },
     ],
     sections: bnsGddSections,
     access: "The case study for the game itself is on the Build and Shoot page.",
@@ -676,14 +699,17 @@ Object.assign(caseStudyDetails, {
     year: "2025 Fall",
     title: "Butter Beatdown 2: No Churning Back",
     category: "Alternative Controller / Fabrication / Physical Computing",
-    summary:
-      "A waist-high wooden butter churn you play by churning to a beat. Andrew built the first controller out of a laundry basket and wrote the game; I designed and built the second generation and the physical computing inside it.",
+    summary: { en: "A waist-high wooden butter churn you play by churning to a beat. Andrew built the first controller out of a laundry basket and wrote the game; I designed and built the second generation and the physical computing inside it.", zh: "一台齐腰高的木制搅乳桶，玩法是跟着节拍搅动。Andrew 用洗衣篮做了第一代控制器，也写了游戏；第二代控制器和里面的电路则由我设计和制作。" },
     heroImage: null,
     heroAlt: "Butter Beatdown 2 controller",
+    audience: {
+      goal: { en: "Players should feel churning as labour and as rhythm at once, and laugh at how hard they are working.", zh: "玩家应该同时感受到搅动是体力活、也是节奏，并为自己这么卖力而笑出来。" },
+      audience: { en: "Anyone at a showcase table: party and rhythm players who want a game they understand from the object in front of them, not from a tutorial.", zh: "展会桌前的任何人：喜欢聚会游戏和节奏游戏、希望靠眼前的物件而不是教程就能看懂的玩家。" },
+      map: { target: { label: "Butter Beatdown 2", x0: -0.15, x1: 0.9, y0: -0.9, y1: -0.08 }, groups: [{ label: "Showcase visitors", x: 0.42, y: -0.66, core: true }, { label: "Party game players", x: 0.62, y: -0.3, core: true }, { label: "Rhythm game players", x: 0.1, y: 0.35 }] },
+    },
     points: [
-      "Two matched barrels, three contacts each: churn, strike left, strike right.",
-      "Waist height and a 15\u00b0 handle cut are the two decisions the whole object rests on.",
-      "Three problems came out of testing and four changes went in. None were retested.",
+      { label: "Iteration", en: "Andrew’s laundry basket proved the motion; my wooden barrel made it feel like a real churn.", zh: "Andrew 的洗衣篮证明了这个动作成立；我的木桶让它真正有了搅乳桶的手感。" },
+      { label: "My role", en: "I led the second-generation controller — design, fabrication and wiring — with Andrew on the game.", zh: "我主导了第二代控制器的设计、制作和布线，Andrew 负责游戏本身。" },
     ],
     sections: butterSections,
     access: "Built with Andrew Villasenor for Alternative Controllers, Fall 2025.",
@@ -692,10 +718,18 @@ Object.assign(caseStudyDetails, {
     year: "2025 Fall",
     title: "SushiGo",
     category: "Alternative Controller / VisionOS Prototype",
-    summary: "A spatial cooking prototype that turns the sequence of handling food into the interaction: pick up the knife, cut the fish, combine it with rice, plate it, and deliver it.",
+    summary: { en: "A sushi counter you work with your bare hands: pick up the knife, cut the salmon, lay the slice on rice, plate it and send it out. On Apple Vision Pro there is no controller — your grip, your wrist and your aim are the whole interface.", zh: "一个用双手经营的寿司吧台：拿起刀、切三文鱼、把鱼片放到米饭上、装盘、出餐。在 Apple Vision Pro 上没有任何控制器——你的抓握、手腕和目光就是全部的操作界面。" },
     heroImage: "assets/framer-live/alt-controller-2025-b.png",
     heroAlt: "SushiGo spatial cooking prototype",
-    points: ["Player action: grip and pinch through a cooking sequence.", "Design question: can a physical gesture make the order of a service task easy to follow?", "Current version: the Vision Pro and XR prototype materials are available; a complete outcome measure is still missing."],
+    audience: {
+      goal: { en: "Players should feel the satisfaction of a clean cut, and a kitchen that runs on their own two hands.", zh: "玩家应该感受到一刀切好的满足，以及一个完全靠自己双手运转的厨房。" },
+      audience: { en: "People trying spatial computing for the first time, and fans of hands-on job sims like Job Simulator and Cooking Simulator VR.", zh: "第一次接触空间计算的人，以及喜欢《工作模拟》《料理模拟器 VR》这类亲手操作的职业模拟游戏的玩家。" },
+      map: { target: { label: "SushiGo", x0: -0.92, x1: -0.1, y0: -0.9, y1: -0.1 }, groups: [{ label: "Job Simulator players", x: -0.46, y: -0.38, core: true }, { label: "Vision Pro first-timers", x: -0.66, y: -0.74, core: true }, { label: "Cooking sim fans", x: 0.3, y: -0.25 }] },
+    },
+    points: [
+      { label: "Iteration", en: "Leap Motion hand tracking first, then Apple Vision Pro, where a grasp holds food and a look-and-pinch presses buttons.", zh: "先用 Leap Motion 做手部追踪，再转到 Apple Vision Pro：抓握用来拿食物，看向并捏合用来按按钮。" },
+      { label: "My role", en: "The first version was made with Susan and Conred; I designed the gesture sequence and the interface.", zh: "第一版与 Susan、Conred 合作完成；手势流程和界面由我设计。" },
+    ],
     sections: supportingReadableSections["/alt-controller-2025-b"],
     access: "Read the serving sequence before the platform notes. The current version uses the verified visionOS interaction materials.",
   },
@@ -703,16 +737,24 @@ Object.assign(caseStudyDetails, {
     year: "2025 Fall",
     title: "Squirrel Samurai",
     category: "Alternative Controller / Physical Computing",
-    summary: "A physical controller prototype where two players use body input and floor pedals to trigger directional attacks and defense.",
+    summary: { en: "A two-player duel fought with your feet. Each squirrel samurai attacks and defends by direction, and stepping on a floor pedal commits your body to a lane before the hit lands, so every strike is a small bet you make standing up.", zh: "一场用双脚进行的双人对决。每只松鼠武士都按方向进攻和防守，踩下地面踏板，就等于在攻击落下之前用身体选定一条路线，所以每一击都是你站着下的一个小赌注。" },
     heroImage: "assets/framer-live/alt-controller-2025-c.png",
     heroAlt: "Squirrel Samurai physical controller prototype",
-    points: ["Player action: step on a pedal to commit to a directional attack or defense.", "Design question: can the physical input communicate direction before the attack lands?", "Current version: the attack and damage response are documented; defense readability needs another test."],
-    sections: [
-      { kind: "copy-grid", left: { title: "Body as Direction", en: "The controller uses four buttons and floor pedals. A step strengthens a directional attack, so the player’s body commits to a lane before the result appears.", zh: "控制器使用四個按鍵與地面踏板。踩下踏板會強化一個方向的攻擊，因此玩家在結果出現前，先用身體選定一條路線。" }, right: { title: "Observed Read", en: "The attack and damage response were usually understood. Defense was less clear, so the next test should isolate that pedal and its feedback.", zh: "攻擊與造成傷害的回饋通常能被理解。防禦比較不清楚，下一輪應該單獨測試防禦踏板與它的回饋。" } },
-      { kind: "flow", title: "Input → Result", steps: [["Step", "Commit to a direction", "踩下踏板選定方向"], ["Attack", "Strengthen the action", "強化攻擊"], ["Hit", "Read damage feedback", "閱讀傷害回饋"], ["Defend", "Check the other pedal", "確認另一個防禦踏板"]] },
-      { kind: "callout", title: "Next Test", en: "Test attack and defense in separate short tasks. Ask the player to point to the direction they expect before the action, then record whether the feedback confirms it.", zh: "把攻擊與防禦拆成兩個短任務。玩家行動前先指出預期方向，再記錄回饋是否確認了這個預期。" },
+    audience: {
+      goal: { en: "Players should feel commitment: the body picks a lane before the hit, so every strike is a bet made standing up.", zh: "玩家应该感受到“决断”：身体在出手之前就选好了路线，所以每一击都是站着下的赌注。" },
+      audience: { en: "Two players side by side who like quick local duels: the crowd for Nidhogg and for fighting games at a party.", zh: "喜欢快节奏本地对决、并排站着玩的两名玩家——聚会上玩《Nidhogg》和格斗游戏的那群人。" },
+      map: { target: { label: "Squirrel Samurai", x0: 0.2, x1: 0.95, y0: -0.45, y1: 0.58 }, groups: [{ label: "Nidhogg players", x: 0.58, y: 0.12, core: true }, { label: "Fighting game fans", x: -0.45, y: 0.72 }, { label: "Party players", x: 0.66, y: -0.62 }] },
+    },
+    points: [
+      { label: "Iteration", en: "Players read attacks at once but hesitated on defence, so my next build separates the defence pedal and its feedback.", zh: "玩家一眼就能读懂攻击，却在防守上犹豫，所以我的下一版会把防守踏板和它的反馈单独拆出来。" },
+      { label: "My role", en: "I designed the pedal mapping and the attack and defence feedback.", zh: "踏板映射以及攻防反馈都由我设计。" },
     ],
-    access: "This is a supporting controller case. The documented attack result and the open defense question are shown separately.",
+    sections: [
+      { kind: "copy-grid", left: { title: "Body as Direction", en: "The controller uses four buttons and floor pedals. A step strengthens a directional attack, so the player’s body commits to a lane before the result appears.", zh: "控制器使用四个按键与地面踏板。踩下踏板会强化一个方向的攻击，因此玩家在结果出现前，先用身体选定一条路线。" }, right: { title: "What Players Read", en: "Players understood the attack and the damage it did almost at once. Defence was where they hesitated, which told me the problem was feedback, not the pedal: a block has to look as decisive as a hit.", zh: "攻击与造成伤害的回馈通常能被理解。防御比较不清楚，下一轮应该单独测试防御踏板与它的回馈。" } },
+      { kind: "flow", title: "Input → Result", steps: [["Step", "Commit to a direction", "踩下踏板选定方向"], ["Attack", "Strengthen the action", "强化攻击"], ["Hit", "Read damage feedback", "阅读伤害回馈"], ["Defend", "Check the other pedal", "确认另一个防御踏板"]] },
+      { kind: "callout", kicker: "Design problem", title: "Making Defence Readable", en: "My next build splits attack and defence into separate short tasks. Before each action the player points to the direction they expect, and the feedback has to confirm it, so both moves read as clearly as the hit already does.", zh: "把攻击与防御拆成两个短任务。玩家行动前先指出预期方向，再记录回馈是否确认了这个预期。" },
+    ],
+    access: "A two-player floor-pedal duel: the input, the attack read and the defence change are on this page.",
   },
   "/service-game-ui": {
     year: "2026 Spring",
@@ -721,6 +763,11 @@ Object.assign(caseStudyDetails, {
     summary: "A service-game interface prototype. The case study focuses on how a player reads a task and acts through the interface; the long recording remains supporting evidence rather than a claim about the whole game loop.",
     heroImage: "assets/framer-live/service-game-ui-2026-a.png",
     heroAlt: "The Mystery of Instrument service game interface",
+    audience: {
+      goal: { en: "Players should feel an inheritance becoming theirs: every song they play restores a piece of their father’s instrument, and of his memory.", zh: "玩家应该感受到一份遗产慢慢变成自己的：每演奏一首歌，就修好父亲乐器的一部分，也找回一段他的记忆。" },
+      audience: { en: "Mobile players who love music, collection and story, the audience for Deemo and Cytus, with orchestras for those who want to play alongside others.", zh: "热爱音乐、收藏和故事的手游玩家——《Deemo》《Cytus》的受众——乐团玩法则留给想和别人一起玩的人。" },
+      map: { target: { label: "The Mystery of Instrument", x0: -0.75, x1: 0.35, y0: -0.85, y1: 0.08 }, groups: [{ label: "Deemo and Cytus players", x: -0.3, y: -0.28, core: true }, { label: "Collection gacha players", x: 0.15, y: -0.6, core: true }, { label: "Rhythm game regulars", x: 0.05, y: 0.45 }] },
+    },
     points: ["Player task: read the service state and choose the next interface action.", "Design question: which information must be visible before a player can complete the task?", "Current version: interface material is confirmed; a full game loop and measured outcome are still open."],
     sections: [
       { kind: "copy-grid", left: { title: "Task First", en: "The interface is organized around one task. The player needs to know what is pending, what can be selected, and what confirms completion.", zh: "介面圍繞一個任務來整理。玩家需要知道什麼尚未完成、可以選什麼，以及什麼會確認完成。" }, right: { title: "Evidence Boundary", en: "The available recording is long and does not yet show a complete loop. The next short walkthrough should end with the service result.", zh: "目前錄影很長，還沒有展示完整循環。下一段短錄影需要一路拍到服務結果。" } },
@@ -3854,7 +3901,16 @@ function paintHalftonePlates(root = document) {
   }
 }
 
+// A section can carry a short kicker naming what it answers — Player experience,
+// Design problem, Iteration, Playtest, Team — set above its heading so a
+// reviewer can find the evidence while scrolling.
 function gddSectionMarkup(section) {
+  const html = gddSectionBody(section)
+  if (!section.kicker) return html
+  return html.replace(/^(\s*<section\b[^>]*>)/, `$1<p class="case-section-tag">${escapeHtml(section.kicker)}</p>`)
+}
+
+function gddSectionBody(section) {
   const extra = extraSectionRenderers[section.kind]
   if (extra) return extra(section, { escapeHtml, gddPair, imageSourceAttrs })
   if (section.kind === "symbol-key") return gddSymbolKey(section)
@@ -4020,7 +4076,15 @@ function caseStudySectionMarkup(section) {
 }
 
 function caseStudyDetailMarkup(project, detail) {
-  const points = detail.points.map((point) => `<li>${bilingualText(point)}</li>`).join("")
+  // A point can be a plain string, or { label, en, zh } — a labelled answer
+  // (Player, Experience, Iteration, My role) that a reviewer can scan.
+  const points = detail.points
+    .map((point) =>
+      point && typeof point === "object"
+        ? `<li class="case-point"><span class="case-point-label">${escapeHtml(point.label)}</span><span class="case-point-copy">${caseStudyPair(point)}</span></li>`
+        : `<li>${bilingualText(point)}</li>`,
+    )
+    .join("")
   const sections = detail.sections.map(gddSectionMarkup).join("")
   const sourceLinks = {
     "/ongoing-game-project": "https://www.figma.com/design/xmD79sBtEvt0lfst75cMDz/Game-Development-4?node-id=447-58",
@@ -4050,6 +4114,7 @@ function caseStudyDetailMarkup(project, detail) {
           <div class="case-study-hero-copy"><p>${detail.summary && typeof detail.summary === "object" ? caseStudyPair(detail.summary) : bilingualText(detail.summary)}</p><ul>${points}</ul></div>
           </div>
         </header>
+        ${detail.audience ? gddSectionMarkup({ kind: "audience", kicker: "Player experience", ...detail.audience }) : ""}
         ${projectPlayableMarkup(project)}
         ${sections}
         <footer class="framer-case-footer case-study-footer">
@@ -4079,6 +4144,7 @@ function framerProjectDetailMarkup(project, detail) {
     <main class="site-main detail-page framer-derived-page" data-route="${escapeHtml(project.path)}">
       ${projectLeadMarkup(project, { detail: true })}
       <article class="framer-derived-shell" aria-label="${escapeHtml(detail.title)} project page">
+        ${prototypeHeroMarkup(project, { escapeHtml }) ? `<section class="framer-case-section framer-prototype-section" aria-label="Interactive Figma prototype">${prototypeHeroMarkup(project, { escapeHtml })}</section>` : ""}
         <section class="framer-derived-intro">
           <figure>
             <img ${imageSourceAttrs(detail.leadImage)} alt="${escapeHtml(detail.leadAlt)}" loading="eager" decoding="async" />
@@ -4141,6 +4207,14 @@ function youtubeEmbed(id, className = "") {
     </div>`
 }
 
+// Serial Deminer opens with the same player-experience block as the case
+// studies; the research sections further down explain how we arrived at it.
+const serialDeminerAudience = {
+  goal: { en: "Players should feel one key action set off a chain of events like falling dominoes: seamless, satisfying, unpredictable and a little dangerous, at a relaxed pace that lets them read the puzzle first.", zh: "玩家应该感受到一个关键动作引发一连串事件，像骨牌一样倒下：流畅、痛快、难以预料，还带点危险，同时节奏放松，让他们先读懂谜题。" },
+  audience: { en: "Casual puzzle players, and the game jam crowd around them: designers, students and critics browsing jam entries for clever ideas.", zh: "休闲解谜玩家，以及围绕着他们的 game jam 人群：浏览参赛作品、寻找巧妙点子的设计师、学生和评论者。" },
+  map: { target: { label: "Serial Deminer", x0: -0.92, x1: 0.1, y0: -0.85, y1: 0.2 }, groups: [{ label: "Casual puzzle players", x: -0.5, y: -0.45, core: true }, { label: "Windowframe and Blueprint Hell players", x: -0.45, y: 0.02, core: true }, { label: "Jam designers and critics", x: 0.45, y: 0.5 }] },
+}
+
 function serialDeminerDetailMarkup(project) {
   return `
     ${headerMarkup()}
@@ -4156,27 +4230,28 @@ function serialDeminerDetailMarkup(project) {
           </div>
         </section>
 
+        ${gddSectionMarkup({ kind: "audience", kicker: "Player experience", ...serialDeminerAudience })}
         <section class="framer-case-section framer-copy-grid framer-copy-sans">
           <div>
             <h2>Brief</h2>
             <p>${bilingualRich(
               `In <em>Serial Deminer</em>, you take on the role of a skilled de-miner on a high-stakes mission to clear hazardous landmines and create a safe path for an incoming convoy. Using a suite of specialized gadgets — including a marking flag, a metal detector, and explosives — your objective is to locate, mark, and detonate mines in a strategic, precise manner.`,
-              `在 <em>Serial Deminer</em> 中，玩家扮演一名熟練的拆彈人員，執行高風險任務，清除危險地雷並為即將抵達的車隊建立安全路徑。玩家會使用一系列專用工具，包含標記旗、金屬探測器與爆裂物；目標是以策略性且精準的方式定位、標記並引爆地雷。`,
+              `在 <em>Serial Deminer</em> 中，玩家扮演一名熟练的拆弹人员，执行高风险任务，清除危险地雷并为即将抵达的车队建立安全路径。玩家会使用一系列专用工具，包含标记旗、金属探测器与爆裂物；目标是以策略性且精准的方式定位、标记并引爆地雷。`,
             )}</p>
           </div>
           <div>
             <h2>Key Features</h2>
             <p>${bilingualRich(
               `<strong>Marking Flag</strong>: Place flags to identify mines you've found, helping you avoid rechecking areas and making your path safer.`,
-              `<strong>標記旗</strong>：放置旗幟來標示已找到的地雷，避免重複檢查同一區域，並讓路徑更安全。`,
+              `<strong>标记旗</strong>：放置旗帜来标示已找到的地雷，避免重复检查同一区域，并让路径更安全。`,
             )}</p>
             <p>${bilingualRich(
               `<strong>Metal Detector</strong>: Sweeps for hidden mines; listen for beeps that indicate the proximity of a mine.`,
-              `<strong>金屬探測器</strong>：掃描隱藏地雷；透過嗶聲判斷地雷的接近程度。`,
+              `<strong>金属探测器</strong>：扫描隐藏地雷；透过哔声判断地雷的接近程度。`,
             )}</p>
             <p>${bilingualRich(
               `<strong>Explosives</strong>: Carefully place explosives on mines to clear them. Only use this gadget when in detonation range.`,
-              `<strong>爆裂物</strong>：小心地將爆裂物放置在地雷上以清除它們。只有在可引爆範圍內才能使用此工具。`,
+              `<strong>爆裂物</strong>：小心地将爆裂物放置在地雷上以清除它们。只有在可引爆范围内才能使用此工具。`,
             )}</p>
           </div>
         </section>
@@ -4191,42 +4266,42 @@ function serialDeminerDetailMarkup(project) {
         </section>
 
         <section class="framer-case-section framer-text-section">
-          <h2>Target Audience:</h2>
+          <h2>Target Audience</h2>
           <p>${bilingualRich(
             `After reflecting on the theme for this game jam, I first considered our target audience. Following discussions with my teammates and reviewing our research, we reached the following conclusions:`,
-            `在思考這次 game jam 主題後，我首先考慮的是我們的目標受眾。經過與隊友討論並整理研究內容後，我們得到以下結論：`,
+            `在思考这次 game jam 主题后，我首先考虑的是我们的目标受众。经过与队友讨论并整理研究内容后，我们得到以下结论：`,
           )}</p>
           <p>${bilingualRich(
             `We analyzed the winning entries from the GMTK 2024 Game Jam on itch.io. After playing and discussing these games, one keyword stood out: “<strong>Puzzle</strong>.” Beyond impressive visuals and arts, we noticed that clever and engaging puzzle designs consistently captivated us and left a lasting impression. Based on this, we concluded that our target audience should be players who enjoy a <strong>Casual gaming experience</strong> and are <strong>Enthusiastic about solving puzzles</strong>.`,
-            `我們分析了 itch.io 上 GMTK 2024 Game Jam 的獲獎作品。遊玩並討論這些作品後，一個關鍵詞變得非常明確：「<strong>解謎</strong>」。除了令人印象深刻的視覺與美術，我們也注意到聰明且有趣的謎題設計總是能吸引我們並留下深刻印象。基於此，我們認為目標受眾應該是喜歡 <strong>休閒遊戲體驗</strong> 並且 <strong>熱衷解謎</strong> 的玩家。`,
+            `我们分析了 itch.io 上 GMTK 2024 Game Jam 的获奖作品。游玩并讨论这些作品后，一个关键词变得非常明确：「<strong>解谜</strong>」。除了令人印象深刻的视觉与美术，我们也注意到聪明且有趣的谜题设计总是能吸引我们并留下深刻印象。基于此，我们认为目标受众应该是喜欢 <strong>休闲游戏体验</strong> 并且 <strong>热衷解谜</strong> 的玩家。`,
           )}</p>
           <p>${bilingualRich(
             `Secondly, as a 48-hour game jam project, an important target audience of our project includes <strong>Game design professionals and students</strong> like us. These individuals value design details, the game’s relevance to the theme, and its overall completeness as a finished product.`,
-            `其次，作為一個 48 小時 game jam 專案，我們的重要目標受眾也包含像我們一樣的 <strong>遊戲設計專業人士與學生</strong>。這類人會重視設計細節、作品與主題的關聯性，以及它作為完成品的整體完整度。`,
+            `其次，作为一个 48 小时 game jam 专案，我们的重要目标受众也包含像我们一样的 <strong>游戏设计专业人士与学生</strong>。这类人会重视设计细节、作品与主题的关联性，以及它作为完成品的整体完整度。`,
           )}</p>
           <p>${bilingualRich(
             `Of course, another key audience includes <strong>Game enthusiasts and critics</strong> interested in exploring jam entries—those who enjoy browsing diverse games and experiencing the creative ideas these lightweight projects deliver.`,
-            `當然，另一個重要受眾是對探索 jam 作品有興趣的 <strong>遊戲愛好者與評論者</strong>；他們喜歡瀏覽各式各樣的遊戲，並體驗這些輕量專案所傳達的創意想法。`,
+            `当然，另一个重要受众是对探索 jam 作品有兴趣的 <strong>游戏爱好者与评论者</strong>；他们喜欢浏览各式各样的游戏，并体验这些轻量专案所传达的创意想法。`,
           )}</p>
         </section>
 
         <section class="framer-case-section framer-text-section">
-          <h2>Player Experience:</h2>
+          <h2>Player Experience</h2>
           <p>${bilingualRich(
             `Based on our target audience and the competition's theme, we began brainstorming the game experience we wanted to create. Expanding on the theme of “chain reaction,” we envisioned an experience where a single trigger sets off a series of automatic events like dominoes falling. This experience should feel exciting—seamless, satisfying, unpredictable, and chaotically dangerous.`,
-            `基於目標受眾與比賽主題，我們開始發想想要創造的遊戲體驗。延伸「連鎖反應」的主題，我們想像一種由單一觸發點啟動一連串自動事件的體驗，就像骨牌倒下一樣。這種體驗應該令人興奮、流暢、滿足、不可預測，並帶有混亂的危險感。`,
+            `基于目标受众与比赛主题，我们开始发想想要创造的游戏体验。延伸「连锁反应」的主题，我们想像一种由单一触发点启动一连串自动事件的体验，就像骨牌倒下一样。这种体验应该令人兴奋、流畅、满足、不可预测，并带有混乱的危险感。`,
           )}</p>
           <p>${bilingualRich(
             `From a puzzle perspective, solving puzzles is a slow yet deliberate process. Therefore, our game experience should encourage a steady pace, allowing players to explore and understand the puzzles at their own rhythm.`,
-            `從解謎角度來看，解謎是一個緩慢但需要深思熟慮的過程。因此，我們的遊戲體驗應鼓勵穩定的節奏，讓玩家能依照自己的步調探索並理解謎題。`,
+            `从解谜角度来看，解谜是一个缓慢但需要深思熟虑的过程。因此，我们的游戏体验应鼓励稳定的节奏，让玩家能依照自己的步调探索并理解谜题。`,
           )}</p>
           <p>${bilingualRich(
             `Thus, our game’s experience prompt is: <strong>“Explore and solve puzzles in a relaxed and enjoyable atmosphere, while experiencing how a single key action can influence the entire puzzle-solving process.”</strong>`,
-            `因此，我們的遊戲體驗提示是：<strong>「在輕鬆愉快的氛圍中探索並解決謎題，同時體驗一個關鍵行動如何影響整個解謎過程。」</strong>`,
+            `因此，我们的游戏体验提示是：<strong>「在轻松愉快的氛围中探索并解决谜题，同时体验一个关键行动如何影响整个解谜过程。」</strong>`,
           )}</p>
           <p>${bilingualRich(
             `The gameplay is designed to last 3-5 minutes, allowing players to make numerous attempts within a short time without losing progress upon failure. Players are immersed in a relaxed and enjoyable environment, focused on exploring puzzles and mastering the game mechanics.`,
-            `遊玩時長被設計為 3 到 5 分鐘，讓玩家能在短時間內多次嘗試，並且不會因失敗而失去大量進度。玩家會沉浸在輕鬆愉快的環境中，專注於探索謎題與掌握遊戲機制。`,
+            `游玩时长被设计为 3 到 5 分钟，让玩家能在短时间内多次尝试，并且不会因失败而失去大量进度。玩家会沉浸在轻松愉快的环境中，专注于探索谜题与掌握游戏机制。`,
           )}</p>
         </section>
 
@@ -4240,14 +4315,14 @@ function serialDeminerDetailMarkup(project) {
         </section>
 
         <section class="framer-case-section framer-text-section">
-          <h2>Research &amp; Exploration:</h2>
+          <h2>Research &amp; Exploration</h2>
           <p>${bilingualRich(
             `When brainstorming the game’s format and mechanics, we explored various directions and references. I initially proposed “Bejeweled” as the inspiration for our project. I believe its gameplay, where players rearrange a 2D grid of gems through simple drag-and-drop actions, aligns well with the theme of “chain reaction.” A single, light action can trigger potential chain explosions, allowing players to enjoy the automatic interactions between gems of different colors and properties while earning score rewards.`,
-            `在發想遊戲形式與機制時，我們探索了不同方向與參考。我最初提出以 “Bejeweled” 作為專案靈感來源。我認為它讓玩家透過簡單拖放動作重新排列 2D 格子中的寶石，這種玩法與「連鎖反應」主題相當契合。一個輕量的單一步驟就能觸發潛在的連鎖爆發，讓玩家在獲得分數獎勵的同時，享受不同顏色與屬性寶石之間的自動互動。`,
+            `在发想游戏形式与机制时，我们探索了不同方向与参考。我最初提出以 “Bejeweled” 作为专案灵感来源。我认为它让玩家透过简单拖放动作重新排列 2D 格子中的宝石，这种玩法与「连锁反应」主题相当契合。一个轻量的单一步骤就能触发潜在的连锁爆发，让玩家在获得分数奖励的同时，享受不同颜色与属性宝石之间的自动互动。`,
           )}</p>
           <p>${bilingualRich(
             `Another game reference comes from the Chinese 2D puzzle game <em>“死神来了” (Death Coming)</em>. Unlike <em>Bejeweled</em>, this game focuses more on the connection between narrative and gameplay. Players take on the role of a trainee grim reaper, interacting with objects in each level’s scene. Using fewer steps to trigger more object interactions and cause more character deaths results in higher scores. The key takeaway from this game is its engaging premise and setting, which are tightly integrated with the gameplay, creating a cohesive and immersive experience.`,
-            `另一個遊戲參考來自中文 2D 解謎遊戲 <em>《死神來了》（Death Coming）</em>。不同於 <em>Bejeweled</em>，這款遊戲更強調敘事與玩法之間的連結。玩家扮演實習死神，與每個關卡場景中的物件互動。使用越少步驟觸發越多物件互動，並造成更多角色死亡，就能得到更高分數。這款遊戲給我們的重要啟發，是它有吸引人的前提與設定，並與玩法緊密整合，形成連貫且沉浸的體驗。`,
+            `另一个游戏参考来自中文 2D 解谜游戏 <em>《死神来了》（Death Coming）</em>。不同于 <em>Bejeweled</em>，这款游戏更强调叙事与玩法之间的连结。玩家扮演实习死神，与每个关卡场景中的物件互动。使用越少步骤触发越多物件互动，并造成更多角色死亡，就能得到更高分数。这款游戏给我们的重要启发，是它有吸引人的前提与设定，并与玩法紧密整合，形成连贯且沉浸的体验。`,
           )}</p>
         </section>
 
@@ -4261,18 +4336,18 @@ function serialDeminerDetailMarkup(project) {
         </section>
 
         <section class="framer-case-section framer-text-section">
-          <h2>Design &amp; Iteration:</h2>
+          <h2>Design &amp; Iteration</h2>
           <p>${bilingualRich(
             `Based on our research, we initially considered a gameplay design focused on a maze that players could navigate by creating paths through explosions. Players would need to find a way to clear obstacles and continue exploring. This would involve making a key decision after careful thought to progress. The maze’s puzzles should strike a balance between being neither too easy nor too difficult—players should quickly understand what needs to be done (how to approach the puzzle) but spend time figuring out how to execute it (how to solve the puzzle).`,
-            `基於研究，我們一開始考慮以迷宮為核心的玩法設計，讓玩家透過爆炸創造路徑並在迷宮中前進。玩家需要找到清除障礙並繼續探索的方法，而這需要在深思熟慮後做出關鍵決策才能推進。迷宮謎題需要在不過於簡單與不過於困難之間取得平衡；玩家應能快速理解需要做什麼，也就是如何接近謎題，但需要花時間思考如何執行，也就是如何解開謎題。`,
+            `基于研究，我们一开始考虑以迷宫为核心的玩法设计，让玩家透过爆炸创造路径并在迷宫中前进。玩家需要找到清除障碍并继续探索的方法，而这需要在深思熟虑后做出关键决策才能推进。迷宫谜题需要在不过于简单与不过于困难之间取得平衡；玩家应能快速理解需要做什么，也就是如何接近谜题，但需要花时间思考如何执行，也就是如何解开谜题。`,
           )}</p>
           <p>${bilingualRich(
             `We refined this idea further, considering what setting and actions would best fit our gameplay. We drew inspiration from the real-life concept of miners using explosives to carve out mine shafts, shaping our game’s premise. Players take on the role of a path designer working for miners, responsible for determining the placement of explosives.`,
-            `我們進一步細化這個想法，思考什麼樣的設定與行動最適合這套玩法。我們從現實中礦工使用爆裂物開鑿礦道的概念汲取靈感，並以此形塑遊戲前提。玩家扮演為礦工工作的路徑設計者，負責決定爆裂物的放置位置。`,
+            `我们进一步细化这个想法，思考什么样的设定与行动最适合这套玩法。我们从现实中矿工使用爆裂物开凿矿道的概念汲取灵感，并以此形塑游戏前提。玩家扮演为矿工工作的路径设计者，负责决定爆裂物的放置位置。`,
           )}</p>
           <p>${bilingualRich(
             `To align with the chain reaction theme, the entire explosion sequence can only be initiated once. Players cannot manually detonate each explosive but must strategically arrange them in specific positions and quantities to ensure the first explosive connects with the last, completing the chain and clearing the path to progress.`,
-            `為了符合連鎖反應主題，整段爆炸序列只能被啟動一次。玩家不能手動引爆每個爆裂物，而必須以特定位置與數量進行策略性排列，確保第一個爆裂物能連接到最後一個，完成連鎖並清出前進路徑。`,
+            `为了符合连锁反应主题，整段爆炸序列只能被启动一次。玩家不能手动引爆每个爆裂物，而必须以特定位置与数量进行策略性排列，确保第一个爆裂物能连接到最后一个，完成连锁并清出前进路径。`,
           )}</p>
         </section>
 
@@ -4285,10 +4360,10 @@ function serialDeminerDetailMarkup(project) {
         </section>
 
         <section class="framer-case-section framer-text-section">
-          <h2>Design &amp; Iteration (Level Design):</h2>
+          <h2>Design &amp; Iteration (Level Design)</h2>
           <p>${bilingualRich(
             `Bedi and I were responsible for the in-game level design. We translated the initial 2D sketches into 3D levels based on narrative and gameplay requirements, followed by internal playtesting and adjustments. While designing the levels, I considered player flow and matched the progression to the narrative. The early levels were designed to be simple, then increased in complexity. Our target for the puzzle-solving pace was 3–5 minutes, but this page does not present a matched timing study for every level.`,
-            `Bedi 和我負責遊戲內的關卡設計。我們根據敘事與玩法需求，將最初的 2D 草圖轉換成 3D 關卡，再進行內部測試與調整。在設計關卡時，我會考慮玩家流動，讓進程與敘事相符。早期關卡先保持簡單，再逐步增加複雜度。我們把解謎節奏設定在 3–5 分鐘左右，但目前頁面沒有每個關卡的對照計時研究。`,
+            `Bedi 和我负责游戏内的关卡设计。我们根据叙事与玩法需求，将最初的 2D 草图转换成 3D 关卡，再进行内部测试与调整。在设计关卡时，我会考虑玩家流动，让进程与叙事相符。早期关卡先保持简单，再逐步增加复杂度。我们把解谜节奏设定在 3–5 分钟左右，但目前页面没有每个关卡的对照计时研究。`,
           )}</p>
         </section>
 
@@ -9587,7 +9662,7 @@ function openProjectDetailDrawer(card, target) {
     applyCaseAccentToScope(drawer, detailTheme)
   }
   drawer.innerHTML = `<div class="project-detail-drawer-inner">${projectDetailBodyMarkup(project)}</div>`
-  drawer.querySelectorAll(".framer-case-footer, .case-study-footer").forEach((footer) => footer.remove())
+  drawer.querySelectorAll(".framer-case-footer, .case-study-footer, .framer-derived-footer").forEach((footer) => footer.remove())
   enhanceProjectTables(drawer)
   paintHalftonePlates(drawer)
   // Keep the drawer immediately after the activated card. On compact layouts

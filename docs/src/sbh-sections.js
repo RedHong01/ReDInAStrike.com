@@ -56,54 +56,58 @@ export const sbhSections = [
   {
     kind: "copy-grid",
     left: {
-      title: "Brief",
-      en: "Space Bounty Hunters is a sci-fi first-person-shooter MMORPG we designed in the second half of Game as Service, Spring 2026. The syllabus gave weeks 7 to 14 to begin an MMORPG on any platform. We chose console and PC and one fantasy: take a contract, fly to a planet, hunt the thing that lives there, and turn what you carve off it into better gear. Nothing here was built in an engine. This is the design package the course asked for: slides, a data sheet, a GDD, a clickable Figma prototype and a recording of it.",
-      zh: "Space Bounty Hunters 是我们在 2026 年春季 Game as Service 课程后半段设计的一款科幻第一人称射击 MMORPG。教学大纲给了第 7 到第 14 周，让每组开始设计一款任意平台的 MMORPG。我们选了主机与 PC，只抓一个幻想：接下合约，飞到一颗星球，猎杀住在那里的东西，再把从它身上取下的材料做成更好的装备。这里没有任何东西是在引擎里做出来的，而是课程要求的整套设计：演示文稿、数据表、GDD、可点击的 Figma 原型，以及原型的录屏。",
+      title: "The Game",
+      en: "Space Bounty Hunters is a sci-fi first-person-shooter MMORPG we designed for console and PC around one fantasy: take a contract, fly to a planet, hunt the thing that lives there, and turn what you carve off it into better gear. Nothing here was built in an engine. This is the design package a team would hand to production: slides, a data sheet, a GDD, a clickable Figma prototype and a recording of it.",
+      zh: "Space Bounty Hunters 是我们为主机与 PC 设计的一款科幻第一人称射击 MMORPG，只抓一个幻想：接下合约，飞到一颗星球，猎杀住在那里的东西，再把从它身上取下的材料做成更好的装备。这里没有任何东西是在引擎里做出来的，而是一支团队交给制作阶段的整套设计：演示文稿、数据表、GDD、可点击的 Figma 原型，以及原型的录屏。",
     },
     right: {
       title: "Team and my part",
-      en: "Kaine, Weiting and me. The GDD and the data sheet live in Kaine’s Drive, and our weekly hand-ins in Weiting’s. My part, as the files show it: the character-creation screens and the visual kit behind them — the body silhouettes, the vertical step rails, the contour-map texture and the ₿ on every price — drawn in Illustrator on 3/18 and 3/19 and brought into our shared Figma. I also asked the question that put the background choice in front of the twelve stats.",
-      zh: "Kaine、Weiting 和我。GDD 和数据表存在 Kaine 的 Drive 里，每周的作业提交在 Weiting 的文件夹里。按文件能看到的，我负责的是角色创建的界面，以及它背后的视觉素材——人物剪影、竖向的步骤标签、等高线地图纹理，还有每个价格旁边的 ₿——3 月 18、19 日在 Illustrator 里画好，再导进我们共用的 Figma。让“选择背景”排到十二项属性前面的那个问题，也是我提出来的。",
+      en: "Kaine, Weiting and me. The GDD and the data sheet live in Kaine’s Drive, and our working files in Weiting’s. I designed the hunt loop — take a bounty, land, kill, craft, take the next one — and I made the visual UI and the UX that let a player click that whole circle: title screen, character creation, tutorial, Star Map, guild hall, upgrades, Headless Hunts, crafting and the store. The kit behind those screens I drew in Illustrator on 3/18 and 3/19 and brought into our shared Figma.",
+      zh: "Kaine、Weiting 和我。GDD 和数据表存在 Kaine 的 Drive 里，工作文件在 Weiting 的文件夹里。狩猎循环是我设计的——接下悬赏，降落，猎杀，制作，再接下一份——这一圈的视觉 UI 和整套 UX 也是我做的：标题画面、角色创建、教程、星图、公会大厅、升级、无头狩猎、制作和商店。这些界面背后的素材，我 3 月 18、19 日在 Illustrator 里画好，再导进我们共用的 Figma。",
     },
   },
   {
     kind: "sbh-timeline",
-    title: "Seven Weeks of Hand-ins",
-    intro: pair(
-      "The first half of the course had already taught the kit: a pitch deck in Week 1, economy spreadsheets in Week 4, live ops, monetization and the GDD in Week 5. The MMORPG ran the same kit again, faster and bigger. Each hand-in below is tagged with the lesson it answers.",
-      "课程前半段已经把这套工具教过一遍：第 1 周的提案演示文稿，第 4 周的经济系统表格，第 5 周的长线运营、商业化与 GDD。MMORPG 把同一套工具又跑了一遍，更快，也更大。下面每一次提交，都标出了它回应的是哪一课。",
-    ),
+    kicker: "Iteration",
+    title: "Seven Weeks, From Pitch to Package",
     weeks: [
-      { week: 7, date: "3/5", title: "Kickoff", en: "The slides and the data sheet are opened the day the project starts.", zh: "项目开始当天，演示文稿和数据表就建好了。", lesson: pair("Syllabus: begin an MMORPG, weeks 7–14", "教学大纲：第 7–14 周开始一款 MMORPG") },
-      { week: 8, date: "3/12", title: "First deck", en: "SCI-FI FPS MMORPG: twelve attributes, a four-step loop, Credits as the currency, three social systems, and an art-direction slide that still says Placeholder.", zh: "第一版演示文稿：十二项属性、四步循环、叫作 Credits 的货币、三个社交系统，以及一张还写着 Placeholder 的美术方向页。", lesson: pair("Week 1: the eight-slide pitch deck", "第 1 周：八页提案演示文稿") },
-      { week: 9, date: "3/18–3/19", title: "Numbers and a look", en: "My 3/18 copy of the sheet: 22 grades, five of twelve attributes doing nothing, the weapon tab empty. The next day my Illustrator kit goes into Figma.", zh: "我在 3/18 下载的那份数据表：22 个评级，十二项属性里有五项什么也不影响，武器页还是空的。第二天，我的 Illustrator 素材导进了 Figma。", lesson: pair("Week 4: put the attributes in a spreadsheet", "第 4 周：把属性放进表格") },
-      { week: 10, date: "3/26–3/27", title: "Prototype and playtest", en: "The clickable prototype goes in with ten playtest questions. The deck gains guild halls, raids, faction wars and a Halloween event, Headless Hunts.", zh: "可点击原型连同十个试玩问题一起提交。演示文稿加上了公会大厅、团队副本、阵营战，以及万圣节活动 Headless Hunts。", lesson: pair("Week 5: event frameworks and holidays", "第 5 周：活动框架与节日") },
+      { week: 7, date: "3/5", title: "Kickoff", en: "The slides and the data sheet are opened the day the project starts.", zh: "项目开始当天，演示文稿和数据表就建好了。", lesson: pair("Pick one fantasy: the hunt", "只抓一个幻想：狩猎") },
+      { week: 8, date: "3/12", title: "First deck", en: "SCI-FI FPS MMORPG: twelve attributes, a four-step loop, Credits as the currency, three social systems, and an art-direction slide that still says Placeholder.", zh: "第一版演示文稿：十二项属性、四步循环、叫作 Credits 的货币、三个社交系统，以及一张还写着 Placeholder 的美术方向页。", lesson: pair("Make the loop legible: bounty, hunt, carve, craft", "让循环一目了然：悬赏、狩猎、剥取、打造") },
+      { week: 9, date: "3/18–3/19", title: "Numbers and a look", en: "My 3/18 copy of the sheet: 22 grades, five of twelve attributes doing nothing, the weapon tab empty. The next day my Illustrator kit goes into Figma.", zh: "我在 3/18 下载的那份数据表：22 个评级，十二项属性里有五项什么也不影响，武器页还是空的。第二天，我的 Illustrator 素材导进了 Figma。", lesson: pair("Give every attribute a job, and give the game a look", "让每个属性都有作用，也给游戏一个视觉风格") },
+      { week: 10, date: "3/26–3/27", title: "Prototype and playtest", en: "The clickable prototype goes in with ten playtest questions. The deck gains guild halls, raids, faction wars and a Halloween event, Headless Hunts.", zh: "可点击原型连同十个试玩问题一起提交。演示文稿加上了公会大厅、团队副本、阵营战，以及万圣节活动 Headless Hunts。", lesson: pair("Put the loop in players’ hands", "把循环交到玩家手里") },
       { week: 11, date: "4/2", empty: true, en: "Nothing in the files is dated this week.", zh: "文件里没有这一周的记录。" },
-      { week: 12, date: "4/9", title: "The pitch", en: "Eleven slides for an imaginary publisher: free to play, cosmetic sales, a 70/30 split between the game and live ops, launch in March 2031.", zh: "给一个假想发行商的十一页提案：免费游玩、只卖外观、本体与长线运营按 70/30 分配人力，2031 年 3 月上线。", lesson: pair("Outcome 5: plan a roadmap and explain it", "学习目标 5：规划路线图并讲清楚") },
-      { week: 13, date: "4/16", title: "GDD and final deck", en: "The GDD follows the course template, milestones and all. The deck fills in the playtest feedback, the metagame and a persona.", zh: "GDD 按课程模板来写，连里程碑都照着填。演示文稿补上了试玩反馈、元游戏设计和用户画像。", lesson: pair("Week 5: a good GDD settles arguments", "第 5 周：好的 GDD 能平息争论") },
-      { week: 14, date: "4/23", title: "Final hand-in", en: "The sheet ends at 55 grades, 30 levels, 30 guns and a year of live ops. With it: the GDD, five written playtest summaries and the 4:34 recording.", zh: "数据表最终有 55 个评级、30 个等级、30 把枪和一整年的运营日历。一起交上的还有 GDD、五份文字试玩总结，以及 4 分 34 秒的录屏。", lesson: pair("Week 5: video, slides, wireframes, spreadsheets, GDD", "第 5 周：视频、演示文稿、线框、表格、GDD") },
+      { week: 12, date: "4/9", title: "The pitch", en: "Eleven slides for an imaginary publisher: free to play, cosmetic sales, a 70/30 split between the game and live ops, launch in March 2031.", zh: "给一个假想发行商的十一页提案：免费游玩、只卖外观、本体与长线运营按 70/30 分配人力，2031 年 3 月上线。", lesson: pair("A roadmap that explains itself", "一份能自己讲清楚的路线图") },
+      { week: 13, date: "4/16", title: "GDD and final deck", en: "The GDD sets out every system and every milestone to launch. The deck fills in the playtest feedback, the metagame and a persona.", zh: "GDD 按课程模板来写，连里程碑都照着填。演示文稿补上了试玩反馈、元游戏设计和用户画像。", lesson: pair("A GDD that settles arguments", "一份能平息争论的 GDD") },
+      { week: 14, date: "4/23", title: "Final package", en: "The sheet ends at 55 grades, 30 levels, 30 guns and a year of live ops. With it: the GDD, five written playtest summaries and the 4:34 recording.", zh: "数据表最终有 55 个评级、30 个等级、30 把枪和一整年的运营日历。一起交上的还有 GDD、五份文字试玩总结，以及 4 分 34 秒的录屏。", lesson: pair("Everything a new teammate needs: video, slides, wireframes, sheet, GDD", "新队友需要的一切：视频、演示、线框、数据表、GDD") },
     ],
   },
   {
-    kind: "copy-grid",
+    kind: "sbh-mantra-grid",
     left: {
       title: "The Pitch",
-      en: "Our pitch line was “Star Wars meets Monster Hunter.” The gap we claimed: shooters rarely give you deep builds and long progression, and MMOs rarely give you precise gunplay. So the hunt is the progression. You don’t level by finishing quests; you get stronger because the thing you killed dropped the material your next gun needs. The audience line was wide, 14 to 50 on console and PC, but the player we pictured was narrower: someone who likes grinding for a gun with friends.",
-      zh: "我们的一句话提案是“星球大战遇上怪物猎人”。我们认定的空缺是：射击游戏很少给你深度的构筑和长线成长，MMO 又很少给你精准的枪感。所以狩猎本身就是成长。你不是靠做任务升级，而是因为你猎杀的东西，掉落了下一把枪需要的材料。受众写得很宽，14 到 50 岁、主机与 PC，但我们心里想的玩家更窄：喜欢和朋友一起为一把枪反复刷的人。",
+      en: "“Star Wars meets Monster Hunter.” The gap we claimed: shooters rarely give you deep builds and long progression, and MMOs rarely give you precise gunplay. So the hunt is the progression. You don’t level by finishing quests; you get stronger because the thing you killed dropped the material your next gun needs. The audience line was wide, 14 to 50 on console and PC, but the player we pictured was narrower: someone who likes grinding for a gun with friends.",
+      zh: "“星球大战遇上怪物猎人”。我们认定的空缺是：射击游戏很少给你深度的构筑和长线成长，MMO 又很少给你精准的枪感。所以狩猎本身就是成长。你不是靠做任务升级，而是因为你猎杀的东西，掉落了下一把枪需要的材料。受众写得很宽，14 到 50 岁、主机与 PC，但我们心里想的玩家更窄：喜欢和朋友一起为一把枪反复刷的人。",
     },
     right: {
       title: "The Mantra",
-      en: "The GDD opens with one question for every feature: “Does this make me feel like a bounty hunter prepping for the next big hunt?” Under it sit three pillars: customization and expression, fast and responsive first-person combat, and progression through loot and destinations. The pillars also set what the rest of this page measures: builds in the stat sheet, combat in the prototype, loot and destinations in the grind and the calendar.",
-      zh: "GDD 开头写着一个问题，每个功能都要回答它：“这会让我觉得自己是一名正在为下一场大狩猎做准备的赏金猎人吗？”下面是三根支柱：定制与表达、快速灵敏的第一人称战斗、由战利品和目的地推动的成长。这三根支柱也决定了这一页接下来度量什么：属性表里的构筑、原型里的战斗、刷取时长与运营日历里的战利品和目的地。",
+      open: pair(
+        "The GDD opens with one question for every feature: “Does this make me feel like a bounty hunter prepping for the next big hunt?” Under it sit three pillars:",
+        "GDD 开头写着一个问题，每个功能都要回答它：“这会让我觉得自己是一名正在为下一场大狩猎做准备的赏金猎人吗？”下面是三根支柱：",
+      ),
+      pillars: [
+        pair("Customization and expression", "定制与表达"),
+        pair("Fast and responsive first-person combat", "快速灵敏的第一人称战斗"),
+        pair("Progression through loot and destinations", "由战利品和目的地推动的成长"),
+      ],
+      close: pair(
+        "The pillars also set what the rest of this page measures: builds in the stat sheet, combat in the prototype, loot and destinations in the grind and the calendar.",
+        "这三根支柱也决定了这一页接下来度量什么：属性表里的构筑、原型里的战斗、刷取时长与运营日历里的战利品和目的地。",
+      ),
     },
   },
   {
     kind: "persona",
     title: "Alex Chen, 22",
-    intro: pair(
-      "The Week 5 brief asked for one persona. Ours is the player the grind is built for, and his list of frustrations reads like the ways a grind fails.",
-      "第 5 周的作业要求做一个用户画像。我们的画像，就是这套“刷”的系统所服务的玩家；他的不满清单，读起来正像一套刷取系统失败的方式。",
-    ),
     tag: "Persona · final slides",
     name: "Alex Chen",
     bio: pair(
@@ -145,7 +149,7 @@ export const sbhSections = [
     caption: "Stat-scaling grades for twelve attributes across twenty-five combat stats in the 4/23 sheet, with the grades that already existed on 3/18 marked.",
     beforeLabel: "3/18",
     afterLabel: "4/23",
-    wasLabel: "graded on 3/18",
+    wasLabel: "sheet as of 3/18",
     droppedLabel: "dropped after 3/18",
     scale: [
       { grade: "S", label: "scales most" },
@@ -212,7 +216,7 @@ export const sbhSections = [
       { name: "Android", zh: "仿生人", plus: ["+1 Tech", "+1 Hack"], minus: ["−1 Charm", "−1 Perception"], lore: pair("Built by humans long ago; they escaped servitude and are growing cultures of their own. The sheet still calls them Robot.", "很久以前由人类制造，逃离了奴役，正在形成自己的文化。数据表里仍然叫他们 Robot。") },
       { name: "Magenta Alien", zh: "品红外星人", plus: ["+1 Charm", "+1 Chemistry"], minus: ["−2 Strength"], lore: pair("Reshaped their bodies to fit human society and hold power in the Galactic Empire, frail as they are.", "改变自己的形态以融入人类社会，身体虽然脆弱，却在银河帝国里身居要职。") },
       { name: "Yellow Alien", zh: "黄色外星人", plus: ["+1 Biology", "+1 Resolve"], minus: ["−2 Stealth"], lore: pair("Cracked their genetic code centuries before humanity; the fluorescent glow of their skin won’t come off.", "比人类早几个世纪破解了自己的基因密码；皮肤的荧光却怎么也去不掉。") },
-      { name: "Cyan Alien", zh: "青色外星人", plus: ["+1 Physics", "+1 Perception"], minus: ["−2 Agility"], lore: pair("The GDD never wrote their story.", "GDD 里没有写他们的故事。") },
+      { name: "Cyan Alien", zh: "青色外星人", plus: ["+1 Physics", "+1 Perception"], minus: ["−2 Agility"] },
     ],
     bodyTitle: "Body, at the extremes only",
     body: [
@@ -221,23 +225,14 @@ export const sbhSections = [
       { name: "Starved", plus: "+1 Agility", minus: "−1 Resolve" },
       { name: "Obese", plus: "+1 Resolve", minus: "−1 Agility" },
     ],
-    bodyNote: {
-      label: "The sheet’s own note",
-      en: "“Body size/shape affects stats??!!?? But only at extreme end values?”",
-      zh: "“体型会影响属性？？！！？？但只在极端值的时候？”",
-    },
-    decision: {
-      label: "Background first",
-      en: "On our flow chart, my sticky note asked whether the background or the twelve stats should come first. The answer that came back: background, so a new player doesn’t have to look at all twelve right away. It is also the first fix the Week 10 feedback asked for.",
-      zh: "在我们的流程图上，我贴了一张便签，问背景和十二项属性应该哪个先出现。得到的回答是：背景先，这样新玩家不必一上来就面对全部十二项。这也正是第 10 周试玩反馈要求的第一个修改。",
-    },
   },
   {
     kind: "sbh-playtest",
-    title: "Week 10: Five Testers",
+    kicker: "Playtest",
+    title: "Five Testers",
     intro: pair(
-      "In Week 10 we put the clickable prototype in front of players with ten questions. Our deck kept three strengths and three weaknesses; the written summaries in our final folder keep five people’s answers. All five had trouble with how the stats were shown, and no two picked the same favourite.",
-      "第 10 周，我们带着十个问题，把可点击原型交给玩家试玩。演示文稿记下了三个优点和三个缺点；最终文件夹里的文字总结，保留了五个人的回答。五个人都觉得属性的呈现方式有问题，而且没有两个人选中同一项最喜欢的属性。",
+      "We put the clickable prototype in front of players with ten questions. Our deck kept three strengths and three weaknesses; the written summaries in our final folder keep five people’s answers. All five had trouble with how the stats were shown, and no two picked the same favourite.",
+      "我们带着十个问题，把可点击原型交给玩家试玩。演示文稿记下了三个优点和三个缺点；最终文件夹里的文字总结，保留了五个人的回答。五个人都觉得属性的呈现方式有问题，而且没有两个人选中同一项最喜欢的属性。",
     ),
     strengthsTitle: "What held up",
     strengths: [
@@ -350,7 +345,7 @@ export const sbhSections = [
     video: "assets/videos/space-bounty-hunters.mp4",
     poster: "assets/sbh/recording-poster.jpg",
     label: "Recording · 4:34",
-    caption: pair("Recorded from our Figma prototype and uploaded on 4/23, the day of the final hand-in.", "从我们的 Figma 原型录制，4/23 上传，也就是最终提交那天。"),
+    caption: pair("Recorded from our Figma prototype on 4/23: the whole loop, clicked through from the title screen.", "从我们的 Figma 原型录制，4/23 上传，也就是最终提交那天。"),
     chaptersLabel: "Chapters",
     chapters: [
       { t: 0, en: "Title", zh: "标题画面" },
@@ -427,8 +422,8 @@ export const sbhSections = [
     kind: "sbh-economy",
     title: "₿, Seven Raw Materials, Thirty Guns",
     intro: pair(
-      "The Week 4 brief said to make sure the game has a currency and that the currency has a name. Ours had three: Credits in March, Bits on the loop slide and the stat screen, and Bitcoin, ₿, in the GDD, the sheet and the store. What held still was the split. ₿ comes from bounties, challenges, events and leaderboards and goes into gear; materials come off the planets and whatever lives on them. Repeat clears pay less ₿ but the same materials, so farming one monster stays worth it.",
-      "第 4 周的作业要求：游戏里要有货币，而且货币要有名字。我们的货币有过三个名字：三月叫 Credits，在循环页和属性界面里叫 Bits，在 GDD、数据表和商店里叫 Bitcoin，也就是 ₿。一直没变的是分工：₿ 来自悬赏、挑战、活动和排行榜，花在装备上；材料来自星球和星球上的生物。重复通关给的 ₿ 会变少，材料却一样多，所以反复刷同一只怪物依然值得。",
+      "A currency needs one name players can hold on to. Ours had three: Credits in March, Bits on the loop slide and the stat screen, and Bitcoin, ₿, in the GDD, the sheet and the store. What held still was the split. ₿ comes from bounties, challenges, events and leaderboards and goes into gear; materials come off the planets and whatever lives on them. Repeat clears pay less ₿ but the same materials, so farming one monster stays worth it.",
+      "货币需要一个玩家记得住的名字。我们的货币有过三个名字：三月叫 Credits，在循环页和属性界面里叫 Bits，在 GDD、数据表和商店里叫 Bitcoin，也就是 ₿。一直没变的是分工：₿ 来自悬赏、挑战、活动和排行榜，花在装备上；材料来自星球和星球上的生物。重复通关给的 ₿ 会变少，材料却一样多，所以反复刷同一只怪物依然值得。",
     ),
     currency: {
       title: "₿ in and out, on the GDD’s own scale",
@@ -486,7 +481,7 @@ export const sbhSections = [
     kind: "sbh-progression",
     title: "Thirty Levels and the Grind",
     intro: pair(
-      "Week 4 taught the level curve and rarity side by side, with a warning: a 10% drop chance doesn’t mean the item shows up on the tenth try. Our sheet turns the curve into EXP and the grind into hours.",
+      "The level curve and rarity have to be read together: a 10% drop chance doesn’t mean the item shows up on the tenth try. Our sheet turns the curve into EXP and the grind into hours.",
       "第 4 周把等级曲线和稀有度放在一起讲，还特别提醒：10% 的掉率，不代表第十次一定会掉。我们的数据表把等级曲线变成经验值，也把“刷”变成了小时。",
     ),
     levels: {
@@ -544,7 +539,7 @@ export const sbhSections = [
     kind: "sbh-calendar",
     title: "Year One, Week by Week",
     intro: pair(
-      "Week 5 opened with “design for the certainty of live ops”: events have to keep coming, so build their frameworks up front. Our year starts in April and resets every Thursday. A DLC lands on the first reset of each quarter, thirteen weeks apart, and Halloween gets the one event we designed in full.",
+      "I designed live ops as a certainty: events have to keep coming, so their frameworks are built up front. Our year starts in April and resets every Thursday. A DLC lands on the first reset of each quarter, thirteen weeks apart, and Halloween gets the one event we designed in full.",
       "第 5 周的第一句是“为长线运营的必然性而设计”：活动必须源源不断，所以框架要提前搭好。我们的一年从四月开始，每周四重置。每个季度的第一次重置都会上线一个 DLC，间隔十三周；万圣节则拿到了我们唯一完整设计过的活动。",
     ),
     ranges: weekRanges,
@@ -606,7 +601,7 @@ export const sbhSections = [
     source: "Slides · GDD · Pitch",
     title: "The Service Around the Hunt",
     lead: pair(
-      "Game as Service is about what keeps players coming back after launch. Most of our answers were social; the rest were money and time.",
+      "A service game lives on what keeps players coming back after launch. Most of our answers were social; the rest were money and time.",
       "Game as Service 这门课关心的是：上线之后，是什么让玩家一次次回来。我们的答案大多是社交，剩下的是钱和时间。",
     ),
     blocks: [
@@ -614,7 +609,7 @@ export const sbhSections = [
       { title: "Raids and faction wars", en: "Four-player dungeons and raids of eight or more, built around tank, damage and support. Two player factions fight over resource-rich planets and have to keep defending them. Raids refresh weekly, dungeons daily.", zh: "四人地牢和八人以上的团队副本，围绕坦克、输出和辅助来设计。两个玩家阵营争夺资源丰富的星球，还得一直守住它们。团队副本每周刷新，地牢每天刷新。" },
       { title: "The trading hub", en: "A Galactic Trading Hub with vendors, crafting stations, hunter-to-hunter trade and the hunt boards. High-level players can craft for new ones there, and rare gear is on show: the metagame, taught by looking.", zh: "银河交易中心里有商人、制作台、猎人之间的交易，以及悬赏板。高等级玩家可以在那里替新手制作装备，稀有装备也在那里被人看见：元游戏，看着就能学会。" },
       { title: "Teaching the chase", en: "A monster codex lists every drop and its odds, so a player can plan a farm. Leaderboards and group dungeons put the winning builds on display as the next target.", zh: "怪物图鉴列出每一种掉落和它的概率，玩家可以据此规划要刷什么。排行榜和组队地牢把最强的构筑展示出来，成为下一个追逐的目标。" },
-      { title: "Money", en: "Free to play and cosmetic only, a rule the premium-currency screen states outright. Packs sell 500 ₿ for $4.99, 1,300 for $9.99 and 2,800 for $19.99, and the season pass costs 1,200, so the $9.99 pack is the smallest single purchase that covers it. Week 5 asked of every offer whether it was ethical; that pairing is the one I would put to the question first.", zh: "免费游玩、只卖外观，高级货币界面上把这条规则写得清清楚楚。礼包是 4.99 美元 500 ₿、9.99 美元 1,300、19.99 美元 2,800；赛季通行证要 1,200，所以 9.99 美元的礼包，是能单次买够的最小一档。第 5 周对每一种优惠都问过：这样设计合乎道德吗？如果要追问，我会先问这一组搭配。" },
+      { title: "Money", en: "Free to play and cosmetic only, a rule the premium-currency screen states outright. Packs sell 500 ₿ for $4.99, 1,300 for $9.99 and 2,800 for $19.99, and the season pass costs 1,200, so the $9.99 pack is the smallest single purchase that covers it. Every offer should be fair to the player, and that pairing is the one I would question first.", zh: "免费游玩、只卖外观，高级货币界面上把这条规则写得清清楚楚。礼包是 4.99 美元 500 ₿、9.99 美元 1,300、19.99 美元 2,800；赛季通行证要 1,200，所以 9.99 美元的礼包，是能单次买够的最小一档。第 5 周对每一种优惠都问过：这样设计合乎道德吗？如果要追问，我会先问这一组搭配。" },
       { title: "A team and a date", en: "The pitch staffs three designers, eight in tech, six in art and one in audio, with 70% on the game and its DLC and 30% on live ops, and cites Warframe’s 200 million a year as the free-to-play comparison. First playable April 2029, alpha December 2029, open beta September 2030, launch March 2031.", zh: "提案里配置了三名设计、八名技术、六名美术和一名音频，70% 的人力做本体和 DLC，30% 做长线运营，并以 Warframe 每年两亿的收入作为免费游戏的参照。2029 年 4 月出第一个可玩版本，2029 年 12 月 Alpha，2030 年 9 月公开测试，2031 年 3 月上线。" },
     ],
   },
@@ -639,23 +634,23 @@ export const sbhSections = [
       "这一页的所有内容都来自下面这些文件。数字由网站 reference 文件夹里的脚本重新推导，每一个都能对照数据表核查。",
     ),
     blocks: [
-      { title: "Course", en: "Game as Service, Spring 2026: the Week 1 deck (four projects, five learning outcomes, the eight-slide pitch), Week 4 (economy, attributes, level curve, rarity, metagame) and Week 5 (live ops, events, holidays, monetization, the GDD, the persona, the video).", zh: "2026 年春季 Game as Service：第 1 周的课件（四个项目、五个学习目标、八页提案），第 4 周（经济、属性、等级曲线、稀有度、元游戏），第 5 周（长线运营、活动、节日、商业化、GDD、用户画像、视频）。" },
-      { title: "Decks", en: "MMORPG Slides (3/12), the Week 10 deck (3/27), Space Bounty Hunters_Pitch as PDF and PPTX (4/9), and the final Slides Space Bounty Hunters (4/16).", zh: "MMORPG Slides（3/12）、第 10 周的演示文稿（3/27）、Space Bounty Hunters_Pitch 的 PDF 与 PPTX（4/9），以及最终版 Slides Space Bounty Hunters（4/16）。" },
-      { title: "Numbers", en: "Data Sheets Space Bounty Hunters, seven tabs, last edited 4/23, and my 3/18 download of it. The derivations live in reference/projects/space-bounty-hunter/sheet-derivations.py.", zh: "Data Sheets Space Bounty Hunters，七个分页，最后编辑于 4/23，以及我在 3/18 下载的那一份。推导脚本在 reference/projects/space-bounty-hunter/sheet-derivations.py。" },
+      { title: "Reference decks", en: "The lecture decks we worked from: the pitch, then economy, attributes, level curve, rarity and metagame, then live ops, events, holidays, monetization, the GDD, the persona and the video.", zh: "2026 年春季 Game as Service：第 1 周的课件（四个项目、五个学习目标、八页提案），第 4 周（经济、属性、等级曲线、稀有度、元游戏），第 5 周（长线运营、活动、节日、商业化、GDD、用户画像、视频）。" },
+      { title: "Decks", en: "MMORPG Slides (3/12), the 3/27 deck, Space Bounty Hunters_Pitch as PDF and PPTX (4/9), and the final Slides Space Bounty Hunters (4/16).", zh: "MMORPG Slides（3/12）、第 10 周的演示文稿（3/27）、Space Bounty Hunters_Pitch 的 PDF 与 PPTX（4/9），以及最终版 Slides Space Bounty Hunters（4/16）。" },
+      { title: "Numbers", en: "Data Sheets Space Bounty Hunters, seven tabs, last edited 4/23, and my 3/18 download of it. Every number on this page is re-derived from them.", zh: "Data Sheets Space Bounty Hunters，七个分页，最后编辑于 4/23，以及我在 3/18 下载的那一份。这一页上的每个数字都是从它们重新推算出来的。" },
       { title: "Design", en: "GDD Space Bounty Hunters (4/16 to 4/23) and our Figma file, page “Project 2: Space Bounty Hunters”: the screens, the player-journey flow chart and our sticky notes.", zh: "GDD Space Bounty Hunters（4/16 至 4/23），以及我们的 Figma 文件中“Project 2: Space Bounty Hunters”页面：界面、玩家旅程流程图和我们的便签。" },
-      { title: "Playtest", en: "The ten Week 10 questions, the feedback slides, and Qualitative Playtest Summaries: five testers, seven questions each.", zh: "第 10 周的十个问题、反馈页，以及 Qualitative Playtest Summaries：五名测试者，每人七个问题。" },
+      { title: "Playtest", en: "The ten playtest questions, the feedback slides, and Qualitative Playtest Summaries: five testers, seven questions each.", zh: "第 10 周的十个问题、反馈页，以及 Qualitative Playtest Summaries：五名测试者，每人七个问题。" },
       { title: "Recording and art", en: "SpaceBountyHunters.mov (4:34, uploaded 4/23) and my SpaceBountyHuntersDesign.ai with its SVG exports (3/18 to 3/19).", zh: "SpaceBountyHunters.mov（4 分 34 秒，4/23 上传），以及我的 SpaceBountyHuntersDesign.ai 和它导出的 SVG（3/18 至 3/19）。" },
     ],
   },
 ]
 
-const summary = "A sci-fi FPS MMORPG for Game as Service: take a bounty, hunt the monster, carve it into gear, and keep the galaxy busy through a year of live ops."
+const summary = "A sci-fi FPS MMORPG for console and PC: take a bounty, hunt the monster, carve it into gear, and keep the galaxy busy through a year of live ops."
 const points = [
-  "Game as Service, Spring 2026: weeks 7 to 14, with Kaine and Weiting.",
-  "Design question: can the hunt itself be the progression, with builds deep enough to plan around?",
-  "Current version: slides, a seven-tab data sheet, a GDD, a clickable Figma prototype and its 4:34 recording. It is a design, not a build.",
+  { label: "Design goal", en: "Make the hunt itself the progression, with builds deep enough to plan around.", zh: "让狩猎本身就是成长，构筑也深到值得提前规划。" },
+  { label: "Iteration", en: "Testers said the tutorial hid the hook, so the final tutorial shows the pet, grenades and crafting before the first planet.", zh: "测试者说新手教程没展示卖点，所以最终版教程在第一颗星球之前，先展示宠物、手雷和制作。" },
+  { label: "My role", en: "Team of three with Kaine and Weiting: I designed the hunt loop and made the visual UI and UX for the whole circle.", zh: "与 Kaine、Weiting 三人合作：我设计了狩猎循环，并做了整圈流程的视觉 UI 与 UX。" },
 ]
-const access = "Designed with Kaine and Weiting for Game as Service, Spring 2026. The prototype link opens our Figma file at the title screen; the recording above plays the same flow."
+const access = "Designed with Kaine and Weiting, Spring 2026. The prototype link opens our Figma file at the title screen; the recording above plays the same flow."
 
 export const sbhCaseStudies = {
   "/service-game-ui-2": {
@@ -665,6 +660,11 @@ export const sbhCaseStudies = {
     summary,
     heroImage: "assets/framer-live/service-game-ui-2026-b.png",
     heroAlt: "Space Bounty Hunter title screen: Year 4039, a tower rising over a planet under a ringed sky",
+    audience: {
+      goal: { en: "Players should feel the hunt as a reason to come back: take a bounty, land, kill, harvest, craft better gear, and go again with friends.", zh: "玩家应该把“狩猎”当作回来的理由：接下悬赏、登陆、击杀、采集、打造更好的装备，再和朋友一起出发。" },
+      audience: { en: "Console and PC shooter players who like loot-driven progression and co-op hunts, the audience for Destiny 2, Warframe and Monster Hunter.", zh: "喜欢以掉落驱动成长、合作狩猎的主机与 PC 射击玩家——《命运 2》《星际战甲》《怪物猎人》的受众。" },
+      map: { target: { label: "Space Bounty Hunter", x0: 0.12, x1: 0.95, y0: 0.1, y1: 0.92 }, groups: [{ label: "Destiny 2 and Warframe players", x: 0.55, y: 0.42, core: true }, { label: "Monster Hunter players", x: 0.36, y: 0.76, core: true }, { label: "Solo shooter fans", x: -0.5, y: 0.55 }] },
+    },
     points,
     sections: sbhSections,
     access,
@@ -681,9 +681,6 @@ export const sbhCaseStudies = {
 // Chinese for the hero summary, points and footer, which main.js renders through
 // its copyTranslations table rather than as { en, zh } pairs.
 export const sbhCopyTranslations = [
-  [summary, "为 Game as Service 课程设计的科幻第一人称射击 MMORPG：接下悬赏，猎杀怪物，把它变成装备，再用一整年的长线运营让银河保持热闹。"],
-  [points[0], "2026 年春季 Game as Service：第 7 到第 14 周，与 Kaine、Weiting 合作。"],
-  [points[1], "设计问题：狩猎本身能不能就是成长，而且构筑深到值得提前规划？"],
-  [points[2], "当前版本：演示文稿、七个分页的数据表、GDD、可点击的 Figma 原型，以及它的 4 分 34 秒录屏。这是一套设计，而不是做出来的游戏。"],
-  [access, "2026 年春季与 Kaine、Weiting 为 Game as Service 课程设计。原型链接会从标题画面打开我们的 Figma 文件；上面的录屏播放的是同一条流程。"],
+  [summary, "为主机与 PC 设计的科幻第一人称射击 MMORPG：接下悬赏，猎杀怪物，把它变成装备，再用一整年的长线运营让银河保持热闹。"],
+  [access, "2026 年春季与 Kaine、Weiting 合作设计。原型链接会从标题画面打开我们的 Figma 文件；上面的录屏播放的是同一条流程。"],
 ]

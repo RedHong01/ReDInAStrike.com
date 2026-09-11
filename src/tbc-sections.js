@@ -26,12 +26,14 @@ export const tbcSections = [
   },
   {
     kind: "callout",
+    kicker: "Player experience",
     title: "The Structural Idea",
     en: "Every significant beat is played through one character's limited viewpoint, so each girl ends the story holding an incomplete account. The player is the only entity who sees all of them. That is the whole design: not a mystery the characters solve, but a picture only the person holding the controller can assemble.",
     zh: "每一个关键节点都透过某一个角色的受限视角来玩，因此每个女孩在故事结束时握有的都是不完整的说法。玩家是唯一看见全部的存在。这就是整个设计：它不是一桩由角色解开的谜，而是一幅只有握着手把的人才能拼起来的画。",
   },
   {
     kind: "flow",
+    kicker: "Iteration",
     title: "It Started as One Girl",
     steps: [
       ["SPRING 2025", "The first version is single-protagonist: Mia alone breaks into the town, alone finds out what the elders do to outsiders, alone goes back for Sarah.", "最初的版本是单主角：Mia 独自闯入村庄、独自查明长老们对外来者做了什么、再独自回去救 Sarah。"],
@@ -268,6 +270,7 @@ export const tbcSections = [
   },
   {
     kind: "mechanisms",
+    kicker: "Storytelling",
     title: "How the Game Tells It",
     intro: {
       en: "The vision document’s thesis is that the horror comes from the world and never from the girls. They bicker, tease and blow up at each other, but none of it is malice, so the weight of the dread falls on the environment and on how they react to it. The document names one primary mechanism and four supporting ones, budgets how much of play each should occupy, and gives every one a worked example in two acts.",
@@ -356,6 +359,7 @@ export const tbcSections = [
   },
   {
     kind: "text",
+    kicker: "Design problem",
     title: "What the Revision Found",
     paragraphs: [
       {
@@ -396,6 +400,7 @@ export const tbcSections = [
   },
   {
     kind: "system-grid",
+    kicker: "Team",
     title: "What the Sprints Changed",
     items: [
       ["CAMERA → TRIGGER", "Reading our first drafts aloud, we found that much of the meaning in our scenes was carried by camera language — framing, pans, emphasis — none of which survives implementation. Writing the dialogue, I had to translate those non-verbal beats into something the other writers could build on.", "把初稿读出来之后，我们发现场景里很多意义是由镜头语言承载的——构图、摇镜、强调——而这些在实作中都留不下来。负责写对白的我，必须把这些非语言的节点，转译成其他编剧真正能接着写的东西。"],

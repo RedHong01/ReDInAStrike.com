@@ -134,12 +134,14 @@ export const dadSections = [
   },
   {
     kind: "callout",
+    kicker: "Storytelling",
     title: "Two Lines Carry the Whole Thing",
     en: "The HUD says “YOU + DAD VS. THE BILLS”, and later it says “YOU VS. DAD”. I never wrote the premise down anywhere else in the game; those two strings do it in eight words. Everything else I built — the loan meter, the tiles that flip, the anger bar — is there to make the second line land.",
     zh: "HUD 先写「YOU + DAD VS. THE BILLS」，之后写「YOU VS. DAD」。游戏里没有任何其他地方陈述这个前提；这两行字用八个词说完，而其余一切——贷款计量、会翻面的地块、愤怒条——都是为了让第二行成立。",
   },
   {
     kind: "spec-table",
+    kicker: "Design intent",
     title: "Where Money Comes From",
     intro: {
       en: "I split income three ways because receiving money should not always mean the same thing. What you take decides which pressure comes back.",
@@ -201,6 +203,7 @@ export const dadSections = [
   },
   {
     kind: "text",
+    kicker: "Narrative design",
     title: "How Phase II Is Built Out of Phase I",
     paragraphs: [
       {
@@ -258,6 +261,7 @@ export const dadSections = [
   },
   {
     kind: "text",
+    kicker: "Playtest",
     title: "What Playtesters Could Not Read",
     paragraphs: [
       {
@@ -272,6 +276,7 @@ export const dadSections = [
   },
   {
     kind: "text",
+    kicker: "Iteration",
     title: "Where the Build Drifted From the Plan",
     paragraphs: [
       {

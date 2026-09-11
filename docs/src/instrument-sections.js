@@ -100,14 +100,18 @@ export const instrumentBody = [
 ]
 
 export const instrumentClosing = {
-  kind:"callout",title:"Next Evidence",
-  ...pair("The recording already contains a preparation-to-upgrade task path. The next useful evidence is the part still missing: a solved puzzle producing gears, those gears unlocking a music sheet, and a player completing that sequence. I would also test whether someone can explain the upgrade's cost and benefit without being prompted.","录像已经包含从准备演奏到完成升级的任务路径。接下来要补的是尚缺的一段：解谜产出齿轮，用齿轮解锁曲目，再由玩家完成这条路径。我也会测试玩家能否在没有提示的情况下，说清一次升级的成本与好处。"),
+  kind:"callout",title:"What I Would Test Next",
+  ...pair("Next I would put the missing half of the loop in front of players: a solved puzzle producing gears, and those gears unlocking a music sheet. Then I would ask them to explain an upgrade’s cost and benefit without a prompt, because an upgrade only feels earned when the player can say what it bought.","下一步，我会把循环中还缺的那一半交给玩家：解开谜题得到齿轮，再用齿轮解锁乐谱。然后请他们在没有提示的情况下，说出一次升级的代价和收益，因为只有玩家说得出这次升级换来了什么，它才会让人觉得是自己挣来的。"),
 }
 
 const summary="Restore an inherited mechanical instrument: uncover its music, play its songs, and turn each reward into the next step of a growing collection."
-const points=["Game as Service, Spring 2026 · Music-puzzle adventure and interface prototype.","Design focus: make the connection between a player's action, reward and next progression goal readable.","Current material: a GDD, a five-tab design sheet and the complete 13:57 prototype recording."]
+const points=[
+  {label:"Design goal",en:"Make the link between a player’s action, its reward and the next goal readable at every step.",zh:"让玩家在每一步都看得懂：自己的行动、得到的奖励，和下一个目标之间的关系。"},
+  {label:"Iteration",en:"My first draft paid coins for destroying an instrument; the tutorial version breaks a duplicate into components, so a spare becomes a step forward.",zh:"我的第一版草稿里，销毁乐器会返还金币；教程版改成把重复的乐器分解成零件，多出来的一把也能变成往前的一步。"},
+  {label:"My role",en:"Team of three with Duo and Jinqi: I designed the interface and drew the instruments.",zh:"与 Duo、Jinqi 三人合作：界面由我设计，乐器也由我绘制。"},
+]
 const access="Explore the complete prototype recording above, or read the design sheet behind its rewards, instrument development and level progression."
-const currentVersion="Interface prototype and design documentation. The first preparation-to-upgrade path is shown; the full puzzle-to-song loop and player validation remain open."
+const currentVersion="Interface prototype and design documentation: the path from preparing a song to upgrading an instrument, recorded from start to finish."
 
 // Extend the existing case object. Keep its hero, Task First block, section
 // responsibilities and footer; only obsolete scope claims are corrected.
@@ -116,16 +120,13 @@ export function extendInstrumentCase(existing) {
   const taskWithCurrentScope = {
     ...task,
     left: {...task.left,zh:"界面围绕一个任务来整理。玩家需要知道什么尚未完成、可以选什么，以及什么会确认完成。"},
-    right: {title:"Evidence Boundary",...pair("The full recording shows a path from level selection to rewards, decomposition and an upgrade result. It does not establish the complete puzzle-to-song loop or how players understood the design. The walkthrough below keeps those two scopes separate.","完整录像展示了从选关到奖励、分解与升级结果的路径。它还不能证明解谜到演奏的完整循环，或玩家实际如何理解设计。下面的演示会保留这两层范围的区别。")},
+    right: {title:"What the Recording Shows",...pair("The full recording follows one player path: choosing a level, collecting the reward, breaking down a duplicate instrument and reading the upgrade result. The walkthrough below follows that same path step by step, so each screen is read at the moment a player meets it.","完整录像跟随一条玩家路径：选关、领取奖励、分解一把重复的乐器，再读懂升级结果。下面的逐步讲解沿着同一条路径走，让每一个界面都在玩家遇到它的那一刻被读懂。")},
   }
   return {...existing,summary,points,access,currentVersion,sections:[instrumentOpening,taskWithCurrentScope,...instrumentBody,instrumentClosing,...existing.sections.filter(s=>s!==task && s.title!=="Next Evidence")],sourceLinks:[...(existing.sourceLinks||[]),{label:"Read the game design sheet ↗",href:"https://docs.google.com/spreadsheets/d/1K--ZlCT3OLAVaRNE2LKVdmWkp-8ALyc-6MnpsE7By2Q/edit?gid=0#gid=0",external:true}]}
 }
 
 export const instrumentCopyTranslations=[
   [summary,"修复继承而来的机械乐器：发现它的音乐，演奏曲目，再把每次回报转化为乐器收藏的下一步成长。"],
-  [points[0],"2026年春季Game as Service · 音乐解谜冒险与界面原型。"],
-  [points[1],"设计重点：让玩家看懂行动、回报与下一步成长目标之间的关系。"],
-  [points[2],"当前材料：GDD、五个分页的设计表，以及13分57秒完整原型录像。"],
   [access,"可以观看上方的完整原型录像，或查看支撑奖励、乐器培养和关卡进度的设计表。"],
-  [currentVersion,"界面原型与设计文档。已经展示第一次准备到升级的路径；完整的解谜到演奏循环，以及玩家验证，仍待补充。"],
+  [currentVersion,"界面原型与设计文档：从准备演奏到升级乐器的完整路径，从头到尾录了下来。"],
 ]

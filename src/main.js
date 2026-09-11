@@ -568,6 +568,7 @@ const caseStudyDetails = {
       },
       {
         kind: "callout",
+        kicker: "Player experience",
         title: "What the Loop Teaches",
         en: "Request, shelf, scan, response: each pass through the loop teaches one more link between what a customer says, what a product label shows and what the barcode confirms. The player learns product data by being wrong in front of a customer, not by reading a list.",
         zh: "需求、货架、扫描、回应：每走一次这个循环，玩家就多学会一层联系——顾客说的话、商品标签上写的内容、条码确认的结果。玩家是在顾客面前出错、再修正的过程中学会读懂商品数据，而不是靠背一张清单。",
@@ -608,7 +609,7 @@ Object.assign(caseStudyDetails, {
     audience: {
       goal: { en: "Players should feel dread coming from the world, never from the girls, and the unease of being the only one who holds the whole picture.", zh: "玩家应该感受到恐惧来自这个世界、而不是女孩们之间，以及“只有自己握有全貌”的那种不安。" },
       audience: { en: "Players of choice-driven, multi-perspective horror like Until Dawn and The Quarry, often played on a couch with friends calling out the choices.", zh: "喜欢《直到黎明》《采石场惊魂》这类选择驱动、多视角恐怖游戏的玩家——常常是几个朋友坐在沙发上一起喊着做选择。" },
-      map: { target: { label: "To Be Chosen", x0: -0.5, x1: 0.6, y0: -0.4, y1: 0.45 }, groups: [{ label: "Until Dawn players", x: 0.12, y: 0.05, core: true }, { label: "Narrative adventure fans", x: -0.3, y: -0.2, core: true }, { label: "Horror fans", x: -0.35, y: 0.72 }] },
+      map: { target: { label: "To Be Chosen", x0: -0.5, x1: 0.6, y0: -0.4, y1: 0.45 }, groups: [{ label: "Until Dawn players", x: 0.12, y: 0.05, core: true }, { label: "Narrative adventure fans", x: -0.28, y: -0.32, core: true }, { label: "Horror fans", x: -0.35, y: 0.72 }] },
     },
     points: [
       { label: "Iteration", en: "One girl who saw everything became a mystery she solved for the player, so I rebuilt it around five limited viewpoints.", zh: "一个看见一切的女孩，等于替玩家解开了谜，所以我把它重建成五个有限视角。" },
@@ -742,7 +743,7 @@ Object.assign(caseStudyDetails, {
     audience: {
       goal: { en: "Players should feel commitment: the body picks a lane before the hit, so every strike is a bet made standing up.", zh: "玩家应该感受到“决断”：身体在出手之前就选好了路线，所以每一击都是站着下的赌注。" },
       audience: { en: "Two players side by side who like quick local duels: the crowd for Nidhogg and for fighting games at a party.", zh: "喜欢快节奏本地对决、并排站着玩的两名玩家——聚会上玩《Nidhogg》和格斗游戏的那群人。" },
-      map: { target: { label: "Squirrel Samurai", x0: 0.2, x1: 0.95, y0: -0.45, y1: 0.58 }, groups: [{ label: "Nidhogg players", x: 0.58, y: 0.12, core: true }, { label: "Fighting game fans", x: 0.46, y: 0.72 }, { label: "Party players", x: 0.66, y: -0.62 }] },
+      map: { target: { label: "Squirrel Samurai", x0: 0.2, x1: 0.95, y0: -0.45, y1: 0.58 }, groups: [{ label: "Nidhogg players", x: 0.58, y: 0.12, core: true }, { label: "Fighting game fans", x: -0.45, y: 0.72 }, { label: "Party players", x: 0.66, y: -0.62 }] },
     },
     points: [
       { label: "Iteration", en: "Players read attacks at once but hesitated on defence, so my next build separates the defence pedal and its feedback.", zh: "玩家一眼就能读懂攻击，却在防守上犹豫，所以我的下一版会把防守踏板和它的反馈单独拆出来。" },
@@ -751,7 +752,7 @@ Object.assign(caseStudyDetails, {
     sections: [
       { kind: "copy-grid", left: { title: "Body as Direction", en: "The controller uses four buttons and floor pedals. A step strengthens a directional attack, so the player’s body commits to a lane before the result appears.", zh: "控制器使用四个按键与地面踏板。踩下踏板会强化一个方向的攻击，因此玩家在结果出现前，先用身体选定一条路线。" }, right: { title: "What Players Read", en: "Players understood the attack and the damage it did almost at once. Defence was where they hesitated, which told me the problem was feedback, not the pedal: a block has to look as decisive as a hit.", zh: "攻击与造成伤害的回馈通常能被理解。防御比较不清楚，下一轮应该单独测试防御踏板与它的回馈。" } },
       { kind: "flow", title: "Input → Result", steps: [["Step", "Commit to a direction", "踩下踏板选定方向"], ["Attack", "Strengthen the action", "强化攻击"], ["Hit", "Read damage feedback", "阅读伤害回馈"], ["Defend", "Check the other pedal", "确认另一个防御踏板"]] },
-      { kind: "callout", title: "Making Defence Readable", en: "My next build splits attack and defence into separate short tasks. Before each action the player points to the direction they expect, and the feedback has to confirm it, so both moves read as clearly as the hit already does.", zh: "把攻击与防御拆成两个短任务。玩家行动前先指出预期方向，再记录回馈是否确认了这个预期。" },
+      { kind: "callout", kicker: "Design problem", title: "Making Defence Readable", en: "My next build splits attack and defence into separate short tasks. Before each action the player points to the direction they expect, and the feedback has to confirm it, so both moves read as clearly as the hit already does.", zh: "把攻击与防御拆成两个短任务。玩家行动前先指出预期方向，再记录回馈是否确认了这个预期。" },
     ],
     access: "A two-player floor-pedal duel: the input, the attack read and the defence change are on this page.",
   },
@@ -3900,13 +3901,13 @@ function paintHalftonePlates(root = document) {
   }
 }
 
-// A section can carry a short tag naming what it answers — Player experience,
+// A section can carry a short kicker naming what it answers — Player experience,
 // Design problem, Iteration, Playtest, Team — set above its heading so a
 // reviewer can find the evidence while scrolling.
 function gddSectionMarkup(section) {
   const html = gddSectionBody(section)
-  if (!section.tag) return html
-  return html.replace(/^(\s*<section\b[^>]*>)/, `$1<p class="case-section-tag">${escapeHtml(section.tag)}</p>`)
+  if (!section.kicker) return html
+  return html.replace(/^(\s*<section\b[^>]*>)/, `$1<p class="case-section-tag">${escapeHtml(section.kicker)}</p>`)
 }
 
 function gddSectionBody(section) {
@@ -4113,7 +4114,7 @@ function caseStudyDetailMarkup(project, detail) {
           <div class="case-study-hero-copy"><p>${detail.summary && typeof detail.summary === "object" ? caseStudyPair(detail.summary) : bilingualText(detail.summary)}</p><ul>${points}</ul></div>
           </div>
         </header>
-        ${detail.audience ? gddSectionMarkup({ kind: "audience", tag: "Player experience", ...detail.audience }) : ""}
+        ${detail.audience ? gddSectionMarkup({ kind: "audience", kicker: "Player experience", ...detail.audience }) : ""}
         ${projectPlayableMarkup(project)}
         ${sections}
         <footer class="framer-case-footer case-study-footer">
@@ -4229,7 +4230,7 @@ function serialDeminerDetailMarkup(project) {
           </div>
         </section>
 
-        ${gddSectionMarkup({ kind: "audience", tag: "Player experience", ...serialDeminerAudience })}
+        ${gddSectionMarkup({ kind: "audience", kicker: "Player experience", ...serialDeminerAudience })}
         <section class="framer-case-section framer-copy-grid framer-copy-sans">
           <div>
             <h2>Brief</h2>

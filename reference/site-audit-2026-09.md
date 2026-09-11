@@ -43,8 +43,8 @@ Chosen, MyFridge.
 
 ## 2. Curtain — `/curtain`
 
-**What it is.** A networked two-player game (Photon Fusion; the project ships a LAN sync
-dashboard and an iPad-only display mode) about building a house room by room while
+**What it is.** A horror game (corrected 2026-09-11: no networking code exists — the project's
+"Fusion" is its room-fusion system, not Photon) about building a house room by room while
 something outside asks to be let in: *"我好冷，可以让我进来吗？"* — "I'm so cold, may I come in?"
 Started in Innovative Game Design, Spring 2026 (first commit 2026-03-26), still in
 development (last commit 2026-09-09, builds archived 2026-07). Git: 79 commits by Red, 6 by

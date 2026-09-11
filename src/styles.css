@@ -89,7 +89,9 @@
   --rule: #111111;
   --paper: #f8f7f5;
   --paper-rgb: 248, 247, 245;
-  --muted: rgba(0, 0, 0, 0.48);
+  /* Keep metadata quiet without letting it fall below readable contrast on
+     the warm paper background. */
+  --muted: rgba(0, 0, 0, 0.62);
   --header-height: 200px;
   --logo-size: 150px;
   --nav-scale: 1;
@@ -150,7 +152,7 @@
   --type-resume-meta-leading: calc(var(--type-resume-meta-size) + 2px);
   --type-resume-subtitle-size: var(--type-resume-meta-size);
   --type-resume-subtitle-leading: calc(var(--type-resume-subtitle-size) + 2px);
-  --type-resume-project-body-size: clamp(13px, 0.81vw, 14px);
+  --type-resume-project-body-size: clamp(14px, 0.9vw, 15px);
   --type-resume-project-body-leading: calc(var(--type-resume-project-body-size) + 2px);
   --type-resume-sidebar-body-size: var(--type-body-size);
   --type-resume-sidebar-body-leading: calc(var(--type-resume-sidebar-body-size) + 2px);
@@ -3048,8 +3050,8 @@ body[data-layout-transition="true"] .about-section {
 
 .framer-case-page {
   --case-ink: rgb(0, 17, 34);
-  --case-muted: rgb(136, 136, 136);
-  --case-copy: rgb(102, 102, 102);
+  --case-muted: rgb(96, 96, 96);
+  --case-copy: rgb(76, 76, 76);
 }
 
 .framer-case-shell {
@@ -4640,7 +4642,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 
 .project-card:not(.is-project-preview) .project-date,
 .footer-gallery-meta span:last-child {
-  color: color-mix(in srgb, currentColor 68%, transparent);
+  color: color-mix(in srgb, currentColor 78%, transparent);
 }
 
 .contact-copy a,
@@ -5849,7 +5851,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 ------------------------------------------------------------------------- */
 .case-study-shell {
   --case-ink: rgb(0, 17, 34);
-  --case-copy: rgb(102, 102, 102);
+  --case-copy: rgb(76, 76, 76);
 }
 
 .case-study-hero { padding-bottom: clamp(34px, 5vw, 64px); }

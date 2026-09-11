@@ -58,6 +58,58 @@ export const shroomSections = [
     ],
   },
   {
+    kind: "copy-grid",
+    left: {
+      title: "My Responsibility",
+      en: "I owned the mushroom controller's physical base and gyro setup. I built the base on a half yoga ball, prepared the port for the gyro, helped connect the two screens and Arduinos for the playtest, and supplied the 3D mushroom assets.",
+      zh: "我负责蘑菇控制器的实体底座与陀螺仪设置。我把底座装在半个瑜伽球上，准备陀螺仪接口，协助连接测试用的两台屏幕和 Arduino，并提交了蘑菇的 3D 资产。",
+    },
+    right: {
+      title: "A Team Problem",
+      en: "The controller was only one part of the problem. The team also had to make the tutorial, chopstick feedback, sound, story beats, wiring, and physical setup readable at the same time. My work had to stay connected to those shared player-facing questions.",
+      zh: "控制器只是问题的一部分。团队还要同时让教程、筷子反馈、声音、故事节奏、线路和现场装置都变得易懂。我的工作必须持续回应这些共同面对玩家的问题。",
+    },
+  },
+  {
+    kind: "image",
+    image: "assets/case-study/shroom-playtest-setup.jpg",
+    alt: "Shroom Pot Showdown playtest setup with the physical controller, two screens, and the game tutorial",
+    label: "TEAM C / PLAYTEST SETUP / 19 APRIL 2026",
+    caption: {
+      en: "A team playtest setup: the physical controller in front of the game screens, with the tutorial running for the next player. The image shows the shared test environment; it does not by itself prove that every player understood the interaction.",
+      zh: "团队测试现场：实体控制器位于游戏屏幕前，下一位玩家正在看到教程。图片证明了共同的测试环境，但不能单独证明每位玩家都理解了交互。",
+    },
+  },
+  {
+    kind: "evidence-table",
+    title: "How Feedback Became a Shared Build",
+    intro: {
+      en: "The collaboration was a chain of small decisions rather than one handoff. I kept my physical work tied to the same player questions the rest of the team was solving.",
+      zh: "这次协作不是一次交接，而是一连串小决定。我把实体制作持续连接到团队其他成员正在解决的同一组玩家问题。",
+    },
+    rows: [
+      ["04/02 · Shared priority", { en: "J Andarza's Discord checklist named the next playtest priorities: clearer chopstick UI, a tutorial, a storyboard, sound, a readable 90° hand turn, and stronger goals, pacing, and risk/reward. It gave the team one shared problem list before anyone split the work.", zh: "J Andarza 在 Discord 列出了下一次测试前的共同优先事项：更清楚的筷子 UI、教程、storyboard、声音、可读的 90° 手部转向，以及更明确的目标、节奏和风险回报。团队先有了共同问题清单，再拆分工作。" }],
+      ["04/10–04/15 · My work package", { en: "I built the mushroom base on a half yoga ball, prepared the gyro opening, and helped set up two screens and the Arduinos at 242. That work mattered only when another teammate could test the movement and report what was still unclear.", zh: "我把蘑菇底座装在半个瑜伽球上，准备陀螺仪开口，并协助在 242 教室连接两台屏幕和 Arduino。它只有在队友能够实际测试移动并反馈哪里仍然不清楚时才真正有用。" }],
+      ["04/15 · Player-facing feedback", { en: "Jason reported four connected problems after testing: the chopstick and button wires tangled, tutorial pages moved too quickly, the mushroom turn was unclear, and missing voice-over could reduce player focus. The team treated these as design and production problems together.", zh: "测试后 Jason 报告了四个相互关联的问题：筷子和按钮的线缆会缠绕、教程页面翻得太快、蘑菇转向不清楚，以及缺少 voice-over 可能降低玩家注意力。团队把它们同时当作设计和制作问题处理。" }],
+      ["04/18 · Debug loop", { en: "In WeChat, DUO reported that the settlement text was still overlapping. 软隽辰 suggested disabling four cubes in the pot and table to isolate the movement issue, then asked for the result after the next push. The exchange records report → isolate → test → report back, including the conflict that remained.", zh: "在微信里，DUO 报告结算页面文字仍然重叠。软隽辰建议先禁用锅和桌子里的四个 cube 来隔离 movement 问题，再让对方在下一次 push 后回报结果。这段记录了报告 → 隔离 → 测试 → 回报，也保留了仍然存在的 conflict。" }],
+      ["04/21 · Story and timing decision", { en: "Jason argued that the story could not simply be cut because each storyboard page needed a corresponding line. 软隽辰 pointed out that a three-frame animation lasting nine seconds was too slow, and Julia supplied a shorter five-beat script. The shared decision kept the story beats while reducing the time each tutorial moment occupied.", zh: "Jason 认为故事不能直接删掉，因为每一页 storyboard 都需要对应的文字。软隽辰指出三帧动画播放九秒太慢，Julia 随后提供了更短的五段脚本。团队保留了故事节点，同时减少每个教程时刻占用的时间。" }],
+      ["Current boundary", { en: "The records show how the team identified issues, divided response work, and prepared another test. They do not provide a matched post-change result for every issue, so I present the collaboration as an evidence-backed process rather than a claim that every problem was solved.", zh: "这些记录证明团队如何识别问题、分配回应工作并准备下一次测试。但它们没有为每个问题提供改动后的同任务结果，因此我把协作呈现为有证据的过程，而不是声称所有问题都已解决。" }],
+    ],
+  },
+  {
+    kind: "copy-grid",
+    left: {
+      title: "What I Changed About My Role",
+      en: "I used to describe physical-computing work as a handoff: document my circuit and let the team continue. This sprint made the limitation visible. A base, a gyro port, or a cable layout is not finished when it exists; it is finished when another teammate can test it, describe the player-facing result, and use that observation to make the next decision.",
+      zh: "过去我常把实体运算工作描述成交接：记录电路，然后让团队继续。这次冲刺让我看见了这个局限。底座、陀螺仪接口或线路布局不是“做出来”就结束，而是要让队友能够测试、描述玩家看到的结果，并把观察带回下一次决定。",
+    },
+    right: {
+      title: "What Still Needs Proof",
+      en: "The final survey and showcase recordings are evidence that the team reached another testable build. A future version of this case should add the same-task before/after result for movement, tutorial timing, or wiring stability.",
+      zh: "最终问卷和展示录像证明团队抵达了另一个可测试的版本。这个案例的下一版应补上移动、教程节奏或线路稳定性的同任务前后结果。",
+    },
+  },
+  {
     kind: "survey",
     title: "Two Rounds of Playtests",
     intro: {

@@ -155,8 +155,8 @@ function build(section, helpers) {
         return `
           <circle class="sbh-loop-dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" />
           <text class="sbh-loop-name" x="${node.lx}" y="${node.ly}" text-anchor="${node.anchor || "middle"}">${escapeHtml(node.name)}</text>
-          <text class="sbh-loop-zh" x="${node.lx}" y="${node.ly + 22}" text-anchor="${node.anchor || "middle"}" lang="zh-Hans">${escapeHtml(node.zh)}</text>
-          <text class="sbh-loop-stats" x="${node.lx}" y="${node.ly + 40}" text-anchor="${node.anchor || "middle"}">${escapeHtml(node.stats)}</text>`
+          <text class="sbh-loop-zh" x="${node.lx}" y="${node.ly + 25}" text-anchor="${node.anchor || "middle"}" lang="zh-Hans">${escapeHtml(node.zh)}</text>
+          <text class="sbh-loop-stats" x="${node.lx}" y="${node.ly + 43}" text-anchor="${node.anchor || "middle"}">${escapeHtml(node.stats)}</text>`
       })
       .join("")
     return `${arcs}${dots}`
@@ -192,7 +192,7 @@ function build(section, helpers) {
   const html = `
     <div class="sbh-build sbh-bleed">
       <figure class="sbh-build-loops">
-        ${svg}
+        <div class="sbh-loops-scroll">${svg}</div>
         <figcaption>${gddPair(cycle.caption)}</figcaption>
       </figure>
       <div class="sbh-build-species">

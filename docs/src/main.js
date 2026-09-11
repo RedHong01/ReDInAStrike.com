@@ -18,6 +18,7 @@ import { tbcSections } from "./tbc-sections.js"
 import { myfridgeSections } from "./myfridge-sections.js"
 import { shroomSections } from "./shroom-sections.js"
 import { extraSectionRenderers } from "./extra-section-renderers.js"
+import { rebuiltCaseStudies } from "./rebuilt-case-studies.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -95,16 +96,7 @@ const projects = [
     date: "12/9/2024",
     path: "/assethub",
     navHash: "interaction",
-    image: "assets/framer-live/youtube-pjbu-hq.jpg",
-    youtube: "PjBUK45MWJs",
-  },
-  {
-    pageTitle: "Assets Hub",
-    displayTitle: "UI/UX Prototype",
-    date: "12/9/2024",
-    path: "/uiux-prototype",
-    navHash: "interaction",
-    image: "assets/framer-live/uiux-prototype-2024.png",
+    image: "assets/case-study/assets-hub/poster.jpg",
   },
   {
     pageTitle: "Curtain",
@@ -226,6 +218,8 @@ const projects = [
 ]
 
 const routeMap = new Map(projects.map((project) => [project.path, project]))
+// Preserve the old Assets Hub address without duplicating its card.
+routeMap.set("/uiux-prototype", routeMap.get("/assethub"))
 const catalogProjectEntries = projects.map((project, originalIndex) => ({ project, originalIndex }))
 const catalogEntryDateOrder = (a, b) => {
   const dateDelta = projectDateRank(b.project) - projectDateRank(a.project)
@@ -778,8 +772,9 @@ for (const [path, sections] of Object.entries(editorialReadableSections)) {
   }
 }
 
-// AssetHub and its older site label point to the same readable case. Keep the
-// alias on the native route so it cannot fall back to a full-board image.
+// The two rebuilt cases are sourced from the local archive and replace the
+// older image-only records. The historical UI/UX URL remains a drawer alias.
+Object.assign(caseStudyDetails, rebuiltCaseStudies)
 framerProjectDetails["/uiux-prototype"] = framerProjectDetails["/assethub"]
 
 const app = document.querySelector("#app")
@@ -1244,7 +1239,7 @@ function routeFromLocation() {
   const last = parts[parts.length - 1]
   if (!last) return "/"
   const candidate = `/${last}`
-  return routeMap.has(candidate) ? candidate : "/"
+  return routeMap.has(candidate) ? (candidate === "/uiux-prototype" ? "/assethub" : candidate) : "/"
 }
 
 function normalizedPathname(pathname) {
@@ -1268,7 +1263,7 @@ function routeFromNavigationUrl(url) {
   if (!last) return "/"
 
   const candidate = `/${last}`
-  return routeMap.has(candidate) ? candidate : null
+  return routeMap.has(candidate) ? (candidate === "/uiux-prototype" ? "/assethub" : candidate) : null
 }
 
 function decodedUrlHash(url) {
@@ -4036,6 +4031,7 @@ function caseStudyDetailMarkup(project, detail) {
     "/alt-controller-2025-b": "https://www.figma.com/design/0tCbAiVUlrPId3RWd9LRif/AltControl?node-id=176-77",
   }
   const sourceLink = sourceLinks[project.path]
+  const detailSourceLinks = detail.sourceLinks || []
   const accentBackground = project.mediaBackground || ""
   const accentContrast = accentBackground ? caseAccentContrast(accentBackground) : null
   const accentStyle = accentBackground
@@ -4056,8 +4052,8 @@ function caseStudyDetailMarkup(project, detail) {
         ${projectPlayableMarkup(project)}
         ${sections}
         <footer class="framer-case-footer case-study-footer">
-          <div><h2>Access</h2><p>${bilingualText(detail.access)}</p>${project.webglEmbed ? `<p><a href="${asset(project.webglEmbed)}" target="_blank" rel="noreferrer">Open playable build ↗</a></p>` : ""}${sourceLink ? `<p><a href="${sourceLink}" target="_blank" rel="noreferrer">Open Figma source board ↗</a></p>` : ""}</div>
-          <div><h2>Current version</h2><p>Built from the current project files, recorded gameplay, and editable design sources. Open tests are labeled where they occur.</p></div>
+          <div><h2>Access</h2><p>${bilingualText(detail.access)}</p>${project.webglEmbed ? `<p><a href="${asset(project.webglEmbed)}" target="_blank" rel="noreferrer">Open playable build ↗</a></p>` : ""}${sourceLink ? `<p><a href="${sourceLink}" target="_blank" rel="noreferrer">Open Figma source board ↗</a></p>` : ""}${detailSourceLinks.map((link) => `<p><a href="${escapeHtml(link.href)}"${link.external ? ' target="_blank" rel="noreferrer"' : ""}>${escapeHtml(link.label)}</a></p>`).join("")}</div>
+          <div><h2>Current version</h2><p>${detail.currentVersion ? bilingualText(detail.currentVersion) : "Built from the current project files, recorded gameplay, and editable design sources. Open tests are labeled where they occur."}</p></div>
         </footer>
       </article>
     </main>`

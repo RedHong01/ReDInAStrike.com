@@ -1,0 +1,53 @@
+=== page 1 ===
+Interaction 1:
+IxD 101
+WK10_Class Overview
+=== page 2 ===
+Class Overview
+● Individual sharing of  interview  and  competitive analysis  insights
+● Studio Time
+○ CONCEPT:  Write or reﬁne HMW statement
+○ FEATURES:  Clearly deﬁne key features supporting your “big idea”
+○ FLOW:  Build a scenario + user ﬂow incorporating these features
+=== page 3 ===
+Project Share
+● Share  interview  and  competitive analysis  insights
+○ What is your project idea?
+○ Who is it for?
+○ What key features are emerging?
+=== page 4 ===
+https://www.nngroup.com/articles/ten-usability-heuristics
+=== page 5 ===
+Homework 
+Assignments
+=== page 6 ===
+HW9: (individual) Create Wireframes/Wireﬂows
+KEY OBJECTIVE(S)
+● Design and deliver wireframes/wireﬂows for your solo project. I recommend beginning by sketching 
+on paper before moving digital. The deliverable is a link to Figma screen designs (wireframes).
+ASSIGNMENT
+1. Leverage your user ﬂow and key features. Determine what screens and features to wireframe and how 
+they ﬁt together and ﬂow.
+2. Design and deliver mid-ﬁdelity wireframes/wireﬂows. Consider best practices re: Usability Heuristics 
+where applicable.
+3. For each wireframe, consider the interactions and decisions a user can choose from in order to move 
+them closer to their goal. 
+○ What is the priority? Does the design express the ‘big idea’/UX Vision/HMW?
+○ What is the key features or interactions are being expressed?
+○ Provide annotations where helpful to provide user and ecosystem context
+DELIVERABLE
+Share a link to your work in Canvas. Be prepared to share your work in class, however, you do not need to 
+print your work to pin up.
+=== page 7 ===
+HW: Due for next class
+● HW:  (individual) Create Wireframes/Wireﬂows
+● Be prepared to share the following:
+○ What is your  HMW statement ?
+○ Where are you expressing the  key features and interactions 
+supporting your “big idea”?
+○ Share the  scenario + user ﬂow  incorporating these features
+=== page 8 ===
+Resource Links
+● Canvas for course syllabus and assignment submission
+● For questions, concerns, etc. related to class
+david.chan@artcenter.edu

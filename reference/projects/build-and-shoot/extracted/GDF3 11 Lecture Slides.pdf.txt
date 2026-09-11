@@ -1,0 +1,371 @@
+=== page 1 ===
+Level 11
+PROGRESSION SYSTEMS
+David Mullich
+Game Design Fundamentals 3
+ArtCenter College of Design
+1
+=== page 2 ===
+Discussion
+What is a progression system?
+2
+=== page 3 ===
+Definition
+What is a progression system?
+Any in-game system that allows 
+player to achieve goals and 
+receive rewarding outcomes.
+3
+=== page 4 ===
+Core Gameplay Loop
+Progression:
+● Brings game from start state to end 
+state
+4
+=== page 5 ===
+Core Gameplay Loop
+Progression:
+● Brings game from start state to end 
+state
+● Provides players with a sense of 
+purpose, accomplishment, or sense of 
+growth
+5
+=== page 6 ===
+Core Gameplay Loop
+Progression:
+● Brings game from start state to end 
+state
+● Provides players with a sense of 
+purpose, accomplishment, or sense of 
+growth
+● Makes player feel that their time in the 
+game was rewarding and worthwhile
+6
+=== page 7 ===
+Core Gameplay Loop
+Progression:
+● Brings game from start state to end 
+state
+● Provides players with a sense of 
+purpose, accomplishment, or sense of 
+growth
+● Makes player feel that their time in the 
+game was rewarding and worthwhile
+● Keep players motivated and engaged
+7
+=== page 8 ===
+Call of Duty Core Loop
+ACTION
+Move, Shoot, Reload, Run, 
+Hide
+EXPANSION REWARD
+Character Upgrades Scoring
+8
+=== page 9 ===
+Call of Duty Secondary Loop
+ACTION
+Kill Streak
+EXPANSION REWARD
+High-Impact Objectives Radar Scans, Air Strikes, 
+Tactical Nukes
+9
+=== page 10 ===
+Call of Duty Tertiary Loop
+ACTION
+Completing Missions
+EXPANSION REWARD
+Unlock Premium Content COD Points
+10
+=== page 11 ===
+Horizontal Progression
+Players expand their capabilities or options
+● New Playstyles or Abilities
+● Customization and Variety
+● Exploration and Content Expansion
+● New Options Balanced with Existing Ones
+Benefits:
+● Promotes Strategic Thinking ,  Exploration , 
+Creativity
+● Avoids Power Creep
+Final Fantasy  Spell System
+● Enhances Replayability
+Risks:
+● Analysis Paralysis
+11
+=== page 12 ===
+Vertical Progression
+Players advance by becoming progressively 
+stronger or more powerful
+● Stat Increases
+● Stronger Gear or Upgrades
+● Higher Difficulty Tiers
+● Linear Progression Path
+Benefits:
+● Clear Sense of Growth
+● Structured Goals
+God of War  Weapon Upgrades
+● Accessible Design
+Risks
+● Power Creep
+12
+=== page 13 ===
+Cyclical Progression
+Players repeatedly go through a loop or cycle of 
+growth, reset, and re-growth, often with some form 
+of permanent advancement between cycles
+● Temporary and Permanent Progress
+● Increasing Complexity or Challenge
+● Partial Reset of Progress
+● Repetition with Growth
+Benefits:
+● Grow
+Cookie Clicker  Prestige Loop
+● Player Skill Development
+● Game Mastery
+Risks
+● Slow Long-Term Progress
+13
+=== page 14 ===
+Horizontal vs. Vertical vs. Cyclical Progression
+Feature Horizontal Progression Vertical Progression Cyclical Progression
+Focus Variety and flexibility  Linear power growth  Growth through repeated 
+(skills, options) (stats, levels, gear) loops and resets
+Gameplay Impact Expands player choices  Makes players stronger Encourages mastery 
+and strategies through repetition
+Common In RPGs, MMOs, action  Sandbox games,  Roguelikes, time-loop 
+games open-world games games, survival games
+Mechanics  Unlocking new tools or  Leveling up to deal more  Permadeath or reset 
+Example abilities for variety damage mechanics
+14
+=== page 15 ===
+Player Character Based Progression
+Focused on the growth and development of the player's 
+character(s)
+● Stat Growth
+● Skill or Ability Unlocks
+● Personal Customization
+● Permanent Progression
+Benefits:
+● Clear Motivations and Achievements
+● Sense of Ownership
+● Role-Playing
+Skyrim  Leveling System
+Risks
+● Grinding
+15
+=== page 16 ===
+Economic Progression
+Players advance by accumulating, managing, and 
+spending resources, currencies, or commodities.
+● Acquisition Methods
+● Spending/Investements
+● Balancing Supply and Demand
+● Managing Inflation and Scaling Costs
+Benefits:
+● Encourages Exploration and Trading
+● Strategic Decision-Making
+● Alternate Progression Paths 
+Age of Empires  Villager System
+Risks
+● Micromanagement
+16
+=== page 17 ===
+Player Character vs. Economic Progression
+Feature Player Character Progression Economic Progression
+Focus Enhancing the individual player character’s  Managing resources, currencies, or 
+abilities, stats, or skills commodities to unlock content
+Gameplay Impact - Enables character growth and customization - Encourages strategic decision-making
+- Boosts combat, exploration, or role-specific  - Drives resource optimization and trade-offs
+effectiveness
+Common In RPGs, JRPGs, Soulslike games,  Strategy, Survival, Simulation, Sandbox
+Shooter-RPG hybrids
+Mechanics Example - Leveling up through XP - Collecting resources (e.g., gold, wood, food)
+- Unlocking skill trees or abilities - Spending on upgrades, crafting, or 
+- Equipping better weapons, armor, or items infrastructure
+- Managing supply and demand
+17
+=== page 18 ===
+Mission Progression
+Completing specific tasks or objectives, usually 
+organized into a sequence, to advance the game’s 
+story or gameplay experience
+● Structured Objectives
+● Narrative Advancement
+● Unlocking Content
+● Mission Variety
+Benefits:
+● Engagement Through Clear Goals
+Grand Theft Auto V  Mission System
+● Immersion Through Narrative
+● Balances Difficulty Through Mission Challenge
+Risks
+● Repetitive or Monotonous Missions
+18
+=== page 19 ===
+Level Progression
+Advancing through a series of distinct levels or stages, 
+each with its own challenges, layout, or mechanics.
+● Linear or Branching Structure
+● Increasing Challenge
+● Thematic Variety
+● Replayablity
+Benefits:
+● Clear Sense of Progress
+● Gradually Introduce New Mechanics and Enemies
+● Replayability For Better Performance or Missed 
+Super Mario Bros.  Level System
+Content
+Risks
+● Unbalanced Length, Difficulty or Complexity
+19
+=== page 20 ===
+World Progression
+Unlocking and exploring new areas of a game’s world as 
+players advance.
+● Exploration-Based Progression
+● Dynamic World Changes
+● Gameplay Affects Access and Closures
+● Sense of Scale
+Benefits:
+● Encourages Exploration and Discovery
+● Enhances Immersion
+● Provides Player Freedom and Agency
+Breath of the Wild  Shrine Map
+Risks
+● Overwhelming Scope and Unclear Navigation
+● Arbitrary Gatekeeping for Progression
+20
+=== page 21 ===
+Horizontal vs. Vertical vs. Cyclical Progression
+Feature Horizontal Progression Vertical Progression Cyclical Progression
+Focus Variety and flexibility  Linear power growth  Growth through repeated 
+(skills, options) (stats, levels, gear) loops and resets
+Gameplay Impact Expands player choices  Makes players stronger Encourages mastery 
+and strategies through repetition
+Common In RPGs, MMOs, action  Sandbox games,  Roguelikes, time-loop 
+games open-world games games, survival games
+Mechanics  Unlocking new tools or  Leveling up to deal more  Permadeath or reset 
+Example abilities for variety damage mechanics
+21
+=== page 22 ===
+Narrative Progression
+How a game’s plot, characters, and themes unfold as 
+players interact with the game world.
+● Player Choice and Consequences
+● Linear vs. Nonlinear Storytelling
+● Integration with Gameplay Mechanics
+● Dialogue and Cut Scenes
+Benefits:
+● Emotional Engagement
+● Motivation to Progress
+● Immersion in the World
+Doki Doki Literature Club!  Dialogue 
+System
+Risks
+● Limited Player Agency
+● Overloading Player with Lore
+22
+=== page 23 ===
+Time-Based Progression
+Players are reinforced and rewarded for actual time spent 
+playing in the game
+● Real-time Dependency
+● Reinfocement for Active Play
+● Incorporates Passive Progression
+● Encourages Routine Play
+Benefits:
+● Player Retention and Engagement
+● Anticipation and Accomplishment
+● Balance Between Active and Casual Play
+Animal Crossing  Timed Event 
+System
+Risks
+● Impatience and Abandoment From Timers
+● Daily Routines May Feel Like Chores
+23
+=== page 24 ===
+Luck-Based Progression
+Mechanics where progression or rewards depend partly 
+or entirely on chance
+● Random Loop Drops or Quest Rewards
+● Loot Boxes and Gacha Systems
+● Crafting or Upgrade Random Outcomes
+● Procedural Generation
+Benefits:
+● Excitement and Anticipation
+● Surprise and Variety
+● Long-Term Engagement
+Overwatch  Loot Box System
+Risks
+● Player Frustration with Randomness
+● Monetization Controversy
+24
+=== page 25 ===
+Narrative vs Time-Based vs Luck-Based Progression
+Feature Narrative Progression Time-Based Progression Luck-Based Progression
+Focus Storytelling and character/plot  Progression tied to real-world  Randomized outcomes and 
+development time spent actively or  rewards based on chance
+passively in the game
+Gameplay Impact Players are motivated by  Encourages regular  Adds excitement and 
+emotional investment and  engagement and long-term  unpredictability but can cause 
+story resolution commitment frustration with bad luck
+Common In RPGs, adventure games,  Mobile games, life simulators,  ARPGs, gacha games, 
+visual novels MMORPGs roguelikes, collectible card 
+games
+Player Agency High – players advance by  Moderate – players decide  Low – progression outcomes 
+completing objectives or  how much time to spend but  are unpredictable
+choices are limited by timer
+25
+=== page 26 ===
+Progression Pro Tips
+● Align with Core Mechanics
+26
+=== page 27 ===
+Progression Pro Tips
+● Align with Core Mechanics
+● Align to Player Agency and Choice
+27
+=== page 28 ===
+Progression Pro Tips
+● Align with Core Mechanics
+● Align to Player Agency and Choice
+● Be Visible and Transparent
+28
+=== page 29 ===
+Progression Pro Tips
+● Align with Core Mechanics
+● Align to Player Agency and Choice
+● Be Visible and Transparent
+● Reinforce Accomplishments
+29
+=== page 30 ===
+Progression Pro Tips
+● Align with Core Mechanics
+● Align to Player Agency and Choice
+● Be Visible and Transparent
+● Reinforce Accomplishments
+● Meaningful Rewards
+30
+=== page 31 ===
+Progression Pro Tips
+● Align with Core Mechanics
+● Align to Player Agency and Choice
+● Be Visible and Transparent
+● Reinforce Accomplishments
+● Meaningful Rewards
+● Be Flexible To Player Preferences and Styles
+31
+=== page 32 ===
+Progression Pro Tips
+● Align with Core Mechanics
+● Align to Player Agency and Choice
+● Be Visible and Transparent
+● Reinforce Accomplishments
+● Meaningful Rewards
+● Be Flexible To Player Preferences and Styles
+● Do Iterative Playtesting Based on Player Behavior and Feedback
+32
+=== page 33 ===
+Enough Already!  It’s….
+33

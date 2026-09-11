@@ -1,0 +1,728 @@
+<canvas id="57:142" name="Interaction Prototype " x="0" y="0" width="0" height="0">
+  <rounded-rectangle id="228:5" name="image 1" x="-1385" y="1074" width="712" height="164" />
+  <rounded-rectangle id="228:11" name="image 2" x="-4730" y="-5011" width="1512" height="982" />
+  <frame id="228:9" name="Search Bar Syncing_Color Gradient" x="-1386" y="905" width="715" height="125">
+    <vector id="235:30" name="Search Bar_Shadow" x="45" y="45" width="625" height="35" />
+    <frame id="236:34" name="Frame 3" x="58" y="20" width="600" height="50">
+      <vector id="235:31" name="Search Bar_Normal" x="0" y="0" width="600" height="50" />
+      <instance id="324:377" name="Search Bar_Cloud Syncing " x="0" y="0" width="600" height="50" />
+    </frame>
+    <text id="228:8" name="􀇂 Syncing" x="93" y="20" width="530" height="50" />
+  </frame>
+  <frame id="587:1042" name="Search Bar_Cloud Syncing " x="-1141" y="155" width="640" height="370">
+    <symbol id="587:1043" name="Property 1=Variant4" x="20" y="300" width="600" height="50" />
+    <symbol id="587:1045" name="Property 1=Variant3" x="20" y="230" width="600" height="50" />
+    <symbol id="587:1047" name="Property 1=Variant2" x="20" y="90" width="600" height="50" />
+    <symbol id="587:1049" name="Property 1=Variant5" x="20" y="160" width="600" height="50" />
+    <symbol id="587:1051" name="Property 1=Default" x="20" y="20" width="600" height="50" />
+  </frame>
+  <section id="246:68" name="Desktop Templates" x="-4859" y="-3084" width="3080" height="3260">
+    <frame id="246:69" name="Desktop Wallpaper" x="50" y="2270" width="2980" height="940">
+      <symbol id="246:70" name="Color Mode=Dark" x="1520" y="20" width="1440" height="900" />
+      <symbol id="246:71" name="Color Mode=Light" x="20" y="20" width="1440" height="900" />
+    </frame>
+    <frame id="246:72" name="_Menu Bar / Menu Item / Dark" x="680" y="2100" width="75" height="108">
+      <symbol id="246:73" name="Selected=True" x="12" y="20" width="51" height="24" />
+      <symbol id="246:75" name="Selected=False" x="12" y="64" width="51" height="24" />
+    </frame>
+    <frame id="246:77" name="_Menu Bar / Menu Item / Light" x="570" y="2100" width="75" height="108">
+      <symbol id="246:78" name="Selected=True" x="12" y="20" width="51" height="24" />
+      <symbol id="246:80" name="Selected=False" x="12" y="64" width="51" height="24" />
+    </frame>
+    <frame id="246:82" name="_Menu Bar / App Name / Dark" x="420" y="2100" width="114" height="108">
+      <symbol id="246:83" name="Selected=True" x="12" y="20" width="90" height="24" />
+      <symbol id="246:85" name="Selected=False" x="12" y="64" width="90" height="24" />
+    </frame>
+    <frame id="246:87" name="_Menu Bar / App Name / Light" x="270" y="2100" width="114" height="108">
+      <symbol id="246:88" name="Selected=True" x="12" y="20" width="90" height="24" />
+      <symbol id="246:90" name="Selected=False" x="12" y="64" width="90" height="24" />
+    </frame>
+    <frame id="246:92" name="_Menu Bar / Apple Logo / Dark" x="160" y="2100" width="77" height="108">
+      <symbol id="246:93" name="Selected=On" x="20" y="20" width="37" height="24" />
+      <symbol id="246:95" name="Selected=Off" x="20" y="64" width="37" height="24" />
+    </frame>
+    <frame id="246:97" name="_Menu Bar / Apple Logo / Light" x="50" y="2100" width="77" height="108">
+      <symbol id="246:98" name="Selected=On" x="20" y="20" width="37" height="24" />
+      <symbol id="246:100" name="Selected=Off" x="20" y="64" width="37" height="24" />
+    </frame>
+    <frame id="246:102" name="Menu Bar" x="50" y="1940" width="1480" height="108">
+      <symbol id="246:103" name="Color Mode=Dark" x="20" y="20" width="1440" height="24" />
+      <symbol id="246:123" name="Color Mode=Light" x="20" y="64" width="1440" height="24" />
+    </frame>
+    <frame id="246:143" name="_System App Icon" x="50" y="1290" width="650" height="600">
+      <symbol id="246:144" name="App Icon=Your App Icon" x="180" y="530" width="50" height="50" />
+      <symbol id="246:146" name="App Icon=Swift Playgrounds" x="100" y="530" width="50" height="50" />
+      <symbol id="246:148" name="App Icon=Shortcuts" x="20" y="530" width="50" height="50" />
+      <symbol id="246:150" name="App Icon=Xcode" x="580" y="450" width="50" height="50" />
+      <symbol id="246:152" name="App Icon=Voice Memos" x="500" y="450" width="50" height="50" />
+      <symbol id="246:154" name="App Icon=Terminal" x="420" y="450" width="50" height="50" />
+      <symbol id="246:156" name="App Icon=TextEdit" x="340" y="450" width="50" height="50" />
+      <symbol id="246:158" name="App Icon=System Preferences" x="260" y="450" width="50" height="50" />
+      <symbol id="246:160" name="App Icon=Stocks" x="180" y="450" width="50" height="50" />
+      <symbol id="246:162" name="App Icon=Siri" x="100" y="450" width="50" height="50" />
+      <symbol id="246:164" name="App Icon=Safari" x="20" y="450" width="50" height="50" />
+      <symbol id="246:166" name="App Icon=Reminders" x="580" y="370" width="50" height="50" />
+      <symbol id="246:168" name="App Icon=Quicktime Player" x="500" y="370" width="50" height="50" />
+      <symbol id="246:170" name="App Icon=Preview" x="420" y="370" width="50" height="50" />
+      <symbol id="246:172" name="App Icon=Podcasts" x="340" y="370" width="50" height="50" />
+      <symbol id="246:174" name="App Icon=Photos" x="260" y="370" width="50" height="50" />
+      <symbol id="246:176" name="App Icon=Photo Booth" x="180" y="370" width="50" height="50" />
+      <symbol id="246:178" name="App Icon=Pages" x="100" y="370" width="50" height="50" />
+      <symbol id="246:180" name="App Icon=Numbers" x="20" y="370" width="50" height="50" />
+      <symbol id="246:182" name="App Icon=Notes" x="580" y="290" width="50" height="50" />
+      <symbol id="246:184" name="App Icon=News" x="500" y="290" width="50" height="50" />
+      <symbol id="246:186" name="App Icon=Music" x="420" y="290" width="50" height="50" />
+      <symbol id="246:188" name="App Icon=Messages" x="340" y="290" width="50" height="50" />
+      <symbol id="246:190" name="App Icon=Maps" x="260" y="290" width="50" height="50" />
+      <symbol id="246:192" name="App Icon=Mail" x="180" y="290" width="50" height="50" />
+      <symbol id="246:194" name="App Icon=Keynote" x="100" y="290" width="50" height="50" />
+      <symbol id="246:196" name="App Icon=iMovie" x="20" y="290" width="50" height="50" />
+      <symbol id="246:198" name="App Icon=Freeform" x="580" y="210" width="50" height="50" />
+      <symbol id="246:200" name="App Icon=Final Cut Pro" x="500" y="210" width="50" height="50" />
+      <symbol id="246:202" name="App Icon=Find My" x="420" y="210" width="50" height="50" />
+      <symbol id="246:204" name="App Icon=Finder" x="340" y="210" width="50" height="50" />
+      <symbol id="246:206" name="App Icon=FaceTime" x="260" y="210" width="50" height="50" />
+      <symbol id="246:208" name="App Icon=Dictionary" x="180" y="210" width="50" height="50" />
+      <symbol id="246:210" name="App Icon=Garageband" x="100" y="210" width="50" height="50" />
+      <symbol id="246:212" name="App Icon=Home" x="20" y="210" width="50" height="50" />
+      <symbol id="246:214" name="App Icon=Calculator" x="580" y="130" width="50" height="50" />
+      <symbol id="246:216" name="App Icon=Calendar" x="500" y="130" width="50" height="50" />
+      <symbol id="246:218" name="App Icon=Books" x="420" y="130" width="50" height="50" />
+      <symbol id="246:220" name="App Icon=Contacts" x="340" y="130" width="50" height="50" />
+      <symbol id="246:222" name="App Icon=App Store" x="260" y="130" width="50" height="50" />
+      <symbol id="246:224" name="App Icon=Apple TV" x="180" y="130" width="50" height="50" />
+      <symbol id="246:226" name="App Icon=Apple Developer" x="100" y="130" width="50" height="50" />
+      <symbol id="246:228" name="App Icon=Automator" x="20" y="130" width="50" height="50" />
+      <symbol id="246:230" name="App Icon=Folder Icon" x="340" y="20" width="50" height="50" />
+      <symbol id="246:232" name="App Icon=Document Icon" x="260" y="20" width="50" height="50" />
+      <symbol id="246:234" name="App Icon=Trash Full" x="180" y="20" width="50" height="50" />
+      <symbol id="246:236" name="App Icon=Trash Empty" x="100" y="20" width="50" height="50" />
+      <symbol id="246:238" name="App Icon=Launch Pad" x="20" y="20" width="50" height="50" />
+    </frame>
+    <frame id="246:240" name="_Dock Background" x="380" y="1040" width="105" height="200">
+      <symbol id="246:241" name="Color Mode=Light" x="20" y="20" width="65" height="70" />
+      <symbol id="246:243" name="Color Mode=Dark" x="20" y="110" width="65" height="70" />
+    </frame>
+    <frame id="246:245" name="_Dock Separator" x="300" y="1040" width="62" height="188">
+      <symbol id="246:246" name="Color Mode=Dark" x="20" y="20" width="22" height="64" />
+      <symbol id="246:248" name="Color Mode=Light" x="20" y="104" width="22" height="64" />
+    </frame>
+    <frame id="246:250" name="_Dock Icon Open Indicator" x="240" y="1040" width="44" height="92">
+      <symbol id="246:251" name="On=True, Color Mode=Light" x="20" y="20" width="4" height="4" />
+      <symbol id="246:253" name="On=True, Color Mode=Dark" x="20" y="44" width="4" height="4" />
+      <symbol id="246:255" name="On=False, Color Mode=Light" x="20" y="68" width="4" height="4" />
+    </frame>
+    <frame id="246:256" name="_Dock Icon Notification" x="160" y="1040" width="58" height="96">
+      <symbol id="246:257" name="Show=False" x="20" y="58" width="18" height="18" />
+      <symbol id="246:258" name="Show=True" x="20" y="20" width="18" height="18" />
+    </frame>
+    <frame id="246:261" name="_Dock Icon" x="50" y="1040" width="90" height="180">
+      <symbol id="246:262" name="Type=File Icon" x="20" y="100" width="50" height="60" />
+      <symbol id="246:267" name="Type=App Icon" x="20" y="20" width="50" height="60" />
+    </frame>
+    <frame id="246:271" name="Desktop Template" x="50" y="50" width="2980" height="940">
+      <symbol id="246:272" name="Color Mode=Dark" x="1520" y="20" width="1440" height="900" />
+      <symbol id="246:305" name="Color Mode=Light" x="20" y="20" width="1440" height="900" />
+    </frame>
+  </section>
+  <text id="496:539" name="􀣌" x="-2" y="-129" width="63" height="53" />
+  <frame id="479:1028" name="Picture Page" x="-1227" y="2371" width="543" height="329">
+    <vector id="479:1029" name="Search Bar_Normal" x="0" y="0" width="125" height="135" />
+    <vector id="479:1030" name="Search Bar_Normal" x="140" y="0" width="125" height="200" />
+    <vector id="479:1031" name="Search Bar_Normal" x="279" y="0" width="125" height="200" />
+    <vector id="479:1032" name="Search Bar_Normal" x="418" y="0" width="125" height="135" />
+    <vector id="479:1033" name="Search Bar_Normal" x="418" y="159" width="125" height="200" />
+    <vector id="479:1034" name="Search Bar_Normal" x="140" y="224" width="125" height="200" />
+    <vector id="479:1035" name="Search Bar_Normal" x="0" y="161" width="125" height="200" />
+    <vector id="479:1036" name="Search Bar_Normal" x="279" y="224" width="125" height="200" />
+  </frame>
+  <frame id="324:635" name="Search Bar_Expanded" x="-916" y="2904" width="715" height="465">
+    <vector id="324:636" name="Search Bar_Shadow" x="54" y="50" width="625" height="370" />
+    <vector id="324:638" name="Search Bar_Normal" x="58" y="0" width="600" height="400" />
+    <text id="324:639" name="Packaging" x="88" y="0" width="530" height="50" />
+    <line id="324:640" name="Division Line" x="75" y="50" width="555" height="0" />
+    <frame id="324:641" name="Scoop Filter" x="440" y="10" width="178" height="30" hidden="true">
+      <text id="324:642" name="􀻧" x="0" y="5" width="20" height="20" />
+      <frame id="324:643" name="Scoop Bar" x="33" y="0" width="145" height="30">
+        <rounded-rectangle id="324:644" name="Rectangle 1" x="0" y="0" width="145" height="30" />
+        <text id="324:645" name="This computer" x="8" y="0" width="90" height="30" />
+        <text id="324:646" name="􀣊" x="115" y="0" width="30" height="30" />
+      </frame>
+    </frame>
+    <frame id="324:647" name="Frame 7" x="498" y="356" width="145" height="30">
+      <frame id="324:648" name="Scoop Bar" x="0" y="0" width="145" height="30">
+        <frame id="324:649" name="Command Key" x="69" y="0" width="30" height="30">
+          <rounded-rectangle id="324:650" name="Rectangle 1" x="0" y="0" width="30" height="30" />
+          <text id="324:651" name="􀆔" x="0" y="0" width="30" height="30" />
+        </frame>
+        <frame id="324:652" name="Alt Key" x="115" y="0" width="30" height="30">
+          <rounded-rectangle id="324:653" name="Rectangle 2" x="0" y="0" width="30" height="30" />
+          <text id="324:654" name="􀆖" x="0" y="0" width="30" height="30" />
+        </frame>
+      </frame>
+    </frame>
+  </frame>
+  <frame id="324:461" name="Indicator" x="-704" y="2341" width="145" height="30">
+    <frame id="324:462" name="Scoop Bar" x="0" y="0" width="145" height="30">
+      <frame id="324:463" name="Command Key" x="77" y="0" width="30" height="30">
+        <rounded-rectangle id="324:464" name="Rectangle 1" x="0" y="0" width="30" height="30" />
+        <text id="324:465" name="􀆔" x="0" y="0" width="30" height="30" />
+      </frame>
+      <frame id="324:583" name="Command Key" x="39" y="0" width="30" height="30">
+        <rounded-rectangle id="324:584" name="Rectangle 1" x="0" y="0" width="30" height="30" />
+        <text id="324:585" name="􀇲" x="0" y="0" width="30" height="30" />
+      </frame>
+      <frame id="324:466" name="Alt Key" x="115" y="0" width="30" height="30">
+        <rounded-rectangle id="324:467" name="Rectangle 2" x="0" y="0" width="30" height="30" />
+        <text id="324:468" name="􀆖" x="0" y="0" width="30" height="30" />
+      </frame>
+    </frame>
+  </frame>
+  <frame id="496:567" name="Mac Mockup" x="5735" y="426" width="1280" height="832">
+    <rounded-rectangle id="496:568" name="image 3" x="0" y="0" width="1512" height="998" />
+    <instance id="587:1059" name="Asset Hub Settings" x="75" y="104" width="1130" height="624" />
+  </frame>
+  <frame id="572:1227" name="Mac Mockup" x="7171" y="426" width="1280" height="832">
+    <rounded-rectangle id="572:1228" name="image 3" x="0" y="0" width="1512" height="998" />
+    <instance id="572:1800" name="Search Bar_Expanded_All Gallery" x="282" y="183" width="715" height="465" />
+  </frame>
+  <frame id="487:424" name="Mac Mockup" x="5735" y="-580" width="1280" height="832">
+    <rounded-rectangle id="487:425" name="image 3" x="0" y="0" width="1512" height="998" />
+    <instance id="487:426" name="Search Bar_Expanded_All Gallery" x="393" y="238" width="715" height="465" hidden="true" />
+    <instance id="881:4290" name="Search Bar_Expanded_All Gallery" x="282" y="210" width="715" height="125" />
+  </frame>
+  <frame id="841:2145" name="Mac Mockup" x="7171" y="-580" width="1261" height="832">
+    <rounded-rectangle id="841:2146" name="image 3" x="0" y="0" width="1512" height="998" />
+    <instance id="841:2147" name="Search Bar_Expanded_All Gallery" x="393" y="238" width="715" height="465" hidden="true" />
+    <instance id="841:2210" name="Search Bar_Expanded_All Gallery" x="273" y="184" width="715" height="465" />
+  </frame>
+  <frame id="316:350" name="Search Bar expand" x="3681" y="1656" width="860" height="946">
+    <symbol id="316:327" name="Property 1=Default" x="20" y="20" width="820" height="140" />
+    <symbol id="316:351" name="Property 1=Variant2" x="20" y="180" width="820" height="600" />
+  </frame>
+  <frame id="324:498" name="􀊫 Search--Describe Transitioning" x="-1056" y="1402" width="570" height="720">
+    <symbol id="324:497" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="324:499" name="Property 1=Variant2" x="20" y="90" width="530" height="50" />
+    <symbol id="324:530" name="Property 1=Variant3" x="20" y="160" width="530" height="50" />
+    <symbol id="324:532" name="Property 1=Variant4" x="20" y="230" width="530" height="50" />
+    <symbol id="324:534" name="Property 1=Variant5" x="20" y="300" width="530" height="50" />
+    <symbol id="324:538" name="Property 1=Variant6" x="20" y="370" width="530" height="50" />
+    <symbol id="324:540" name="Property 1=Variant7" x="20" y="440" width="530" height="50" />
+    <symbol id="324:574" name="Property 1=Variant9" x="20" y="510" width="530" height="50" />
+    <symbol id="324:576" name="Property 1=Variant10" x="20" y="580" width="530" height="50" />
+    <symbol id="324:556" name="Property 1=Variant10" x="20" y="650" width="530" height="50" />
+  </frame>
+  <frame id="324:593" name="Scoop Filter" x="-464" y="1402" width="218" height="838">
+    <symbol id="324:592" name="Property 1=Default" x="20" y="20" width="178" height="30" />
+    <symbol id="324:666" name="Property 1=Variant2" x="19" y="70" width="178" height="172" />
+    <symbol id="452:564" name="Property 1=Variant3" x="19" y="262" width="178" height="172" />
+    <symbol id="452:577" name="Property 1=Variant4" x="19" y="454" width="178" height="172" />
+    <symbol id="452:590" name="Property 1=Variant5" x="19" y="646" width="178" height="172" />
+  </frame>
+  <frame id="459:341" name="Sorting Bar" x="-212" y="1402" width="210" height="1358">
+    <symbol id="459:340" name="Property 1=Default" x="20" y="20" width="170" height="50" />
+    <symbol id="459:342" name="Property 1=Variant2" x="20" y="90" width="170" height="50" />
+    <symbol id="467:783" name="Property 1=Variant5" x="20" y="317" width="170" height="49" />
+    <symbol id="486:1206" name="Property 1=Variant8" x="20" y="726" width="170" height="49" />
+    <symbol id="486:1194" name="Property 1=Variant7" x="20" y="560" width="170" height="49" />
+    <symbol id="483:1112" name="Property 1=Variant6" x="20" y="425" width="170" height="49" />
+    <symbol id="486:1288" name="Property 1=Variant14" x="20" y="614" width="170" height="49" />
+    <symbol id="486:1304" name="Property 1=Variant16" x="20" y="668" width="170" height="49" />
+    <symbol id="486:1298" name="Property 1=Variant15" x="20" y="919" width="170" height="49" />
+    <symbol id="486:1242" name="Property 1=Variant11" x="20" y="870" width="170" height="49" />
+    <symbol id="486:1221" name="Property 1=Variant9" x="20" y="980" width="170" height="49" />
+    <symbol id="486:1259" name="Property 1=Variant12" x="20" y="1102" width="170" height="49" />
+    <symbol id="486:1234" name="Property 1=Variant10" x="20" y="1041" width="170" height="49" />
+    <symbol id="486:1272" name="Property 1=Variant13" x="20" y="1163" width="170" height="49" />
+    <symbol id="459:349" name="Property 1=Variant3" x="20" y="160" width="170" height="50" />
+    <symbol id="459:356" name="Property 1=Variant4" x="20" y="230" width="170" height="50" />
+  </frame>
+  <frame id="467:489" name="Action Keys" x="2053" y="126" width="136" height="300">
+    <symbol id="465:445" name="Property 1=Default" x="20" y="20" width="96" height="50" />
+    <symbol id="467:646" name="Property 1=Variant3" x="20" y="160" width="96" height="50" />
+    <symbol id="467:654" name="Property 1=Variant4" x="20" y="230" width="96" height="50" />
+    <symbol id="467:490" name="Property 1=Variant2" x="20" y="90" width="96" height="50" />
+  </frame>
+  <frame id="841:1672" name="Escape Keys" x="1540" y="1024" width="50" height="50">
+    <frame id="841:1673" name="Scoop Bar" x="10" y="10" width="30" height="30">
+      <frame id="841:1680" name="Escape Key" x="0" y="0" width="30" height="30">
+        <rounded-rectangle id="841:1681" name="Rectangle 2" x="0" y="0" width="30" height="30" />
+        <text id="841:1682" name="􀆧" x="0" y="0" width="30" height="30" />
+      </frame>
+    </frame>
+  </frame>
+  <frame id="487:374" name="Search Bar_Expanded_All Gallery" x="731" y="187" width="769" height="9055">
+    <symbol id="465:416" name="Property 1=Default" x="27" y="395" width="715" height="465" />
+    <symbol id="881:3279" name="Property 1=Variant15" x="27" y="913" width="715" height="465" />
+    <symbol id="881:4795" name="Property 1=Variant17" x="27" y="1431" width="715" height="465" />
+    <symbol id="881:4227" name="Property 1=Variant16" x="28" y="3363" width="715" height="465" />
+    <symbol id="704:1011" name="Property 1=Variant4" x="28" y="3893" width="715" height="465" />
+    <symbol id="716:2492" name="Property 1=Variant5" x="26" y="5658" width="715" height="465" />
+    <symbol id="848:4466" name="Property 1=Variant7" x="26" y="6111" width="715" height="465" />
+    <symbol id="848:4605" name="Property 1=Variant8" x="26" y="6630" width="715" height="465" />
+    <symbol id="856:3154" name="Property 1=Variant9" x="26" y="7111" width="715" height="465" />
+    <symbol id="859:3671" name="Property 1=Variant12" x="26" y="7618" width="715" height="465" />
+    <symbol id="859:5111" name="Property 1=Variant13" x="27" y="8083" width="715" height="465" />
+    <symbol id="859:5452" name="Property 1=Variant14" x="29" y="8590" width="715" height="465" />
+    <symbol id="815:1055" name="Property 1=Variant6" x="26" y="5017" width="715" height="465" />
+    <symbol id="518:776" name="Property 1=Variant3" x="26" y="4358" width="715" height="465" />
+    <symbol id="660:851" name="Property 1=Search Bar, Property 2=Property 23" x="27" y="254" width="715" height="125" />
+    <symbol id="859:3343" name="Property 1=Search Bar, Property 2=Property 210" x="26" y="5507" width="715" height="125" />
+    <symbol id="859:3482" name="Property 1=Search Bar Basic, Property 2=Variant2" x="27" y="95" width="715" height="125" />
+  </frame>
+  <frame id="881:5075" name="Frame 27" x="98" y="5231" width="555" height="329">
+    <rounded-rectangle id="881:5076" name="image 51" x="35" y="0" width="60" height="60" />
+    <rounded-rectangle id="881:5093" name="image 59" x="120" y="0" width="60" height="60" />
+    <rounded-rectangle id="881:5088" name="image 70" x="205" y="0" width="60" height="60" />
+    <rounded-rectangle id="881:5079" name="image 54" x="290" y="109" width="60" height="60" />
+    <rounded-rectangle id="881:5097" name="image 72" x="460" y="109" width="60" height="60" />
+    <rounded-rectangle id="881:5080" name="image 55" x="375" y="0" width="60" height="60" />
+    <rounded-rectangle id="881:5081" name="image 56" x="460" y="0" width="60" height="60" />
+    <rounded-rectangle id="881:5082" name="image 67" x="120" y="109" width="60" height="60" />
+    <rounded-rectangle id="881:5083" name="image 58" x="35" y="109" width="60" height="60" />
+    <rounded-rectangle id="881:5086" name="image 68" x="290" y="0" width="60" height="60" />
+    <rounded-rectangle id="881:5084" name="image 62" x="205" y="109" width="60" height="60" />
+    <text id="881:5090" name="Aessets" x="31" y="67" width="68" height="35" />
+    <text id="881:5091" name="One button game.sln" x="116" y="67" width="68" height="35" />
+    <text id="881:5098" name="One button game.sln" x="201" y="67" width="68" height="35" />
+    <text id="881:5099" name="One button game.sln" x="286" y="70" width="68" height="35" />
+    <text id="881:5100" name="One button game.sln" x="371" y="70" width="68" height="35" />
+    <text id="881:5102" name="One button game.sln" x="371" y="179" width="68" height="35" />
+    <text id="881:5104" name="One button game.sln" x="285" y="179" width="68" height="35" />
+    <text id="881:5105" name="One button game.sln" x="201" y="179" width="68" height="35" />
+    <text id="881:5106" name="One button game.sln" x="120" y="179" width="68" height="35" />
+    <text id="881:5107" name="One button game.sln" x="35" y="179" width="68" height="35" />
+    <text id="881:5101" name="One button game.sln" x="456" y="70" width="68" height="35" />
+    <text id="881:5103" name="One button game.sln" x="455" y="179" width="68" height="35" />
+    <rounded-rectangle id="881:5096" name="image 71" x="375" y="109" width="60" height="60" />
+  </frame>
+  <frame id="881:4666" name="Search Bar_Expanded_All Gallery" x="1602" y="1623" width="715" height="465">
+    <vector id="881:4667" name="Search Bar_Shadow" x="45" y="50" width="625" height="370" />
+    <frame id="881:4668" name="Frame 8" x="58" y="0" width="600" height="400">
+      <vector id="881:4669" name="Search Bar_Normal" x="0" y="0" width="600" height="400" />
+      <frame id="881:4670" name="Frame 14" x="29" y="70" width="542" height="329">
+        <vector id="881:4721" name="Search Bar_Normal" x="9" y="0" width="177" height="265" />
+        <frame id="881:4754" name="Frame 48" x="222" y="0" width="320" height="311">
+          <line id="881:4755" name="Line 11" x="320" y="20" width="320" height="0" />
+          <text id="881:4756" name="File Name" x="0" y="0" width="60" height="20" />
+          <text id="881:4757" name="IMG_8218.JPG" x="115" y="0" width="205" height="20" />
+          <text id="881:4758" name="User/Download" x="115" y="27" width="205" height="20" />
+          <text id="881:4759" name="jpeg image" x="115" y="54" width="205" height="20" />
+          <text id="881:4760" name="962 KB" x="115" y="81" width="205" height="20" />
+          <text id="881:4761" name="April 20, 2024 at 7:32 AM" x="115" y="108" width="205" height="20" />
+          <text id="881:4762" name="Aug 6, 2024 at 1:08:55 PM" x="115" y="135" width="205" height="20" />
+          <text id="881:4763" name="August 6, 2024 at 1:11 PM" x="115" y="160" width="205" height="20" />
+          <text id="881:4764" name="Red Wang(User)" x="115" y="185" width="205" height="20" />
+          <line id="881:4765" name="Line 12" x="320" y="47" width="320" height="0" />
+          <text id="881:4766" name="Location" x="0" y="27" width="60" height="20" />
+          <line id="881:4767" name="Line 13" x="320" y="74" width="320" height="0" />
+          <text id="881:4768" name="Type" x="0" y="54" width="60" height="20" />
+          <line id="881:4769" name="Line 14" x="320" y="101" width="320" height="0" />
+          <text id="881:4770" name="Size" x="0" y="81" width="60" height="20" />
+          <line id="881:4771" name="Line 15" x="320" y="128" width="320" height="0" />
+          <text id="881:4772" name="Created" x="0" y="108" width="60" height="20" />
+          <line id="881:4773" name="Line 16" x="320" y="155" width="320" height="0" />
+          <text id="881:4774" name="Modified" x="0" y="135" width="60" height="20" />
+          <line id="881:4775" name="Line 17" x="320" y="180" width="320" height="0" />
+          <text id="881:4776" name="Last opened" x="0" y="160" width="85" height="20" />
+          <line id="881:4777" name="Line 18" x="320" y="205" width="320" height="0" />
+          <text id="881:4778" name="Content Creator" x="0" y="185" width="105" height="20" />
+          <text id="881:4779" name="Tags" x="0" y="232" width="35" height="20" />
+          <instance id="881:4786" name="Pic Tag" x="45" y="224" width="40" height="35" />
+          <instance id="881:4789" name="Pic Tag" x="95" y="224" width="40" height="35" />
+        </frame>
+      </frame>
+    </frame>
+    <instance id="881:4672" name="Sorting Bar" x="273" y="331" width="170" height="50" hidden="true" />
+    <instance id="881:4673" name="Action Keys" x="539" y="331" width="96" height="50" />
+    <instance id="881:4674" name="􀊫 Search_Picture Tag" x="95" y="0" width="530" height="50" />
+    <line id="881:4675" name="Division Line" x="80" y="50" width="555" height="0" />
+    <instance id="881:4676" name="Scoop Filter" x="447" y="10" width="178" height="30" />
+  </frame>
+  <symbol id="572:1504" name="Frame 15" x="2274" y="-1745" width="542" height="805" />
+  <text id="496:542" name="􀥏" x="134" y="-118" width="54" height="42" />
+  <frame id="704:1008" name="Frame 24" x="983" y="-1745" width="291" height="141">
+    <text id="496:537" name="􀇃" x="109" y="45" width="63" height="53" />
+    <text id="496:536" name="􀓤" x="169" y="88" width="63" height="53" />
+    <text id="496:545" name="􀕿" x="120" y="94" width="41" height="42" />
+    <text id="514:990" name="􀢓" x="116" y="0" width="50" height="42" />
+    <text id="514:991" name="􀢔" x="172" y="0" width="50" height="42" />
+    <text id="514:992" name="􀌒" x="172" y="50" width="50" height="42" />
+    <text id="514:993" name="􀌑" x="241" y="50" width="50" height="42" />
+    <text id="514:994" name="􀌋" x="59" y="50" width="50" height="42" />
+    <text id="514:995" name="􀌏" x="0" y="94" width="50" height="42" />
+    <text id="514:996" name="􀌐" x="55" y="94" width="50" height="42" />
+    <text id="514:998" name="􀌔" x="60" y="0" width="50" height="42" />
+    <text id="514:999" name="􀌓" x="4" y="0" width="50" height="42" />
+  </frame>
+  <frame id="514:1000" name="Pictures_Fashion" x="1645" y="-3168" width="583" height="2494">
+    <symbol id="511:752" name="Property 1=Default" x="20" y="20" width="543" height="831" />
+    <symbol id="514:1001" name="Property 1=Variant2" x="27" y="1045" width="543" height="1296" />
+  </frame>
+  <symbol id="518:646" name="Videos_Sceneries" x="2925" y="-3168" width="543" height="1349" />
+  <symbol id="518:941" name="Pictures_Pics" x="2305" y="-3168" width="543" height="607" />
+  <frame id="568:1120" name="􀊫 Search_Fashion" x="101" y="821" width="570" height="580">
+    <symbol id="568:1119" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="568:1121" name="Property 1=Variant2" x="20" y="90" width="530" height="50" />
+    <symbol id="572:1962" name="Property 1=Variant3" x="20" y="160" width="530" height="50" />
+    <symbol id="572:1964" name="Property 1=Variant4" x="20" y="230" width="530" height="50" />
+    <symbol id="572:1966" name="Property 1=Variant5" x="20" y="300" width="530" height="50" />
+    <symbol id="572:1968" name="Property 1=Variant6" x="20" y="370" width="530" height="50" />
+    <symbol id="572:1970" name="Property 1=Variant7" x="20" y="440" width="530" height="50" />
+    <symbol id="572:1972" name="Property 1=Variant8" x="20" y="510" width="530" height="50" />
+  </frame>
+  <frame id="704:1072" name="􀊫 Search_Cats" x="101" y="187" width="570" height="580">
+    <symbol id="704:1073" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="704:1075" name="Property 1=Variant2" x="20" y="90" width="530" height="50" />
+    <symbol id="704:1077" name="Property 1=Variant3" x="20" y="160" width="530" height="50" />
+    <symbol id="704:1079" name="Property 1=Variant4" x="20" y="230" width="530" height="50" />
+    <symbol id="704:1081" name="Property 1=Variant5" x="20" y="300" width="530" height="50" />
+    <symbol id="704:1083" name="Property 1=Variant6" x="20" y="370" width="530" height="50" />
+    <symbol id="704:1085" name="Property 1=Variant7" x="20" y="440" width="530" height="50" />
+    <symbol id="704:1087" name="Property 1=Variant8" x="20" y="510" width="530" height="50" />
+  </frame>
+  <frame id="669:788" name="􀊫 Search_Pic Tag" x="-147" y="-1806" width="570" height="450">
+    <symbol id="669:789" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="669:808" name="Property 1=Variant3" x="20" y="140" width="530" height="50" />
+    <symbol id="669:810" name="Property 1=Variant4" x="20" y="200" width="530" height="50" />
+    <symbol id="669:812" name="Property 1=Variant5" x="20" y="260" width="530" height="50" />
+    <symbol id="676:792" name="Property 1=Variant6" x="20" y="320" width="530" height="50" />
+    <symbol id="676:808" name="Property 1=Variant7" x="20" y="380" width="530" height="50" />
+    <symbol id="669:805" name="Property 1=Variant2" x="20" y="80" width="530" height="50" />
+  </frame>
+  <frame id="678:802" name="􀊫 Search_Pic Tag" x="-136" y="-1287" width="530" height="50">
+    <rounded-rectangle id="678:803" name="Rectangle 135" x="0" y="10" width="40" height="30" />
+    <text id="678:804" name="Pic" x="0" y="0" width="530" height="50" />
+    <vector id="678:805" name="Line 9" x="40.5" y="10" width="0" height="30" />
+  </frame>
+  <frame id="669:814" name="􀊫 Search_Picture Tag" x="101" y="1481" width="570" height="750">
+    <symbol id="669:815" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="881:4302" name="Property 1=Variant13" x="20" y="140" width="530" height="50" />
+    <symbol id="669:819" name="Property 1=Variant4" x="20" y="200" width="530" height="50" />
+    <symbol id="669:821" name="Property 1=Variant5" x="20" y="260" width="530" height="50" />
+    <symbol id="669:824" name="Property 1=Variant6" x="20" y="320" width="530" height="50" />
+    <symbol id="669:828" name="Property 1=Variant7" x="20" y="380" width="530" height="50" />
+    <symbol id="669:830" name="Property 1=Variant8" x="20" y="440" width="530" height="50" />
+    <symbol id="676:790" name="Property 1=Variant10" x="20" y="500" width="530" height="50" />
+    <symbol id="678:773" name="Property 1=Variant11" x="20" y="560" width="530" height="50" />
+    <symbol id="686:784" name="Property 1=Variant12" x="20" y="620" width="530" height="50" />
+    <symbol id="669:823" name="Property 1=Variant2" x="20" y="80" width="530" height="50" />
+  </frame>
+  <frame id="859:3305" name="􀊫 Search_GDFTag" x="101" y="2325" width="570" height="460">
+    <symbol id="859:3306" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="859:3308" name="Property 1=Variant3" x="20" y="140" width="530" height="50" />
+    <symbol id="859:3310" name="Property 1=Variant4" x="20" y="200" width="530" height="50" />
+    <symbol id="859:3312" name="Property 1=Variant5" x="20" y="260" width="530" height="50" />
+    <symbol id="859:3322" name="Property 1=Variant11" x="20" y="325" width="530" height="50" />
+    <symbol id="859:3326" name="Property 1=Variant12" x="20" y="390" width="530" height="50" />
+    <symbol id="859:3329" name="Property 1=Variant2" x="20" y="80" width="530" height="50" />
+  </frame>
+  <frame id="572:1880" name="Asset Hub Settings" x="2338" y="216" width="1175" height="4559">
+    <symbol id="572:1879" name="Property 1=Default" x="23" y="69" width="1130" height="624" />
+    <symbol id="587:709" name="Property 1=Variant4" x="23" y="1348" width="1130" height="375" />
+    <symbol id="594:2587" name="Property 1=Variant4" x="19" y="1758" width="1130" height="620" />
+    <symbol id="635:879" name="Property 1=Variant5" x="19" y="2436" width="1130" height="620" />
+    <symbol id="635:960" name="Property 1=Variant6" x="14" y="3114" width="1130" height="620" />
+    <symbol id="881:4962" name="Property 1=Variant7" x="14" y="3854" width="1130" height="620" />
+    <symbol id="578:789" name="Property 1=Variant2" x="23" y="693" width="1130" height="620" />
+  </frame>
+  <frame id="594:2789" name="_Checkbox" x="1749" y="122" width="54" height="224">
+    <symbol id="594:2790" name="State=Unselected, Enabled=False" x="20" y="190" width="14" height="14" />
+    <symbol id="594:2791" name="State=Unselected, Enabled=True" x="20" y="156" width="14" height="14" />
+    <symbol id="594:2792" name="State=Mixed, Enabled=False" x="20" y="122" width="14" height="14" />
+    <symbol id="594:2794" name="State=Selected, Enabled=False" x="20" y="88" width="14" height="14" />
+    <symbol id="594:2796" name="State=Mixed, Enabled=True" x="20" y="54" width="14" height="15" />
+    <symbol id="594:2798" name="State=Selected, Enabled=True" x="20" y="20" width="15" height="15" />
+  </frame>
+  <frame id="594:2766" name="Checkbox" x="1635" y="126" width="94" height="196">
+    <symbol id="594:2767" name="State=Unselected, Enabled=False" x="20" y="160" width="54" height="16" />
+    <symbol id="594:2770" name="State=Mixed, Enabled=False" x="20" y="132" width="54" height="16" />
+    <symbol id="594:2773" name="State=Selected, Enabled=False" x="20" y="104" width="54" height="16" />
+    <symbol id="594:2776" name="State=Unselected, Enabled=True" x="20" y="76" width="52" height="16" />
+    <symbol id="594:2779" name="State=Mixed, Enabled=True" x="20" y="48" width="52" height="16" />
+    <symbol id="594:2782" name="State=Selected, Enabled=True" x="20" y="20" width="52" height="16" />
+  </frame>
+  <frame id="576:897" name="Email Insert" x="1677" y="894" width="240" height="625">
+    <symbol id="576:896" name="Property 1=Default" x="20" y="20" width="200" height="35" />
+    <symbol id="576:898" name="Property 1=Variant2" x="20" y="75" width="200" height="35" />
+    <symbol id="576:902" name="Property 1=Variant3" x="20" y="130" width="200" height="35" />
+    <symbol id="576:906" name="Property 1=Variant4" x="20" y="185" width="200" height="35" />
+    <symbol id="576:910" name="Property 1=Variant5" x="20" y="240" width="200" height="35" />
+    <symbol id="576:914" name="Property 1=Variant6" x="20" y="295" width="200" height="35" />
+    <symbol id="576:918" name="Property 1=Variant7" x="20" y="350" width="200" height="35" />
+    <symbol id="576:922" name="Property 1=Variant8" x="20" y="405" width="200" height="35" />
+    <symbol id="576:926" name="Property 1=Variant9" x="20" y="460" width="200" height="35" />
+    <symbol id="576:930" name="Property 1=Variant10" x="20" y="515" width="200" height="35" />
+    <symbol id="576:934" name="Property 1=Variant11" x="20" y="570" width="200" height="35" />
+  </frame>
+  <frame id="576:946" name="Password Insert" x="1929" y="894" width="240" height="515">
+    <symbol id="576:945" name="Property 1=Default" x="20" y="20" width="200" height="35" />
+    <symbol id="576:947" name="Property 1=Variant2" x="20" y="75" width="200" height="35" />
+    <symbol id="576:951" name="Property 1=Variant3" x="20" y="130" width="200" height="35" />
+    <symbol id="576:955" name="Property 1=Variant4" x="20" y="185" width="200" height="35" />
+    <symbol id="576:959" name="Property 1=Variant5" x="20" y="240" width="200" height="35" />
+    <symbol id="576:963" name="Property 1=Variant6" x="20" y="295" width="200" height="35" />
+    <symbol id="576:967" name="Property 1=Variant7" x="20" y="350" width="200" height="35" />
+    <symbol id="576:971" name="Property 1=Variant8" x="20" y="405" width="200" height="35" />
+    <symbol id="576:975" name="Property 1=Variant9" x="20" y="460" width="200" height="35" />
+  </frame>
+  <frame id="594:1089" name="Switch" x="1943" y="318" width="90" height="90">
+    <symbol id="594:1088" name="Property 1=Default" x="20" y="20" width="50" height="15" />
+    <symbol id="594:1090" name="Property 1=Variant2" x="20" y="55" width="50" height="15" />
+  </frame>
+  <frame id="624:1089" name="Text Size" x="1814" y="333" width="118" height="185">
+    <symbol id="621:1085" name="Property 1=Default" x="20" y="20" width="78" height="35" />
+    <symbol id="624:1099" name="Property 1=Variant3" x="20" y="130" width="78" height="35" />
+    <symbol id="624:1090" name="Property 1=Variant2" x="20" y="75" width="78" height="35" />
+  </frame>
+  <frame id="624:1118" name="Light Dark Mode" x="1999" y="462" width="190" height="213">
+    <symbol id="624:1119" name="Property 1=Default" x="20" y="20" width="150" height="35" />
+    <symbol id="624:1144" name="Property 1=Variant2" x="20" y="66" width="150" height="35" />
+    <symbol id="624:1154" name="Property 1=Variant3" x="20" y="112" width="150" height="35" />
+    <symbol id="624:1164" name="Property 1=Variant4" x="20" y="158" width="150" height="35" />
+  </frame>
+  <frame id="626:835" name="Component 1" x="1635" y="592" width="160" height="140">
+    <symbol id="626:834" name="Property 1=Default" x="20" y="20" width="130" height="40" />
+    <symbol id="626:836" name="Property 1=Variant2" x="20" y="80" width="130" height="40" />
+  </frame>
+  <rounded-rectangle id="629:996" name="image 16" x="-1643" y="-2739" width="350" height="350" />
+  <rounded-rectangle id="629:998" name="image 17" x="-1253" y="-1939" width="350" height="350" />
+  <rounded-rectangle id="630:777" name="image 18" x="-1260" y="-3160" width="350" height="350" />
+  <rounded-rectangle id="630:783" name="image 21" x="-1260" y="-2739" width="350" height="351" />
+  <rounded-rectangle id="630:785" name="image 22" x="-872" y="-2739" width="350" height="350" />
+  <rounded-rectangle id="635:870" name="Rectangle 133" x="-1641" y="-4710" width="350" height="350" />
+  <rounded-rectangle id="635:865" name="Rectangle 132" x="-1253" y="-3941" width="350" height="350" />
+  <rounded-rectangle id="635:854" name="Rectangle 129" x="-1642" y="-4332" width="350" height="350" />
+  <rounded-rectangle id="635:855" name="Rectangle 130" x="-1260" y="-4332" width="350" height="350" />
+  <rounded-rectangle id="635:856" name="Rectangle 131" x="-872" y="-4332" width="350" height="350" />
+  <frame id="632:818" name="Figma" x="-1641" y="-1938" width="350" height="350">
+    <rounded-rectangle id="632:786" name="Rectangle 124" x="-1641" y="-1938" width="350" height="350" />
+    <rounded-rectangle id="632:790" name="image 23" x="-1548" y="-1883" width="165" height="240" />
+  </frame>
+  <frame id="635:819" name="Maya" x="-1643" y="-3550" width="350" height="350">
+    <rounded-rectangle id="632:799" name="Rectangle 125" x="-1643" y="-3550" width="350" height="350" />
+    <rounded-rectangle id="632:796" name="image 25" x="-1577" y="-3479" width="221" height="210" />
+  </frame>
+  <rounded-rectangle id="632:798" name="image 26" x="-3019" y="2602" width="1000" height="1000" />
+  <frame id="635:820" name="3D Max" x="-1260" y="-3550" width="350" height="350">
+    <rounded-rectangle id="632:804" name="Rectangle 126" x="-1260" y="-3550" width="350" height="350" />
+    <rounded-rectangle id="632:803" name="image 27" x="-1182" y="-3497" width="209" height="245" />
+  </frame>
+  <frame id="635:821" name="C4D" x="-872" y="-3550" width="350" height="350">
+    <rounded-rectangle id="632:807" name="Rectangle 127" x="-872" y="-3550" width="350" height="350" />
+    <rounded-rectangle id="632:808" name="image 28" x="-809" y="-3492" width="224" height="234" />
+  </frame>
+  <rounded-rectangle id="632:814" name="image 30" x="-1642" y="-2339" width="350" height="350" />
+  <rounded-rectangle id="635:823" name="image 31" x="-1253" y="-2339" width="350" height="350" />
+  <rounded-rectangle id="635:827" name="image 32" x="-872" y="-2339" width="350" height="350" />
+  <rounded-rectangle id="635:829" name="image 33" x="-872" y="-1939" width="350" height="350" />
+  <frame id="635:833" name="Blender" x="-1643" y="-3941" width="350" height="350">
+    <rounded-rectangle id="635:832" name="Rectangle 129" x="-1643" y="-3941" width="350" height="350" />
+    <rounded-rectangle id="635:831" name="image 34" x="-1598.128173828125" y="-3872.196533203125" width="259.2592468261719" height="212.39315795898438" />
+  </frame>
+  <rounded-rectangle id="635:841" name="image 35" x="-1642" y="-3160" width="350" height="350" />
+  <rounded-rectangle id="635:845" name="image 36" x="-872" y="-3160" width="350" height="350" />
+  <rounded-rectangle id="635:847" name="image 37" x="-1615" y="-4305" width="295" height="295" />
+  <rounded-rectangle id="635:851" name="image 38" x="-1195" y="-4260" width="220" height="205" />
+  <rounded-rectangle id="635:853" name="image 39" x="-804" y="-4257" width="215" height="200" />
+  <rounded-rectangle id="635:860" name="image 40" x="-1643" y="-1537" width="350" height="350" />
+  <rounded-rectangle id="635:862" name="image 41" x="-1253" y="-1537" width="350" height="350" />
+  <rounded-rectangle id="635:864" name="image 42" x="-1215" y="-3904" width="274" height="276" />
+  <rounded-rectangle id="635:867" name="image 43" x="-872" y="-3941" width="350" height="350" />
+  <rounded-rectangle id="635:869" name="image 44" x="-1586" y="-4655" width="240" height="240" />
+  <rounded-rectangle id="635:872" name="image 45" x="-872" y="-1537" width="350" height="350" />
+  <frame id="635:988" name="Window Controls" x="1635" y="339" width="108" height="212">
+    <symbol id="522:982" name="Property 1=With Title or Tab Bar" x="20" y="20" width="68" height="28" />
+    <symbol id="635:989" name="Property 1=Variant2" x="20" y="68" width="68" height="28" />
+    <symbol id="635:998" name="Property 1=Variant3" x="20" y="116" width="68" height="28" />
+    <symbol id="635:1005" name="Property 1=Variant4" x="20" y="164" width="68" height="28" />
+  </frame>
+  <frame id="660:826" name="Switch" x="1823" y="130" width="100" height="188">
+    <symbol id="660:827" name="Property 1=Off, Property 2=True" x="20" y="75" width="60" height="35" />
+    <symbol id="660:817" name="Property 1=On, Property 2=True" x="20" y="17" width="60" height="35" />
+  </frame>
+  <frame id="660:840" name="Search Bar Basic" x="751" y="-460" width="755" height="455">
+    <symbol id="660:839" name="Property 1=Default" x="20" y="20" width="715" height="125" />
+  </frame>
+  <rounded-rectangle id="669:787" name="image 46" x="-392" y="-1320" width="171" height="66" />
+  <frame id="669:874" name="Input indication" x="-449" y="2356" width="40" height="170">
+    <symbol id="669:873" name="Property 1=Default" x="20" y="20" width="0" height="30" />
+    <symbol id="669:875" name="Property 1=Variant2" x="20" y="70" width="0" height="30" />
+    <symbol id="671:760" name="Property 1=Variant3" x="20" y="120" width="0" height="30" />
+  </frame>
+  <frame id="856:2165" name="Frame 50" x="-242" y="6331" width="725" height="759">
+    <frame id="686:806" name="Pic Tag" x="0" y="0" width="80" height="140">
+      <symbol id="686:805" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="686:807" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="704:1089" name="Vid Tag" x="120" y="0" width="80" height="140">
+      <symbol id="704:1090" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="704:1093" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="704:1096" name="jpg Tag" x="240" y="0" width="80" height="140">
+      <symbol id="704:1097" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="704:1100" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="704:1103" name="png Tag" x="360" y="0" width="80" height="140">
+      <symbol id="704:1104" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="704:1107" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="841:1945" name="Zip Tag" x="480" y="0" width="80" height="140">
+      <symbol id="841:1946" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="841:1949" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="850:2008" name="GDF Tag" x="600" y="0" width="80" height="140">
+      <symbol id="850:2009" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="850:2012" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="704:1110" name="doc Tag" x="0" y="209" width="80" height="140">
+      <symbol id="704:1111" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="704:1114" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="841:1915" name="Pag Tag" x="360" y="209" width="80" height="140">
+      <symbol id="841:1916" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="841:1919" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="841:1937" name="Key Tag" x="600" y="209" width="80" height="140">
+      <symbol id="841:1938" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="841:1941" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="841:1922" name="Nub Tag" x="480" y="209" width="80" height="140">
+      <symbol id="841:1923" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="841:1926" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="704:1117" name="doc Tag" x="120" y="209" width="80" height="140">
+      <symbol id="704:1118" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="704:1121" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="704:1124" name="pdf Tag" x="240" y="209" width="80" height="140">
+      <symbol id="704:1125" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="704:1128" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="798:1152" name="Pac Tag" x="0" y="416" width="80" height="140">
+      <symbol id="798:1153" name="Property 1=Default" x="20" y="20" width="40" height="35" />
+      <symbol id="798:1156" name="Property 1=Variant2" x="20" y="80" width="40" height="35" />
+    </frame>
+    <frame id="798:1159" name="Photoshop Tag" x="115" y="411" width="125" height="145">
+      <symbol id="798:1160" name="Property 1=Default" x="18" y="25" width="90" height="35" />
+      <symbol id="798:1163" name="Property 1=Variant2" x="18" y="86" width="90" height="35" />
+    </frame>
+    <frame id="798:1166" name="Unity Tag" x="280" y="411" width="125" height="145">
+      <symbol id="798:1167" name="Property 1=Default" x="25" y="25" width="75" height="35" />
+      <symbol id="798:1170" name="Property 1=Variant2" x="25" y="85" width="75" height="35" />
+    </frame>
+    <frame id="798:1184" name="Blender Tag" x="445" y="411" width="125" height="145">
+      <symbol id="798:1185" name="Property 1=Default" x="25" y="25" width="75" height="35" />
+      <symbol id="798:1188" name="Property 1=Variant2" x="25" y="85" width="75" height="35" />
+    </frame>
+    <frame id="798:1197" name="folder Tag" x="600" y="408" width="125" height="145">
+      <symbol id="798:1198" name="Property 1=Default" x="25" y="25" width="75" height="35" />
+      <symbol id="798:1201" name="Property 1=Variant2" x="25" y="85" width="75" height="35" />
+    </frame>
+    <frame id="798:1232" name="Japan Tag" x="0" y="614" width="125" height="145">
+      <symbol id="798:1233" name="Property 1=Default" x="25" y="25" width="75" height="35" />
+      <symbol id="798:1236" name="Property 1=Variant2" x="25" y="85" width="75" height="35" />
+    </frame>
+  </frame>
+  <rounded-rectangle id="716:2487" name="image 47" x="-3103" y="-5068" width="1196" height="977" />
+  <frame id="841:1755" name="Escape Keys" x="1943" y="130" width="90" height="160">
+    <symbol id="841:1754" name="Property 1=Default" x="20" y="20" width="50" height="50" />
+    <symbol id="841:1756" name="Property 1=Variant2" x="20" y="90" width="50" height="50" />
+  </frame>
+  <frame id="841:1964" name="GDF_Normal" x="1718" y="5353" width="597" height="2463">
+    <symbol id="841:1899" name="Property 1=Default" x="20" y="20" width="555" height="329" />
+    <symbol id="845:1287" name="Property 1=Variant2" x="22" y="369" width="555" height="329" />
+    <symbol id="850:2015" name="Property 1=Variant3" x="22" y="718" width="555" height="329" />
+    <symbol id="850:2109" name="Property 1=Variant4" x="22" y="1067" width="555" height="329" />
+    <symbol id="850:2204" name="Property 1=Variant5" x="22" y="1416" width="555" height="329" />
+    <symbol id="855:1860" name="Property 1=Variant6" x="22" y="1765" width="555" height="329" />
+    <symbol id="855:1952" name="Property 1=Variant7" x="22" y="2114" width="555" height="329" />
+  </frame>
+  <symbol id="859:4944" name="GDF Numbers Only" x="1728" y="4986" width="555" height="329" />
+  <frame id="859:3791" name="Frame 51" x="3961" y="5353" width="597" height="2463">
+    <symbol id="859:3792" name="Property 1=Default" x="20" y="20" width="555" height="329" />
+    <symbol id="859:3798" name="Property 1=Variant2" x="22" y="369" width="555" height="329" />
+    <symbol id="859:3803" name="Property 1=Variant3" x="22" y="718" width="555" height="329" />
+    <symbol id="859:3808" name="Property 1=Variant4" x="22" y="1067" width="555" height="329" />
+    <symbol id="859:3813" name="Property 1=Variant5" x="22" y="1416" width="555" height="329" />
+    <symbol id="859:3818" name="Property 1=Variant6" x="22" y="1765" width="555" height="329" />
+    <symbol id="859:3823" name="Property 1=Variant7" x="22" y="2114" width="555" height="329" />
+  </frame>
+  <frame id="848:4586" name="Frame 47" x="1626" y="2885" width="481" height="481">
+    <rounded-rectangle id="848:4587" name="image 58" x="3" y="0" width="100" height="100" />
+    <rounded-rectangle id="848:4588" name="image 59" x="100" y="0" width="100" height="100" />
+    <rounded-rectangle id="848:4589" name="image 60" x="192" y="0" width="100" height="100" />
+    <rounded-rectangle id="848:4590" name="image 61" x="0" y="142" width="100" height="100" />
+    <rounded-rectangle id="848:4591" name="image 62" x="100" y="142" width="100" height="100" />
+    <rounded-rectangle id="848:4592" name="image 63" x="203" y="142" width="100" height="100" />
+    <rounded-rectangle id="848:4593" name="image 64" x="0" y="261" width="100" height="100" />
+    <rounded-rectangle id="848:4594" name="image 65" x="103" y="381" width="100" height="100" />
+    <rounded-rectangle id="848:4595" name="image 66" x="203" y="381" width="100" height="100" />
+    <rounded-rectangle id="848:4596" name="image 67" x="282" y="0" width="100" height="100" />
+    <rounded-rectangle id="848:4597" name="image 68" x="292" y="142" width="100" height="100" />
+    <rounded-rectangle id="848:4598" name="image 69" x="292" y="381" width="100" height="100" />
+    <rounded-rectangle id="848:4599" name="image 70" x="100" y="262" width="100" height="100" />
+    <rounded-rectangle id="848:4600" name="image 71" x="3" y="381" width="100" height="100" />
+    <rounded-rectangle id="848:4601" name="image 72" x="203" y="262" width="100" height="100" />
+    <rounded-rectangle id="848:4602" name="image 73" x="381" y="380" width="100" height="100" />
+  </frame>
+  <frame id="850:1459" name="Frame 46" x="2338" y="5353" width="360" height="1772">
+    <symbol id="841:3799" name="Property 1=Default" x="20" y="20" width="320" height="170" />
+    <symbol id="856:2136" name="Property 1=Variant3" x="20" y="622" width="320" height="170" />
+    <symbol id="856:2202" name="Property 1=Variant4" x="20" y="903" width="320" height="170" />
+    <symbol id="856:2292" name="Property 1=Variant5" x="20" y="1192" width="320" height="170" />
+    <symbol id="850:1460" name="Property 1=Variant2" x="20" y="315" width="320" height="170" />
+  </frame>
+  <instance id="850:1979" name="Frame 48" x="1640" y="2474" width="320" height="311" />
+  <frame id="859:4752" name="File Management Bar" x="1598" y="3440" width="240" height="906">
+    <symbol id="841:1839" name="Property 1=Default" x="20" y="20" width="200" height="591" />
+    <symbol id="859:4753" name="Property 1=Variant2" x="20" y="631" width="200" height="311" />
+  </frame>
+  <instance id="859:5027" name="Nub Tag" x="-60" y="2916" width="40" height="35" />
+  <frame id="859:5030" name="􀊫 Search_GDFTag" x="81" y="2899" width="570" height="720">
+    <symbol id="859:5020" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="859:5031" name="Property 1=Variant2" x="20" y="90" width="530" height="50" />
+    <symbol id="859:5046" name="Property 1=Variant3" x="20" y="160" width="530" height="50" />
+    <symbol id="859:5052" name="Property 1=Variant4" x="20" y="230" width="530" height="50" />
+    <symbol id="859:5058" name="Property 1=Variant5" x="20" y="300" width="530" height="50" />
+    <symbol id="859:5064" name="Property 1=Variant6" x="20" y="370" width="530" height="50" />
+    <symbol id="859:5070" name="Property 1=Variant7" x="20" y="440" width="530" height="50" />
+    <symbol id="859:5076" name="Property 1=Variant8" x="20" y="510" width="530" height="50" />
+    <symbol id="859:5082" name="Property 1=Variant9" x="20" y="580" width="530" height="50" />
+    <symbol id="859:5090" name="Property 1=Variant10" x="20" y="650" width="530" height="50" />
+  </frame>
+  <frame id="859:7450" name="File Management Bar" x="2006" y="4050" width="200" height="591">
+    <symbol id="859:7655" name="Frame 45" x="0" y="0" width="200" height="311" />
+  </frame>
+  <symbol id="859:7810" name="GDF Numbers + PDF" x="1728" y="4569" width="555" height="329" />
+  <frame id="878:3085" name="􀊫 Search_GDF+Nub+" x="81" y="3679" width="570" height="440">
+    <symbol id="859:8019" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="878:3086" name="Property 1=Variant2" x="20" y="90" width="530" height="50" />
+    <symbol id="878:3096" name="Property 1=Variant3" x="20" y="160" width="530" height="50" />
+    <symbol id="878:3106" name="Property 1=Variant4" x="20" y="230" width="530" height="50" />
+    <symbol id="878:3116" name="Property 1=Variant5" x="20" y="300" width="530" height="50" />
+    <symbol id="878:3129" name="Property 1=Variant6" x="20" y="370" width="530" height="50" />
+  </frame>
+  <frame id="881:4002" name="􀊫 Search_Picture Tag" x="-514" y="681" width="570" height="720">
+    <symbol id="881:4001" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="881:4003" name="Property 1=Variant2" x="20" y="90" width="530" height="50" />
+    <symbol id="881:4010" name="Property 1=Variant3" x="20" y="160" width="530" height="50" />
+    <symbol id="881:4017" name="Property 1=Variant4" x="20" y="230" width="530" height="50" />
+    <symbol id="881:4024" name="Property 1=Variant5" x="20" y="300" width="530" height="50" />
+    <symbol id="881:4038" name="Property 1=Variant6" x="20" y="370" width="530" height="50" />
+    <symbol id="881:4045" name="Property 1=Variant7" x="20" y="440" width="530" height="50" />
+    <symbol id="881:4052" name="Property 1=Variant8" x="20" y="510" width="530" height="50" />
+    <symbol id="881:4059" name="Property 1=Variant9" x="20" y="580" width="530" height="50" />
+    <symbol id="881:4068" name="Property 1=Variant10" x="20" y="650" width="530" height="50" />
+  </frame>
+  <text id="881:4312" name="􁉄" x="21" y="603" width="32" height="30" />
+  <frame id="881:5060" name="􀊫 Search_Cats" x="83" y="4181" width="570" height="440">
+    <symbol id="881:5059" name="Property 1=Default" x="20" y="20" width="530" height="50" />
+    <symbol id="881:5061" name="Property 1=Variant2" x="20" y="90" width="530" height="50" />
+    <symbol id="881:5063" name="Property 1=Variant3" x="20" y="160" width="530" height="50" />
+    <symbol id="881:5065" name="Property 1=Variant4" x="20" y="230" width="530" height="50" />
+    <symbol id="881:5067" name="Property 1=Variant5" x="20" y="300" width="530" height="50" />
+    <symbol id="881:5069" name="Property 1=Variant6" x="20" y="370" width="530" height="50" />
+  </frame>
+</canvas>
+IMPORTANT: After you call this tool, you MUST call get_design_context if trying to implement the design, since this tool only returns metadata. If you do not call get_design_context, the agent will not be able to implement the design.

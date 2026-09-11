@@ -1,0 +1,41 @@
+=== page 1 ===
+FINALPROJECTGameDesignDocument
+TEMPLATE
+Usethistemplatetodescribethepreliminarydesignof theRPGGameyour teammadeinclass.Thisisagroupproject, soyoumayassignit toonemember of your grouptowrite, or youmaywriteit asateam, but everymember of theteamshouldapprovethefinal version. Submit yourGameDesignDocument (GDD) asaPDFfile, andbringacopytoclassnext week.
+Theassignment will begradedona100-point scale, asfollows:● 40: Completeness, asdemonstratedbyprovidingrequestedinformation.● 20: Depth, asdemonstratedbysuperior understandingof courseconcepts.● 20: Clarity, asdemonstratedbyclear explanationsor examples.● 20: Quality, asdemonstratedbytechnical writingskills(spelling, punctuation, grammar)
+Usethisformat for writingyour document, anddescribeyour gameinenoughdetail that playerscanplayyour gamebyjust readingyour GDD.
+TitleandAuthor
+Useyour gamenamefor thetitleof your document andwriteyour nameastheauthor.
+Overview
+Brieflydescribethefollowingelementsof your game: Genre, Theme, Player Format, PrimaryObjective(s), PrimaryAction(s), PrimaryChallenge(s),
+Experience
+BrieflyDescribethefollowingelementsof your game, Target Player, PlayValue, GameDesignPillars
+=== page 2 ===
+Components
+List eachof thephysical componentsinyour game-- suchasgameboard, avatar or unitpieces, obstacleor enemypieces, book-keepingtokens, dice, andcards-- andabriefexplanationof their purposeinthegame. For example: “AVATARPIECE: Representstheplayer’sposition” or “CHANCECARDS: Givestheplayer arewardor penaltywhentheplayerarrivesina‘Chancespace’)
+Objectives
+Describeeachof thegame’sgoals. Brieflyexplainhowtheplayer accomplisheseachgoal,what impact (if any) completingthat goal hasongameprogressionor difficulty, andidentifywhether it isaprimaryor secondarygoal.
+Procedures
+Set-Up
+Describeall thepreparationthat needstobedoneprior tostartingthegame, includingplacement of player avatarsinthestartinglocation, placement of anyother gameobjects, andanyother preparationof physical gameelements(suchascardshufflingor timer setting)
+Progression
+Describetheproceduresthat eachplayer takesduringeachturn(e.g., rollingtwo6-sideddice,movingthat manyspacesalongthegamepath, followinginstructionsontheendlinglocation.)
+Resolution
+Describeall theconditionsthat bringthegametoaclose, whether that closeisawin, lose, ordrawfor theplayer.Actions
+Special Procedures
+Describetheprocedures, if any, that areconditional toother gameelementsor thegamestate(e.g., whentheplayer isinjail, theplayer rollstwo6-sideddice. If theplayer rollsdoubles, theplayer isnolonger injail; otherwise, theplayer remainsinjail.) Other Special Proceduresincluderespawning. Note: if therearenoSpecial Procedures, donot includethissectioninyourGDD.
+=== page 3 ===
+Resolution
+Describeall theconditionsthat bringthegametoaclose, whether that closeisawin, lose, ordrawfor theplayer.
+FocusLoci
+Describeavatarsor unitscontrolledbytheplayer. For eachtype, explainitsattributesandbehaviors, whether thesecanchangeover time, howandwhenit isproducedor consumed,whether ownershipof it changes, andwhether it canrespawnif killedor destroyed.
+Actions
+Describeeachof thegame’sprimaryandsecondaryactions. Providethenameof theaction(e.g., movement, jumping, combat, collecting, purchasing, etc.), what gameelement istheobject usedon?(e.g., resources, enemies, collectibleitems, etc.), howthisactionisimplemented, what resources(if any) it producesor consumes, andwhat rules(if any) limit howtheactioncanbeused.
+Resources
+Aresourceisacommoditythat isusedtoperformactionsinthegame(e.g., movement points,money, ammo, mana, health, lives, etc.), or tofulfill agamegoal (e.g., score, collectibles).:Describeeachof thegame’sprimaryandsecondaryresources. Explainwhat actionor goal it isusedfor, howit isproducedor consumed, andwhether it isrenewableor perishable.
+Challenges
+Describeeachof thegame’sprimaryandsecondarychallenges, includingobstacles, enemies,anddeadlytraps. Explainwhether it isaprimaryor secondarychallengetotheplayer, whatactionor goal doesit makedifficult, whereandwhentheplayer encountersit, what attributesorbehaviorsit has, andhowtheplayer canevade, eliminate, overcome, or surviveit. Alsoexplainanyrewardor benefit theplayer receivesfor successfullyconfrontingthechallenge, andanypunishment or penaltytheplayer receivesfor unsuccessfullyconfrontingit.
+=== page 4 ===
+Boundaries
+What doeachof your levelslooklike? Pasteadiagramor photointothisanswer. What istheplayer avatar’sstartinglocation? What arevariouspathsthroughthelevel? What arethelocationsof variouschallengesor strategiclocations(includingobstacles, enemies, pick-ups,power-ups, chargers, controllers, safehavensandrespawnpoints)? Whyaretheyplacedthere? What isthelocationof theendinggoal point?
+IMPORTANTNOTE: Usetables, charts, anddiagramswherever theywouldbehelpful indescribinghowyour gameworks. Useheadings, bullet points, andwhitespacetomakeyour document attractiveandeasytoread. Breakeachlongparagraphintoshorterparagraphs. Also, don’t forget torunaspell andgrammar checkonyour documentbeforesubmittingit.

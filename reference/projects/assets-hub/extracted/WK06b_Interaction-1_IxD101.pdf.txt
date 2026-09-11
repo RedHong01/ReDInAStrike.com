@@ -1,0 +1,79 @@
+=== page 1 ===
+Interaction 1:
+IxD 101
+=== page 2 ===
+Lecture Overview
+● Usability Testing
+=== page 3 ===
+Usability Testing
+=== page 4 ===
+“Watching people try to use what you’re creating / designing / building 
+(or something you’ve already created / designed / built), with the 
+intention of:
+(a)  making it easier for people to use  or (b)  proving that it is easy to use .”
+— Steve Krug
+=== page 5 ===
+Usability Testing: Why?
+Leverage testing to help assess:
+● Navigation
+● Content
+● Speed/performance
+● Understandability
+● Design
+● Appeal/desirability
+=== page 6 ===
+Usability Testing: How?
+Different methods:
+● In person - moderated
+● Remote - moderated
+● Remote - unmoderated
+=== page 7 ===
+Preparing the Test
+● Deﬁne  speciﬁc areas  of the platform you want to test. 
+● Write out user  tasks . Reﬁne. 
+● Prepare a script  to introduce the test to the participant. 
+● Ensure the  prototype is working as expected  and easily accessed 
+by the user. 
+● Deﬁne your  team roles  before the testing begins.
+=== page 8 ===
+Writing Tasks
+What must the user do in your system in order to feel satisﬁed?  What 
+problem do they have? 
+If the goal is:  “I want to save money easily.” 
+● Deﬁne a task  based on this goal 
+○ Example: Create a savings account with automatic monthly transfers.
+● Create a scenario  for this task.
+○ Example: “You’re saving up for a big vacation and want to make saving 
+money easy and efﬁcient. How would you do that using our app?”
+=== page 9 ===
+Testing Considerations
+1. Users need context . Make it realistic.
+2. Make the task actionable . It should be something your prototype is 
+designed to do. 
+3. Avoid providing clues and describing the steps.  Do not give users the 
+answer or help with the task. This is good feedback about whether 
+your design is successful from the user’s perspective.
+4. Document document document.  When possible have a notetaker, 
+screen record, audio record, whatever it takes.  (with participant 
+permission only!)
+=== page 10 ===
+Homework 
+Assignments
+=== page 11 ===
+What to work on for next week…
+● Begin to build the ﬁnal group presentation 
+○ Reﬁne the storytelling of your project (What, for whom, how?)
+○ Have something to share next week for feedback (outline, etc.)
+● Continue to test and iterate prototype designs
+=== page 12 ===
+HW6: (group) Final Presentation
+KEY OBJECTIVE(S)
+● Communicate the story of your project, guided by narration and visuals.
+ASSIGNMENT
+1. Each group member contribute to the creation (outline and design) and delivery (everyone speaks) of one 
+8-10 minute long presentation about their project. Write and practice a script. 
+2. Review and follow the ‘Final Presentation Suggestions’ and ‘Final Presentation Considerations’ slides. The 
+goal of this presentation is to share your project concept (Big Idea/UX Vision), research based designs, and 
+ﬁnal prototype.
+DELIVERABLE
+Each group will present their work and receive feedback during class.

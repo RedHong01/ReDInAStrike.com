@@ -1,0 +1,70 @@
+=== page 1 ===
+Interaction 1:
+IxD 101
+=== page 2 ===
+Lecture Overview
+● Interaction Design
+○ Prototype (+HW)
+=== page 3 ===
+Phases of Wireframing
+Ideation Phase Validation Phase
+“What are some ways our product can help  “How do I know this solution will work?”
+our customers accomplish their goals? ”
+=== page 4 ===
+Prototyping
+=== page 5 ===
+Why Prototype?
+● To explore
+● To reﬁne
+● To engage
+● To stay user centered
+● To communicate, test, validate:
+○ Functionality/Features
+○ Flow
+○ Interaction
+○ Usability
+=== page 6 ===
+Types of Prototype
+● Paper (sketched)
+● Paper (print-outs)
+● Photo gallery
+● Interactive - - - - - - - - - - - - - >
+● Static HTML
+● Functional
+=== page 7 ===
+Semi-Rapid Prototyping
+1. Form a plan (What is the story your prototype tells?)
+○ What is the entry point?
+○ Where and and what your key features or “big idea”?
+○ What is the end result?
+2. Organize your resources
+○ Select a tool, determine device to prototype for, ﬁnd UI kits
+3. Build the screens of your prototype (high ﬁdelity)
+○ Arrange UI elements, colors, fonts, etc. for screens
+4. Get interactive and ﬂow
+○ Determine and implement relevant interactions (transitions, linking
+screens via hotspots, etc.)
+=== page 8 ===
+HW5: (group) Create an Interactive Prototype
+KEY OBJECTIVE(S)
+● Each group will put together a digital clickable/interactive prototype. Base designs on individual 
+wireframes/wireﬂows and related feedback. Push to high-ﬁdelity screens in the prototypes.
+ASSIGNMENT
+1. Choose a design tool that everyone in your group will use to create designs (Figma or Adobe XD). 
+Leverage UI kits for that tool where applicable. (such as those found  here )
+2. Look to your wireframes/wireﬂows, user ﬂow, and feature prioritization to determine what screens to 
+build and ﬁt together as an interactive prototype.
+3. Help each other and collaborate on design ideas. Each group member should be involved in creating  the 
+interactive prototype.
+4. For each screen, consider the interactions and decisions a user can choose from in order to move them 
+closer to their goal. What is the priority? Does the design express the ‘big idea’/UX Vision/HMW?
+DELIVERABLE
+Upload a prototype link to Canvas. Be sure permissions are set so that anyone can view. Be prepared to 
+share during our next class.
+=== page 9 ===
+Homework 
+Assignments
+=== page 10 ===
+HW5: Due for next class
+● Reading:  (DMMT) Chapters 7-9
+● HW5:  (group) Create an Interactive Prototype

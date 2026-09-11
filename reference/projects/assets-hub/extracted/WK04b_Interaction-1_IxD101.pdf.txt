@@ -1,0 +1,228 @@
+=== page 1 ===
+Interaction 1:
+IxD 101
+=== page 2 ===
+Lecture Overview
+● Process Overview
+● Information Architecture
+○ Navigation and Wayﬁnding
+○ Human Interface Guidelines
+○ Content Strategy
+○ Card Sorting
+● Interaction Design
+○ Wireframes and Wireﬂows (+HW)
+○ Annotations
+=== page 3 ===
+Process Overview
+=== page 4 ===
+Process Overview
+Personas  > Reﬁne based on user interviews. “For whom?”
+Competitive Analysis  > Who are direct and indirect competitors?
+Feature Prioritization  > What are your MVP features?
+Scenarios  > Your audience in speciﬁc context reaching for a goal
+User Flows  > Visualization of a series of steps a user takes to achieve a goal.
+● Use scenarios to help build user ﬂows.
+● These ﬂows map user decisions and journey from entry point to goal.
+Wireframes  > Demonstrate functionality, features, content, and ﬂow
+● Interface sketches based on research and best practices
+● Annotations help provide clarity to interactions and purpose
+=== page 5 ===
+Information 
+Architecture
+=== page 6 ===
+“The  organization ,  search , and  navigation  systems 
+that help people to complete tasks, ﬁnd what they 
+need, and understand what they’ve found.”
+=== page 7 ===
+https://www.amst.com/user/files/Knolling%20blog/supplies.jpg
+=== page 8 ===
+Andy Goldsworthy, artist
+https://s3-ap-southeast-1.amazonaws.com/reacho/post/httpimages/061116/img_20160611180613581f268d28b8b.jpe g
+=== page 9 ===
+Organization Schemes
+How are you going to categorize content?
+Exact:  Subjective: 
+Alphabetical, Geographical,  Task, Topic, Metaphor
+Chronological
+=== page 10 ===
+Exact
+=== page 11 ===
+Subjective
+=== page 12 ===
+Navigation and 
+Wayﬁnding
+=== page 13 ===
+Navigation and Wayﬁnding
+=== page 14 ===
+Navigation and Wayﬁnding
+breadcrumbs
+=== page 15 ===
+Good Navigation 
+● Supports  the top  tasks  for the goal that users came for. 
+● Avoids  unnecessarily  vague  or creative terminology. 
+● Is  persistent  and  consistent  throughout the site. 
+● Is  clearly labeled  and uses  familiar conventions . 
+● Is  comprehensive , yet  concise .
+● Should not disappear, change, or move  without clear cause. 
+● Supports a users ability  capture the scope  of the site thru its 
+primary navigation links. 
+=== page 16 ===
+Learn more about IA and Navigation
+● The Difference Between Information Architecture (IA) and Navigation
+● How to Design an Awesome Sauce UX for Search and Navigation?
+=== page 17 ===
+https://abbycovert.com/writing/information-architecture-for-navigation/
+=== page 18 ===
+Human Interface 
+Guidelines
+=== page 19 ===
+Design Patterns and HIG
+What was one thing you learned or 
+found interesting from the reading?
+If you don’t use the keyboard layout guide, the 
+keyboard might obscure UI, such as a text ﬁeld...
+Material Color Tool
+=== page 20 ===
+Content Strategy
+=== page 21 ===
+What is Content?
+=== page 22 ===
+“Content strategy plans for the  creation ,  publication , and  governance
+of useful, usable content.”
+- Kristina Halvorson,  contentstrategy.com
+=== page 23 ===
+What is Content Strategy?
+Content strategy plans for all phases of the 
+digital content lifecycle.
+When done well, this helps users ﬁnd what 
+information they need, when they need it .
+=== page 24 ===
+Content Clarity
+● Be speciﬁc
+● Omit needless words
+● Watch for jargon and abbreviations
+● Front-load your labels
+=== page 25 ===
+Writing is Part of 
+Design Process
+It doesn’t belong at the beginning, 
+middle, or end, because 
+it is something we need to do
+throughout the design process .
+=== page 26 ===
+Creating Content
+● Identify your audience
+● Why do people bounce?
+● People don’t read (help them scan)
+● Consider the tone of your content
+● Data is content: “What data?”
+=== page 27 ===
+Card Sorting
+=== page 28 ===
+Card Sorting
+Help discover how your users…
+● view content
+● categorize content
+● label content
+What is card sorting?
+=== page 29 ===
+Interaction Design
+=== page 30 ===
+Wireframes
+=== page 32 ===
+Why Wireframe?
+● To help your team estimate and reﬁne the scope of work
+● As a demo for stakeholders and clients
+● In order to conduct user testing
+=== page 33 ===
+Wireframing Best Practices
+● Sketch on paper before going digital ● Maintain consistency
+● Use real content
+● Don’t wireframe every page
+● Use annotations
+● Move from l ow to high-ﬁdelity
+● Prioritize communication of ideas
+● Minimize the use of color
+● Use simple design of components
+=== page 34 ===
+Wireframe as Conversation
+What should it communicate?
+● Functionalities
+● Interactions
+● Client expectations
+● Use goals
+=== page 35 ===
+Phases of Wireframing
+Ideation Phase Validation Phase
+“What are some ways our product can help  “How do I know this solution will work?”
+our customers accomplish their goals? ”
+=== page 36 ===
+Wireframe Fidelity
+=== page 37 ===
+Low Fidelity
+https://www.duncanjonesnz.com
+=== page 38 ===
+Mid Fidelity
+=== page 39 ===
+High Fidelity
+=== page 40 ===
+Wireframe Fidelity (range)
+https://www.cleveroad.com
+=== page 41 ===
+Wireﬂows
+=== page 42 ===
+W ireframes + Flows = Wireﬂows
+=== page 43 ===
+Wireﬂow
+(wireframe + ﬂow)
+Source image
+=== page 44 ===
+“Wireﬂows  are a design-speciﬁcation format that
+combines wireframe-style page layout designs
+with a simpliﬁed ﬂowchart-like way of
+Image source
+representing interactions.”
+—  Page Laubheimer
+=== page 45 ===
+Creating a Wireﬂow
+1. Determine entry and exit points
+2. Stack steps to end goal
+3. Articulate steps based on behaviors and user interactions.
+4. Sketch (or prototype) a ﬂow
+=== page 46 ===
+Ideation: Crazy 8’s
+https://www.youtube.com/watch?v=_LwvsWljr9g
+=== page 47 ===
+Annotations
+=== page 48 ===
+Annotations
+=== page 49 ===
+Figma Comments
+=== page 50 ===
+Adobe XD Annotations
+https://xd.adobe.com/ideas/process/wireframing/annotated-wireframes-for-product-design
+=== page 51 ===
+HW4: (individual) Sketch Wireframes/Wireﬂows
+KEY OBJECTIVE(S)
+● Each team member is responsible for designing and delivering wireframes/wireﬂows. It is critical for 
+groups to meet before starting to make a plan. I recommend sketching on paper for this assignment.
+ASSIGNMENT
+1. Look to your user ﬂow and feature prioritization to determine what screens and features to wireframe 
+and how they ﬁt together and map to your user ﬂow.
+2. You may help each other and collaborate on design ideas, however, each student is responsible for 
+designing and delivering their own set of mid-ﬁdelity annotated wireframes/wireﬂows.
+3. For each wireframe, consider the interactions and decisions a user can choose from in order to move 
+them closer to their goal. 
+○ What is the priority? Does the design express the ‘big idea’/UX Vision/HMW?
+○ Provide annotations where applicable
+4. Sketch large enough and on as many sheets of paper (11x17 recommended) as needed to make your 
+designs clear. Be prepared to pin up your designs for crit/feedback next class (bring wall safe tape!).
+DELIVERABLE
+Upload clearly documented images to Canvas. Print your work to pin up and share during our next class.
+=== page 52 ===
+Homework 
+Assignments
+=== page 53 ===
+HW: Due for next class
+● Read, Reﬂect, Discussion Prep:  (DMMT) Chapters 4-6
+● HW:  (individual) Sketch Wireframes/Wireﬂows

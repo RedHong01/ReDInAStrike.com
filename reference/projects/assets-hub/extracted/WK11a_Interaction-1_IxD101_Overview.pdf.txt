@@ -1,0 +1,56 @@
+=== page 1 ===
+Interaction 1:
+IxD 101
+WK11_Class Overview
+=== page 2 ===
+Class Overview
+● Small group share of wireframes/wireﬂows
+○ Discuss and capture feedback
+● Studio Work Time
+○ Process and incorporate feedback
+○ What needs to be added? Changed? Updated?
+○ Once the foundation is strong, push visual design forward
+=== page 3 ===
+Small Group Share
+● Form small groups and share:
+○ What is your  HMW statement ? (provide concept context)
+○ What are your  key features and interactions  supporting your “big 
+idea”? Where are you expressing them in your designs?
+=== page 4 ===
+Semi-Rapid Prototyping
+1. Form a plan (What is the story your prototype tells?)
+○ What is the entry point?
+○ Where and and what your key features or “big idea”?
+○ What is the end result?
+2. Organize your resources
+○ Select a tool, determine device to prototype for, ﬁnd UI kits
+3. Build the screens of your prototype (high ﬁdelity)
+○ Arrange UI elements, colors, fonts, etc. for screens
+4. Get interactive and ﬂow
+○ Determine and implement relevant interactions (transitions, linking
+screens via hotspots, etc.)
+=== page 5 ===
+Homework 
+Assignments
+=== page 6 ===
+HW10: Create an Interactive Prototype
+KEY OBJECTIVE(S)
+● Put together a digital clickable/interactive prototype (create hotspot interactions in Figma). Base 
+designs on wireframes/wireﬂows and related feedback. Push toward high ﬁdelity screens in 
+prototypes with logical ﬂow and interactions supporting the project concept.
+ASSIGNMENT
+1. Create a  design system  that supports your concept. Leverage Figma UI kits as needed. 
+2. Look to your wireframes/wireﬂows, user ﬂow, and feature prioritization to determine what screens to 
+build and ﬁt together as an interactive prototype.
+3. For each screen, consider the interactions and decisions a user can choose from in order to move them 
+closer to their goal. What is the priority? Does the design express the ‘big idea’/UX Vision/HMW?
+DELIVERABLE
+Upload a prototype link to Canvas. Be prepared to share during our next class.
+=== page 7 ===
+HW10: Due for next class
+● HW10:  Create an Interactive Prototype
+=== page 8 ===
+Resource Links
+● Canvas for course syllabus and assignment submission
+● For questions, concerns, etc. related to class
+david.chan@artcenter.edu

@@ -418,4 +418,22 @@ export const extraSectionRenderers = {
   screens,
   "flow-lanes": flowLanes,
   survey,
+  "case-gallery": caseGallery,
+  "evidence-table": evidenceTable,
+  "reference-links": referenceLinks,
+}
+
+function caseGallery(section, { escapeHtml, gddPair, imageSourceAttrs }) {
+  const items = section.items.map((item) => `<figure class="case-reference-figure"><img ${imageSourceAttrs(item.image)} alt="${escapeHtml(item.alt)}" loading="lazy" decoding="async" /><figcaption><strong>${escapeHtml(item.label)}</strong><span>${gddPair(item.caption)}</span></figcaption></figure>`).join("")
+  return sectionShell(section, `<div class="case-reference-gallery">${items}</div>`, { escapeHtml, gddPair }, "case-reference-section")
+}
+
+function evidenceTable(section, { escapeHtml, gddPair }) {
+  const rows = section.rows.map((row) => `<tr><th scope="row">${escapeHtml(row[0])}</th><td>${gddPair(row[1])}</td></tr>`).join("")
+  return sectionShell(section, `<div class="gdd-table-scroll"><table class="gdd-table case-evidence-table"><tbody>${rows}</tbody></table></div>`, { escapeHtml, gddPair }, "case-reference-section")
+}
+
+function referenceLinks(section, { escapeHtml, gddPair }) {
+  const links = section.items.map((item) => `<li><a href="${escapeHtml(item.href)}"${item.external ? ' target="_blank" rel="noreferrer"' : ""}>${escapeHtml(item.label)} ↗</a><span>${gddPair(item.copy)}</span></li>`).join("")
+  return sectionShell(section, `<ul class="case-reference-links">${links}</ul>`, { escapeHtml, gddPair }, "case-reference-section")
 }

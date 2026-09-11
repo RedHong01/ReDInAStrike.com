@@ -1,0 +1,671 @@
+=== page 1 ===
+4th Iteration þÿÿü 1 / þÿÿü 28
+Red Wang
+Game Design Document 
+Build n Shoot !!! 
+=== page 2 ===
+4th Iteration þÿÿü 2 / þÿÿü 28
+or strategy. 
+opportunities, reshaping the map to gain an advantage and enjoy their product 
+Hook:  The player uses the movement system to create building and shooting 
+game goal. game goal. game goal.
+man standing  action man standing  man standing 
+territory   obstacles. Last  player's building  obstacles. Last  obstacles. Last 
+building their own  and their built  time due to the  and their built  and their built 
+the game map by  enemy side players  may change at any  enemy side players  enemy side players 
+Player can affect  Hinder from  Game maps that  Hinder from  Hinder from 
+Mid-High Mid-High Mid Low High
+Novelty Challenge Stimulation Harmony Threat
+Play Value: 
+Primary Goal:  Eliminate the other player and be the last one standing.
+elemental magic, providing strategy and creative gameplay opportunities.
+resources while marking territory by walking over it. The islands are alive with 
+lands. Players construct platforms and bullet-blocking bunkers using arcane 
+energy. Players are powerful mages competing for control of these ancient 
+Setting: The game is set in a series of  fl ß oating islands infused with raw magical 
+Estimated Play Time:  30 Minutes
+Player Format:  PvP (Max Players:4)
+Genre:  Turn-based strategy shooting game
+Title: Build n Shoot!!!
+Overview: 
+=== page 3 ===
+4th Iteration þÿÿü 3 / þÿÿü 28
+Game Pillar:  Strategically traversing, Building, Shooting.
+¥ People who like fantasy and magic themes. 
+¥ Achiever-type players and Killer-type players. 
+¥ Strategy game enthusiasts. 
+Target Player: 
+=== page 4 ===
+4th Iteration þÿÿü 4 / þÿÿü 28
+new system features (Details in the AI System part). 
+situational mechaincs  and the game progression is updated to align with the 
+The AI System  was updated and revised in the 4th iteration for both a cleari fi Þ ed 
+4th Iteration: 
+System part). 
+progression is updated to align with the new system features (Details in the AI 
+A new  AI System  was introduced in the 3rd iteration of the game, and the game 
+3rd Iteration: 
+game elementsÕ values the same and tested their validity till the next iteration. 
+The dif fi Þ culty feedback from players was overall satisfying, so I kept the other 
+(Details in the Component and the Inventory System part). 
+Items & Action Cards were updated to align with the inventory systemÕs features 
+A new  Inventory System  was introduced in the 2nd iteration of the game, and all 
+2nd Iteration: 
+Revision History: 
+=== page 5 ===
+4th Iteration þÿÿü 5 / þÿÿü 28
+players maximum) 
+as the square grid. (Up to 4 types of colors of Blocks Ñ 4 
+Level Block:  Color-level blocks  that are the same size 
+Blocks and Marks:  \011
+Guard, and Support Guard
+Units: 3 types of AI Unit Pieces (Attack Guard, Defense 
+D6:  1 D6 Dice. \011
+(Up to 4 colors of pieces Ñ 4 players maximum) \011
+Avatar Piece:  Each player will have 1 color  of   Avatar Piece. 
+Avatars, Units & Dice:  \011
+player that holds it. 
+Card
+HP 
+HP Card:  Each  HP Card represents  1  available Health Point  for the 
+player that holds it. \011
+Card
+Ammo  
+Ammo Card:  Each  Ammo Card represents  1  available  Shot  for the 
+resource for the player that holds it.  \011
+Card
+Resources Card:  Each  Resource Card represents  1  point of  available 
+Resource  
+player that holds it.  \011
+Action Card:  Each  Action Card represents  1  available action  for the 
+Cards:  \011
+placeholders.
+and other elements have been replaced with symbols and 
+The art for the game components is in progress. All cards, boards, 
+Components: 
+=== page 6 ===
+\011
+4th Iteration þÿÿü 6 / þÿÿü 28
+changes in in-game resources, how much each player has, etc. 
+An unlimited number of pencils and paper is used to calculate 
+Pen & Paper: \011
+¥ Move Boost  (Move an additional 3 grid units)
+¥ Dirty Bomb  (Destroy the 4X4 range of Obstacles)
+Power-ups: 
+Items:
+15x15 squared grid map 
+Game Board: \011
+Marks Ñ 4 players maximum) 
+size as the square grid. (Up to 4 types of Color-Territory 
+Territory Mark:  Color-Territory marks  that are the same
+=== page 7 ===
+4th Iteration þÿÿü 7 / þÿÿü 28
+¥ 56 Territory Marks
+Card
+X56 X3
+Resource  
+¥ 4 HP Cards
+¥ 3 Level Blocks
+Card
+X4 X3
+HP 
+¥ 3 Action Cards
+The GM will then provide each player with the following game components:  
+afterward.  \011
+initial position and does not in fl ß uence the gameplay 
+determined priority. This color area only affects the 
+within the designated range) according to their 
+their starting point within their color area (any point 
+Based on the playerÕs chosen color, they will select 
+priority to start their turn.  \011
+player rolling the highest number gaining the highest 
+player rolls a D6 to determine turn order, with the 
+Blocks, and Territory Marks. Once the color sets are decided, each
+The player will choose their color set for their Avatar, Level 
+Set-Up: \011
+Procedures: 
+=== page 8 ===
+4th Iteration þÿÿü 8 / þÿÿü 28
+turn begins. 
+4.  After the playerÕs purchasing phase, their turn concludes, and the next playerÕs 
+allowed to use any items during this step þÿ\000. \013 .
+purchase is listed in the Special Procedures section. However, they are not 
+Cards to purchase any items; the detailed explanation of the cost and gains of 
+3.  After the Settlement and AI Activity phase, Players can use their Resource 
+their behavior logic; a detailed explanation is in the  AI Systems  section. 
+¥ All surviving AI Units on the map  will perform one turn of actions based on 
+AI Activity: 
+the playerÕs inventory.  \011
+collect. If items are found, they are automatically picked up and added to 
+¥ The player checks the surrounding nine grid spaces for any items to 
+Settlement:
+Action Cards, they enter the Settlement and AI Activity phase.  \011
+2.  After a player completes their last Action and decides not to use any more 
+¥ Use Items  and  Place Units (Further explained in Transitional Mechanics)
+¥ Building  (Build a block by using a  Resource Card )
+¥ Shooting  (Further explain in Combat System) 
+¥ Moving  (Further explain in Movement System) 
+The  Actions  that players can perform by using an  Action Card : 
+cards.  \011
+number of Action Cards per turn, performing as many actions as they have 
+can use an Action Card to perform an Action. Players can use an unlimited 
+1.  Players take their turns in the previously determined order. The active player 
+Progression Procedures: 
+=== page 9 ===
+4th Iteration þÿÿü 9 / þÿÿü 28
+9 HP Card HP 1 HP Card 2(Stacks)=1 Yes
+Action
+3 Ammo Card Resource Allows 1 Shot  3(Stacks)=1 Yes
+Action
+3 Action Card Resource Allows 1 Move  1 No
+3 Resource Card Resource Build Blocks 6(Stacks)=1 Yes
+turns.
+effect last two 
+grid units. The 
+an additional 3 
+player to move 
+allow the 
+movement will 
+3 Move Boost Power-Up The next  3(Stacks)=1 Yes
+Action.
+after the Move 
+4-Unit grids 
+blocks within a 
+8 Dirty Bomb Power-Up Destroys all  1 No
+needed
+Marks 
+Territoy  Items Catagory Effect Weight Stackable?
+Territory Marks Purchase Graph:  \011
+further use that turn. 
+Bomb (costing 8 Territory Marks), they will have 12 Territory Marks remaining for 
+example, if a player has 20 available Territory Marks in turn and purchases a Dirty 
+in turn remain on the board but cannot be reused for new purchases; for 
+items based on the number of Territory Marks they control. Territory Marks used 
+Item Purchase:  Players can purchase different Power-Ups and resource 
+Special Procedures:  \011
+resource cards. 
+enemy players. Progress is lost when their HP decreases or when they lose 
+Players gain more progress by collecting additional resources and eliminating 
+=== page 10 ===
+\011
+4th Iteration þÿÿü 10 / þÿÿü 28
+board, while their point value is just used for purchasing. 
+map are not consumed or removed. They remain in play as components on the 
+points to spend on purchasing items, but the actual Territory Marks placed on the 
+For example, if a player has 10 Territory Marks this turn, they receive 10 
+eligible for subsequent calculations. \011 \011
+cannot be counted again for future purchases; only unused Territory Marks are 
+Territory Marks consumed during each purchase remain on the board but 
+goes to 0
+until its HP 
+will keep acting 
+map, the Auatd 
+Guard in the 
+7 Support Guard Units Place a Attack  2(Stacks)=1 Yes
+goes to 0
+until its HP 
+will keep acting 
+map, the Auatd 
+Guard in the 
+6 Defense Guard Units Place a Attack  2(Stacks)=1 Yes
+goes to 0
+until its HP 
+will keep acting 
+map, the Auatd 
+(Level 3) Guard in the 
+20 Attack Guard  Units Place a Attack  2(Stacks)=1 Yes
+goes to 0
+until its HP 
+will keep acting 
+map, the Auatd 
+(Level 2) Guard in the 
+10 Attack Guard  Units Place a Attack  2(Stacks)=1 Yes
+goes to 0
+until its HP 
+will keep acting 
+map, the Auatd 
+(Level 3) Guard in the 
+5 Attack Guard  Units Place a Attack  2(Stacks)=1 Yes
+needed
+Marks 
+Territoy  Items Catagory Effect Weight Stackable?
+=== page 11 ===
+\011
+4th Iteration þÿÿü 11 / þÿÿü 28
+other players are eliminated. (0HP)  the player who left would be the winner
+The game concludes when thereÕs only one player left in the game, and all 
+Endgame Procedures:  \011
+otherwise gain. 
+Items from their current inventory or forgo the new Cards/Items they would 
+exceed 10 Units of Cards in any turn, they must either discard the excess Cards/
+Cards/Items count as 1 Unit until they reach their stacking limit). If players 
+hold up to 10 weights of worth of Cards and Items at any time (some stackable 
+Hand limit and card discard:  Based on the inventory system, players can 
+=== page 12 ===
+4th Iteration þÿÿü 12 / þÿÿü 28
+block within two squares of them, they need to roll a 3
+Level 1 Level 2 Level 3
+For example, if a player wants to move to a level 3 
+normally as if on a  fl ß at grid.
+level block to a lower-level block, and it proceeds 
+point. There are no constraints to moving from a higher-
+Level 2 or Level 3 blocks requires an additional +1 to the dice 
+Climbing to a Level 1 block has no restrictions, but climbing to 
+Players can climb onto the building blocks theyÕve constructed. 
+\011
+Marks, they will overwrite the existing Territory Marks with their own.
+grid they pass through. When a player passes through another playerÕs Territory 
+Players will place Territory Marks in every 
+rule.  \011
+resources were produced in a designed 
+to my game since all of my other action 
+iteration is  fi Þ rst to add some randomness 
+rolling activation method in my 1st 
+\011 The purpose of using this dice 
+the player can move in all four directions but not diagonally. \011
+position units can move each turn. The game is set on a square grid map, and 
+The player will roll a D6 in each move stage to determine how many 
+Movement System:   \011
+Systems:
+=== page 13 ===
+4th Iteration þÿÿü 13 / þÿÿü 28
+included.
+included.
+marks 
+marks 
+Territory 
+Territory 
+3 
+No 
+without passing their corresponding
+The graph on the left shows that the bullet can move up to 4 units in the grid 
+attempt a shot and rolls a 4. 
+Example:  The player plays an Ammo Card during their Action turn to 
+effect can be triggered repeatedly).  \011
+own Territory Marks, its movement range extends by one additional unit (this 
+a straight line without turning directions). If the bullet moves over the playerÕs 
+the player rolls a six, the bullet can move six units in any direction on the grid (in 
+The player will roll a D6 to determine their base shooting range. For example, if 
+horizontally. 
+However, unlike avatar movement, the bullet can travel diagonally, vertically, and 
+it from one grid to another, with each movement covering 1 unit of grid space. 
+First, similar to the movement system, the bulletÕs range is calculated by moving 
+of the playerÕs avatar. 
+will  fl ß y and what target it will hit. The starting position of the bullet is the location 
+compute its trajectory) has a set of calculating logic that determines how far it 
+no actual bullets in the game's components, the player needs to visualize and 
+player performs a shooting action, the range of a virtual bullet (since there are 
+The combat system is most dependent on the player's position. When the 
+Player Avatar:  \011
+Combat System:  
+=== page 14 ===
+\011
+4th Iteration þÿÿü 14 / þÿÿü 28
+level obstacles, providing them with a tactical bene fi Þ t. 
+them to plan their positioning carefully. Players at higher levels can ignore lower-
+This design is intended to give strategic players an advantage by allowing 
+positioned at Level 1 through Level 3.
+The diagram from left to right illustrates the bullet interactions between players 
+\011
+at a player positioned higher, the bullet will destroy one block at that gird. \011
+build up to 3 block levels in the game. When a player at a lower position shoots 
+player's level depends on how many blocks they are standing on. Players can 
+Players standing at a higher level can shoot at players at a lower level. A 
+actions.  \011
+extension mechanic strategically emphasizes both the move and building 
+game, as the outcome of D6 will determine the range of the shooting Action. The 
+This design aims to balance the in fl ß uence of randomness elements in the 
+as three Territory Marks increased the range by three additional units.  \011
+direction(right side). The original range of four units is expanded to seven units, 
+maximum range is extended when passing through Territory Marks in one 
+Territory Marks. In contrast, the graph on the right illustrates how the bulletÕs 
+Territory Marks are the regular range of the bullet without the in fl ß uence of 
+=== page 15 ===
+4th Iteration þÿÿü 15 / þÿÿü 28
+The diagram below explains how stackable cards count in terms of Weights. 
+Weights worth of cards in total. 
+The inventory system is based on ÒWeightsÓ; each player will only hold 10 
+Inventory System:  
+Level2 or above, there will be extra damage dealt. 
+the graph for Level2 and Level3 Attack Guards, if the player shoots them from a 
+how elevation change affects the damage dealt to Units in a game. As shown in 
+This is a sample table representing a situational visualization graph that shows 
+1
+2 3
+X2 X2+1
+Players to Units
+reach the player placed in Higher Level Obstacles. 
+more to the right. As the diagram shows, a higher level of Attack Guard can 
+players at Level 1 through Level 3. A higher Level of Attack Guard will positioned 
+The diagram from left to right illustrates the Attack GuardÕs attack range between 
+1 2 3
+Units to player \011
+=== page 16 ===
+4th Iteration þÿÿü 16 / þÿÿü 28
+hold. 
+4 HP Card =  2  Weight (3/3 + 1/3 Stacked) =  8  Weight of available Cards/Items to 
+3 HP Card =  1  Weight (3/3 Stacked)  =  9  Weight of available Cards/Items to hold. 
+2 HP Card =  1  Weight (2/3 Stacked) =  9  Weight of available Cards/Items to hold. 
+1 HP Card =  1  Weight (1/3 Stacked) =  9  Weight of available Cards/Items to hold. 
+is below: 
+stackable and worth 1 Weight before being stacked to 3. The calculation method 
+A good example of stackable Items would be HP cards. The HP Cards are 
+9 HP Card HP +1  HP Card 2(Stacks)=1 Yes
+needed
+Marks  Items Catagory Effect Weight Stackable?
+Territoy 
+hold up to 9  Dirty Bomb Items. 
+have at least 1 HP card before they lose the game, which means the player can 
+Inventory System. However, based on the win condition, each player should 
+theoretically hold 10 Dirty Bomb Items due to the total hand limit for the 
+The Dirty Bomb Item is a Non-Stackable Item worth 1 Weight, so the player can 
+Action.
+after the Move 
+8 Dirty Bomb Power-Up 4-unit grids  1 No
+blocks within a 
+Destroys all 
+needed
+Marks  Items Catagory Effect Weight Stackable?
+Territoy 
+=== page 17 ===
+\011
+4th Iteration þÿÿü 17 / þÿÿü 28
+weight to other cards for broader tactical options. 
+between holding more HP/Action Cards for survival and utility or allocating 
+This design forces players to strategize their limited hand capacity, deciding 
+consume additional weight units to carry more. 
+This ensures players can hold a minimum amount of these cards but must 
+resources. So, I designed these cards to be stackable but with a low stacking limit. 
+failure, and Action Cards are required for basic actions like Moving and gaining 
+example, HP Cards and Action Cards are essential resourcesÑHP prevents game 
+different cards; I assign Weights and stackable properties to each type. For 
+This inventory system design aims to balance the potential bene fi Þ ts of 
+=== page 18 ===
+4th Iteration þÿÿü 18 / þÿÿü 28
+2)
+Idle
+Health(HP> Idle Patrol Search Chase Idle Chase
+Switch to 
+High 
+2)
+Flee Flee Flee Restore
+Health(HP< Idle Idle Flee
+Switch to  Switch to  Switch to  Keep 
+Low 
+Turns
+Flee >2  Patrol Restore Idle
+N/A N/A N/A N/A
+Restore/ Switch to  Switch to  Switch to 
+Idle/
+Range
+Attack
+Chase Search Restore
+out from  Idle Patrol Search Keep  Flee
+Switch to  Switch to  Keep 
+Player Got 
+Enemy 
+Range
+Attack Flee
+Attack Attack Attack Attack Keep  Flee Attack
+Player In  Switch to 
+Enemy 
+Detacted
+Chase Chase Chase Chase Restore
+Player  Keep  Flee Chase
+Switch to  Switch to  Switch to  Switch to   Keep 
+Enemy 
+Detacted
+Search Idle Search Idle Search
+Player  Idle Keep  Flee
+Switch to  Switch to  Switch to  Switch to  Switch to 
+No Enemy 
+Condition
+Idle Patrol Search Attack Flee Chase Restore
+State/
+Attack Guard: 
+situations.  \011
+encounter, and the top row shows the states the UI switches to based on these 
+The logic of the chart is that on the left side are the situations the UI may 
+range that is addressed in the combat system):  \011
+Attack Guard(All Levels of attack guards function the same except the attack 
+The action logic for each AI Unit is detailed in the following table: 
+The gameÕs AI System is designed based on a Finite State Machine (FSM). 
+AI System:  \011
+=== page 19 ===
+4th Iteration þÿÿü 19 / þÿÿü 28
+Units, not just to upgrade directly. 
+The main purpose of the initial upgrade is to unlock the right to buy higher-level 
+regardless of current game ownership. 
+However, if they've reached Level 2 or higher before, they can purchase Level 2, 
+a player hasn't upgraded to Level 2, they can't buy it for 10 Territory Marks. 
+to purchase that level of Attack Guard during the Purchase Phase. For example, if 
+Once a player upgrades to a certain level for the  fi Þ rst time, they unlock the ability 
+Territory Marks, starting with an initial cost of 5 Territory Marks for Level 1. 
+twice as much as the previous one. Upgrading from Level 1 to Level 2 costs 10 
+Attack Guards can be upgraded in this game system, with each upgrade costing 
+advancing 3 grid units at a time. 
+Flee : Move in the opposite direction from the nearest enemy player, 
+¥
+Restore : If the unit is in this state, it recovers 1 HP per turn. 
+¥
+grid units at a time. 
+Chase : After discovering an enemy player, advance towards them, moving 2 
+¥
+value based on the level of Attack Guard. 
+Attack : In fl ß ict damage once on a player within attack range, with the damage 
+¥
+attempting to locate the player. 
+Search : Act three times in total, moving forward 3 grid units each time while 
+¥
+per turn. 
+length of route. When this state is active, the avatar moves forward 2 grid units 
+must be continuous, connecting start and endpoints. No maximum or minium 
+Patrol : Move in a loop along a route planned by the player. The patrol path 
+¥
+Idle : Remain stationary in place. 
+¥
+Speci fi Þ cations (Attack Guard): 
+=== page 20 ===
+4th Iteration þÿÿü 20 / þÿÿü 28
+Restore Unit 1HP 
+Flee 2
+Build þÿN\000 Attack Guard
+Enemy Player Territory Marks
+Locate þÿN\000 obstacle
+avatar 2
+Patrol Patrol
+Idle
+Speci fi Þ cations (Defense Guard): 
+BuildFinished Patrol Patrol
+Health(HP>2) Idle
+Idle Patrol Search Chase Idle
+High  Switch to 
+Health(HP<2) Flee Flee Restore
+Idle Idle Flee
+Low  Switch to  Switch to  Keep 
+Flee >2 Turns Patrol Restore Idle
+N/A N/A N/A
+Idle/Restore/ Switch to  Switch to  Switch to 
+Setted
+Attack Attack Attack Attack Keep  Flee
+Build location 
+Detacted Chase Chase Chase
+Flee Keep  Flee
+Enemy Player  Switch to  Switch to  Switch to  
+Detacted
+Search Idle Search Idle
+Player  Idle Keep  Flee
+Switch to  Switch to  Switch to  Switch to 
+No Enemy 
+Condition
+Idle Patrol Locate Build Flee Restore
+State/
+Defense Guard: 
+=== page 21 ===
+4th Iteration þÿÿü 21 / þÿÿü 28
+Auction
+Trading System:  \011
+Ecologies: 
+Economies: 
+Engines: 
+Economic System: 
+BuildFinished Patrol Patrol
+Health(HP>2) Idle
+Idle Patrol Search Chase Idle
+High  Switch to 
+Health(HP<2) Flee Flee Restore
+Idle Idle Flee
+Low  Switch to  Switch to  Keep 
+Flee >2 Turns Patrol Restore Idle
+N/A N/A N/A
+Idle/Restore/ Switch to  Switch to  Switch to 
+Setted
+Attack Attack Attack Attack Keep  Flee
+Build location 
+Detacted Chase Chase Chase
+Flee Keep  Flee
+Enemy Player  Switch to  Switch to  Switch to  
+Detacted
+Search Idle Search Idle
+Player  Idle Keep  Flee
+Switch to  Switch to  Switch to  Switch to 
+No Enemy 
+Condition
+Idle Patrol Locate Build Flee Restore
+State/
+Support Guard: 
+=== page 22 ===
+4th Iteration þÿÿü 22 / þÿÿü 28
+Unit Territory Marks Territory Marks
+Wall Building 5 1  Obstacle
+1  Obstacle  3  Obstacle= 9  3  Obstacle= 9 
+Building Territoy Marks
+3 1  Obstacle 1  Obstacle 1  Obstacle
+Obstacle  1  Obstacle =  3
+total
+Obstacles)
+6x6=36Obstacles in 
+destoried  0
+of 4 grid units. 
+Marks  Marks 
+and 
+covering a maximum 
+Super Bumb 8 0  Territory  108  Territory 
+its range 
+up to 4 levels high and 
+0  Obstacles =  36  Obstacles = 
+(Nothing in 
+4-unit area, meaning 
+0 
+(All Obstacles within a 
+36  Obstacles 
+Obstacles)
+destoried  0
+Marks  Marks 
+and  in a line
+Laser Beam 7 0  Territory  42  Territory 
+its range  14  Destroy Obstacles 
+0  Obstacles =  14  Obstacles = 
+(Nothing in 
+0 
+Obstacles in total
+Obstacles)
+of 4 grid units. 4x3=12 
+destoried  0
+Marks  Marks 
+covering a maximum 
+and 
+Dirty Bumb 6 0  Territory  36  Territory 
+up to 3 levels high and 
+its range 
+0  Obstacles =  12  Obstacles = 
+4-unit area, meaning 
+(Nothing in 
+(All Obstacles within a 
+0 
+12  Obstacles 
+Marks)
+(Territory  Bene fi Þ t Equivalents Equivalents
+Name Max Bene fi Þ t
+Spend  Min  Min  Max 
+Resources 
+=== page 23 ===
+4th Iteration þÿÿü 23 / þÿÿü 28
+N/A 
+Elements: 
+Additional Game 
+=== page 24 ===
+4th Iteration þÿÿü 24 / þÿÿü 28
+\011 \011 15x15 squared grid map 
+Game Board: \011
+=== page 25 ===
+4th Iteration þÿÿü 25 / þÿÿü 28
+Did players feel like they were progressing in the game? 
+beginning, middle, and end of your game? 
+How engaged were players in playing your game at the 
+intermediate game goals and the overall goal of winning? 
+How dif fi Þ cult did players  fi Þ nd your game, both in achieving the 
+AI Unit 
+GM
+þÿN\000 þÿN\000
+progression þÿe¹
+survey þÿN\000
+before starting to play the game and during the game play? 
+How well did your players understand the game rules, both 
+1W9eUi115_sYqJcP5bP7Kbc8h68DsBsULKNPoIEV7_l0/edit 
+https://docs.google.com/forms/d/
+Playtest Survey (4th Iteration): 
+Analysis: 
+Playtest & Game 
+=== page 26 ===
+4th Iteration þÿÿü 26 / þÿÿü 28
+impact on gameplay? 
+what makes it that type of system, and what is that systemÕs 
+Is any game system in your game an economy? If so, what was it, 
+systemÕs impact on gameplay? 
+was it, what makes it that type of system, and what is that 
+Is any game system in your game a balancing engine? If so, what 
+systemÕs impact on gameplay?  
+what was it, what makes it that type of system, and what is that 
+Is any game system in your game a reinforcing engine? If so, 
+play your game  
+What other observations did you make while observing players 
+Did resource trading feel worthwhile to your players? 
+game? 
+found so hard to obtain that it seemed impossible to win the 
+Were there any resources or other ownable objects that players 
+players found so plentiful that they were practically worthless? 
+Were there any resources or other ownable game objects that 
+winning the game? 
+Did players feel like their decisions mattered with respect to 
+=== page 27 ===
+4th Iteration þÿÿü 27 / þÿÿü 28
+how does that affect gameplay? 
+Is any progression in your game cyclical? Why or why not? If it is, 
+If it is, how does that affect gameplay? 
+Is there any progression in your game vertical? Why or why not? 
+Is any progression in your game horizontal? Why 
+was), what could you theoretically do to  fi Þ x economic in fl ß ation?  
+was found to be too high (even if playtesters didnÕt report that it 
+theoretically do to  fi Þ x economic stagnation? If the supply of one 
+(even if playtesters didnÕt report that it was), what could you 
+did you think that? If the supply of one was found to be too low 
+commodities in your game too low? If so, what was it, and why 
+Was the supply and demand of signi fi Þ cant resources, currency, or 
+have on gameplay? 
+Is your game economy open or closed? What impact does that 
+impact on gameplay? 
+what makes it that type of system, and what is that systemÕs 
+Is any game system in your game an ecology? If so, what was it, 
+=== page 28 ===
+4th Iteration þÿÿü 28 / þÿÿü 28
+and what could you theoretically do to  fi Þ x that problem?
+them doing so), how would this affect the gameplay experience, 
+game? If players tended to do so (even if you didnÕt observe 
+Did any players seem to succumb to analysis paralysis in your 
+could you theoretically do to  fi Þ x that problem? 
+so), how would this affect the gameplay experience, and what 
+players tended to do so (even if you didnÕt observe them doing 
+Did any players succumb to power creep in your game? If 
+(randomness) affect the player's progression experience? 
+How do narrative, time or turn-based events, or luck 

@@ -1,0 +1,274 @@
+const imgLine9 = "https://www.figma.com/api/mcp/asset/8c4675f9-db6c-4d3a-b5a2-30a7175ac8d9.svg";
+const imgSearchBarNormal1 = "https://www.figma.com/api/mcp/asset/951ccc9a-97e3-421d-8760-0955df6e6352.png";
+const imgSearchBarShadow = "https://www.figma.com/api/mcp/asset/b9b053f2-69a0-43b5-a9e6-07d32c94d5a5.svg";
+const imgSearchBarNormal = "https://www.figma.com/api/mcp/asset/08baeae3-2df4-4923-b436-7f7cd60aacbc.svg";
+const imgLine11 = "https://www.figma.com/api/mcp/asset/5111dfd8-486d-452e-9b75-1bfd194e634e.svg";
+const imgLine12 = "https://www.figma.com/api/mcp/asset/bff76bc4-6f82-47bf-a9cf-dc905e182857.svg";
+const imgDivisionLine = "https://www.figma.com/api/mcp/asset/965723b1-f121-4f27-bfcc-e41a22937200.svg";
+
+type ScoopFilterProps = {
+  className?: string;
+  property1?: "Default";
+};
+
+function ScoopFilter({ className, property1 = "Default" }: ScoopFilterProps) {
+  return (
+    <div className={className || "h-[30px] relative w-[178px]"} data-node-id="324:592">
+      <div className="-translate-x-1/2 -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal justify-center leading-[0] left-[10px] size-[20px] text-[#646464] text-[20px] text-center top-[15px]" data-node-id="324:587" style={{ fontVariationSettings: '"wdth" 100' }}>
+        <SFSymbol />
+      </div>
+      <button className="absolute block cursor-pointer h-[30px] left-[33px] top-0 w-[145px]" data-node-id="324:588" data-name="Scoop Bar">
+        <div className="absolute bg-[#eee] border border-[#646464] border-solid h-[30px] left-0 rounded-[5px] top-0 w-[145px]" data-node-id="324:589" />
+        <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[30px] justify-center leading-[0] left-[10px] text-[12px] text-black text-left top-[15px] w-[90px]" data-node-id="324:590" style={{ fontVariationSettings: '"wdth" 100' }}>
+          <p className="leading-[normal]">This computer</p>
+        </div>
+        <div className="-translate-x-1/2 -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal justify-center leading-[0] left-[130px] size-[30px] text-[#646464] text-[12px] text-center top-[15px]" data-node-id="324:591" style={{ fontVariationSettings: '"wdth" 100' }}>
+          <SFSymbol />
+        </div>
+      </button>
+    </div>
+  );
+}
+
+type PicTagProps = {
+  className?: string;
+  property1?: "Default" | "Variant2";
+};
+
+function PicTag({ className, property1 = "Default" }: PicTagProps) {
+  const isVariant2 = property1 === "Variant2";
+  return (
+    <div className={className || `h-[35px] relative w-[40px] ${isVariant2 ? "" : "opacity-10"}`} id={isVariant2 ? "node-686_807" : "node-686_805"}>
+      <div className={`absolute bg-[#d9d9d9] h-[35px] left-0 rounded-[12px] top-0 w-[40px] ${isVariant2 ? "shadow-[0px_0px_5px_0px_rgba(0,0,0,0.5)]" : "shadow-[0px_0px_5px_0px_rgba(0,0,0,0.25)]"}`} id={isVariant2 ? "node-686_808" : "node-686_795"} />
+      <div className="-translate-x-1/2 -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[35px] justify-center leading-[0] left-[20px] text-[#646464] text-[15px] text-center top-[17.5px] w-[40px]" id={isVariant2 ? "node-686_809" : "node-686_796"} style={{ fontVariationSettings: '"wdth" 100' }}>
+        <p className="leading-[normal]">Pic</p>
+      </div>
+    </div>
+  );
+}
+
+type SearchPictureTagProps = {
+  className?: string;
+  property1?: "Default";
+};
+
+function SearchPictureTag({ className, property1 = "Default" }: SearchPictureTagProps) {
+  return (
+    <button className={className || "block cursor-pointer h-[50px] relative w-[530px]"} data-node-id="881:4001">
+      <div className="absolute flex inset-[20%_90%_20%_10%] items-center justify-center" data-node-id="881:3993" style={{ containerType: "size" }}>
+        <div className="flex-none h-[0px] rotate-90 w-[100cqh]">
+          <div className="relative size-full">
+            <div className="absolute inset-[-0.5px_0]">
+              <img alt="" className="block max-w-none size-full" src={imgLine9} />
+            </div>
+          </div>
+        </div>
+      </div>
+      <PicTag className="absolute inset-[14%_90.94%_16%_1.51%] opacity-10" />
+      <div className="absolute inset-[0_0_0_10%]" data-node-id="881:3999" data-name="􀊫 Search_Fashion">
+        <div className="[word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal inset-0 justify-center leading-[0] text-[#646464] text-[25px] text-left" data-node-id="881:4000" style={{ fontVariationSettings: '"wdth" 100' }}>
+          <p className="leading-[normal]">{` `}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+type ActionKeysProps = {
+  className?: string;
+  property1?: "Default";
+};
+
+function ActionKeys({ className, property1 = "Default" }: ActionKeysProps) {
+  return (
+    <div className={className || "h-[50px] opacity-95 overflow-clip relative w-[96px]"} data-node-id="465:445">
+      <div className="absolute h-[30px] left-[10px] top-[10px] w-[76px]" data-node-id="465:438" data-name="Scoop Bar">
+        <div className="absolute drop-shadow-[0px_0px_5px_rgba(0,0,0,0.25)] left-0 size-[30px] top-0" data-node-id="465:439" data-name="Control Key">
+          <div className="absolute bg-[#c8c8c8] left-0 rounded-[5px] size-[30px] top-0" data-node-id="465:440" />
+          <div className="-translate-x-1/2 -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal justify-center leading-[0] left-[15px] size-[30px] text-[12px] text-black text-center top-[15px]" data-node-id="465:441" style={{ fontVariationSettings: '"wdth" 100' }}>
+            <SFSymbol />
+          </div>
+        </div>
+        <div className="absolute drop-shadow-[0px_0px_5px_rgba(0,0,0,0.25)] left-[46px] size-[30px] top-0" data-node-id="465:442" data-name="Alt Key">
+          <div className="absolute bg-[#c8c8c8] left-0 rounded-[5px] size-[30px] top-0" data-node-id="465:443" />
+          <div className="-translate-x-1/2 -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal justify-center leading-[0] left-[15px] size-[30px] text-[12px] text-black text-center top-[15px]" data-node-id="465:444" style={{ fontVariationSettings: '"wdth" 100' }}>
+            <SFSymbol />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function SearchBarExpandedAllGallery() {
+  return (
+    <div className="relative size-full" data-node-id="881:4666" data-name="Search Bar_Expanded_All Gallery">
+      <div className="absolute h-[370px] left-[45px] top-[50px] w-[625px]" data-node-id="881:4667" data-name="Search Bar_Shadow">
+        <div className="absolute inset-[-12.16%_-7.2%]">
+          <img alt="" className="block max-w-none size-full" src={imgSearchBarShadow} />
+        </div>
+      </div>
+      <div className="absolute h-[400px] left-[58px] overflow-clip top-0 w-[600px]" data-node-id="881:4668">
+        <div className="absolute h-[400px] left-0 top-0 w-[600px]" data-node-id="881:4669" data-name="Search Bar_Normal">
+          <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgSearchBarNormal} />
+        </div>
+        <div className="absolute h-[329px] left-[29px] overflow-clip top-[70px] w-[542px]" data-node-id="881:4670">
+          <div className="absolute h-[265px] left-[9px] top-0 w-[177px]" data-node-id="881:4721" data-name="Search Bar_Normal">
+            <div className="absolute inset-[0_-2.26%_-3.02%_-2.26%]">
+              <img alt="" className="block max-w-none size-full" height="273" src={imgSearchBarNormal1} width="185" />
+            </div>
+          </div>
+          <div className="absolute h-[311px] left-[222px] overflow-x-clip overflow-y-auto top-0 w-[320px]" data-node-id="881:4754">
+            <div className="absolute flex h-0 items-center justify-center left-0 top-[20px] w-[320px]" data-node-id="881:4755">
+              <div className="flex-none rotate-180">
+                <div className="h-0 relative w-[320px]">
+                  <div className="absolute inset-[-1px_0_0_0]">
+                    <img alt="" className="block max-w-none size-full" src={imgLine11} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[10px] w-[60px]" data-node-id="881:4756" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">File Name</p>
+            </div>
+            <div className="-translate-x-full -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[20px] justify-center leading-[0] left-[320px] text-[12px] text-black text-right top-[10px] w-[205px]" data-node-id="881:4757" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">IMG_8218.JPG</p>
+            </div>
+            <div className="-translate-x-full -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[20px] justify-center leading-[0] left-[320px] text-[12px] text-black text-right top-[37px] w-[205px]" data-node-id="881:4758" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">User/Download</p>
+            </div>
+            <div className="-translate-x-full -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[20px] justify-center leading-[0] left-[320px] text-[12px] text-black text-right top-[64px] w-[205px]" data-node-id="881:4759" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">jpeg image</p>
+            </div>
+            <div className="-translate-x-full -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[20px] justify-center leading-[0] left-[320px] text-[12px] text-black text-right top-[91px] w-[205px]" data-node-id="881:4760" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">962 KB</p>
+            </div>
+            <div className="-translate-x-full -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[20px] justify-center leading-[0] left-[320px] text-[12px] text-black text-right top-[118px] w-[205px]" data-node-id="881:4761" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">April 20, 2024 at 7:32 AM</p>
+            </div>
+            <div className="-translate-x-full -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[20px] justify-center leading-[0] left-[320px] text-[#111] text-[12px] text-right top-[145px] w-[205px]" data-node-id="881:4762" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">April 20, 2024 at 7:32 AM</p>
+            </div>
+            <div className="-translate-x-full -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[20px] justify-center leading-[0] left-[320px] text-[#111] text-[12px] text-right top-[170px] w-[205px]" data-node-id="881:4763" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">August 6, 2024 at 1:11 PM</p>
+            </div>
+            <div className="-translate-x-full -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Regular'] font-normal h-[20px] justify-center leading-[0] left-[320px] text-[12px] text-black text-right top-[195px] w-[205px]" data-node-id="881:4764" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Red Wang(User)</p>
+            </div>
+            <div className="absolute flex h-0 items-center justify-center left-0 top-[47px] w-[320px]" data-node-id="881:4765">
+              <div className="flex-none rotate-180">
+                <div className="h-0 relative w-[320px]">
+                  <div className="absolute inset-[-1px_0_0_0]">
+                    <img alt="" className="block max-w-none size-full" src={imgLine12} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[37px] w-[60px]" data-node-id="881:4766" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Location</p>
+            </div>
+            <div className="absolute flex h-0 items-center justify-center left-0 top-[74px] w-[320px]" data-node-id="881:4767">
+              <div className="flex-none rotate-180">
+                <div className="h-0 relative w-[320px]">
+                  <div className="absolute inset-[-1px_0_0_0]">
+                    <img alt="" className="block max-w-none size-full" src={imgLine11} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[64px] w-[60px]" data-node-id="881:4768" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Type</p>
+            </div>
+            <div className="absolute flex h-0 items-center justify-center left-0 top-[101px] w-[320px]" data-node-id="881:4769">
+              <div className="flex-none rotate-180">
+                <div className="h-0 relative w-[320px]">
+                  <div className="absolute inset-[-1px_0_0_0]">
+                    <img alt="" className="block max-w-none size-full" src={imgLine12} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[91px] w-[60px]" data-node-id="881:4770" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Size</p>
+            </div>
+            <div className="absolute flex h-0 items-center justify-center left-0 top-[128px] w-[320px]" data-node-id="881:4771">
+              <div className="flex-none rotate-180">
+                <div className="h-0 relative w-[320px]">
+                  <div className="absolute inset-[-1px_0_0_0]">
+                    <img alt="" className="block max-w-none size-full" src={imgLine11} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[118px] w-[60px]" data-node-id="881:4772" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Created</p>
+            </div>
+            <div className="absolute flex h-0 items-center justify-center left-0 top-[155px] w-[320px]" data-node-id="881:4773">
+              <div className="flex-none rotate-180">
+                <div className="h-0 relative w-[320px]">
+                  <div className="absolute inset-[-1px_0_0_0]">
+                    <img alt="" className="block max-w-none size-full" src={imgLine11} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[145px] w-[60px]" data-node-id="881:4774" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Modified</p>
+            </div>
+            <div className="absolute flex h-0 items-center justify-center left-0 top-[180px] w-[320px]" data-node-id="881:4775">
+              <div className="flex-none rotate-180">
+                <div className="h-0 relative w-[320px]">
+                  <div className="absolute inset-[-1px_0_0_0]">
+                    <img alt="" className="block max-w-none size-full" src={imgLine11} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[170px] w-[85px]" data-node-id="881:4776" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Last opened</p>
+            </div>
+            <div className="absolute flex h-0 items-center justify-center left-0 top-[205px] w-[320px]" data-node-id="881:4777">
+              <div className="flex-none rotate-180">
+                <div className="h-0 relative w-[320px]">
+                  <div className="absolute inset-[-1px_0_0_0]">
+                    <img alt="" className="block max-w-none size-full" src={imgLine11} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[195px] w-[105px]" data-node-id="881:4778" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Content Creator</p>
+            </div>
+            <div className="-translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[20px] justify-center leading-[0] left-0 text-[#646464] text-[12px] top-[242px] w-[35px]" data-node-id="881:4779" style={{ fontVariationSettings: '"wdth" 100' }}>
+              <p className="leading-[normal]">Tags</p>
+            </div>
+            <PicTag className="absolute h-[35px] left-[45px] top-[224px] w-[40px]" property1="Variant2" />
+            <div className="absolute h-[35px] left-[95px] top-[224px] w-[40px]" data-node-id="881:4789" data-name="Pic Tag">
+              <div className="absolute bg-[#d9d9d9] h-[35px] left-0 rounded-[12px] shadow-[0px_0px_5px_0px_rgba(0,0,0,0.5)] top-0 w-[40px]" data-node-id="I881:4789;686:808" />
+              <div className="-translate-x-1/2 -translate-y-1/2 [word-break:break-word] absolute flex flex-col font-['SF_Pro:Bold'] font-bold h-[35px] justify-center leading-[0] left-[20px] text-[#646464] text-[15px] text-center top-[17.5px] w-[40px]" data-node-id="I881:4789;686:809" style={{ fontVariationSettings: '"wdth" 100' }}>
+                <p className="leading-[normal]">Jpg</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ActionKeys className="absolute h-[50px] left-[539px] opacity-95 overflow-clip top-[331px] w-[96px]" />
+      <SearchPictureTag className="absolute block cursor-pointer h-[50px] left-[95px] top-0 w-[530px]" />
+      <div className="absolute h-0 left-[80px] top-[50px] w-[555px]" data-node-id="881:4675" data-name="Division Line">
+        <div className="absolute inset-[-1px_0_0_0]">
+          <img alt="" className="block max-w-none size-full" src={imgDivisionLine} />
+        </div>
+      </div>
+      <ScoopFilter className="absolute h-[30px] left-[447px] top-[10px] w-[178px]" />
+    </div>
+  );
+}
+SUPER CRITICAL: The generated React+Tailwind code MUST be converted to match the target project's technology stack and styling system.
+1. Analyze the target codebase to identify: technology stack, styling approach, component patterns, and design tokens
+2. Convert React syntax to the target framework/library
+3. Transform all Tailwind classes to the target styling system while preserving exact visual design
+4. Follow the project's existing patterns and conventions
+DO NOT install any Tailwind as a dependency unless the user instructs you to do so.
+
+Node ids have been added to the code as data attributes, e.g. `data-node-id="1:2"`.
+Images and SVGs will be stored as constants, e.g. const image = 'https://www.figma.com/api/mcp/asset/550e8400-e29b-41d4-a716-446655440000.png'. These constants will be used in the code as the source for the image, ex: <img src={image} />. Image assets are stored on a remote server for 7 days and can be fetched using the provided URLs until they expire.

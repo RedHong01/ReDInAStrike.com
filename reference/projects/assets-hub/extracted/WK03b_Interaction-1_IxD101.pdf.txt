@@ -1,0 +1,249 @@
+=== page 1 ===
+Interaction 1:
+IxD 101
+=== page 2 ===
+Lecture Overview
+● Process Overview
+● Competitive Analysis (+HW)
+● Feature Prioritization (+HW)
+● Scenario + Flow (+HW)
+=== page 3 ===
+Process Overview
+=== page 4 ===
+Process Overview
+● Provisional Personas  > Reﬁne based on user interviews. “For whom?”
+○ Create personas to help guide design decisions
+● Competitive Analysis > Who are direct and indirect competitors?
+○ What can you learn about features, interactions, “big ideas” 
+● Feature Prioritization > What are your MVP features?
+○ Insert features into user scenarios (stories)
+● Scenarios  > Your audience in speciﬁc context reaching for a goal
+○ Use interview insights and previous research to develop scenarios
+=== page 5 ===
+“One of the designer’s most important goals should be to make the 
+represented model match a user’s mental model as closely as possible. 
+Therefore, it is critical that designers understand in detail how their 
+target users think about the work they do with the software.” (AF p.18)
+=== page 6 ===
+Competitive Research 
+and Analysis
+=== page 7 ===
+Red Ocean vs. 
+Blue Ocean
+=== page 8 ===
+Red Oceans
+Red ocean strategy  is all about competition.
+As the market space gets more crowded,
+companies compete ﬁercely for a greater
+share of limited demand.
+blueoceanstrategy.com
+=== page 9 ===
+Blue Oceans
+Blue ocean strategy  creates new demand.
+Companies develop uncontested market space
+rather than ﬁght over a shrinking proﬁt pool.
+blueoceanstrategy.com
+=== page 10 ===
+Direct vs. Indirect
+Competition
+=== page 11 ===
+Direct Competition
+“Direct competitors are companies that offer the same or a very 
+similar value proposition to your current or future customers.”
+Levy, Jaime. UX Strategy (p. 79).
+=== page 12 ===
+Indirect Competition
+“Indirect competitors offer a different value proposition, but somehow 
+their solution may satisfy the needs of your target customer.”
+Levy, Jaime. UX Strategy (p. 80).
+=== page 13 ===
+What is a Competitive Analysis?
+An assessment of the strengths and 
+weaknesses of current and 
+potential competitors.
+Identiﬁes opportunities, standards, 
+and threats in the market. 
+=== page 14 ===
+Why do a Competitive Analysis?
+Research and Competitive Analysis can help answer: 
+● What else is out there? 
+● What is working? What isn’t? 
+● What features do competitors have that your users will expect? 
+● What features are missing in the marketplace?
+=== page 15 ===
+Conducting a Competitive Analysis
+1. Deﬁne  your purpose statement / objectives.
+2. Select  your competitors.
+3. Determine  your assessment criteria.
+4. Collect  your research, resources, & materials.
+5. Analyze  and organize your research.
+6. Present  your ﬁndings and takeaways.
+=== page 16 ===
+A Guide to Competitive Analysis for UX Design
+“ There’s no need to reinvent the
+wheel.  Learn from what has been
+tried and is currently in use, map it
+out in a competitive analysis, and
+leverage your ﬁndings to
+differentiate your solution from
+the competition.”
+-Jill DaSilva
+Read the article
+=== page 17 ===
+HW3: (group) Competitive Analysis
+KEY OBJECTIVE(S)
+● Select direct and indirect competitors, then perform a Competitive Analysis in order to  ideate features, 
+interactions, ﬂows  you might use or avoid for your own project.
+ASSIGNMENT
+1. Conduct a competitive analysis using the provided materials, in particular the  linked article  including 
+examples and the ‘ Conducting a Competitive Analysis ’ slide
+2. Design the analysis to be legible at a glance. Can a viewer understand what they are looking at without 
+asking questions? Include competitor logos, linked URLs, clear assessment criteria, and use of 
+contrasting colors to help with this.
+DELIVERABLE
+Document your group progress and process as well as ﬁnal outcome. Submit results as a PDF to Canvas. 
+This will help feed your process book. Be prepared to share during our next class.
+=== page 18 ===
+Feature Prioritization
+=== page 19 ===
+What are Features?
+A product feature is a slice of business functionality that has a
+corresponding beneﬁt or set of beneﬁts for that product's end user.
+Using Zoom features as an example:
+○ Session Recording
+=== page 20 ===
+What are Features?
+A product feature is a slice of business functionality that has a
+corresponding beneﬁt or set of beneﬁts for that product's end user.
+Using Zoom features as an example:
+○ Screen sharing
+=== page 21 ===
+What are Features?
+A product feature is a slice of business functionality that has a
+corresponding beneﬁt or set of beneﬁts for that product's end user.
+Using Zoom features as an example:
+○ Breakout rooms
+=== page 22 ===
+Feature Prioritization
+● Constraints are a normal part of the process. Knowing what yours  are 
+is a critical piece of the puzzle. Constraints inform your strategy. 
+● More features = not necessarily a better product.
+=== page 23 ===
+Why Feature Prioritization?
+● Help protect the MVP by prioritizing features
+● Avoid scope creep!
+ignitionapp.com/blog/scope-creep
+=== page 24 ===
+Protect the MVP
+Remember this?
+=== page 25 ===
+Feature Prioritization Methods
+railsware.com/blog/moscow-prioritization
+=== page 26 ===
+HW3: (group) Feature Prioritization 
+KEY OBJECTIVE(S)
+● List and prioritize your feature ideas gathered from previous ideation and research such as 
+interviews and competitive analysis.
+ASSIGNMENT
+1. Pick a tool to capture and organize feature ideas from your group (Figjam, Miro, etc.). Consider 
+afﬁnity mapping to collect ideas and group by theme or feature.
+2. Prioritize what is important to include in your project. Consider the following when prioritizing:
+○ What is the feature and how does it function? (what are the interactions, dependencies, etc.)
+○ How might it be used?
+○ Why is this important?
+○ Where speciﬁcally might it ﬁt into the ﬂow of your platform/service/app etc.?
+DELIVERABLE
+Document your group progress and process as well as ﬁnal outcome. Submit results as a PDF to Canvas. 
+This will help feed your process book. Be prepared to share during our next class.
+=== page 27 ===
+Scenario 
+Development
+=== page 28 ===
+Scenario = Persona + Goal + Context
+● Who is your audience?
+● What are their goals?
+A scenario tells a story providing
+context and showing a future state
+aligned with your HMW statement.
+AF p. 76 // The three types of user goals
+=== page 29 ===
+What is a Scenario? 
+● Scenarios are  goal-driven interactions
+between a user and a system. 
+● Scenarios help you  understand the 
+various contexts  in which your users 
+will be using these tools.
+=== page 30 ===
+https://i.pinimg.com/originals/7c/ee/1a/7cee1ab542bef34fda155a11ecb466cb.jpg
+=== page 31 ===
+Components of a Good Scenario 
+Scenarios are usually centered around one main task that is key to your 
+product/service/platform and includes 5 elements:
+1. Your persona (Actor)
+2. A motivator
+3. An intention or intent
+4. An action
+5. A resolution
+=== page 32 ===
+User Flows
+=== page 33 ===
+What is a User Flow?
+Visualization of a series of steps a user takes to achieve a goal
+How To Create A User Flow: A Step-By-Step Guide
+=== page 35 ===
+Why Create User Flows?
+● Increase awareness of the  user 
+and goals
+● Helps focus on the user’s  tasks
+● Sets a foundation for future 
+design decisions
+● Supports  troubleshooting
+● Improves team  communication
+(internal and external)
+=== page 36 ===
+Steps to Create User Flows
+● Gather preliminary information
+● Create a title for the user ﬂow
+● Sketch each step
+● Keep it simple
+● Include explanation where helpful (annotations or text labels)
+● Evaluate and iterate
+=== page 37 ===
+https://www.pinterest.ie/pin/302304193719020020
+=== page 38 ===
+User and Task Flows
+● Required reading:  Guidance for the homework assignment
+○ How To Create A User Flow: A Step-By-Step Guide
+● Recommended video:  Figma user ﬂow demo, and link to a UI kit
+○ User ﬂow diagrams - Figma template and live demo
+● Optional video:  Nice explanation of user ﬂow vs. task ﬂows
+○ User Flow vs Task Flow in UX Design
+● Optional reading:  Further reinforces concepts
+○ UX Design 101: Thinking in (user) ﬂows
+=== page 39 ===
+HW: (group) Create a User Flow 
+KEY OBJECTIVE(S)
+● Each group, create a user ﬂow encompassing task/goal driven scenarios. This will provide a 
+foundation for upcoming design decisions and ﬂows.
+ASSIGNMENT
+1. Read and follow the steps in order to create a user ﬂow for your idea: 
+https://careerfoundry.com/en/blog/ux-design/how-to-create-a-user-ﬂow
+2. Additional instructions:
+○ As a group pick a design tool (Figma or Adobe XD)
+○ Refer to your scenarios and interview ﬁndings to guide decisions
+○ Consider where potential features live and how they serve the user
+○ Have your ﬁnal ﬂow contain your groups written scenario(s)  and team number
+DELIVERABLE
+Document your group progress and process as well as ﬁnal outcome to help feed your process book. 
+Export the ﬁnal user ﬂow as a PDF to the Canvas assignment. Be prepared to share during our next class.
+=== page 40 ===
+Homework 
+Assignments
+=== page 41 ===
+HW: Due for next class
+● Review and be prepared to discuss:
+○ Apple : Human Interface Guidelines
+○ Google’s Material Design Guidelines
+● HW:  (group) Competitive Analysis
+● HW:  (group) Feature Prioritization
+● HW:  (group) User Flows (including written scenario)

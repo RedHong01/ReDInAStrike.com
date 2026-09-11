@@ -1,0 +1,340 @@
+=== page 1 ===
+Interaction 1:
+IxD 101
+=== page 2 ===
+Lecture Overview
+● Process Overview
+● HMW Statements
+● Personas (+ HW)
+● User Interview Plan of Action
+● User Interviews (+ HW)
+=== page 3 ===
+Process Overview
+=== page 4 ===
+MVP (Minimum Viable Product)
+“An MVP is a down payment on a larger vision.”
+— Johnny Holland
+=== page 5 ===
+MVP (Minimum Viable Product)
+=== page 6 ===
+Process Overview
+Problem  Statements  > Help to frame the space.
+● Next, each group select one statement to reﬁne and ﬂip into an 
+opportunity. This is your  How Might We  Statement
+Provisional Persona  > Begin to understand and deﬁne the audience in class.
+● Next, groups validate and update based on user interviews.  “For whom?”
+=== page 7 ===
+Quantitative Research
+● Web analytics
+● Web surveys
+● Eye tracking
+● A/B testing
+● Usability testing 
+(some types)
+=== page 8 ===
+Qualitative Research
+● User interviews
+● Focus groups
+● Contextual inquiries
+● Ethnographic 
+studies
+=== page 9 ===
+HMW Statements
+=== page 10 ===
+HMW “How might we…”
+“Constructing how-might-we 
+questions generates creative solutions 
+while keeping teams focused on the 
+right problems to solve.”
+—  Maria Rosala
+=== page 11 ===
+HMW “How might we…”
+Let’s break down the language:
+● HOW: assumes solutions exist or can be designed
+● MIGHT:  acknowledges  some of the ideas may work, and others may not
+● WE: communicates approaching a challenge together, as a team
+https://www.nngroup.com/articles/how-might-we-questions
+=== page 12 ===
+https://youtu.be/MJWLON3Sy4E
+=== page 13 ===
+Activity: (group) HMW Statements
+KEY OBJECTIVE(S)
+● Each group identify, interrogate, and ideate on your selected problem statement. Generate an initial 
+“How might we…” statement to help deﬁne possible project directions.
+ASSIGNMENT
+1. Scan the article:  https://www.nngroup.com/articles/how-might-we-questions
+2. Using your selected Problem Statement as a starting point, brainstorm 3 possible HMW statements.
+=== page 14 ===
+Personas
+=== page 15 ===
+“ A persona is a user archetype  that you 
+can use to help guide your decisions about 
+product features, navigation, interactions, 
+and even visual design.” 
+ - Kim Goodwin
+=== page 16 ===
+Why Do We Make Personas?
+● To remind us of who the user is. 
+● To summarize user research. 
+● To focus design efforts on solving the “right” problem. 
+● To make design less subjective. 
+● To help us stay focused on the user. 
+● To  create EMPATHY  for the user.
+=== page 17 ===
+What Do Personas Typically Include?
+● A name and photo
+● Demographic information
+● Goals and needs (Pain points)
+● Preferences
+● A brief description of that user’s ideal experience
+=== page 18 ===
+Provisional Personas (Proto Personas)
+● Useful as a starting point
+● They are often temporary
+● It is a placeholder
+● Used as a communication tool
+● They  need to be validated  through discovery (user interviews)
+=== page 19 ===
+  Colin, Counselor
+Bio Goals
+● Exchange ideas among students & staﬀ
+● Show students how to ﬁnish faster
+Colin has a degree in higher education, 
+● Engage with industry and communicating their 
+driven by impacting student. He provides 
+needs with college/students
+students with tools and support they 
+● Coach students navigate through enrollment 
+and program completion.
+need to navigate their college experience 
+● Understand student needs
+from admissions to program completion. 
+His role includes group mentoring; 
+cohort advising; and collaboration with 
+Frustrations
+other counselors, faculty, staﬀ, campus 
+● Lack of innovation
+departments and extended local 
+● Spread out campus environment
+community. 
+● Not adapting to student needs
+● Barrier curriculums or courses
+● Lack of collaboration among areas of focus
+● Keeping consistencies while students bounce 
+from counselor to counselor
+Information Preferences
+“We must constantly and eﬀectively 
+Reference  Latest and 
+communicate consumable 
+Needs
+Information greatest 
+● Information that is clearly communicated on any 
+information to our students”
+medium
+● Having enough counselors 
+● More frequent students visits
+Detailed Quick
+● Collaborative spaces 
+Information Answers
+=== page 21 ===
+Personas help reveal and share user goals and feed design scenarios
+=== page 22 ===
+1
+2
+3
+https://www.mural.co/templates/persona-gri d
+https://www.mural.co/templates/persona-grid
+=== page 23 ===
+HW: (group) Personas
+KEY OBJECTIVE(S)
+● Create a provisional persona based on your group assumptions and preliminary research. After conducting interviews, 
+create a second, updated persona rooted in ﬁndings and insights.
+ASSIGNMENT
+1. Open the Mural Persona Grid template at:  https://www.mural.co/templates/persona-grid
+2. Each group, complete one persona on the template
+○ Focus your personas on what you assume is critical for summarizing your customer/user group needs, and how 
+they currently deal with your stated problem.
+○ Consider the speciﬁc deﬁned location, proposed audience, and your three HMW statements to help inform the 
+personas.
+○ Complete the three sections for your persona (outlined on the previous slide)
+3. Keep this provisional persona in mind when screening participants for interviewing.  After conducting the interviews, 
+create a second, updated persona based on ﬁndings and insights.
+DELIVERABLE
+Export the persona from Mural as a PDF. One person per group, submit the PDF to the Canvas assignment. Be prepared to 
+share during next class.
+=== page 24 ===
+User Interviews
+=== page 25 ===
+Validate (or Invalidate)
+User interviews at this stage help to:
+● Validate or invalidate your  provisional  persona
+● Lend guidance to your  HMW Statement
+● Collect research data to inform and support 
+next steps and design direction
+=== page 26 ===
+User Interviews:
+Recruiting
+=== page 27 ===
+How to Recruit
+● Aim for participants that represent the actual target audience 
+(based on screeners). 
+● Screeners are short surveys (typically a set of 1-3 questions) that 
+qualify potential participants to make sure you meet your 
+recruiting goals. 
+● Consider, “what is the criteria for which I am recruiting?”. Your 
+group has control over the criteria for recruitment, however have 
+a reason for what you select, and be prepared to explain why.
+=== page 28 ===
+User Interviews:
+Preparing Questions
+=== page 29 ===
+Ask Open-Ended Questions
+=== page 30 ===
+Get at Actual Behavior 
+=== page 31 ===
+Don’t Ask Leading Questions
+=== page 32 ===
+Don’t Ask Compound Questions
+=== page 33 ===
+Don’t Point Out Speciﬁc Issues
+=== page 34 ===
+Steve Portigal: How to ask questions
+https://youtu.be/uK5RJMeZqk Q
+(Duration 4:37) Books by Steve Portigal
+“Social life trains us to ask questions in a certain way, but those habits and instincts 
+don't serve us well when we're trying to learn from users, customers, etc.”
+=== page 35 ===
+Activity: User Interview: Plan of Action
+KEY OBJECTIVE(S)
+● Construct screener and interview questions to ask users in order to help validate and/or reﬁne 
+your personas.
+ASSIGNMENT
+1. Read:  User Interview Questions  by Mary Formanek located in  Class Google Drive > STUDENTS
+2. Review:  HW: (Group) User Interviews: Findings Slides
+3. Each group create a Google Doc and write screener and interview questions to use when 
+interviewing participants. 
+DELIVERABLE
+There is nothing to submit for this activity. However, as with all of your work, document to include in  your 
+process book.
+=== page 36 ===
+User Interviews:
+What to Listen For
+=== page 37 ===
+Stories
+Longer and more complex  stories
+give you a better understanding of a
+users experience .
+=== page 38 ===
+Pause
+In order to listen you need to  limit
+how much you talk  (especially after 
+you pose a question).
+=== page 39 ===
+Body Language
+Listening actually comes from your 
+whole body, not just your ears. 
+=== page 40 ===
+Your Reaction
+Pay attention to what people say, 
+and also how you yourself react to 
+their stories.
+=== page 41 ===
+User Interviews:
+Documentation
+=== page 42 ===
+Documenting Interviews
+● Always  ask permission before recording any 
+audio or video
+● Consider interviewing with a research partner. 
+(One person conducts the interview, the other 
+takes notes)
+=== page 43 ===
+Interviews Can Help Clarify
+Practice active listening:
+● WHO  is your user?
+● WHAT  is their problem / need / experience.
+● WHEN  does it occur?
+● WHERE  does it occur?
+● WHY  does it occur? (peel back layers with 5 Whys)
+=== page 44 ===
+Documenting Interviews
+Immediately following each interview capture:
+● What was the most  memorable or surprising
+story you heard during your interview?
+● What did this participant seem to care about 
+the most? (What  motivates  them?)
+● What seemed to  frustrate  the participant? 
+(Pain points)
+● What questions would you like to explore in a 
+future  conversation?
+=== page 45 ===
+User Interviews:
+Findings Slides
+=== page 46 ===
+Contents of Findings Slides
+● Title Slide:  Include group number and member names
+● HMW Slide #1:  Share your proposed group HMW statement (before going into 
+the interviews)
+● Summary Slides:  Follow guidance from lecture slides (in particular the 3 example 
+summary slides) to share distilled insights and a summary from your interviews. 
+Create as many slides as needed.
+● Insights and Results Slide:  List 3-5 key insights from the interviews (pull these 
+from the summary slide as needed). Also, in a short paragraph, answer: Did the 
+customer discovery interviews validate or invalidate your provisional persona? 
+How or why did you came to this conclusion?
+● HMW Slide #2:  Share your updated group HMW statement (after the interviews)
+=== page 47 ===
+Example #1
+=== page 48 ===
+Example #2
+=== page 49 ===
+Example #3
+=== page 50 ===
+HW: (hybrid) User Interviews: Findings Slides
+KEY OBJECTIVE(S)
+● Each student conduct a minimum of 2 user interviews with people matching your current state 
+provisional persona. Document the process to help validate (or invalidate) your persona, create  ﬁndings 
+slides, and provide project direction.
+ASSIGNMENT
+1. Using your  User Interview: Plan of Action , recruit and conduct interviews with a minimum of 2 people 
+per student. Aim for 20 minutes per interview + group debrief time. 
+2. On a Google Slides document (one per group) create the following:
+○ Title Slide:  Include group number and member names
+○ HMW Slide #1:  Share your group Problem and HMW statement (before going into the 
+interviews)
+○ Summary Slide:  Follow guidance from lecture slides (in particular the 3 “example” slides) to  share 
+distilled insights and a summary from your interviews. 
+○ Insights and Results Slide:  List 3-5 key insights from the interviews (pull these from the 
+summary slide as needed). In a short paragraph, answer: Did the interviews validate or invalidate 
+your provisional persona? How or why did you came to this conclusion?
+continued
+○ HMW Slide #2:  Share your updated group Problem and HMW statement (after the interviews)
+=== page 51 ===
+continued
+HW: (hybrid) User Interviews: Findings Slides
+DELIVERABLE
+One student per group, submit a PDF of your Google Slides to the Canvas assignment. Be prepared to 
+share during our next class.
+=== page 52 ===
+Homework 
+Assignments
+=== page 53 ===
+HW: (Individual) Chapters 1-3: Read, Reﬂect, Discussion Prep
+KEY OBJECTIVE(S)
+● Reﬂect on reading the class textbook,  Don’t Make Me Think . Synthesize your thoughts and prepare for 
+class discussion by thinking about the following prompts.
+ASSIGNMENT
+1. Based on the reading consider the following questions/prompts for reﬂection:
+○ How did this reading support, change, or challenge your thinking? Explain.
+○ Did anything you read surprise you? What and how?
+○ Share an experience you have had that relates to something from the reading.
+○ If none of the above resonate, explain how the concepts from this reading inﬂuenced your project.
+DELIVERABLE
+Each student, be prepared to share during our next class. There is nothing to submit in Canvas for 
+this assignment.
+=== page 54 ===
+HW: Due for next class
+● Read, Reﬂect, Discussion Prep:  (DMMT) Chapters 1 - 3
+● HW:  (hybrid) User Interviews: Findings Slides
+● HW:  (group) Personas (informed by interviews)
+Hybrid = This assignment includes individual and group components

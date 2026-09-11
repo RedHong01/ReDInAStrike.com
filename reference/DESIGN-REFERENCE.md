@@ -60,15 +60,23 @@ This file is generated. Edit `project-index.json`, then re-run `python3 referenc
 
 ### `/myfridge` — MyFridge
 
-*UI/UX Prototype · 4/29/2024 · nav:interaction*
+*UI/UX Prototype · 4/29/2024 · nav:interaction · Interaction 1 (IxD 101), Spring 2024, Group 4: Kaiyi, Mika, Red, Allen*
 
-**On site now:** Case page
+**On site now:** case study drawer, `src/myfridge-sections.js` (rebuilt 2026-09-10).
 
-**Gaps:**
+**Sources (found 2026-09-10):**
 
-- No local source located
-- No Figma board mapped
+- Google Drive, Group 4 shared folder `1UQLFtmo35H1Zy3J39fE8NwHnACSE2bG-` (owned by Mika, shared to Red; *not* synced to either local Drive mount):
+  - `HW1: (group) Problem Statements` (doc) and `hw1: Problem Statements` (slides) — the three candidate problems PS1 freshman / PS2 fridge / PS3 wheelchair routing
+  - `Group 4 Share Docs` — interview questions per member, the final nine, Allen's two interviews in full
+  - `Findings Slides` — owned by Red: HMW #1 → participants → five insights → HMW #2
+  - `ps/` process-book pages (persona before/after, CozZo, Mika's wireframes, Kaiyi's two interviews, screens by flow)
+  - `img/` screenshots; `video/` four prototype recordings (`scan.mov` 58 MB, `welson.mov` 23 MB, two ~1 MB)
+- Kaiyi's export folder `1tJFmI9IXoJSKPertTHSwqzSsfQcqX_r8` — final screens `2.png`…`21.png`
+- Old Framer page `https://redinastrike.framer.website/myfridge` still serves the board images at original size from `framerusercontent.com` (interviews, insights, HMW, persona, CozZo, user flow, "Wireframes Red", screen sheet 1920×1080). The screen crops in `public/assets/myfridge/screens/` are cut from that sheet (≈229 px wide) — interim.
+- Figma board "Interaction G4" — **file key not found locally**; needed for crisp per-screen exports.
 
+**Gaps:** no usability test in any file; food photography is AI-generated (the board says so); the old board showed PS1 (a rejected problem) under "Problem Statement" and credited three people instead of four.
 
 ### `/assethub` — Assets Hub
 

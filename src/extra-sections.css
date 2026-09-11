@@ -1,0 +1,815 @@
+/* Styles for the section kinds in extra-section-renderers.js. Kept out of
+   styles.css for the same reason the renderers are kept out of main.js: those
+   two files are shared by every task, and parallel edits there overwrite each
+   other. Every rule here is scoped to a .gdd-* class those renderers emit. */
+
+.gdd-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Full bleed, the same way .gdd-table-scroll bleeds: --case-bleed-width is set
+   on .gdd-section and already allows for the scrollbar. */
+.gdd-acts,
+.gdd-mechs,
+.gdd-lane-legend {
+  width: max(100%, var(--case-bleed-width));
+  max-width: none;
+  margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
+  padding-inline: clamp(20px, 4vw, 78px);
+}
+
+/* Acts ----------------------------------------------------------------------- */
+
+.gdd-acts {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(20px, 2.4vw, 40px);
+  align-items: start;
+  padding-top: 22px;
+  border-top: 3px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-act {
+  grid-column: span var(--act-span, 4);
+  min-width: 0;
+}
+
+.gdd-act-head {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 17, 34, 0.14);
+}
+
+.gdd-act-label {
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case-accent, var(--case-muted, rgb(136, 136, 136)));
+}
+
+.gdd-act-name {
+  font-family: var(--serif);
+  font-size: clamp(22px, 2vw, 28px);
+  line-height: 1.1;
+  color: var(--case-ink);
+}
+
+.gdd-act-beats {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A long act reads down one column and then the next, so its two halves stay
+   level with the single-column acts beside it. */
+.gdd-act-beats.is-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--act-rows, 5), auto);
+  grid-auto-flow: column;
+  column-gap: clamp(20px, 2.4vw, 40px);
+}
+
+.gdd-act-beat {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.gdd-act-num {
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-act-copy {
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+.gdd-act-quote {
+  margin: 22px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid rgba(0, 17, 34, 0.14);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.35;
+  color: var(--case-ink);
+}
+
+.gdd-act-quote cite {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+/* POV lanes -------------------------------------------------------------------- */
+
+.gdd-lanes th[scope="row"] {
+  padding-right: 14px;
+  vertical-align: top;
+  white-space: nowrap;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-lanes thead th.gdd-lane-head {
+  padding: 10px 4px;
+  text-align: center;
+}
+
+.gdd-lane-head .gdd-lane-dot {
+  display: block;
+  margin: 0 auto 6px;
+}
+
+/* Each character keeps a faint vertical lane, as on the original chart, so a
+   run of beats reads as a thread rather than as scattered dots. */
+.gdd-lanes td.gdd-lane-cell {
+  width: 58px;
+  min-width: 0;
+  padding: 13px 4px;
+  text-align: center;
+  vertical-align: top;
+  background: linear-gradient(color-mix(in srgb, var(--lane) 38%, transparent), color-mix(in srgb, var(--lane) 38%, transparent)) center / 1px 100% no-repeat;
+}
+
+/* The thread stops at the centre of the exit mark: 13px of cell padding plus
+   half of the 14px dot. */
+.gdd-lanes td.gdd-lane-cell.is-ending {
+  background-size: 1px 20px;
+  background-position: center top;
+}
+
+.gdd-lanes td.gdd-lane-cell.is-gone {
+  background: none;
+}
+
+.gdd-lane-dot {
+  --lane: var(--case-ink);
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.gdd-lane-head .gdd-lane-dot,
+.gdd-lane-cell .gdd-lane-dot {
+  --lane: inherit;
+}
+
+.gdd-lane-dot.is-pov {
+  background: var(--lane);
+}
+
+.gdd-lane-dot.is-present {
+  background: var(--paper, #f6f5f1);
+  box-shadow: inset 0 0 0 2px var(--lane);
+}
+
+.gdd-lane-dot.is-exit {
+  background:
+    linear-gradient(135deg, transparent 44%, var(--lane) 44% 56%, transparent 56%),
+    var(--paper, #f6f5f1);
+  box-shadow: inset 0 0 0 2px var(--lane);
+}
+
+.gdd-lanes td.gdd-lane-text {
+  min-width: 34ch;
+  padding: 12px 0 16px 18px;
+  vertical-align: top;
+}
+
+.gdd-lane-pov {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.gdd-lane-pov em {
+  font-style: normal;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-lane-copy {
+  display: block;
+}
+
+.gdd-lane-choice {
+  display: block;
+  margin-top: 10px;
+  padding-left: 10px;
+  border-left: 2px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-lane-choice-mark {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--case-accent, var(--case-ink));
+}
+
+.gdd-lanes tr.is-event .gdd-lane-copy {
+  font-style: italic;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-lane-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 14px;
+  margin-bottom: 0;
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-lane-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mechanisms ----------------------------------------------------------------- */
+
+.gdd-mechs {
+  border-top: 3px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-mech {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(20px, 2.4vw, 40px);
+  padding: 22px 0 24px;
+  border-bottom: 1px solid rgba(0, 17, 34, 0.14);
+}
+
+.gdd-mech-lead {
+  grid-column: span 4;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.gdd-mech-role,
+.gdd-mech-example-label,
+.gdd-mech-share-label {
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gdd-mech-role {
+  color: var(--case-accent, var(--case-muted, rgb(136, 136, 136)));
+}
+
+.gdd-mech-name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(20px, 1.8vw, 26px);
+  font-weight: 400;
+  line-height: 1.12;
+  color: var(--case-ink);
+}
+
+.gdd-mech-share {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.gdd-mech-bar {
+  position: relative;
+  height: 6px;
+  background: color-mix(in srgb, var(--case-ink) 10%, transparent);
+}
+
+.gdd-mech-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--case-accent, var(--case-ink));
+}
+
+.gdd-mech-share-label {
+  color: var(--case-ink);
+}
+
+.gdd-mech-principle {
+  margin: 4px 0 0;
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+.gdd-mech-examples {
+  grid-column: span 8;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(20px, 2.4vw, 40px);
+  align-content: start;
+}
+
+.gdd-mech-example {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.gdd-mech-example-label {
+  color: var(--case-ink);
+}
+
+.gdd-mech-example p {
+  margin: 0;
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+.gdd-mech-coda {
+  max-width: 860px;
+  margin: 26px 0 0;
+  font-family: var(--serif);
+  font-size: clamp(19px, 1.7vw, 24px);
+  line-height: 1.35;
+  color: var(--case-ink);
+}
+
+@media (max-width: 900px) {
+  .gdd-act,
+  .gdd-mech-lead,
+  .gdd-mech-examples {
+    grid-column: 1 / -1;
+  }
+
+  .gdd-act-beats.is-split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
+
+  .gdd-mech-examples {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A project whose header colour is close to the paper (To Be Chosen's is
+   rgb(240 240 240)) would lose every accent drawn in that colour. The site's
+   rule for this case — caseAccentContrast() in main.js, first applied to the
+   flow arrows — is to switch to the reverse stroke it publishes. The same rule
+   covers these components and the GDD rules they sit beside. */
+[data-case-accent-contrast="light"] .gdd-act-label,
+[data-case-accent-contrast="light"] .gdd-mech-role,
+[data-case-accent-contrast="light"] .gdd-lane-choice-mark,
+[data-case-accent-contrast="light"] .gdd-cast-role {
+  color: var(--case-accent-stroke, #111111);
+}
+
+[data-case-accent-contrast="light"] .gdd-acts,
+[data-case-accent-contrast="light"] .gdd-mechs,
+[data-case-accent-contrast="light"] .gdd-table thead th {
+  border-top-color: var(--case-accent-stroke, #111111);
+}
+
+[data-case-accent-contrast="light"] .gdd-lane-choice {
+  border-left-color: var(--case-accent-stroke, #111111);
+}
+
+[data-case-accent-contrast="light"] .gdd-mech-bar > span {
+  background: var(--case-accent-stroke, #111111);
+}
+
+/* Bled like the other extra components. */
+.gdd-persona,
+.gdd-screens,
+.gdd-flow-lanes,
+.gdd-flow-key {
+  width: max(100%, var(--case-bleed-width));
+  max-width: none;
+  margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
+  padding-inline: clamp(20px, 4vw, 78px);
+}
+
+/* Persona -------------------------------------------------------------------- */
+
+.gdd-persona {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(20px, 2.4vw, 40px);
+  padding-top: 22px;
+  border-top: 3px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-persona-who {
+  grid-column: span 4;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.gdd-persona-tag,
+.gdd-persona-col-label,
+.gdd-persona-before figcaption {
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gdd-persona-tag {
+  color: var(--case-accent, var(--case-muted, rgb(136, 136, 136)));
+}
+
+.gdd-persona-name {
+  font-family: var(--serif);
+  font-size: clamp(30px, 3vw, 44px);
+  line-height: 1;
+  color: var(--case-ink);
+}
+
+.gdd-persona-bio {
+  margin: 4px 0 0;
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+.gdd-persona-voice {
+  grid-column: span 8;
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
+.gdd-persona-quote {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(20px, 1.9vw, 27px);
+  line-height: 1.3;
+  color: var(--case-ink);
+}
+
+.gdd-persona-before {
+  margin: 0;
+  padding-left: 14px;
+  border-left: 2px solid rgba(0, 17, 34, 0.14);
+}
+
+.gdd-persona-before figcaption {
+  margin-bottom: 6px;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-persona-before blockquote {
+  margin: 0;
+  font-family: var(--body-latin-font);
+  font-size: 15px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+.gdd-persona-cols {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(16px, 2vw, 32px);
+  padding-top: 18px;
+  border-top: 1px solid rgba(0, 17, 34, 0.14);
+}
+
+.gdd-persona-col-label {
+  margin: 0 0 10px;
+  color: var(--case-ink);
+}
+
+.gdd-persona-col ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The board drew each trait as a card; here it is a ruled chip with no fill. */
+.gdd-persona-col li {
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 17, 34, 0.16);
+  border-radius: 10px;
+  font-family: var(--body-latin-font);
+  font-size: 13px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+/* Screens -------------------------------------------------------------------- */
+
+.gdd-screens {
+  --screen-gap: clamp(10px, 1.4vw, 22px);
+  display: grid;
+  grid-template-columns: repeat(var(--screen-cols, 7), minmax(0, 1fr));
+  column-gap: var(--screen-gap);
+  row-gap: clamp(24px, 2.8vw, 44px);
+  padding-top: 22px;
+  border-top: 3px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-screen-group {
+  grid-column: span var(--group-span, 1);
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+.gdd-screen-group-label {
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 17, 34, 0.14);
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+/* Same gap as the outer grid, so a group of N screens sits exactly on N of the
+   outer columns without needing subgrid. */
+.gdd-screen-row {
+  display: grid;
+  grid-template-columns: repeat(var(--group-span, 1), minmax(0, 1fr));
+  gap: var(--screen-gap);
+}
+
+.gdd-screen {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  align-content: start;
+}
+
+/* Screens are cut from a sheet with a coloured ground: the corner radius follows
+   the phone's own, and multiply drops what is left of that ground into the page. */
+.gdd-screen img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 13% / 6.4%;
+  mix-blend-mode: multiply;
+}
+
+.gdd-screen figcaption {
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+/* Sketches on white paper sit on the page, not on a white plate. */
+.case-study-media-section .case-study-image img[src*="/wireframes-"] {
+  mix-blend-mode: multiply;
+}
+
+/* Flow lanes ----------------------------------------------------------------- */
+
+.gdd-flow-lanes {
+  display: grid;
+  grid-template-columns: repeat(var(--lane-count, 5), minmax(0, 1fr));
+  border-top: 3px solid var(--case-accent, var(--case-ink));
+}
+
+.gdd-flow-lane {
+  min-width: 0;
+  padding: 16px clamp(12px, 1.4vw, 22px) 20px;
+  border-left: 1px dashed rgba(0, 17, 34, 0.22);
+}
+
+.gdd-flow-lane:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.gdd-flow-lane header {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 16px;
+}
+
+.gdd-flow-step {
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case-accent, var(--case-muted, rgb(136, 136, 136)));
+}
+
+.gdd-flow-name {
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.15;
+  color: var(--case-ink);
+}
+
+.gdd-flow-lane ol {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The spine every node hangs from. */
+.gdd-flow-lane ol::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 6px;
+  width: 1px;
+  background: rgba(0, 17, 34, 0.2);
+}
+
+.gdd-flow-node {
+  position: relative;
+  display: grid;
+  grid-template-columns: 13px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: start;
+}
+
+.gdd-flow-mark {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-top: 2px;
+  box-sizing: border-box;
+  background: var(--paper, #f8f7f5);
+}
+
+.is-page > .gdd-flow-mark,
+.gdd-flow-key .is-page .gdd-flow-mark {
+  border: 1.5px solid var(--case-ink);
+  border-radius: 3px;
+}
+
+.is-action > .gdd-flow-mark,
+.gdd-flow-key .is-action .gdd-flow-mark {
+  border-radius: 50%;
+  background: var(--case-ink);
+  transform: scale(0.62);
+}
+
+.is-decision > .gdd-flow-mark,
+.gdd-flow-key .is-decision .gdd-flow-mark {
+  border: 1.5px solid var(--case-ink);
+  transform: rotate(45deg) scale(0.8);
+}
+
+.is-start > .gdd-flow-mark,
+.is-end > .gdd-flow-mark {
+  border: 1.5px solid var(--case-ink);
+  border-radius: 50%;
+}
+
+.gdd-flow-text {
+  font-family: var(--body-latin-font);
+  font-size: 14px;
+  line-height: calc(1em + 5px);
+  color: var(--case-copy);
+}
+
+.is-page > .gdd-flow-text {
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.gdd-flow-branches {
+  grid-column: 2;
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gdd-flow-branches li {
+  font-family: var(--body-latin-font);
+  font-size: 13px;
+  line-height: calc(1em + 4px);
+  color: var(--case-copy);
+}
+
+.gdd-flow-branch-key {
+  display: inline-block;
+  min-width: 1.7em;
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  color: var(--case-ink);
+}
+
+.gdd-flow-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 14px;
+  margin-bottom: 0;
+  font-family: var(--type-subtitle-font);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--case-muted, rgb(136, 136, 136));
+}
+
+.gdd-flow-key > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gdd-flow-key .gdd-flow-mark {
+  margin-top: 0;
+}
+
+[data-case-accent-contrast="light"] .gdd-persona-tag,
+[data-case-accent-contrast="light"] .gdd-flow-step {
+  color: var(--case-accent-stroke, #111111);
+}
+
+[data-case-accent-contrast="light"] .gdd-persona,
+[data-case-accent-contrast="light"] .gdd-screens,
+[data-case-accent-contrast="light"] .gdd-flow-lanes {
+  border-top-color: var(--case-accent-stroke, #111111);
+}
+
+@media (max-width: 900px) {
+  .gdd-persona-who,
+  .gdd-persona-voice {
+    grid-column: 1 / -1;
+  }
+
+  .gdd-persona-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gdd-screens {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gdd-screen-group {
+    grid-column: 1 / -1;
+  }
+
+  .gdd-screen-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .gdd-flow-lanes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gdd-flow-lane,
+  .gdd-flow-lane:first-child {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px dashed rgba(0, 17, 34, 0.22);
+  }
+}

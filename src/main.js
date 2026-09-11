@@ -15,6 +15,8 @@ import { slowSections } from "./slow-sections.js"
 import { butterSections } from "./butter-sections.js"
 import { pitchforkPlates, specimenPlates } from "./booklet-plates.js"
 import { tbcSections } from "./tbc-sections.js"
+import { myfridgeSections } from "./myfridge-sections.js"
+import { extraSectionRenderers } from "./extra-section-renderers.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -689,6 +691,23 @@ const caseStudyDetails = {
 // They stay deliberately narrow where the local archive does not contain a
 // matched playtest or a complete interaction recording.
 Object.assign(caseStudyDetails, {
+  "/myfridge": {
+    year: "2024 Spring",
+    title: "MyFridge",
+    category: "UI/UX Prototype",
+    summary:
+      "A fridge app for people in their first job who live alone: food comes in from the receipt instead of a shopping list, the app warns before anything goes off, and a weekly report puts the waste in dollars.",
+    heroImage: null,
+    heroAlt: "MyFridge onboarding screen",
+    points: [
+      "Group 4 in Interaction 1 (IxD 101), Spring 2024: Kaiyi, Mika, Allen and me.",
+      "Picked from three candidate problems, then narrowed by seven interviews.",
+      "I put together the findings and drew one of the two wireframe sets.",
+      "No shopping list anywhere: almost nobody we interviewed keeps one.",
+    ],
+    sections: myfridgeSections,
+    access: "Made with Kaiyi, Mika and Allen for Interaction 1 (IxD 101), Spring 2024.",
+  },
   "/to-be-chosen": {
     year: "2025 Spring \u2192 Fall",
     title: "To Be Chosen",
@@ -3081,6 +3100,7 @@ function projectPreviewSummary(project) {
     "/game-prototype": "A mechanic prototype about reading a moving event and placing a local time-slowing zone.",
     "/shroom-pot-showdown": "An asymmetric chase between a drifting mushroom and hungry chopsticks.",
     "/alt-controller-2025-a": "A data-driven supermarket game about turning customer fields into shelf decisions.",
+    "/myfridge": "A fridge app for people in their first job: food comes in from the receipt, and the waste is counted in dollars.",
   }
   if (caseStudyLeadSummaries[project.path]) return caseStudyLeadSummaries[project.path]
 
@@ -3961,6 +3981,8 @@ function paintHalftonePlates(root = document) {
 }
 
 function gddSectionMarkup(section) {
+  const extra = extraSectionRenderers[section.kind]
+  if (extra) return extra(section, { escapeHtml, gddPair, imageSourceAttrs })
   if (section.kind === "symbol-key") return gddSymbolKey(section)
   if (section.kind === "spec-table") return gddSpecTable(section)
   if (section.kind === "matrix") return gddMatrix(section)

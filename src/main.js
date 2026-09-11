@@ -464,9 +464,12 @@ const caseStudyDetails = {
     summary: { en: "A survival game about a year of being helped. You shoot coins at the bills chasing you and buy the ground under your feet; your father clears what you cannot reach, and every time he does it goes on a tab you settle at the end of the year.", zh: "一个关于“被帮助的一年”的生存游戏。你用硬币射击追着你的账单，买下脚下的土地；父亲会替你清掉够不着的账单，而他每帮一次，都会记在账上，到年底一次算清。" },
     heroImage: null,
     heroAlt: "DAD gameplay grid with money and survival state",
+    audience: {
+      goal: { en: "Players should feel help as relief in January and as weight by December: every coin they accept makes this month easier and the ending harder.", zh: "玩家应该在一月把帮助当作解脱，到十二月却感到它的重量：每接受一枚硬币，这个月就轻松一点，结局就更难一点。" },
+      audience: { en: "Solo players of short arcade survival games like Vampire Survivors who also want the systems to carry a story, the way Papers, Please does.", zh: "喜欢《吸血鬼幸存者》这类短局街机生存游戏、同时希望系统本身能讲故事（就像《请出示文件》那样）的单人玩家。" },
+      map: { target: { label: "DAD", x0: -0.92, x1: -0.18, y0: -0.3, y1: 0.7 }, groups: [{ label: "Vampire Survivors players", x: -0.5, y: 0.05, core: true }, { label: "Papers, Please players", x: -0.55, y: 0.5, core: true }, { label: "Twin-stick shooter fans", x: 0.3, y: 0.55 }] },
+    },
     points: [
-      { label: "Player", en: "For players who know the comfort, and the cost, of being helped.", zh: "给那些懂得被帮助的安心、也懂得它代价的玩家。" },
-      { label: "Experience", en: "Help that feels like relief in January and a debt you have to shoot through in December.", zh: "一月里，帮助像是解脱；到了十二月，它变成一笔你必须一枪一枪打穿的债。" },
       { label: "Iteration", en: "Testers could not tell when DAD became the enemy, so making that turn readable is the iteration I am on now.", zh: "测试者分辨不出 DAD 是什么时候变成敌人的，所以让这个转折变得看得懂，是我现在正在做的迭代。" },
       { label: "My role", en: "My project from system diagram to playable build: design, economy and tuning.", zh: "从系统图到可玩版本都是我的项目：设计、经济系统和数值调校。" },
     ],
@@ -480,9 +483,12 @@ const caseStudyDetails = {
     summary: { en: "An old woman is about to walk onto a level crossing and a train is already coming. You cannot move her and you cannot stop it — you can drop a pocket of slowed time on one part of the scene and buy the seconds to do something about it.", zh: "一位老奶奶正要走上铁道口，火车已经开过来了。你不能移动她，也拦不住火车——你能做的，是在场景的某一处放下一团减慢的时间，替自己争取几秒钟去做点什么。" },
     heroImage: null,
     heroAlt: "Slow\u2019em Down local time-slow zone",
+    audience: {
+      goal: { en: "Players should feel the comic panic of an accident assembling in front of them, and the relief of buying just enough seconds to stop it. The skill is noticing early, not reacting fast.", zh: "玩家应该感受到一场意外在眼前一点点成形时那种带点滑稽的慌张，以及刚好争取到几秒、及时阻止它的如释重负。技巧在于及早察觉，而不是反应快。" },
+      audience: { en: "Solo players of quick, dark-comic puzzle games like Dumb Ways to Die, and fans of time-bending action like Superhot who enjoy reading a scene and stepping in once.", zh: "喜欢《Dumb Ways to Die》这类短促黑色幽默解谜的单人玩家，以及喜欢《Superhot》这类操控时间玩法、享受“先读懂场景再出手一次”的玩家。" },
+      map: { target: { label: "Slow’em Down", x0: -0.92, x1: -0.12, y0: -0.78, y1: 0.2 }, groups: [{ label: "Dumb Ways to Die players", x: -0.52, y: -0.42, core: true }, { label: "Superhot players", x: -0.5, y: 0.52 }, { label: "Casual puzzle players", x: 0.12, y: -0.62 }] },
+    },
     points: [
-      { label: "Player", en: "For players who like Dumb Ways to Die: quick, readable comedy where the skill is spotting the accident early.", zh: "给喜欢《Dumb Ways to Die》的玩家：短促易懂的喜剧，技巧在于及早发现意外。" },
-      { label: "Experience", en: "The rush of buying seconds: three zones, 15% time inside, and energy that drains twice as fast as it fills.", zh: "争取时间的紧张感：三个减速区，区内时间只剩 15%，能量消耗的速度是恢复的两倍。" },
       { label: "Iteration", en: "Slowing the whole scene left nothing to decide; cutting it to local zones turned it into a choice of target.", zh: "减慢整个场景让玩家无从选择；把它缩成局部区域后，它变成了“选目标”的决定。" },
       { label: "Playtest", en: "Two of three sessions agreed the train works and the other setups do not yet; the kitchen level is my answer on paper.", zh: "三次测试里有两次得出同样的结论：火车那一段成立，其他设置还不行；厨房关是我在纸上给出的答案。" },
     ],
@@ -496,9 +502,12 @@ const caseStudyDetails = {
     summary: { en: "Two players share one pot: the mushroom leans and bounces to escape while the chopstick player tracks, catches, and holds it long enough to eat. The controller turns body movement into the timing and prediction of a chase.", zh: "两名玩家共用一口锅：蘑菇倾身、弹跳着逃跑，筷子玩家则追踪、夹住它，而且要夹得够久才能吃掉。控制器把身体动作变成了追逐中的时机与预判。" },
     heroImage: "assets/case-study/shroom-gameplay.png",
     heroAlt: "Shroom Pot Showdown shared pot gameplay",
+    audience: {
+      goal: { en: "Two players should feel a chase they read in each other’s bodies: the mushroom’s lean, the chopsticks’ hesitation, and the laugh when a catch slips.", zh: "两名玩家应该感受到一场从对方身体上读出来的追逐：蘑菇的倾身、筷子的迟疑，以及一夹落空时的大笑。" },
+      audience: { en: "Friends side by side at showcases and parties who like physical, local multiplayer: the crowd for Overcooked-style couch play and alternative-controller arcades.", zh: "在展会和聚会上并排玩的朋友，喜欢身体参与的本地多人游戏——也就是《胡闹厨房》式沙发游戏和另类控制器街机的那群玩家。" },
+      map: { target: { label: "Shroom Pot Showdown", x0: 0.18, x1: 0.95, y0: -0.88, y1: -0.05 }, groups: [{ label: "Couch co-op players", x: 0.6, y: -0.32, core: true }, { label: "Alt-controller showcase visitors", x: 0.52, y: -0.7, core: true }, { label: "Motion game players", x: -0.3, y: -0.25 }] },
+    },
     points: [
-      { label: "Player", en: "Two players side by side, one on a yoga ball and one on giant chopsticks.", zh: "并排的两名玩家，一个坐在瑜伽球上，一个握着巨型筷子。" },
-      { label: "Experience", en: "The fun of reading each other: when to dodge, and when to commit to a catch.", zh: "读懂对方的乐趣：什么时候闪躲，什么时候下定决心去夹。" },
       { label: "Iteration", en: "In March, leaning forward tipped the view instead of moving the mushroom; we remapped the ball, and in April it became the favourite controller, 10 of 19.", zh: "三月时，身体前倾只会让画面倾斜，蘑菇并不前进；我们重新映射了瑜伽球，到了四月，它成了最受欢迎的控制器（19 人中 10 人）。" },
       { label: "My role", en: "Team C: I built the yoga-ball base and gyro, and reworked the controller calibration between rounds.", zh: "Team C：我做了瑜伽球底座和陀螺仪，并在两轮测试之间重做了控制器校准。" },
     ],
@@ -512,9 +521,12 @@ const caseStudyDetails = {
     summary: { en: "A supermarket shift at the checkout. Read what the customer wants — the brand, the size, sugar-free, the discount they expect — find it on the shelf and scan it before their patience runs out. Product data stops being a menu and becomes a decision under pressure.", zh: "一场超市收银台前的轮班。读懂顾客要什么——品牌、尺寸、无糖、他们期待的折扣——在货架上找到它，并在顾客失去耐心之前扫码。商品数据不再是一张菜单，而是一个在压力下做出的决定。" },
     heroImage: null,
     heroAlt: "Super99 Figma pitch showing cashier and scanner concept",
+    audience: {
+      goal: { en: "Players should feel the pressure of a queue and the small pride of reading a request right the first time.", zh: "玩家应该感受到排队的压力，以及第一次就读对顾客需求时那一点小小的得意。" },
+      audience: { en: "Casual players and learners who enjoy job simulators like Supermarket Simulator and want to understand product information by using it.", zh: "喜欢《超市模拟器》这类职业模拟游戏的休闲玩家和学习者，他们想在使用中读懂商品信息。" },
+      map: { target: { label: "Super99", x0: -0.92, x1: -0.1, y0: -0.88, y1: -0.12 }, groups: [{ label: "Supermarket Simulator players", x: -0.48, y: -0.36, core: true }, { label: "Learners", x: -0.7, y: -0.72, core: true }, { label: "Overcooked players", x: 0.55, y: -0.42 }] },
+    },
     points: [
-      { label: "Player", en: "For players learning to read product information: every request is a small puzzle of names, sizes and conditions.", zh: "给正在学习读懂商品信息的玩家：每一个需求都是由名称、尺寸和条件组成的小谜题。" },
-      { label: "Experience", en: "The pressure of a queue: patience turns a lookup into a timed call, and a discount tempts you to earn less.", zh: "排队的压力：顾客的耐心把查找变成限时决定，而折扣会诱惑你少赚一点。" },
       { label: "Design decision", en: "I kept product data off menus: every field decides which physical item you take from the shelf, with a barcode scanner as the input.", zh: "我不让商品数据停留在菜单上：每一个字段都决定你从货架上拿哪一件实物，输入方式则是条码扫描枪。" },
       { label: "My role", en: "Solo: concept, data design and the Unity build.", zh: "个人项目：概念、数据设计和 Unity 制作。" },
     ],
@@ -593,9 +605,12 @@ Object.assign(caseStudyDetails, {
     summary: { en: "A cheer squad’s bus breaks down on the way home and the driver goes missing. Every beat is played through whichever girl is carrying the scene, so each of them ends holding an incomplete account — and the player is the only one who sees all of them.", zh: "一支啦啦队在回家路上遇上巴士抛锚，司机随后失踪。每一段剧情都通过当时承担这场戏的那个女孩来体验，于是每个人最后都只握有一份不完整的经过——而玩家是唯一看见全部的人。" },
     heroImage: null,
     heroAlt: "To Be Chosen POV switch chart",
+    audience: {
+      goal: { en: "Players should feel dread coming from the world, never from the girls, and the unease of being the only one who holds the whole picture.", zh: "玩家应该感受到恐惧来自这个世界、而不是女孩们之间，以及“只有自己握有全貌”的那种不安。" },
+      audience: { en: "Players of choice-driven, multi-perspective horror like Until Dawn and The Quarry, often played on a couch with friends calling out the choices.", zh: "喜欢《直到黎明》《采石场惊魂》这类选择驱动、多视角恐怖游戏的玩家——常常是几个朋友坐在沙发上一起喊着做选择。" },
+      map: { target: { label: "To Be Chosen", x0: -0.5, x1: 0.6, y0: -0.4, y1: 0.45 }, groups: [{ label: "Until Dawn players", x: 0.12, y: 0.05, core: true }, { label: "Narrative adventure fans", x: -0.3, y: -0.2, core: true }, { label: "Horror fans", x: -0.35, y: 0.72 }] },
+    },
     points: [
-      { label: "Player", en: "For players of choice-driven horror like Until Dawn.", zh: "给喜欢《直到黎明》这类选择驱动型恐怖游戏的玩家。" },
-      { label: "Experience", en: "The dread comes from the world, never from the girls, and only the player gets to put the whole story together.", zh: "恐惧来自这个世界，而不是女孩们之间；只有玩家能把整个故事拼完整。" },
       { label: "Iteration", en: "One girl who saw everything became a mystery she solved for the player, so I rebuilt it around five limited viewpoints.", zh: "一个看见一切的女孩，等于替玩家解开了谜，所以我把它重建成五个有限视角。" },
       { label: "My role", en: "Narrative Director on a team of four: I owned the perspective structure and wrote the revision pass.", zh: "四人团队中的叙事总监：我负责视角结构，并亲自写了修订方案。" },
     ],
@@ -620,9 +635,12 @@ Object.assign(caseStudyDetails, {
     summary: { en: "A horror game about building a house room by room while something outside asks to be let in: “I’m so cold, may I come in?” Rooms that touch fuse into one space, doors appear where they meet, and every opening you make for light or passage is also a way in.", zh: "一个“一间一间盖房子”的恐怖游戏，而屋外有个东西一直在请求进来：“我好冷，可以让我进来吗？”相接的房间会融合成一个空间，门会出现在它们交会的地方，而你为了光线或通行打开的每一个口子，也都是它进来的路。" },
     heroImage: null,
     heroAlt: "Curtain spatial prototype grid and units",
+    audience: {
+      goal: { en: "Players should feel hospitality turn into threat: the house they built to be comfortable is the house the visitor walks into.", zh: "玩家应该感受到“待客”变成威胁：为了住得舒服而盖起来的房子，正是访客走进来的那座房子。" },
+      audience: { en: "Solo players of slow, domestic horror, the audience for That’s Not My Neighbor and Five Nights at Freddy’s, who also like shaping their own space.", zh: "喜欢缓慢、居家式恐怖的单人玩家——《那不是我的邻居》《玩具熊的五夜后宫》的受众——同时也喜欢亲手塑造自己的空间。" },
+      map: { target: { label: "Curtain", x0: -0.92, x1: -0.12, y0: -0.35, y1: 0.62 }, groups: [{ label: "That’s Not My Neighbor players", x: -0.5, y: 0.05, core: true }, { label: "Five Nights at Freddy’s fans", x: -0.5, y: 0.45, core: true }, { label: "Cozy builders", x: -0.3, y: -0.66 }] },
+    },
     points: [
-      { label: "Player", en: "For players who like slow, domestic horror: the dread of a house you built yourself.", zh: "给喜欢缓慢、居家式恐怖的玩家：一座亲手盖起来的房子所带来的不安。" },
-      { label: "Experience", en: "Hospitality as a threat: every door you add is a decision about who gets in.", zh: "把“待客”变成威胁：你加上的每一扇门，都是在决定谁能进来。" },
       { label: "Iteration", en: "My first version ran on windows and daylight money; the current build rebuilds the house around rooms that fuse, with doors only where three cells meet.", zh: "我的第一版靠窗户和阳光赚钱运转；现在的版本把房子重建为会融合的房间，只有在三格相接处才会出现门。" },
       { label: "My role", en: "I designed the rules and built the game, with a second contributor in the repository.", zh: "规则由我设计、游戏由我制作，仓库里还有一位合作者参与。" },
     ],
@@ -683,9 +701,12 @@ Object.assign(caseStudyDetails, {
     summary: { en: "A waist-high wooden butter churn you play by churning to a beat. Andrew built the first controller out of a laundry basket and wrote the game; I designed and built the second generation and the physical computing inside it.", zh: "一台齐腰高的木制搅乳桶，玩法是跟着节拍搅动。Andrew 用洗衣篮做了第一代控制器，也写了游戏；第二代控制器和里面的电路则由我设计和制作。" },
     heroImage: null,
     heroAlt: "Butter Beatdown 2 controller",
+    audience: {
+      goal: { en: "Players should feel churning as labour and as rhythm at once, and laugh at how hard they are working.", zh: "玩家应该同时感受到搅动是体力活、也是节奏，并为自己这么卖力而笑出来。" },
+      audience: { en: "Anyone at a showcase table: party and rhythm players who want a game they understand from the object in front of them, not from a tutorial.", zh: "展会桌前的任何人：喜欢聚会游戏和节奏游戏、希望靠眼前的物件而不是教程就能看懂的玩家。" },
+      map: { target: { label: "Butter Beatdown 2", x0: -0.15, x1: 0.9, y0: -0.9, y1: -0.08 }, groups: [{ label: "Showcase visitors", x: 0.42, y: -0.66, core: true }, { label: "Party game players", x: 0.62, y: -0.3, core: true }, { label: "Rhythm game players", x: 0.1, y: 0.35 }] },
+    },
     points: [
-      { label: "Player", en: "Anyone walking past the table: the only instructions are the arrows on the lid.", zh: "任何路过桌前的人：唯一的说明就是桶盖上的箭头。" },
-      { label: "Experience", en: "Churning should feel like labour: waist height and a slight bend make every stroke cost something.", zh: "搅动应该像是在干活：齐腰的高度和微微弯腰，让每一下都要付出力气。" },
       { label: "Iteration", en: "Andrew’s laundry basket proved the motion; my wooden barrel made it feel like a real churn.", zh: "Andrew 的洗衣篮证明了这个动作成立；我的木桶让它真正有了搅乳桶的手感。" },
       { label: "My role", en: "I led the second-generation controller — design, fabrication and wiring — with Andrew on the game.", zh: "我主导了第二代控制器的设计、制作和布线，Andrew 负责游戏本身。" },
     ],
@@ -699,9 +720,12 @@ Object.assign(caseStudyDetails, {
     summary: { en: "A sushi counter you work with your bare hands: pick up the knife, cut the salmon, lay the slice on rice, plate it and send it out. On Apple Vision Pro there is no controller — your grip, your wrist and your aim are the whole interface.", zh: "一个用双手经营的寿司吧台：拿起刀、切三文鱼、把鱼片放到米饭上、装盘、出餐。在 Apple Vision Pro 上没有任何控制器——你的抓握、手腕和目光就是全部的操作界面。" },
     heroImage: "assets/framer-live/alt-controller-2025-b.png",
     heroAlt: "SushiGo spatial cooking prototype",
+    audience: {
+      goal: { en: "Players should feel the satisfaction of a clean cut, and a kitchen that runs on their own two hands.", zh: "玩家应该感受到一刀切好的满足，以及一个完全靠自己双手运转的厨房。" },
+      audience: { en: "People trying spatial computing for the first time, and fans of hands-on job sims like Job Simulator and Cooking Simulator VR.", zh: "第一次接触空间计算的人，以及喜欢《工作模拟》《料理模拟器 VR》这类亲手操作的职业模拟游戏的玩家。" },
+      map: { target: { label: "SushiGo", x0: -0.92, x1: -0.1, y0: -0.9, y1: -0.1 }, groups: [{ label: "Job Simulator players", x: -0.46, y: -0.38, core: true }, { label: "Vision Pro first-timers", x: -0.66, y: -0.74, core: true }, { label: "Cooking sim fans", x: 0.3, y: -0.25 }] },
+    },
     points: [
-      { label: "Player", en: "Someone trying spatial computing for the first time: every action is a gesture they already know from a kitchen.", zh: "第一次接触空间计算的人：每个动作都是他们在厨房里早就熟悉的手势。" },
-      { label: "Experience", en: "The satisfaction of a clean cut: the closer the slice is to the ideal size, the more the dish earns.", zh: "一刀切好的满足感：鱼片越接近理想尺寸，这份寿司赚得越多。" },
       { label: "Iteration", en: "Leap Motion hand tracking first, then Apple Vision Pro, where a grasp holds food and a look-and-pinch presses buttons.", zh: "先用 Leap Motion 做手部追踪，再转到 Apple Vision Pro：抓握用来拿食物，看向并捏合用来按按钮。" },
       { label: "My role", en: "The first version was made with Susan and Conred; I designed the gesture sequence and the interface.", zh: "第一版与 Susan、Conred 合作完成；手势流程和界面由我设计。" },
     ],
@@ -715,9 +739,12 @@ Object.assign(caseStudyDetails, {
     summary: { en: "A two-player duel fought with your feet. Each squirrel samurai attacks and defends by direction, and stepping on a floor pedal commits your body to a lane before the hit lands, so every strike is a small bet you make standing up.", zh: "一场用双脚进行的双人对决。每只松鼠武士都按方向进攻和防守，踩下地面踏板，就等于在攻击落下之前用身体选定一条路线，所以每一击都是你站着下的一个小赌注。" },
     heroImage: "assets/framer-live/alt-controller-2025-c.png",
     heroAlt: "Squirrel Samurai physical controller prototype",
+    audience: {
+      goal: { en: "Players should feel commitment: the body picks a lane before the hit, so every strike is a bet made standing up.", zh: "玩家应该感受到“决断”：身体在出手之前就选好了路线，所以每一击都是站着下的赌注。" },
+      audience: { en: "Two players side by side who like quick local duels: the crowd for Nidhogg and for fighting games at a party.", zh: "喜欢快节奏本地对决、并排站着玩的两名玩家——聚会上玩《Nidhogg》和格斗游戏的那群人。" },
+      map: { target: { label: "Squirrel Samurai", x0: 0.2, x1: 0.95, y0: -0.45, y1: 0.58 }, groups: [{ label: "Nidhogg players", x: 0.58, y: 0.12, core: true }, { label: "Fighting game fans", x: 0.46, y: 0.72 }, { label: "Party players", x: 0.66, y: -0.62 }] },
+    },
     points: [
-      { label: "Player", en: "Two players side by side, each on their own set of floor pedals.", zh: "并排站着的两名玩家，各自踩着一组地面踏板。" },
-      { label: "Experience", en: "Commitment you can feel: your body picks a direction before the result appears.", zh: "看得见的决断：在结果出现之前，你的身体已经选好了方向。" },
       { label: "Iteration", en: "Players read attacks at once but hesitated on defence, so my next build separates the defence pedal and its feedback.", zh: "玩家一眼就能读懂攻击，却在防守上犹豫，所以我的下一版会把防守踏板和它的反馈单独拆出来。" },
       { label: "My role", en: "I designed the pedal mapping and the attack and defence feedback.", zh: "踏板映射以及攻防反馈都由我设计。" },
     ],
@@ -735,6 +762,11 @@ Object.assign(caseStudyDetails, {
     summary: "A service-game interface prototype. The case study focuses on how a player reads a task and acts through the interface; the long recording remains supporting evidence rather than a claim about the whole game loop.",
     heroImage: "assets/framer-live/service-game-ui-2026-a.png",
     heroAlt: "The Mystery of Instrument service game interface",
+    audience: {
+      goal: { en: "Players should feel an inheritance becoming theirs: every song they play restores a piece of their father’s instrument, and of his memory.", zh: "玩家应该感受到一份遗产慢慢变成自己的：每演奏一首歌，就修好父亲乐器的一部分，也找回一段他的记忆。" },
+      audience: { en: "Mobile players who love music, collection and story, the audience for Deemo and Cytus, with orchestras for those who want to play alongside others.", zh: "热爱音乐、收藏和故事的手游玩家——《Deemo》《Cytus》的受众——乐团玩法则留给想和别人一起玩的人。" },
+      map: { target: { label: "The Mystery of Instrument", x0: -0.75, x1: 0.35, y0: -0.85, y1: 0.08 }, groups: [{ label: "Deemo and Cytus players", x: -0.3, y: -0.28, core: true }, { label: "Collection gacha players", x: 0.15, y: -0.6, core: true }, { label: "Rhythm game regulars", x: 0.05, y: 0.45 }] },
+    },
     points: ["Player task: read the service state and choose the next interface action.", "Design question: which information must be visible before a player can complete the task?", "Current version: interface material is confirmed; a full game loop and measured outcome are still open."],
     sections: [
       { kind: "copy-grid", left: { title: "Task First", en: "The interface is organized around one task. The player needs to know what is pending, what can be selected, and what confirms completion.", zh: "介面圍繞一個任務來整理。玩家需要知道什麼尚未完成、可以選什麼，以及什麼會確認完成。" }, right: { title: "Evidence Boundary", en: "The available recording is long and does not yet show a complete loop. The next short walkthrough should end with the service result.", zh: "目前錄影很長，還沒有展示完整循環。下一段短錄影需要一路拍到服務結果。" } },
@@ -4081,6 +4113,7 @@ function caseStudyDetailMarkup(project, detail) {
           <div class="case-study-hero-copy"><p>${detail.summary && typeof detail.summary === "object" ? caseStudyPair(detail.summary) : bilingualText(detail.summary)}</p><ul>${points}</ul></div>
           </div>
         </header>
+        ${detail.audience ? gddSectionMarkup({ kind: "audience", tag: "Player experience", ...detail.audience }) : ""}
         ${projectPlayableMarkup(project)}
         ${sections}
         <footer class="framer-case-footer case-study-footer">

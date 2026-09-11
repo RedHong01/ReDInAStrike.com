@@ -144,6 +144,11 @@ export const rebuiltCaseStudies = {
     ),
     heroImage: null,
     heroAlt: "Build n Shoot cover art",
+    audience: {
+      goal: { en: "Players should feel the board change under them: every route they walk becomes cover, and every purchase is a move everyone can read.", zh: "玩家应该感受到脚下的棋盘在变化：走过的每条路线都会变成掩体，每一次购买都是所有人看得见的一步棋。" },
+      audience: { en: "Two to four strategy board gamers, the Catan and Risk crowd, achievers and hunters who like to win by position, with a taste for fantasy.", zh: "两到四名策略桌游玩家——喜欢《卡坦岛》《战国风云》的人、靠位置取胜的成就型与杀手型玩家——并且对奇幻题材有兴趣。" },
+      map: { target: { label: "Build and Shoot", x0: 0.15, x1: 0.92, y0: -0.08, y1: 0.78 }, groups: [{ label: "Catan and Risk players", x: 0.55, y: 0.36, core: true }, { label: "Chess and abstract players", x: 0.0, y: 0.7 }, { label: "Fantasy fans", x: 0.6, y: -0.4 }] },
+    },
     points: [
       { label: "Iteration", en: "Version two’s players found the difficulty right; version four’s found the turn too heavy, because learning the guards up front asked too much.", zh: "第二版的玩家觉得难度刚好；第四版的玩家觉得回合太重，因为一开始就要学会守卫的规则，要求太多了。" },
       { label: "My role", en: "Designed, written and playtested by me across four iterations in one term.", zh: "由我设计、撰写并组织试玩，一个学期内完成四次迭代。" },

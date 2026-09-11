@@ -55,17 +55,17 @@ function mantraGrid(section, { escapeHtml, gddPair }) {
     </section>`
 }
 
-// Seven weeks of hand-ins, one column per course week, each tagged with the lesson
-// from the first half of the course that it answers.
+// Seven weeks from pitch to package, one column per step, each tagged with the design focus
+// that step was working towards.
 function timeline(section, helpers) {
   const { escapeHtml, gddPair } = helpers
   const weeks = section.weeks
-    .map((week) => {
+    .map((week, index) => {
       if (week.empty) {
         return `
           <li class="sbh-week is-empty">
             <span class="sbh-week-mark" aria-hidden="true"></span>
-            <span class="sbh-week-num">W${week.week}</span>
+            <span class="sbh-week-num">${String(index + 1).padStart(2, "0")}</span>
             <span class="sbh-week-date">${escapeHtml(week.date)}</span>
             <p class="sbh-week-copy">${gddPair(week)}</p>
           </li>`
@@ -73,11 +73,11 @@ function timeline(section, helpers) {
       return `
         <li class="sbh-week">
           <span class="sbh-week-mark" aria-hidden="true"></span>
-          <span class="sbh-week-num">W${week.week}</span>
+          <span class="sbh-week-num">${String(index + 1).padStart(2, "0")}</span>
           <span class="sbh-week-date">${escapeHtml(week.date)}</span>
           <h3 class="sbh-week-title">${escapeHtml(week.title)}</h3>
           <p class="sbh-week-copy">${gddPair(week)}</p>
-          <p class="sbh-week-lesson"><span class="sbh-week-lesson-key">Answers</span>${gddPair(week.lesson)}</p>
+          <p class="sbh-week-lesson"><span class="sbh-week-lesson-key">Focus</span>${gddPair(week.lesson)}</p>
         </li>`
     })
     .join("")

@@ -473,6 +473,8 @@ function audience(section, { escapeHtml, gddPair }) {
       <div class="case-audience-copy">
         <h3 class="case-audience-heading">Player Experience Goal</h3>
         <p>${gddPair(section.goal)}</p>
+      </div>
+      <div class="case-audience-copy">
         <h3 class="case-audience-heading">Target Audience</h3>
         <p>${gddPair(section.audience)}</p>
       </div>`

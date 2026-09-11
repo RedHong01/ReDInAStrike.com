@@ -78,8 +78,8 @@
   align-items: center;
 }
 
-.case-audience-copy { grid-column: span 5; }
-.case-audience-map { grid-column: span 7; margin: 0; }
+.case-audience-copy { grid-column: span 6; align-self: start; }
+.case-audience-map { grid-column: 1 / -1; width: 100%; max-width: 920px; margin: 0; }
 
 .case-audience-heading {
   margin: 0 0 8px;
@@ -92,18 +92,17 @@
 }
 
 .case-audience-copy p {
-  margin: 0 0 28px;
+  margin: 0;
   color: var(--case-copy);
   font-size: 17px;
   line-height: 1.45;
 }
 
-.case-audience-copy p:last-child { margin-bottom: 0; }
 
 .case-audience-plane {
   position: relative;
-  aspect-ratio: 16 / 11;
-  margin: 30px 64px;
+  aspect-ratio: 2 / 1;
+  margin: 40px 84px 44px;
 }
 
 .case-audience-axis {
@@ -145,14 +144,14 @@
   position: absolute;
   border: 1px solid var(--case-ink);
   border-radius: 4px;
-  background: color-mix(in srgb, var(--case-accent, #6da7ec) 24%, transparent);
+  background: linear-gradient(rgb(0 17 34 / 0.05), rgb(0 17 34 / 0.05)), color-mix(in srgb, var(--case-accent, #6da7ec) 26%, transparent);
 }
 
 .case-audience-zone > span {
   position: absolute;
-  top: 8px;
-  left: 10px;
-  right: 10px;
+  bottom: calc(100% + 6px);
+  left: -1px;
+  white-space: nowrap;
   font-family: var(--type-subtitle-font);
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -169,10 +168,11 @@
   list-style: none;
 }
 
-.case-audience-chip {
+.case-audience-section .case-audience-chips > .case-audience-chip {
   position: absolute;
   z-index: 1;
-  max-width: 11.5em;
+  margin: 0;
+  max-width: 14em;
   padding: 6px 10px;
   border: 1px solid var(--case-ink);
   border-radius: 3px;
@@ -186,9 +186,9 @@
   transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
 }
 
-.case-audience-chip.is-core { background: color-mix(in srgb, var(--case-accent, #6da7ec) 58%, #ffffff); }
+.case-audience-section .case-audience-chips > .case-audience-chip.is-core { background: linear-gradient(rgb(0 17 34 / 0.1), rgb(0 17 34 / 0.1)), color-mix(in srgb, var(--case-accent, #6da7ec) 58%, #ffffff); }
 
-.case-audience-chip:hover {
+.case-audience-section .case-audience-chips > .case-audience-chip:hover {
   z-index: 2;
   box-shadow: 0 8px 18px rgb(0 17 34 / 0.14);
   transform: translate(-50%, -50%) scale(1.06);
@@ -198,7 +198,7 @@
   .case-audience-axis--x { animation: case-axis-x 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
   .case-audience-axis--y { animation: case-axis-y 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
   .case-audience-zone { animation: case-zone 0.65s 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
-  .case-audience-chip { animation: case-chip 0.5s calc(0.65s + var(--i, 0) * 0.09s) cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+  .case-audience-section .case-audience-chips > .case-audience-chip { animation: case-chip 0.5s calc(0.65s + var(--i, 0) * 0.09s) cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
 }
 
 @keyframes case-axis-x { from { transform: scaleX(0); } }
@@ -209,10 +209,19 @@
 @media (max-width: 900px) {
   .case-audience-copy,
   .case-audience-map { grid-column: 1 / -1; }
-  .case-audience-plane { aspect-ratio: 1 / 1; margin: 30px 48px; }
-  .case-audience-chip { max-width: 8.5em; padding: 5px 7px; font-size: 10px; }
+  .case-audience-plane { aspect-ratio: 5 / 4; margin: 40px 58px 44px; }
+  .case-audience-section .case-audience-chips > .case-audience-chip { max-width: 9em; padding: 5px 7px; font-size: 10px; }
 }
 
 @media (max-width: 720px) {
   .case-point { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+
+/* Single images in a case study never grow past their own pixels or past most
+   of the screen: a small or portrait picture sits at its natural proportion
+   instead of being stretched into a frame it does not need. */
+.case-study-media-section .case-study-image img {
+  width: auto;
+  max-width: 100%;
+  max-height: 82vh;
 }

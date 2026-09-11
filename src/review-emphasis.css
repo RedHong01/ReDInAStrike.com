@@ -1,0 +1,218 @@
+/* Review emphasis: the parts of a case study that answer a reviewer's first
+   questions — who the game is for, what it should feel like, what changed and
+   who did what — get a consistent, scannable treatment. Loaded after the
+   section styles so it can refine them without touching main.js or styles.css. */
+
+/* Hero points as labelled answers */
+.case-study-hero-copy ul:has(> .case-point) {
+  gap: 0;
+  padding-left: 0;
+  list-style: none;
+  border-top: 1px solid rgb(0 17 34 / 0.16);
+}
+
+.case-point {
+  display: grid;
+  grid-template-columns: minmax(6.5em, 8.5em) minmax(0, 1fr);
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgb(0 17 34 / 0.16);
+}
+
+.case-point-label {
+  padding-top: 4px;
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.case-point-copy { color: var(--case-copy); }
+
+/* Section tags: a short accent rule and a label above the heading */
+.case-section-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.case-section-tag::before {
+  content: "";
+  flex: 0 0 28px;
+  height: 2px;
+  background: var(--case-accent, var(--case-ink));
+  transform-origin: left center;
+}
+
+[data-case-accent-contrast="light"] .case-section-tag::before { background: var(--case-accent-stroke, #111111); }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .case-section-tag::before {
+      animation: case-tag-rule linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 28%;
+    }
+  }
+}
+
+@keyframes case-tag-rule {
+  from { transform: scaleX(0.15); }
+  to { transform: scaleX(1); }
+}
+
+/* Who it is for: goal and audience beside a positioning map */
+.case-audience-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(24px, 3vw, 48px);
+  align-items: center;
+}
+
+.case-audience-copy { grid-column: span 5; }
+.case-audience-map { grid-column: span 7; margin: 0; }
+
+.case-audience-heading {
+  margin: 0 0 8px;
+  font-family: var(--type-subtitle-font);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.case-audience-copy p {
+  margin: 0 0 28px;
+  color: var(--case-copy);
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.case-audience-copy p:last-child { margin-bottom: 0; }
+
+.case-audience-plane {
+  position: relative;
+  aspect-ratio: 16 / 11;
+  margin: 30px 64px;
+}
+
+.case-audience-axis {
+  position: absolute;
+  background: var(--case-ink);
+}
+
+.case-audience-axis--x { top: 50%; right: 0; left: 0; height: 1px; }
+.case-audience-axis--y { top: 0; bottom: 0; left: 50%; width: 1px; }
+
+.case-audience-axis::before,
+.case-audience-axis::after {
+  content: "";
+  position: absolute;
+  border: 4px solid transparent;
+}
+
+.case-audience-axis--x::before { left: -2px; top: -4px; border-right: 7px solid var(--case-ink); border-left: 0; }
+.case-audience-axis--x::after { right: -2px; top: -4px; border-left: 7px solid var(--case-ink); border-right: 0; }
+.case-audience-axis--y::before { top: -2px; left: -4px; border-bottom: 7px solid var(--case-ink); border-top: 0; }
+.case-audience-axis--y::after { bottom: -2px; left: -4px; border-top: 7px solid var(--case-ink); border-bottom: 0; }
+
+.case-audience-pole {
+  position: absolute;
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--case-ink);
+}
+
+.case-audience-pole--top { bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); }
+.case-audience-pole--bottom { top: calc(100% + 12px); left: 50%; transform: translateX(-50%); }
+.case-audience-pole--left { top: 50%; right: calc(100% + 12px); transform: translateY(-50%); }
+.case-audience-pole--right { top: 50%; left: calc(100% + 12px); transform: translateY(-50%); }
+
+.case-audience-zone {
+  position: absolute;
+  border: 1px solid var(--case-ink);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--case-accent, #6da7ec) 24%, transparent);
+}
+
+.case-audience-zone > span {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+
+.case-audience-chips {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case-audience-chip {
+  position: absolute;
+  z-index: 1;
+  max-width: 11.5em;
+  padding: 6px 10px;
+  border: 1px solid var(--case-ink);
+  border-radius: 3px;
+  background: var(--surface-soft, #efede9);
+  font-family: var(--type-subtitle-font);
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--case-ink);
+  transform: translate(-50%, -50%);
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
+}
+
+.case-audience-chip.is-core { background: color-mix(in srgb, var(--case-accent, #6da7ec) 58%, #ffffff); }
+
+.case-audience-chip:hover {
+  z-index: 2;
+  box-shadow: 0 8px 18px rgb(0 17 34 / 0.14);
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .case-audience-axis--x { animation: case-axis-x 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+  .case-audience-axis--y { animation: case-axis-y 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+  .case-audience-zone { animation: case-zone 0.65s 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+  .case-audience-chip { animation: case-chip 0.5s calc(0.65s + var(--i, 0) * 0.09s) cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+}
+
+@keyframes case-axis-x { from { transform: scaleX(0); } }
+@keyframes case-axis-y { from { transform: scaleY(0); } }
+@keyframes case-zone { from { opacity: 0; clip-path: inset(0 100% 100% 0); } }
+@keyframes case-chip { from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)); } }
+
+@media (max-width: 900px) {
+  .case-audience-copy,
+  .case-audience-map { grid-column: 1 / -1; }
+  .case-audience-plane { aspect-ratio: 1 / 1; margin: 30px 48px; }
+  .case-audience-chip { max-width: 8.5em; padding: 5px 7px; font-size: 10px; }
+}
+
+@media (max-width: 720px) {
+  .case-point { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}

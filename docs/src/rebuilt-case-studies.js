@@ -1,75 +1,235 @@
-// Rebuilt from the local course archive, exported Figma screens, and the two
-// Drive form definitions. Every external claim has a matching source in
-// reference/projects/{assets-hub,build-and-shoot}/README.md.
+// Assets Hub and Build and Shoot, rebuilt from the course decks, the Figma
+// prototype, the two Build n Shoot GDDs and the questionnaire definitions.
+// Sources and their locations: reference/projects/{assets-hub,build-and-shoot}/.
+// Chinese is written in Simplified: flow and system-grid print it unconverted.
 
 const pair = (en, zh) => ({ en, zh })
 
+const figmaPrototype = "https://www.figma.com/proto/HEpE6DzXmVK9AkYB8LDVuP/IxD1-Final-Project-Red?node-id=704-1008&starting-point-node-id=704%3A1008"
+
+// Resolved from this module's own URL so the link survives the /ReDInAStrike.com/
+// project path on GitHub Pages as well as the local dev server.
+const bnsGddHref = new URL("../bns_gdd/", import.meta.url).href
+
 export const rebuiltCaseStudies = {
   "/assethub": {
-    year: "2024 Spring",
+    year: "2024",
     title: "Assets Hub",
     category: "Interaction Design / IxD 101",
-    summary: pair("I wanted one calm place to find the pictures, clips, 3D files, and working documents scattered across my computer and cloud drives. Assets Hub turns that mess into a searchable desktop: filter by type, inspect the file, and keep moving.", "我想要一個安靜的地方，找回散落在電腦與雲端的圖片、影片、3D 檔案和工作文件。Assets Hub 把這些混亂變成可搜尋的桌面：按類型篩選、檢視檔案，然後繼續工作。"),
-    heroImage: "assets/case-study/assets-hub/poster.jpg",
-    heroAlt: "Assets Hub course poster",
+    summary: pair(
+      "Images, videos, 3D models and documents pile up across devices and cloud drives, and finding one usually means remembering where I put it. Assets Hub is a search window for all of them: type a word or a tag, choose where to look, and see where a file lives before opening it.",
+      "图片、视频、3D 模型和文档散落在不同的设备和云盘里，想找一个文件，往往得先想起自己把它放在了哪里。Assets Hub 是一个能搜遍这些文件的搜索窗口：输入一个词或一个标签，选好在哪里找，打开之前就能看到文件在哪。",
+    ),
+    heroImage: null,
+    heroAlt: "Assets Hub search window",
     points: [
-      "IxD 101 / Interaction 1 solo final, Spring 2024.",
-      "The course brief ran from week 8 to week 14; final deliverables were due April 18, 2024.",
-      "The prototype is a 97-frame Figma file including component states and templates, with four representative desktop views shown below.",
+      "My solo final for Interaction 1 (IxD 101), the half of the course that followed our group project, My Fridge.",
+      "A macOS search window for creative files: images, video, 3D and documents, on this computer or in the cloud.",
+      "97 Figma frames: the search bar in every state, type tags, a scope switch, sorting, action and escape keys, a file inspector and a settings window.",
+      "The sample data is real: my own GDF2 spreadsheets and photos, with the sizes and dates they actually had.",
     ],
     sections: [
-      { kind: "copy-grid", left: { title: "The friction", en: "My references lived in too many places. Searching meant remembering which drive, folder, app, or naming habit had won that day.", zh: "我的參考資料住在太多地方。搜尋時，得先想起它到底在哪個硬碟、資料夾、App，或哪種命名習慣裡。" }, right: { title: "The promise", en: "A single search surface should reveal context as well as the file: location, type, size, dates, tags, and a useful preview.", zh: "單一搜尋介面不只要顯示檔案，也要顯示它的脈絡：位置、類型、大小、日期、標籤，以及有用的預覽。" } },
-      { kind: "flow", title: "The interaction I designed", steps: [["Search", "Type a name, tag, or file kind", "輸入名稱、標籤或檔案類型"], ["Narrow", "Switch between computer and cloud", "在電腦與雲端之間切換"], ["Inspect", "Read the file context in place", "在原地閱讀檔案資訊"], ["Act", "Open, copy, or organise the result", "開啟、複製或整理結果"]] },
-      { kind: "case-gallery", title: "Four views from the prototype", intro: pair("These are exact exports from the editable Figma prototype. They show the interface states I designed; they are not screenshots of a finished file-management backend.", "以下是可編輯 Figma 原型的原尺寸匯出，展示我設計的介面狀態；它們不是已完成檔案管理後端的截圖。"), items: [
-        { image: "assets/case-study/assets-hub/poster.jpg", label: "01 / Intent", alt: "Assets Hub project poster", caption: pair("The poster frames the problem as one search surface for scattered assets.", "海報把問題定義成：用一個搜尋介面找回散落的素材。") },
-        { image: "assets/case-study/assets-hub/search.png", label: "02 / Search", alt: "Assets Hub collapsed search view", caption: pair("The compact search state leaves the desktop visible while the query gets started.", "收合的搜尋狀態保留桌面視野，再開始輸入查詢。") },
-        { image: "assets/case-study/assets-hub/gallery.png", label: "03 / Browse", alt: "Assets Hub category gallery view", caption: pair("Type categories give a quick route into images, video, 3D, and documents.", "類型分類讓圖片、影片、3D 與文件有快速入口。") },
-        { image: "assets/case-study/assets-hub/inspector.png", label: "04 / Inspect", alt: "Assets Hub file inspector view", caption: pair("The selected file keeps name, location, type, size, and dates together.", "選中的檔案把名稱、位置、類型、大小與日期放在一起。") },
-      ] },
-      { kind: "evidence-table", title: "What the prototype actually specifies", rows: [
-        ["Source", pair("IxD 101 final project brief, Spring 2024; Figma file IxD1-Final-Project-Red.", "IxD 101 2024 春季期末專案簡報；Figma 檔案 IxD1-Final-Project-Red。")],
-        ["States", pair("Search, category browse, selected-file inspector, settings, and login/pro feature concepts.", "搜尋、分類瀏覽、檔案檢視器、設定，以及登入／Pro 功能概念。")],
-        ["Boundary", pair("The Figma file proposes cloud sync and search features; it does not prove a working sync service or user study result.", "Figma 提出雲端同步與搜尋功能，但不能證明同步服務已運作，也不能證明有使用者研究結果。")],
-      ] },
-      { kind: "reference-links", title: "Materials behind this reconstruction", items: [
-        { label: "Open editable Figma prototype", href: "https://www.figma.com/proto/HEpE6DzXmVK9AkYB8LDVuP/IxD1-Final-Project-Red?node-id=704-1008&starting-point-node-id=704%3A1008", external: true, copy: pair("97 frames including states, components, and templates.", "包含狀態、元件與模板，共 97 個畫框。") },
-        { label: "Read the local source manifest", href: "reference/projects/assets-hub/README.md", copy: pair("Course decks, poster, screen exports, and the rejected video reference are listed in the repository reference.", "課程簡報、海報、畫面匯出，以及排除的影片參考都列在倉庫 reference 中。") },
-      ] },
+      {
+        kind: "copy-grid",
+        left: {
+          title: "The friction",
+          en: "My files were never lost, just scattered. A playtest sheet sat in Numbers on iCloud, photos in Downloads, presentations somewhere else. Every search started with remembering which app or drive had won that day.",
+          zh: "我的文件从来没丢，只是太分散：试玩反馈表在 iCloud 的 Numbers 里，照片在下载文件夹，演示文稿又在别处。每次搜索都得先回想，那天到底存进了哪个应用、哪个盘。",
+        },
+        right: {
+          title: "The promise",
+          en: "One window, one query. It should show the file and its context together — where it lives, what it is, how big it is, when it was made and last opened — so I can decide before I open anything.",
+          zh: "一个窗口，一次搜索。它要把文件和它的来龙去脉一起给我：存在哪、是什么、有多大、什么时候创建、上次什么时候打开，让我在打开之前就能判断是不是要找的那个。",
+        },
+      },
+      {
+        kind: "flow",
+        title: "The brief, week by week",
+        steps: [
+          ["WEEKS 8–9", "Three ideas, one kept; user interviews and a competitive analysis", "三个构思留下一个，接着做用户访谈和竞品分析"],
+          ["WEEK 10", "A how-might-we, the key features, a scenario and a user flow", "确定 HMW、核心功能、使用情境和用户流程"],
+          ["WEEKS 11–12", "Wireframes, then a clickable prototype with its own design system", "先画线框，再做带有自己设计系统的可点击原型"],
+          ["WEEKS 13–14", "Testing outside class, then the poster, slides, process book and a video", "找课外的人测试，然后是海报、演示、过程手册和一段视频"],
+        ],
+      },
+      {
+        kind: "spec-table",
+        title: "What I borrowed, and what I changed",
+        intro: pair(
+          "My competitive analysis ended up on the Figma file's Wireframe page as reference shots: Raycast's file search and clipboard history, and Apple Photos. The layout started from them; the changes are where Assets Hub became its own tool.",
+          "竞品分析最后留在 Figma 文件的 Wireframe 页上，是几张参考截图：Raycast 的文件搜索和剪贴板历史，还有 Apple 的照片应用。布局从它们出发，改动的地方才是 Assets Hub 自己的东西。",
+        ),
+        head: ["Reference", "What I kept", "What Assets Hub changes"],
+        rows: [
+          ["Raycast · Search Files", "Recent files on the left, a metadata panel on the right, and a scope switch for This Mac or the user folder", "The same split, with creator and tags in the details and a syncing state for files still arriving from the cloud"],
+          ["Raycast · Clipboard History", "Type to filter, one list, and a detail pane that shows where an entry came from", "The same filtering works on files and pictures instead of copied text; unlimited history moves behind sign-in"],
+          ["Apple Photos", "Pictures browsed as a grid", "Picture results open as a gallery inside the search window, without switching apps"],
+        ],
+      },
+      {
+        kind: "system-grid",
+        title: "How a search is built",
+        items: [
+          ["DESCRIBE", "Type what you remember — cats, fashion — and pictures come back as a gallery.", "输入记得的词，比如猫、时装，图片结果会直接以图库呈现。"],
+          ["TAG", "Tags narrow by kind: Pic, doc, Nub for Numbers, or a project tag like GDF. They stack.", "标签按类型缩小范围：Pic、doc、代表 Numbers 的 Nub，或者 GDF 这样的项目标签，而且可以叠加。"],
+          ["SCOPE", "A scope switch sets where to look, starting from This computer; cloud files show a syncing state.", "范围开关决定在哪里找，默认是这台电脑；云端文件会显示同步状态。"],
+          ["SORT", "A sorting bar reorders whatever the search returned.", "排序栏可以重新排列搜索返回的结果。"],
+          ["INSPECT", "Selecting a file opens its details: name, location, type, size, created, modified, last opened, creator and tags.", "选中一个文件会打开详情：名称、位置、类型、大小、创建时间、修改时间、上次打开、创建者和标签。"],
+          ["ACT", "Keys under the results show history, expand or copy the selection; Control, Option and Command shortcuts sit alongside, and Esc steps back.", "结果下方的按键可以查看历史、放大或复制选中的文件，旁边配有 Control、Option 和 Command 快捷键，Esc 返回上一步。"],
+        ],
+      },
+      {
+        kind: "case-gallery",
+        title: "Four states of the prototype",
+        items: [
+          {
+            image: "assets/case-study/assets-hub/search.png",
+            label: "01 / At rest",
+            alt: "Assets Hub search bar resting on the macOS desktop",
+            caption: pair("It starts as a single search line over the desktop, the way Spotlight does.", "它一开始只是桌面上的一行搜索框，和 Spotlight 一样。"),
+          },
+          {
+            image: "assets/case-study/assets-hub/gallery.png",
+            label: "02 / Gallery",
+            alt: "Assets Hub picture results laid out as a gallery",
+            caption: pair("Picture results open as a gallery in the same window, with history, expand and copy underneath.", "图片结果直接在同一个窗口里以图库展开，下方是历史、放大和复制。"),
+          },
+          {
+            image: "assets/case-study/assets-hub/inspector.png",
+            label: "03 / Inspect",
+            alt: "Assets Hub GDF tag search with the file details panel",
+            caption: pair("A GDF tag lists my recent course files, and the details show where one lives before I open it.", "输入 GDF 标签会列出最近的课程文件，打开之前，详情就告诉我它存在哪里。"),
+          },
+          {
+            image: "assets/case-study/assets-hub/settings.png",
+            label: "04 / Settings",
+            alt: "Assets Hub settings window with sign-in and features",
+            caption: pair("Settings hold sign-in and what it unlocks: cloud sync, unlimited history, deleted-file search and a developer API.", "设置里是登录，以及登录后解锁的功能：云同步、无限历史、已删除文件搜索和开发者 API。"),
+          },
+        ],
+      },
+      {
+        kind: "spec-table",
+        title: "Real files as sample data",
+        intro: pair(
+          "I filled the prototype with my own files from that year: a playtest-response sheet and a games list from GDF2, and a photo from Downloads. Every value in the details panel is one a real file had.",
+          "原型里的样例数据都是我那一年真实的文件：GDF2 课上的试玩反馈表、一份游戏清单，还有下载文件夹里的一张照片。详情面板里的每一个数值，都是真实文件当时的样子。",
+        ),
+        head: ["File", "Where", "Type", "Size", "Created", "Modified"],
+        rows: [
+          ["GDF--Resource Management Game Playtest Feedback (Responses)", "iCloud Drive / Numbers", "Spreadsheet", "779 KB", "Apr 16, 2024, 11:23 AM", "Aug 14, 2024, 3:38 PM"],
+          ["GDF--Games", "iCloud Drive / Numbers", "Spreadsheet", "711 KB", "Aug 6, 2024, 1:08 PM", "Aug 6, 2024, 1:08 PM"],
+          ["IMG_8218.JPG", "User / Downloads", "JPEG image", "962 KB", "Apr 20, 2024, 7:32 AM", "Aug 6, 2024, 1:11 PM"],
+        ],
+        note: pair("The same fields tile the background of the project poster.", "项目海报的背景，也是用这些字段铺满的。"),
+      },
+      {
+        kind: "callout",
+        title: "What stayed on paper",
+        en: "Cloud sync, the AI features and the developer API exist only as rows in the settings window. The prototype shows how finding a file should feel; there is no index behind it yet.",
+        zh: "云同步、AI 功能和开发者 API 目前都只是设置窗口里的几行字。这个原型展示的是找文件应该是什么感觉，背后还没有真正的索引。",
+      },
     ],
-    access: "The prototype and source inventory are linked below. The YouTube thumbnail previously attached to this card was 99% Gratuity, not an Assets Hub demo, so it has been removed from this reconstruction.",
-    sourceLinks: [{ label: "Open Figma prototype ↗", href: "https://www.figma.com/proto/HEpE6DzXmVK9AkYB8LDVuP/IxD1-Final-Project-Red?node-id=704-1008&starting-point-node-id=704%3A1008", external: true }],
-    currentVersion: pair("Reconstructed from the Spring 2024 brief and the editable Figma states. The project card now uses one canonical Assets Hub drawer; /uiux-prototype remains an alias.", "依據 2024 春季課程簡報與可編輯 Figma 狀態重建。專案卡現在只保留一個 Assets Hub 抽屜；/uiux-prototype 保留為別名。"),
+    access: "Solo project for Interaction 1 (IxD 101) at ArtCenter. The clickable prototype is in Figma.",
+    sourceLinks: [{ label: "Open the Figma prototype ↗", href: figmaPrototype, external: true }],
+    currentVersion: "A Figma prototype: the search, tag, scope, details and settings states are designed and linked, and nothing behind them is built.",
   },
   "/analog-game": {
     year: "2024 Fall",
     title: "Build and Shoot",
     category: "Analog Game / Rules and Systems",
-    summary: pair("Build and Shoot is a turn-based fight on a floating 15 × 15 island. Every move leaves a mark, every build changes cover, and the player is always choosing between getting somewhere, making somewhere safe, and taking the shot.", "Build and Shoot 是在漂浮 15 × 15 島嶼上的回合制戰鬥。每次移動都留下標記，每次建造都改變掩體；玩家一直在「前進、讓位置安全、或開槍」之間選擇。"),
-    heroImage: "assets/case-study/build-and-shoot/iteration-2-cover.jpg",
-    heroAlt: "Build and Shoot second iteration GDD cover",
-    points: ["GDF3 Movement Game project, Fall 2024; the early export is titled Movement-Building Game and already names Build and Shoot on page 2.", "The fourth GDD revises inventory, then AI progression and situational behaviour.", "The fourth document includes a qualitative playtest synthesis; the two Drive questionnaire forms currently contain zero responses."],
-    sections: [
-      { kind: "copy-grid", left: { title: "The hook", en: "Movement is not only travel. It paints territory, changes shooting range, and creates the places where the next decision can happen.", zh: "移動不只是旅行。它會畫出領地、改變射程，也創造下一個決策可以發生的位置。" }, right: { title: "The pressure", en: "Inventory weight and finite actions make every useful object compete with movement, building, and a clean line of fire.", zh: "負重與有限行動讓每件有用物品，都必須和移動、建造，以及清楚的射擊線競爭。" } },
-      { kind: "case-gallery", title: "From early pitch to test reflection", items: [
-        { image: "assets/case-study/build-and-shoot/iteration-2-cover.jpg", label: "01 / Early GDD", alt: "Movement Building Game second iteration cover", caption: pair("The 15-page early export is labeled second iteration in the filename, while its footer still says first iteration.", "這份 15 頁早期匯出檔名標為第二版，但頁尾仍寫第一版。") },
-        { image: "assets/case-study/build-and-shoot/iteration-2-loop.jpg", label: "02 / Rules", alt: "Build and Shoot early rules page", caption: pair("The early rules frame movement, building, and shooting as one turn-to-turn loop.", "早期規則把移動、建造與射擊放進同一個回合循環。") },
-        { image: "assets/case-study/build-and-shoot/iteration-2-reflection.jpg", label: "03 / Designer reflection", alt: "Build and Shoot early designer reflection", caption: pair("The reflection names visible information, symmetric starts, and dice uncertainty as design concerns.", "反思指出可見資訊、對稱起點與骰子不確定性是設計關注。") },
-        { image: "assets/case-study/build-and-shoot/iteration-4-playtest.png", label: "04 / Test synthesis", alt: "Build and Shoot fourth iteration playtest synthesis page", caption: pair("The fourth GDD's synthesis says the basic actions were understood, while the flow and AI rules asked too much memory.", "第四版 GDD 的總結指出基本動作大多能理解，但流程與 AI 規則要求記憶過多。") },
-      ] },
-      { kind: "flow", title: "One turn, read as a decision", steps: [["Move", "Mark orthogonal squares", "標記正交格子"], ["Build", "Change cover and territory", "改變掩體與領地"], ["Manage", "Spend weight and action cards", "管理負重與行動卡"], ["Shoot", "Use a line, range, and position", "利用射線、射程與位置"]] },
-      { kind: "evidence-table", title: "What the test material says", rows: [
-        ["Understood", pair("Most players understood the basic movement, shooting, and building actions.", "多數玩家理解基本的移動、射擊與建造。")],
-        ["Friction", pair("The flow felt bloated; rules introduced upfront were easy to forget, and players repeatedly checked how to place or move AI.", "流程感到膨脹；一開始講解的規則容易忘記，玩家反覆確認 AI 如何放置與移動。")],
-        ["Next implication", pair("Keep the first turn legible, teach AI rules at the moment they matter, and retest the shortened flow.", "讓第一回合保持易讀，在 AI 規則真正需要時才教，然後重新測試縮短後的流程。")],
-        ["Survey status", pair("Two questionnaire forms were found in the personal Drive, one labeled 2nd iteration and one document labeled 3rd / content labeled 4th. Both show 0 responses and no linked response sheet.", "在個人 Drive 找到兩份問卷：一份標為第二版，另一份文件標為第三版／內容標為第四版。兩份目前都顯示 0 份回答，且沒有連結回覆表。")],
-      ] },
-      { kind: "reference-links", title: "Materials behind this reconstruction", items: [
-        { label: "Read the local source manifest", href: "reference/projects/build-and-shoot/README.md", copy: pair("Iteration exports, fourth GDD text, course labs, and form IDs are listed in the repository reference.", "版本匯出、第四版 GDD 文字、課程實驗與表單 ID 都列在倉庫 reference 中。") },
-        { label: "Open the readable fourth-iteration GDD", href: "/bns_gdd", copy: pair("The full rules document remains available as its own drawer, with live tables and diagrams.", "完整規則文件仍保留為獨立抽屜，使用可讀表格與圖表。") },
-      ] },
+    summary: pair(
+      "A turn-based duel for two to four mages on a floating 15 × 15 island. Walking paints your territory, territory pays for blocks and ammo, and the blocks become the cover everyone shoots around. Over four versions I added an inventory, then AI guards, then rewrote the guards so players could follow them.",
+      "两到四名法师在一座 15 × 15 的浮空岛上进行的回合制对战。走过的格子会变成你的领地，领地可以换来方块和弹药，而方块又会变成大家互相射击时的掩体。四个版本里，我先加入了负重物品栏，再加入 AI 守卫，最后重写守卫规则，让玩家能跟得上。",
+    ),
+    heroImage: null,
+    heroAlt: "Build n Shoot cover art",
+    points: [
+      "My board game for Game Design Fundamentals 3 (GDF3): rules, components and playtests.",
+      "Four iterations in one term, with playtests between them.",
+      "The full fourth-iteration rules live in the Build n Shoot GDD drawer; this page is how the game got there.",
     ],
-    access: "The early GDD, fourth-iteration rules, and test synthesis are linked through the repository reference. A response dataset is not available to summarise.",
-    sourceLinks: [{ label: "Open readable fourth-iteration GDD ↗", href: "/bns_gdd" }],
-    currentVersion: pair("This drawer joins the early GDD, fourth-iteration changes, and qualitative test synthesis. It does not turn the empty questionnaire forms into invented charts.", "這個抽屜把早期 GDD、第四版變更與質性測試總結放在一起，也不會把空白問卷變成虛構圖表。"),
+    sections: [
+      {
+        kind: "copy-grid",
+        left: {
+          title: "The hook",
+          en: "Moving is how you earn. Every square you walk through takes one of your territory marks, and territory is what you spend on blocks, items and guards, so the route you take decides where the cover will be later.",
+          zh: "移动就是赚取。你走过的每一格都会放下一枚领地标记，而领地正是用来换方块、道具和守卫的。所以你走的路线，决定了之后掩体会出现在哪里。",
+        },
+        right: {
+          title: "The pressure",
+          en: "Every action costs a card, and a hand holds only ten weights of cards and items. Building, shooting and carrying compete for the same space, and anything over the limit has to go.",
+          zh: "每个行动都要花一张卡，而手里最多只能拿十个负重单位的卡牌和道具。建造、射击和携带争的是同一块空间，超出上限的就得丢掉。",
+        },
+      },
+      {
+        kind: "flow",
+        title: "Four versions in one term",
+        steps: [
+          ["1ST · NOV 2024", "Move, mark, settle, build, shoot: territory pays out ammo and blocks, and everyone starts with 10 HP", "移动、标记、结算、建造、射击：领地换来弹药和方块，每人开局 10 点生命"],
+          ["2ND", "An inventory counted in weight, ten to a hand, with every item and action card rewritten around it", "按负重计算的物品栏，每人上限十个单位，所有道具和行动卡都围绕它重写"],
+          ["3RD", "AI guards bought with territory and placed on the board, acting on their own after every turn", "用领地买来、放在棋盘上的 AI 守卫，每个回合结束后自行行动"],
+          ["4TH · DEC 2024", "Guard behaviour rewritten as clear situations; each player now starts with 4 HP", "守卫行为改写成清楚的情境规则；每名玩家改为 4 点生命开局"],
+        ],
+      },
+      {
+        kind: "callout",
+        title: "Why the dice stayed",
+        en: "I put a D6 into movement in the first version to add some chance, because every other resource in the game came from fixed rules. By the fourth version the same roll also sets how far a shot travels.",
+        zh: "第一版里我让一颗 D6 决定移动距离，是想加一点随机性，因为游戏里其他资源都按固定规则产生。到了第四版，同一颗骰子也决定子弹能飞多远。",
+      },
+      {
+        kind: "copy-grid",
+        left: {
+          title: "Playtest · version two",
+          en: "The difficulty landed about where I wanted it, so I left the other values alone, carried them into the next version and kept testing them.",
+          zh: "难度基本落在我想要的位置，所以我没有动其他数值，把它们原样带进下一版，继续测试。",
+        },
+        right: {
+          title: "Playtest · version four",
+          en: "Most players understood the basics: how to move, how to shoot, how to build cover. But the turn had grown heavy. So many progression rules arrived before the first move that some players lost patience or forgot a step, and kept asking the GM how to place and move the AI units.",
+          zh: "大部分玩家都能看懂基础规则：怎么移动、怎么射击、怎么建造掩体。但回合变得臃肿了：开局之前就要学太多 progression 方面的规则，有些玩家因此失去耐心，或者忘了某个步骤，只好反复向 GM 确认 AI 单位该怎么放、怎么走。",
+        },
+      },
+      {
+        kind: "spec-table",
+        title: "What the questionnaire asked",
+        intro: pair(
+          "I used the same questionnaire for the second and the fourth versions. It also asked which earlier versions a player had seen, how many board games they had played and which genre they played most.",
+          "第二版和第四版用的是同一份问卷。问卷还会问玩家之前玩过哪几个版本、玩过多少款桌游，以及最常玩哪一类。",
+        ),
+        head: ["Topic", "Question", "Answer"],
+        rows: [
+          ["Goal", "Did you understand your goal at the start?", "Yes / No, then why"],
+          ["Enjoyment", "Did you find the game enjoyable overall?", "1 Boring → 5 Entertaining"],
+          ["Systems", "Which system was hardest to understand?", "Movement and territory · Combat · Inventory and items · Building"],
+          ["Shooting", "How hard was it to shoot and damage another player? Was eliminating players easy?", "1 Very easy → 5 Very difficult · Yes / No"],
+          ["Length", "How did the total play time feel?", "1 Short → 5 Long, then why"],
+          ["Building", "How hard was it to build and shape the map you wanted?", "1 Very easy → 5 Very difficult"],
+          ["Pick-ups", "How much did collecting pick-ups and using items matter?", "1 Willing to collect more → 5 Doesn't matter"],
+          ["Items", "Which items did you like or dislike, and which felt too scarce or too common?", "Action · Resource · Ammo · HP · Dirty Bomb · Move Boost"],
+          ["Replay", "Would you play again?", "Yes / No"],
+        ],
+      },
+      {
+        kind: "spec-table",
+        title: "What GDF3 asked for, and where it shows up",
+        intro: pair(
+          "GDF3 moved through combat, economies and progression, and its design documents had to be complete enough to play from. Each of those briefs has a counterpart in the game.",
+          "GDF3 这门课依次讲了战斗、经济和成长系统，设计文档要完整到照着就能玩。每一个课题，在这个游戏里都有对应的部分。",
+        ),
+        head: ["Course brief", "What it asked for", "Where it shows up in Build n Shoot"],
+        rows: [
+          ["Combat game lab", "Enemies run by a game master through a state machine of five or more states that reads players and terrain, on a grid with elevation and cover", "Attack guards run seven states and defense and support guards six, from idle and patrol to flee and restore; level blocks add height and stop shots"],
+          ["Economic trading lab", "An engine, an economy that grows through uneven exchange, an ecology that balances it, and trading between players", "Territory marks spent through a purchase matrix, and a trading system between players"],
+          ["Progression systems", "Progression that follows the core mechanics, respects player choice and stays visible", "Territory turns into purchases, attack guards level up from 1 to 3, and every mark sits on the board where everyone can see it"],
+          ["GDD template", "A document complete enough to play the game from alone", "The 28-page fourth-iteration GDD, rebuilt in the Build n Shoot GDD drawer"],
+        ],
+      },
+    ],
+    access: "Designed and written by me for Game Design Fundamentals 3 (GDF3) at ArtCenter, Fall 2024.",
+    sourceLinks: [{ label: "Read the full rules in the Build n Shoot GDD →", href: bnsGddHref }],
+    currentVersion: "The fourth iteration. Its components, turn, purchase matrix and guard behaviour are laid out in the Build n Shoot GDD drawer.",
   },
 }

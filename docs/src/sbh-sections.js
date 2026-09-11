@@ -158,7 +158,7 @@ export const sbhSections = [
       { label: "Shield", cols: [{ key: "Shield", short: "Shield" }, { key: "Shield Regen Rate", short: "Regen rate" }, { key: "Shield Regen Delay", short: "Regen delay" }] },
       { label: "Gun", cols: [{ key: "Gun Damage", short: "Damage" }, { key: "Gun Weakspot Damage", short: "Weak spot" }, { key: "Gun Stability", short: "Stability" }] },
       { label: "Grenade", cols: [{ key: "Grenade Damage", short: "Damage" }, { key: "Grenade Cooldown", short: "Cooldown" }] },
-      { label: "Physical", cols: [{ key: "Physical Damage", short: "Damage" }] },
+      { label: "", cols: [{ key: "Physical Damage", short: "Physical" }] },
       {
         label: "Elemental",
         cols: [
@@ -181,23 +181,23 @@ export const sbhSections = [
       "角色创建叠加了三个选择。背景会在自己的属性上加 +5，同时在另一个背景的属性上扣 −5，所以每一份长处，都带着别人的短处一起到来。种族再推一小把，体型只在极端时才影响属性。之后点数可以自由重新分配：这些选择决定你从哪里出发，而不是你必须停在哪里。",
     ),
     cycle: {
-      viewBox: "0 0 640 336",
+      viewBox: "0 0 720 348",
       title: "The background loops",
       desc: "The Scientist pays with the Wreckingball's stats, the Wreckingball with the Shadow's, and the Shadow with the Scientist's. The Technician and the Deceiver pay with each other's. The Wild Card takes plus five anywhere and minus seven anywhere.",
       loops: [
         {
-          cx: 190, cy: 184, r: 112,
+          cx: 262, cy: 196, r: 112,
           nodes: [
-            { angle: -90, name: "The Scientist", zh: "科学家", stats: "Physics · Biology · Chemistry", lx: 190, ly: 18 },
-            { angle: 30, name: "The Wreckingball", zh: "破坏球", stats: "Strength · Resolve", lx: 287, ly: 266 },
-            { angle: 150, name: "The Shadow", zh: "暗影", stats: "Agility · Marksman", lx: 93, ly: 266 },
+            { angle: -90, name: "The Scientist", zh: "科学家", stats: "Physics · Biology · Chemistry", lx: 262, ly: 24 },
+            { angle: 30, name: "The Wreckingball", zh: "破坏球", stats: "Strength · Resolve", lx: 377, ly: 248, anchor: "start" },
+            { angle: 150, name: "The Shadow", zh: "暗影", stats: "Agility · Marksman", lx: 147, ly: 248, anchor: "end" },
           ],
         },
         {
-          cx: 520, cy: 184, r: 70,
+          cx: 610, cy: 196, r: 70,
           nodes: [
-            { angle: -90, name: "The Technician", zh: "技师", stats: "Hack · Tech", lx: 520, ly: 60 },
-            { angle: 90, name: "The Deceiver", zh: "欺诈者", stats: "Stealth · Perception · Charm", lx: 520, ly: 280 },
+            { angle: -90, name: "The Technician", zh: "技师", stats: "Hack · Tech", lx: 610, ly: 66 },
+            { angle: 90, name: "The Deceiver", zh: "欺诈者", stats: "Stealth · Perception · Charm", lx: 610, ly: 298 },
           ],
         },
       ],

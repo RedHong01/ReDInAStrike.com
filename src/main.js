@@ -95,7 +95,7 @@ const projects = [
   {
     pageTitle: "Assets Hub",
     displayTitle: "Production Design",
-    date: "Spring 2024",
+    date: "8/14/2024",
     path: "/assethub",
     navHash: "interaction",
     image: "assets/case-study/assets-hub/poster.jpg",
@@ -112,7 +112,7 @@ const projects = [
   {
     pageTitle: "Build n Shoot",
     displayTitle: "Game Design Document",
-    date: "2/18/2026",
+    date: "12/9/2024",
     path: "/bns_gdd",
     navHash: "game",
     image: "assets/framer-live/analog-game.png",

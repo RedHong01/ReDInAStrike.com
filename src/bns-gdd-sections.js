@@ -136,20 +136,20 @@ export const bnsGddSections = [
     left: {
       title: "Setting",
       en: "A turn-based strategy shooting game for up to four players, set on floating islands infused with raw magical energy. Players are mages competing for the ancient lands: they build platforms and bullet-blocking bunkers out of arcane resources, and claim territory simply by walking over it.",
-      zh: "最多四人的回合制策略射击游戏，场景是充满原始魔力的浮島。玩家扮演法師争奪这片古老土地：用奧术资源建造平台与擋弹掩体，并藉由走过格子来佔领土地。",
+      zh: "最多四人的回合制策略射击游戏，场景是充满原始魔力的浮岛。玩家扮演法师争夺这片古老土地：用奥术资源建造平台与挡弹掩体，并借由走过格子来占领土地。",
     },
     right: {
       title: "Primary Goal",
       en: "Eliminate the other players and be the last one standing. One session runs about 30 minutes.",
-      zh: "淘汰其他玩家，成为最后存活的人。一局約 30 分钟。",
+      zh: "淘汰其他玩家，成为最后存活的人。一局约 30 分钟。",
     },
   },
   {
     kind: "system-grid",
     title: "Three Game Pillars",
     items: [
-      ["TRAVERSE", "Roll a D6 each move stage; move orthogonally and mark every grid you pass through.", "每个移动阶段擲一顆 D6；只能直向移动，并在经过的每一格留下领地标记。"],
-      ["BUILD", "Spend resource cards on level blocks that raise the ground and block bullets.", "用资源卡建造高度方块，抬升地面并阻擋子弹。"],
+      ["TRAVERSE", "Roll a D6 each move stage; move orthogonally and mark every grid you pass through.", "每个移动阶段掷一颗 D6；只能直向移动，并在经过的每一格留下领地标记。"],
+      ["BUILD", "Spend resource cards on level blocks that raise the ground and block bullets.", "用资源卡建造高度方块，抬升地面并阻挡子弹。"],
       ["SHOOT", "Resolve a shot from your avatar's position; your own marks extend its range.", "从角色所在位置结算射击；自己的领地标记会延长射程。"],
     ],
   },
@@ -173,7 +173,7 @@ export const bnsGddSections = [
     kind: "flow",
     title: "Revision History",
     steps: [
-      ["2ND ITERATION", "Added the Inventory System; every item and action card was rewritten around carrying weight.", "加入物品欄系统；所有物品与行动卡都依照负重重新设计。"],
+      ["2ND ITERATION", "Added the Inventory System; every item and action card was rewritten around carrying weight.", "加入物品栏系统；所有物品与行动卡都依照负重重新设计。"],
       ["3RD ITERATION", "Added the AI System, and rebuilt turn progression around it.", "加入 AI 系统，并依此重建回合流程。"],
       ["4TH ITERATION", "Revised the AI System for clearer situational behaviour, and updated progression to match.", "修订 AI 系统，让情境行为更明确，并同步更新流程。"],
     ],
@@ -183,7 +183,7 @@ export const bnsGddSections = [
     title: "Components",
     intro: {
       en: "Art is still in progress, so the prototype runs on symbols and placeholders. Each symbol below is one countable thing on the table.",
-      zh: "美术仍在进行中，因此原型以符号与替代物運作。以下每个符号都对应桌面上一个可计数的元件。",
+      zh: "美术仍在进行中，因此原型以符号与替代物运作。以下每个符号都对应桌面上一个可计数的元件。",
     },
     items: [
       { name: "Action Card", qty: "×3 at setup", symbol: card("A"),
@@ -193,17 +193,17 @@ export const bnsGddSections = [
       { name: "Ammo Card", qty: "3 stack = 1 weight", symbol: card("M"),
         copy: { en: "One available shot.", zh: "一次可用射击。" } },
       { name: "HP Card", qty: "×4 at setup", symbol: card("H"),
-        copy: { en: "One health point. At zero the player is eliminated.", zh: "一点生命值。歸零即淘汰。" } },
+        copy: { en: "One health point. At zero the player is eliminated.", zh: "一点生命值。归零即淘汰。" } },
       { name: "Level Block", qty: "×3 at setup", symbol: block(),
-        copy: { en: "A colour block the size of one grid square. It raises ground and stops bullets.", zh: "与格子同尺寸的颜色方块，可抬升地面并阻擋子弹。" } },
+        copy: { en: "A colour block the size of one grid square. It raises ground and stops bullets.", zh: "与格子同尺寸的颜色方块，可抬升地面并阻挡子弹。" } },
       { name: "Territory Mark", qty: "×56 at setup", symbol: mark(),
         copy: { en: "Dropped on every grid you walk through. Overwrites another player's mark.", zh: "走过的每一格都会留下，并覆盖其他玩家的标记。" } },
       { name: "Avatar Piece", qty: "1 per player", symbol: avatar(),
         copy: { en: "The player on the board. Up to four colours, so up to four players.", zh: "玩家在棋盘上的本体。最多四种颜色，即最多四位玩家。" } },
       { name: "D6", qty: "×1 shared", symbol: die(),
-        copy: { en: "Rolled for movement distance and for base shooting range.", zh: "用于决定移动距离与基礎射程。" } },
+        copy: { en: "Rolled for movement distance and for base shooting range.", zh: "用于决定移动距离与基础射程。" } },
       { name: "AI Unit", qty: "3 types", symbol: unit(),
-        copy: { en: "Attack, Defense and Support Guards. Bought with territory marks and placed on the board.", zh: "攻击、防禦与支援守衛。以领地标记购买后放置到棋盘上。" } },
+        copy: { en: "Attack, Defense and Support Guards. Bought with territory marks and placed on the board.", zh: "攻击、防御与支援守卫。以领地标记购买后放置到棋盘上。" } },
     ],
   },
   {
@@ -211,7 +211,7 @@ export const bnsGddSections = [
     title: "Set-Up",
     steps: [
       ["COLOURS", "Each player claims one colour for their avatar, level blocks and territory marks.", "每位玩家选定一种颜色，套用在角色、方块与领地标记上。"],
-      ["TURN ORDER", "Everyone rolls a D6; the highest roll takes the first turn.", "全体擲 D6，点数最高者先手。"],
+      ["TURN ORDER", "Everyone rolls a D6; the highest roll takes the first turn.", "全体掷 D6，点数最高者先手。"],
       ["STARTING POINT", "In priority order, pick any square inside your own colour area. The area affects nothing after this.", "依顺序在自己的颜色区域内任选一格。此后该区域不再影响游戏。"],
       ["DEAL", "The GM hands each player 3 action cards, 3 level blocks, 4 HP cards and 56 territory marks.", "GM 发给每位玩家 3 张行动卡、3 块高度方块、4 张生命卡与 56 个领地标记。"],
     ],
@@ -231,7 +231,7 @@ export const bnsGddSections = [
     title: "Purchase Matrix",
     intro: {
       en: "Territory marks are the currency. Marks spent stay on the board as components — only their point value is consumed, and only unspent marks count toward the next purchase.",
-      zh: "领地标记就是货幣。花掉的标记仍留在棋盘上作为元件，被消耗的只是它们的点数；下次购买只计算尚未动用的标记。",
+      zh: "领地标记就是货币。花掉的标记仍留在棋盘上作为元件，被消耗的只是它们的点数；下次购买只计算尚未动用的标记。",
     },
     head: ["Marks", "Item", "Category", "Effect", "Weight", "Stackable"],
     rows: [
@@ -249,14 +249,14 @@ export const bnsGddSections = [
     ],
     note: {
       en: "Hand limit: ten weights of cards and items. Exceed it and you must discard, or refuse what you would otherwise gain — which is the moment the inventory system starts making decisions for you.",
-      zh: "手牌上限为十个重量单位。超过就必须棄牌，或放棄本来能拿到的东西——物品欄系统正是在这一刻开始替玩家做决定。",
+      zh: "手牌上限为十个重量单位。超过就必须弃牌，或放弃本来能拿到的东西——物品栏系统正是在这一刻开始替玩家做决定。",
     },
   },
   {
     kind: "callout",
     title: "Endgame",
     en: "The game ends when one player is left standing and everyone else has reached 0 HP. There is no score and no alternative victory: the last player alive wins.",
-    zh: "当只剩一位玩家存活、其餘玩家生命歸零时，游戏结束。没有分数，也没有其他胜利条件——最后活着的人获胜。",
+    zh: "当只剩一位玩家存活、其余玩家生命归零时，游戏结束。没有分数，也没有其他胜利条件——最后活着的人获胜。",
   },
   {
     kind: "diagram",
@@ -283,7 +283,7 @@ export const bnsGddSections = [
     title: "AI Behaviour — Attack Guard",
     intro: {
       en: "The AI runs on a finite state machine. Read the unit's current state across the top and the situation it meets down the side; the cell is what it does next. A bare state name means it stays in or performs that state.",
-      zh: "AI 以有限状态机運作。上方是单位目前的状态，左側是它遭遇的情境，交会的格子就是它的下一步。只写状态名称表示维持或执行该状态。",
+      zh: "AI 以有限状态机运作。上方是单位目前的状态，左侧是它遭遇的情境，交会的格子就是它的下一步。只写状态名称表示维持或执行该状态。",
     },
     states: ["Idle", "Patrol", "Search", "Attack", "Flee", "Chase", "Restore"],
     rows: [
@@ -297,7 +297,7 @@ export const bnsGddSections = [
     ],
     legend: {
       en: "All levels of Attack Guard behave identically; only damage and range change with level. Transcribed from the source table without correction — including the Restore column's “Keep Flee”, which reads as a slip in the original.",
-      zh: "各等级的攻击守衛行为相同，只有傷害与射程随等级改变。此表照原稿转录未作修正，包括 Restore 欄的「Keep Flee」——那在原文中看起来是筆誤。",
+      zh: "各等级的攻击守卫行为相同，只有伤害与射程随等级改变。此表照原稿转录未作修正，包括 Restore 栏的「Keep Flee」——那在原文中看起来是笔误。",
     },
   },
   {
@@ -307,10 +307,10 @@ export const bnsGddSections = [
       ["IDLE", "Remain stationary in place.", "原地不动。"],
       ["PATROL", "Move in a loop along a route planned by the player. The path must be continuous, connecting start and end. Moves 2 grid units per turn.", "沿玩家规划的路线循环移动，路径必须连续、首尾相接。每回合移动 2 格。"],
       ["SEARCH", "Act three times in total, moving 3 grid units each time while attempting to locate the player.", "总共行动三次，每次移动 3 格，尝试找到玩家。"],
-      ["ATTACK", "Inflict damage once on a player within range; the value depends on the guard's level.", "对射程内的玩家造成一次傷害，数值依守衛等级而定。"],
-      ["CHASE", "After discovering an enemy player, advance towards them 2 grid units at a time.", "发现敵方玩家后朝其前进，每次 2 格。"],
-      ["FLEE", "Move in the opposite direction from the nearest enemy player, 3 grid units at a time.", "朝远离最近敵方玩家的方向移动，每次 3 格。"],
-      ["RESTORE", "Recover 1 HP per turn while in this state.", "处于此状态时每回合恢復 1 点生命。"],
+      ["ATTACK", "Inflict damage once on a player within range; the value depends on the guard's level.", "对射程内的玩家造成一次伤害，数值依守卫等级而定。"],
+      ["CHASE", "After discovering an enemy player, advance towards them 2 grid units at a time.", "发现敌方玩家后朝其前进，每次 2 格。"],
+      ["FLEE", "Move in the opposite direction from the nearest enemy player, 3 grid units at a time.", "朝远离最近敌方玩家的方向移动，每次 3 格。"],
+      ["RESTORE", "Recover 1 HP per turn while in this state.", "处于此状态时每回合恢复 1 点生命。"],
     ],
   },
   {
@@ -332,7 +332,7 @@ export const bnsGddSections = [
     ],
     legend: {
       en: "Transcribed as written. In the source this table still carries the Attack Guard's labels — several cells switch to Search, Chase or Attack, which are not states these units have, and a few cells are blank. That unresolved ambiguity is what the 4th iteration set out to clear up, and it is left visible here rather than tidied away.",
-      zh: "照原稿转录。原文这张表仍沿用攻击守衛的标籤——有数格切换到 Search、Chase 或 Attack，而这些并不是这两种单位擁有的状态，另有几格是空白。第四次迭代想釐清的正是这种未解决的模糊，因此这里保留原样而不加以整理。",
+      zh: "照原稿转录。原文这张表仍沿用攻击守卫的标签——有数格切换到 Search、Chase 或 Attack，而这些并不是这两种单位拥有的状态，另有几格是空白。第四次迭代想厘清的正是这种未解决的模糊，因此这里保留原样而不加以整理。",
     },
   },
   {
@@ -341,7 +341,7 @@ export const bnsGddSections = [
     paragraphs: [
       {
         en: "Each upgrade costs twice the last: Level 1 starts at 5 territory marks, Level 2 costs 10. Upgrading for the first time is what unlocks the right to buy that level at all — a player who has never reached Level 2 cannot buy a Level 2 guard, while a player who has reached it can buy one at any time afterwards.",
-        zh: "每次升级的成本是前一次的两倍：等级 1 从 5 个领地标记起算，等级 2 为 10 个。首次升级的作用是解锁购买资格——没有升到等级 2 的玩家买不到等级 2 守衛，而升过的玩家之后随时可以购买。",
+        zh: "每次升级的成本是前一次的两倍：等级 1 从 5 个领地标记起算，等级 2 为 10 个。首次升级的作用是解锁购买资格——没有升到等级 2 的玩家买不到等级 2 守卫，而升过的玩家之后随时可以购买。",
       },
       {
         en: "The point of the initial upgrade is the licence, not the unit. It is the one place in the economy where spending buys access rather than a thing.",
@@ -354,7 +354,7 @@ export const bnsGddSections = [
     title: "Trading System",
     intro: {
       en: "Auction items are priced against what they can destroy. Each row states the spend, the least and most it can return, and that return converted back into territory marks.",
-      zh: "拍賣物品以其可摧毀的量定价。每一列列出花费、最少与最多的回报，以及换算回领地标记后的价值。",
+      zh: "拍卖物品以其可摧毁的量定价。每一列列出花费、最少与最多的回报，以及换算回领地标记后的价值。",
     },
     head: ["Item", "Spend", "Min benefit", "Max benefit", "Min equivalent", "Max equivalent"],
     rows: [
@@ -366,7 +366,7 @@ export const bnsGddSections = [
     ],
     note: {
       en: "Every destructive item is worth nothing on an empty board and several times its price on a crowded one, so the auction is really a bet on how built-up the map will be when you use it.",
-      zh: "所有破壞性物品在空曠棋盘上一文不值，在擁擠棋盘上则值数倍价格；因此拍賣实际上是在賭使用当下棋盘有多密集。",
+      zh: "所有破坏性物品在空旷棋盘上一文不值，在拥挤棋盘上则值数倍价格；因此拍卖实际上是在赌使用当下棋盘有多密集。",
     },
   },
   {
@@ -382,7 +382,7 @@ export const bnsGddSections = [
     svg: boardDiagram,
     caption: {
       en: "A 15 × 15 square grid. Each player picks a starting point inside their own colour area; after that the area has no further effect on play.",
-      zh: "15 × 15 的方格棋盘。每位玩家在自己的颜色区域内选擇起点；此后该区域不再影响游戏。",
+      zh: "15 × 15 的方格棋盘。每位玩家在自己的颜色区域内选择起点；此后该区域不再影响游戏。",
     },
   },
   {

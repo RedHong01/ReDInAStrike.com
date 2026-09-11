@@ -432,13 +432,20 @@
 }
 
 .sbh-build-loops {
-  grid-column: span 6;
+  grid-column: span 7;
   margin: 0;
+}
+
+/* On a phone the diagram keeps a readable size and scrolls sideways instead of
+   shrinking its labels below legibility. */
+.sbh-loops-scroll {
+  overflow-x: auto;
 }
 
 .sbh-loops {
   display: block;
   width: 100%;
+  min-width: 560px;
   height: auto;
   overflow: visible;
 }
@@ -459,19 +466,19 @@
 
 .sbh-loop-name {
   font-family: var(--serif);
-  font-size: 19px;
+  font-size: 21px;
   fill: var(--case-ink);
 }
 
 .sbh-loop-zh {
   font-family: var(--zh-serif);
-  font-size: 13px;
+  font-size: 14px;
   fill: var(--sbh-muted);
 }
 
 .sbh-loop-stats {
   font-family: var(--type-subtitle-font);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.04em;
   fill: var(--sbh-copy);
 }
@@ -485,7 +492,7 @@
 }
 
 .sbh-build-species {
-  grid-column: span 6;
+  grid-column: span 5;
   min-width: 0;
 }
 
@@ -1312,6 +1319,8 @@
   pointer-events: none;
 }
 
+.sbh-gun-flag.is-end { transform: translateX(calc(-100% + 8px)); }
+
 .sbh-arsenal-band {
   font-family: var(--type-subtitle-font);
   font-size: 11px;
@@ -1827,6 +1836,9 @@
 
 @media (max-width: 1180px) {
   .sbh-weeks { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 34px; }
+  .sbh-build-loops,
+  .sbh-build-species { grid-column: 1 / -1; }
+  .sbh-loops { max-width: 760px; }
   .sbh-grind-chain ol { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .sbh-grind-chain li.is-result { grid-column: span 2; }
   .sbh-video-figure { grid-column: 1 / -1; }

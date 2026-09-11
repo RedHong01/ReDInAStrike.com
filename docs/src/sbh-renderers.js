@@ -66,6 +66,8 @@ function heatmap(section, helpers) {
   const columns = section.groups.flatMap((group, g) =>
     group.cols.map((col, i) => ({ ...col, group: group.label, start: i === 0 && g > 0 })),
   )
+  // Tooltips near the right edge open leftward so they never widen the page.
+  columns.forEach((col, i) => (col.tipEnd = i >= columns.length - 5))
   const groupRow = section.groups
     .map((group, g) => `<th scope="colgroup" colspan="${group.cols.length}" class="${g > 0 ? "is-group-start" : ""}">${escapeHtml(group.label)}</th>`)
     .join("")
@@ -82,12 +84,12 @@ function heatmap(section, helpers) {
           const groupClass = col.start ? " is-group-start" : ""
           if (!grade && was) {
             const label = `${row.name} on ${col.key}: ${was} on ${section.beforeLabel}, dropped by ${section.afterLabel}`
-            return `<td class="sbh-g is-dropped${groupClass}" tabindex="0" aria-label="${escapeHtml(label)}">${tip(escapeHtml, `${row.name} × ${col.key}`, `${was} on ${section.beforeLabel} · dropped by ${section.afterLabel}`)}</td>`
+            return `<td class="sbh-g is-dropped${groupClass}${col.tipEnd ? " is-tip-end" : ""}" tabindex="0" aria-label="${escapeHtml(label)}">${tip(escapeHtml, `${row.name} × ${col.key}`, `${was} on ${section.beforeLabel} · dropped by ${section.afterLabel}`)}</td>`
           }
           if (!grade) return `<td class="sbh-g is-none${groupClass}"></td>`
           const status = was ? `already ${was} on ${section.beforeLabel}` : `added after ${section.beforeLabel}`
           const label = `${row.name} on ${col.key}: ${gradeName[grade]}, ${status}`
-          return `<td class="sbh-g is-${grade.toLowerCase()}${was ? " was-there" : ""}${groupClass}" tabindex="0" aria-label="${escapeHtml(label)}"><span class="sbh-g-letter" aria-hidden="true">${grade}</span>${tip(escapeHtml, `${row.name} × ${col.key} · ${grade}`, status)}</td>`
+          return `<td class="sbh-g is-${grade.toLowerCase()}${was ? " was-there" : ""}${groupClass}${col.tipEnd ? " is-tip-end" : ""}" tabindex="0" aria-label="${escapeHtml(label)}"><span class="sbh-g-letter" aria-hidden="true">${grade}</span>${tip(escapeHtml, `${row.name} × ${col.key} · ${grade}`, status)}</td>`
         })
         .join("")
       const countBefore = Object.keys(before).length
@@ -111,6 +113,7 @@ function heatmap(section, helpers) {
       <div class="sbh-heat-scroll">
         <table class="sbh-heat">
           <caption class="gdd-sr">${escapeHtml(section.caption)}</caption>
+          <colgroup><col class="sbh-heat-col-attr" /><col span="${columns.length}" /><col class="sbh-heat-col-delta" /></colgroup>
           <thead>
             <tr class="sbh-heat-groups"><td></td>${groupRow}<td></td></tr>
             <tr class="sbh-heat-cols"><th scope="col" class="sbh-heat-attr-head">Attribute</th>${colRow}<th scope="col" class="sbh-heat-delta-head">${escapeHtml(section.beforeLabel)} → ${escapeHtml(section.afterLabel)}</th></tr>
@@ -152,8 +155,8 @@ function build(section, helpers) {
         return `
           <circle class="sbh-loop-dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" />
           <text class="sbh-loop-name" x="${node.lx}" y="${node.ly}" text-anchor="${node.anchor || "middle"}">${escapeHtml(node.name)}</text>
-          <text class="sbh-loop-zh" x="${node.lx}" y="${node.ly + 17}" text-anchor="${node.anchor || "middle"}" lang="zh-Hans">${escapeHtml(node.zh)}</text>
-          <text class="sbh-loop-stats" x="${node.lx}" y="${node.ly + 33}" text-anchor="${node.anchor || "middle"}">${escapeHtml(node.stats)}</text>`
+          <text class="sbh-loop-zh" x="${node.lx}" y="${node.ly + 22}" text-anchor="${node.anchor || "middle"}" lang="zh-Hans">${escapeHtml(node.zh)}</text>
+          <text class="sbh-loop-stats" x="${node.lx}" y="${node.ly + 40}" text-anchor="${node.anchor || "middle"}">${escapeHtml(node.stats)}</text>`
       })
       .join("")
     return `${arcs}${dots}`
@@ -381,11 +384,11 @@ function economy(section, helpers) {
           const line = `${w.dmg} dmg × ${w.spm} shots/min × ${w.bullets} ÷ 60 · ${list.map((x) => x.mat).filter((m, i, all) => all.indexOf(m) === i).join(" / ")}`
           const flag = group.flags?.[names] || (list.length > 1 ? `${list.length} identical rows` : "")
           return `
-            <span class="sbh-gun${flag ? " is-flagged" : ""}" style="left:${pos(dps)}" tabindex="0" aria-label="${escapeHtml(`${names}: ${fmt(dps)} damage per second. ${line}`)}">
+            <span class="sbh-gun${flag ? " is-flagged" : ""}${dps > arsenal.max * 0.8 ? " is-tip-end" : ""}" style="left:${pos(dps)}" tabindex="0" aria-label="${escapeHtml(`${names}: ${fmt(dps)} damage per second. ${line}`)}">
               ${list.length > 1 ? `<b class="sbh-gun-count">×${list.length}</b>` : ""}
               ${tip(escapeHtml, `${names} · ${fmt(dps)} DPS`, line)}
             </span>
-            ${flag ? `<span class="sbh-gun-flag" style="left:${pos(dps)}">${escapeHtml(flag)}</span>` : ""}`
+            ${flag ? `<span class="sbh-gun-flag${dps > arsenal.max * 0.8 ? " is-end" : ""}" style="left:${pos(dps)}">${escapeHtml(flag)}</span>` : ""}`
         })
         .join("")
       return `
@@ -426,7 +429,7 @@ function progression(section, helpers) {
       const sp = level % 5 === 0 ? 5 : 2
       const text = `Level ${level}: ${fmt(value)} EXP to reach, ${fmt(cumulative[i])} in total. +1 attribute point, +${sp} skill points.`
       return `
-        <span class="sbh-lvl${label ? " is-labelled" : ""}${level >= levels.wallFrom ? " is-wall" : ""}" tabindex="0" aria-label="${escapeHtml(text)}">
+        <span class="sbh-lvl${label ? " is-labelled" : ""}${level >= levels.wallFrom ? " is-wall" : ""}${level > 25 ? " is-tip-end" : level < 4 ? " is-tip-start" : ""}" tabindex="0" aria-label="${escapeHtml(text)}">
           <i style="height:${((value / max) * 100).toFixed(3)}%">${label ? `<b>${escapeHtml(levels.short[level] || fmt(value))}</b>` : ""}</i>
           ${tip(escapeHtml, `Level ${level} · ${fmt(value)} EXP`, `${fmt(cumulative[i])} in total · +${sp} skill points`)}
         </span>`
@@ -506,7 +509,8 @@ function calendar(section, helpers) {
       const s = special.get(week)
       const kind = s ? ` is-${s.type}` : ""
       const what = s ? s.label : section.resetLabel
-      return `<span class="sbh-cal-week${kind}" tabindex="0" aria-label="${escapeHtml(`Week ${week}, ${range}: ${what}`)}">${tip(escapeHtml, `Week ${week} · ${range}`, what)}</span>`
+      const edge = week > section.ranges.length - 8 ? " is-tip-end" : week < 5 ? " is-tip-start" : ""
+      return `<span class="sbh-cal-week${kind}${edge}" tabindex="0" aria-label="${escapeHtml(`Week ${week}, ${range}: ${what}`)}">${tip(escapeHtml, `Week ${week} · ${range}`, what)}</span>`
     })
     .join("")
   const weeks = section.ranges.length

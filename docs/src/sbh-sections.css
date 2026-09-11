@@ -27,8 +27,9 @@
   --sbh-muted: var(--case-muted, rgb(112, 112, 112));
 }
 
-/* Full bleed, like the other drawer components. */
-.sbh-bleed {
+/* Full bleed, like the other drawer components. The section prefix keeps a
+   component's own rules from resetting the bleed margin. */
+.sbh-section .sbh-bleed {
   width: max(100%, var(--case-bleed-width));
   max-width: none;
   margin-left: calc(50% - max(100%, var(--case-bleed-width)) / 2);
@@ -89,7 +90,7 @@
   opacity: 0;
   pointer-events: none;
   transform: translateX(-50%) translateY(4px);
-  transition: opacity 160ms ease, transform 220ms cubic-bezier(0.22, 0.8, 0.24, 1);
+  transition: opacity 160ms ease, transform 220ms cubic-bezier(0.22, 0.8, 0.24, 1), visibility 0s linear 220ms;
 }
 
 .sbh-tip strong {
@@ -102,6 +103,29 @@
   transform: translateX(-50%) translateY(0);
 }
 
+/* Near an edge the tooltip opens inward, so a hidden tip never widens the page. */
+.is-tip-end > .sbh-tip {
+  left: auto;
+  right: 0;
+  transform: translateY(4px);
+}
+
+.is-tip-start > .sbh-tip {
+  left: 0;
+  transform: translateY(4px);
+}
+
+:is(.is-tip-end, .is-tip-start):is(:hover, :focus-visible) > .sbh-tip {
+  transform: translateY(0);
+}
+
+/* Hidden tips take no room at all. */
+.sbh-tip { visibility: hidden; }
+:is(.sbh-g, .sbh-gun, .sbh-lvl, .sbh-rel-track, .sbh-cal-week):is(:hover, :focus-visible) > .sbh-tip {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sbh-tip { transition-duration: 0.01ms; }
 }
@@ -112,7 +136,7 @@
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: clamp(14px, 1.6vw, 26px);
-  margin: 0;
+  margin-block: 0;
   list-style: none;
 }
 
@@ -216,15 +240,9 @@
   table-layout: fixed;
 }
 
-.sbh-heat-attr-head,
-.sbh-heat-attr {
-  width: 128px;
-}
-
-.sbh-heat-delta-head,
-.sbh-heat-delta {
-  width: 86px;
-}
+/* Fixed layout reads widths from the colgroup, not from the second header row. */
+.sbh-heat-col-attr { width: 132px; }
+.sbh-heat-col-delta { width: 92px; }
 
 .sbh-heat-groups th {
   padding: 0 0 6px 4px;
@@ -238,16 +256,31 @@
   border-bottom: 1px solid var(--sbh-rule);
 }
 
+/* Twenty-five columns are too narrow for horizontal labels, so the stat names
+   run upward from the grid, the usual heatmap convention. */
 .sbh-heat-cols th {
-  padding: 8px 2px 8px 4px;
+  height: 96px;
+  padding: 0 0 8px;
   font-family: var(--type-subtitle-font);
   font-size: 10px;
   font-weight: 400;
-  letter-spacing: 0.02em;
-  line-height: 1.2;
-  text-align: left;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-align: center;
   vertical-align: bottom;
   color: var(--case-ink);
+}
+
+.sbh-heat-cols th.sbh-heat-col span {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
+
+.sbh-heat-attr-head,
+.sbh-heat-delta-head {
+  text-align: left !important;
 }
 
 .sbh-heat-attr-head,
@@ -399,7 +432,7 @@
 }
 
 .sbh-build-loops {
-  grid-column: span 6;
+  grid-column: span 7;
   margin: 0;
 }
 
@@ -426,19 +459,19 @@
 
 .sbh-loop-name {
   font-family: var(--serif);
-  font-size: 19px;
+  font-size: 21px;
   fill: var(--case-ink);
 }
 
 .sbh-loop-zh {
   font-family: var(--zh-serif);
-  font-size: 13px;
+  font-size: 14px;
   fill: var(--sbh-muted);
 }
 
 .sbh-loop-stats {
   font-family: var(--type-subtitle-font);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.04em;
   fill: var(--sbh-copy);
 }
@@ -452,7 +485,7 @@
 }
 
 .sbh-build-species {
-  grid-column: span 6;
+  grid-column: span 5;
   min-width: 0;
 }
 
@@ -1278,6 +1311,8 @@
   color: var(--case-ink);
   pointer-events: none;
 }
+
+.sbh-gun-flag.is-end { transform: translateX(calc(-100% + 8px)); }
 
 .sbh-arsenal-band {
   font-family: var(--type-subtitle-font);

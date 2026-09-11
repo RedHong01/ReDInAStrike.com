@@ -69,10 +69,6 @@ export const sbhSections = [
   {
     kind: "sbh-timeline",
     title: "Seven Weeks of Hand-ins",
-    intro: pair(
-      "The first half of the course had already taught the kit: a pitch deck in Week 1, economy spreadsheets in Week 4, live ops, monetization and the GDD in Week 5. The MMORPG ran the same kit again, faster and bigger. Each hand-in below is tagged with the lesson it answers.",
-      "课程前半段已经把这套工具教过一遍：第 1 周的提案演示文稿，第 4 周的经济系统表格，第 5 周的长线运营、商业化与 GDD。MMORPG 把同一套工具又跑了一遍，更快，也更大。下面每一次提交，都标出了它回应的是哪一课。",
-    ),
     weeks: [
       { week: 7, date: "3/5", title: "Kickoff", en: "The slides and the data sheet are opened the day the project starts.", zh: "项目开始当天，演示文稿和数据表就建好了。", lesson: pair("Syllabus: begin an MMORPG, weeks 7–14", "教学大纲：第 7–14 周开始一款 MMORPG") },
       { week: 8, date: "3/12", title: "First deck", en: "SCI-FI FPS MMORPG: twelve attributes, a four-step loop, Credits as the currency, three social systems, and an art-direction slide that still says Placeholder.", zh: "第一版演示文稿：十二项属性、四步循环、叫作 Credits 的货币、三个社交系统，以及一张还写着 Placeholder 的美术方向页。", lesson: pair("Week 1: the eight-slide pitch deck", "第 1 周：八页提案演示文稿") },
@@ -111,10 +107,6 @@ export const sbhSections = [
   {
     kind: "persona",
     title: "Alex Chen, 22",
-    intro: pair(
-      "The Week 5 brief asked for one persona. Ours is the player the grind is built for, and his list of frustrations reads like the ways a grind fails.",
-      "第 5 周的作业要求做一个用户画像。我们的画像，就是这套“刷”的系统所服务的玩家；他的不满清单，读起来正像一套刷取系统失败的方式。",
-    ),
     tag: "Persona · final slides",
     name: "Alex Chen",
     bio: pair(
@@ -223,7 +215,7 @@ export const sbhSections = [
       { name: "Android", zh: "仿生人", plus: ["+1 Tech", "+1 Hack"], minus: ["−1 Charm", "−1 Perception"], lore: pair("Built by humans long ago; they escaped servitude and are growing cultures of their own. The sheet still calls them Robot.", "很久以前由人类制造，逃离了奴役，正在形成自己的文化。数据表里仍然叫他们 Robot。") },
       { name: "Magenta Alien", zh: "品红外星人", plus: ["+1 Charm", "+1 Chemistry"], minus: ["−2 Strength"], lore: pair("Reshaped their bodies to fit human society and hold power in the Galactic Empire, frail as they are.", "改变自己的形态以融入人类社会，身体虽然脆弱，却在银河帝国里身居要职。") },
       { name: "Yellow Alien", zh: "黄色外星人", plus: ["+1 Biology", "+1 Resolve"], minus: ["−2 Stealth"], lore: pair("Cracked their genetic code centuries before humanity; the fluorescent glow of their skin won’t come off.", "比人类早几个世纪破解了自己的基因密码；皮肤的荧光却怎么也去不掉。") },
-      { name: "Cyan Alien", zh: "青色外星人", plus: ["+1 Physics", "+1 Perception"], minus: ["−2 Agility"], lore: pair("The GDD never wrote their story.", "GDD 里没有写他们的故事。") },
+      { name: "Cyan Alien", zh: "青色外星人", plus: ["+1 Physics", "+1 Perception"], minus: ["−2 Agility"] },
     ],
     bodyTitle: "Body, at the extremes only",
     body: [
@@ -232,16 +224,6 @@ export const sbhSections = [
       { name: "Starved", plus: "+1 Agility", minus: "−1 Resolve" },
       { name: "Obese", plus: "+1 Resolve", minus: "−1 Agility" },
     ],
-    bodyNote: {
-      label: "The sheet’s own note",
-      en: "“Body size/shape affects stats??!!?? But only at extreme end values?”",
-      zh: "“体型会影响属性？？！！？？但只在极端值的时候？”",
-    },
-    decision: {
-      label: "Background first",
-      en: "On our flow chart, my sticky note asked whether the background or the twelve stats should come first. The answer that came back: background, so a new player doesn’t have to look at all twelve right away. It is also the first fix the Week 10 feedback asked for.",
-      zh: "在我们的流程图上，我贴了一张便签，问背景和十二项属性应该哪个先出现。得到的回答是：背景先，这样新玩家不必一上来就面对全部十二项。这也正是第 10 周试玩反馈要求的第一个修改。",
-    },
   },
   {
     kind: "sbh-playtest",

@@ -28,6 +28,33 @@ function tip(escapeHtml, strong, line) {
   return `<span class="sbh-tip" aria-hidden="true"><strong>${escapeHtml(strong)}</strong>${line ? `<span>${escapeHtml(line)}</span>` : ""}</span>`
 }
 
+// Pitch + Mantra: the three GDD pillars sit as breathing motion marks so the
+// design question stays readable while the pillars claim the hierarchy.
+function mantraGrid(section, { escapeHtml, gddPair }) {
+  const pillars = (section.right.pillars || [])
+    .map(
+      (pillar, index) => `
+        <li class="sbh-pillar" style="--i:${index}">
+          <span class="sbh-pillar-en">${escapeHtml(pillar.en)}</span>
+          <span class="sbh-pillar-zh" lang="zh-Hans">${escapeHtml(pillar.zh)}</span>
+        </li>`,
+    )
+    .join("")
+  return `
+    <section class="framer-case-section framer-copy-grid case-study-copy-grid sbh-mantra-grid" aria-label="Pitch and mantra">
+      <div>
+        <h2>${escapeHtml(section.left.title)}</h2>
+        <p>${gddPair(section.left)}</p>
+      </div>
+      <div class="sbh-mantra">
+        <h2>${escapeHtml(section.right.title)}</h2>
+        <p>${gddPair(section.right.open)}</p>
+        <ul class="sbh-pillars" aria-label="Three design pillars">${pillars}</ul>
+        <p>${gddPair(section.right.close)}</p>
+      </div>
+    </section>`
+}
+
 // Seven weeks of hand-ins, one column per course week, each tagged with the lesson
 // from the first half of the course that it answers.
 function timeline(section, helpers) {
@@ -202,12 +229,20 @@ function build(section, helpers) {
       <div class="sbh-build-body">
         <h3 class="sbh-sub">${escapeHtml(section.bodyTitle)}</h3>
         <ul class="sbh-body-list">${body}</ul>
-        <p class="sbh-build-quote"><span class="sbh-build-quote-key">${escapeHtml(section.bodyNote.label)}</span>${gddPair(section.bodyNote)}</p>
+        ${
+          section.bodyNote
+            ? `<p class="sbh-build-quote"><span class="sbh-build-quote-key">${escapeHtml(section.bodyNote.label)}</span>${gddPair(section.bodyNote)}</p>`
+            : ""
+        }
       </div>
-      <div class="sbh-build-decision">
+      ${
+        section.decision
+          ? `<div class="sbh-build-decision">
         <h3 class="sbh-sub">${escapeHtml(section.decision.label)}</h3>
         <p>${gddPair(section.decision)}</p>
-      </div>
+      </div>`
+          : ""
+      }
     </div>`
   return shell(section, html, helpers, "sbh-build-section")
 }
@@ -570,6 +605,7 @@ if (typeof document !== "undefined" && !window.__sbhSeekBound) {
 }
 
 export const sbhSectionRenderers = {
+  "sbh-mantra-grid": mantraGrid,
   "sbh-timeline": timeline,
   "sbh-heatmap": heatmap,
   "sbh-build": build,

@@ -145,9 +145,8 @@ export const rebuiltCaseStudies = {
     heroImage: null,
     heroAlt: "Build n Shoot cover art",
     points: [
-      "My board game for Game Design Fundamentals 3 (GDF3): rules, components and playtests.",
-      "Four iterations in one term, with playtests between them.",
-      "The full fourth-iteration rules live in the Build n Shoot GDD drawer; this page is how the game got there.",
+      { label: "Iteration", en: "Version two’s players found the difficulty right; version four’s found the turn too heavy, because learning the guards up front asked too much.", zh: "第二版的玩家觉得难度刚好；第四版的玩家觉得回合太重，因为一开始就要学会守卫的规则，要求太多了。" },
+      { label: "My role", en: "Designed, written and playtested by me across four iterations in one term.", zh: "由我设计、撰写并组织试玩，一个学期内完成四次迭代。" },
     ],
     sections: [
       {
@@ -214,21 +213,21 @@ export const rebuiltCaseStudies = {
       },
       {
         kind: "spec-table",
-        title: "What GDF3 asked for, and where it shows up",
+        title: "The Systems I Built Into the Board",
         intro: pair(
-          "GDF3 moved through combat, economies and progression, and its design documents had to be complete enough to play from. Each of those briefs has a counterpart in the game.",
-          "GDF3 这门课依次讲了战斗、经济和成长系统，设计文档要完整到照着就能玩。每一个课题，在这个游戏里都有对应的部分。",
+          "I built four systems into the board, each for a feeling I wanted at the table, and wrote the rules so a new group could play from the page alone.",
+          "我在棋盘里放进了四个系统，每一个都对应我希望玩家在桌边感受到的一种体验；规则也写得让一群新玩家只看文字就能开始。",
         ),
-        head: ["Course brief", "What it asked for", "Where it shows up in Build n Shoot"],
+        head: ["System", "What I wanted players to feel", "How the game does it"],
         rows: [
-          ["Combat game lab", "Enemies run by a game master through a state machine of five or more states that reads players and terrain, on a grid with elevation and cover", "Attack guards run seven states and defense and support guards six, from idle and patrol to flee and restore; level blocks add height and stop shots"],
-          ["Economic trading lab", "An engine, an economy that grows through uneven exchange, an ecology that balances it, and trading between players", "Territory marks spent through a purchase matrix, and a trading system between players"],
-          ["Progression systems", "Progression that follows the core mechanics, respects player choice and stays visible", "Territory turns into purchases, attack guards level up from 1 to 3, and every mark sits on the board where everyone can see it"],
-          ["GDD template", "A document complete enough to play the game from alone", "The 28-page fourth-iteration GDD, rebuilt in the Build n Shoot GDD drawer"],
+          ["Guards with minds of their own", "The board fights back even on turns when no player is moving", "Attack guards run seven states and defense and support guards six, from idle and patrol to flee and restore; level blocks add height and stop shots"],
+          ["An economy on the board", "Spending is a visible choice that everyone at the table can read", "Territory marks spent through a purchase matrix, and a trading system between players"],
+          ["Progression you can see", "Getting stronger shows on the table, not in a hidden number", "Territory turns into purchases, attack guards level up from 1 to 3, and every mark sits on the board where everyone can see it"],
+          ["A rulebook to play from", "A new group can start without me standing there explaining", "The 28-page fourth-iteration GDD, rebuilt in the Build n Shoot GDD drawer"],
         ],
       },
     ],
-    access: "Designed and written by me for Game Design Fundamentals 3 (GDF3) at ArtCenter, Fall 2024.",
+    access: "Designed, written and playtested by me, Fall 2024.",
     sourceLinks: [{ label: "Read the full rules in the Build n Shoot GDD →", href: bnsGddHref }],
     currentVersion: "The fourth iteration. Its components, turn, purchase matrix and guard behaviour are laid out in the Build n Shoot GDD drawer.",
   },

@@ -19,6 +19,8 @@ import { myfridgeSections } from "./myfridge-sections.js"
 import { shroomSections } from "./shroom-sections.js"
 import { extraSectionRenderers } from "./extra-section-renderers.js"
 import { rebuiltCaseStudies } from "./rebuilt-case-studies.js"
+import { sbhCaseStudies, sbhCopyTranslations } from "./sbh-sections.js"
+import { sbhSectionRenderers } from "./sbh-renderers.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -142,7 +144,7 @@ const projects = [
   },
   {
     pageTitle: "Space Bounty Hunter",
-    displayTitle: "Service Game UI Prototype",
+    displayTitle: "MMORPG Design & UI Prototype",
     date: "3/10/2026",
     path: "/service-game-ui-2",
     navHash: "interaction",
@@ -722,20 +724,6 @@ Object.assign(caseStudyDetails, {
     ],
     access: "The interface is the current case focus. A short task walkthrough is the next useful recording.",
   },
-  "/service-game-ui-2": {
-    year: "2026 Spring",
-    title: "Space Bounty Hunter",
-    category: "Service Game UI Prototype",
-    summary: "A service-game interface prototype about reading a bounty task and deciding what information to act on next.",
-    heroImage: "assets/framer-live/service-game-ui-2026-b.png",
-    heroAlt: "Space Bounty Hunter service game interface",
-    points: ["Player task: inspect the bounty state and choose the next action.", "Design question: how can the interface turn a large task into one clear next step?", "Current version: the interface and long recording are available; the complete task outcome still needs a short walkthrough."],
-    sections: [
-      { kind: "copy-grid", left: { title: "Read the Contract", en: "The bounty information should give the player one clear next step. They need to identify the current target, the relevant constraint, and the action that follows without opening a separate explanation.", zh: "懸賞資訊應該給玩家一個清楚的下一步。玩家需要找出目前目標、相關限制，以及接下來要做的動作，不必另外開啟說明。" }, right: { title: "What Remains", en: "The archive does not yet show whether the full service task is completed as intended. A short start-to-result recording is still needed.", zh: "目前資料還沒有展示完整服務任務是否按預期完成。仍需要一段從開始到結果的短錄影。" } },
-      { kind: "callout", title: "Next Evidence", en: "Record one bounty from accepted task to result. Caption the moment where the player chooses what information matters.", zh: "錄下一個從接受懸賞到得到結果的完整任務，並標記玩家選擇哪些資訊最重要的時刻。" },
-    ],
-    access: "This page is a supporting UI case until a matched task recording is available.",
-  },
   "/narrative-design-document": {
     year: "2025 Spring",
     title: "Untitled Sans",
@@ -775,6 +763,9 @@ for (const [path, sections] of Object.entries(editorialReadableSections)) {
 // The two rebuilt cases are sourced from the local archive and replace the
 // older image-only records. The historical UI/UX URL remains a drawer alias.
 Object.assign(caseStudyDetails, rebuiltCaseStudies)
+// Space Bounty Hunter is rebuilt in its own module, with its own section kinds.
+Object.assign(caseStudyDetails, sbhCaseStudies)
+Object.assign(extraSectionRenderers, sbhSectionRenderers)
 framerProjectDetails["/uiux-prototype"] = framerProjectDetails["/assethub"]
 
 const app = document.querySelector("#app")
@@ -2904,6 +2895,7 @@ const copyTranslations = new Map([
     "協助 Chesley Nesaeny 教授的 Type 1 課程。帶領個人與小組評圖，協助學生發展字體排印概念、建立清楚結構，並理解印刷實務。",
   ],
 ])
+for (const [english, chinese] of sbhCopyTranslations) copyTranslations.set(english, chinese)
 
 function bilingualText(value) {
   const english = escapeHtml(value)

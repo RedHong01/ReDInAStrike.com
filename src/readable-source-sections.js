@@ -7,12 +7,12 @@ export const supportingReadableSections = {
       "left": {
         "title": "The Premise",
         "en": "To Be Chosen is a narrative-driven survival horror game set around a cheerleading team stranded in a fog-covered mountain village. The village appears to offer shelter, but the team gradually finds signs of a ritual that has happened before.",
-        "zh": "《To Be Chosen》是一款以生存恐怖為核心的敘事遊戲。啦啦隊在一座被濃霧包圍的山村受困，村莊看似提供庇護，隊員卻逐漸發現這裡曾經反覆進行某種儀式。"
+        "zh": "《To Be Chosen》是一款以生存恐怖为核心的叙事游戏。啦啦队在一座被浓雾包围的山村受困，村庄看似提供庇护，队员却逐渐发现这里曾经反覆进行某种仪式。"
       },
       "right": {
         "title": "The Perspective System",
         "en": "The design uses an asymmetrical, episodic perspective structure. Each character sees only part of the situation, while the player connects the fragments across the squad. The story is proposed as a sequence of limited viewpoints rather than one uninterrupted account.",
-        "zh": "設計採用非對稱、分段式的多視角結構。每個角色只能看見事件的一部分，玩家則要把整個隊伍的片段連在一起。故事被設計成一連串受限的視角，而不是一段不中斷的單一路線。"
+        "zh": "设计采用非对称、分段式的多视角结构。每个角色只能看见事件的一部分，玩家则要把整个队伍的片段连在一起。故事被设计成一连串受限的视角，而不是一段不中断的单一路线。"
       }
     },
     {
@@ -21,11 +21,11 @@ export const supportingReadableSections = {
       "paragraphs": [
         {
           "en": "The first proposed perspective split happens after the bus accident. Sarah investigates the missing driver and the accident while Alexis stays with the girls and manages the tension on the bus. The two strands move at the same time. Sarah’s investigation brings the village into view and exposes her actions to the elders, while the girls wait without knowing what has happened to her.",
-          "zh": "第一個多視角提案發生在巴士事故之後。Sarah 調查失蹤的司機與事故，Alexis 則留在車上處理隊伍裡的緊張關係。兩條線同時推進：Sarah 的調查帶出村莊，也讓長老注意到她的行動；留在車上的隊員則不知道她遇到了什麼。"
+          "zh": "第一个多视角提案发生在巴士事故之后。Sarah 调查失踪的司机与事故，Alexis 则留在车上处理队伍里的紧张关系。两条线同时推进：Sarah 的调查带出村庄，也让长老注意到她的行动；留在车上的队员则不知道她遇到了什么。"
         },
         {
           "en": "This example shows why the perspective shift exists. The player does not receive the whole situation from above; they learn what each group can observe, then compare the gaps when the story moves to another character. This is a design example from the narrative document, not a verified playable recording.",
-          "zh": "這個例子說明視角切換為什麼存在。玩家不會從全知角度直接得到完整情況，而是先知道每一組角色能觀察到什麼，再在切換到另一個角色時比較資訊缺口。這是敘事文件中的設計例子，還不是已核對的可玩錄影。"
+          "zh": "这个例子说明视角切换为什么存在。玩家不会从全知角度直接得到完整情况，而是先知道每一组角色能观察到什么，再在切换到另一个角色时比较资讯缺口。这是叙事文件中的设计例子，还不是已核对的可玩录影。"
         }
       ]
     },
@@ -36,22 +36,22 @@ export const supportingReadableSections = {
         [
           "MULTI-POV",
           "Shift the player’s limited viewpoint as the plot moves between characters.",
-          "隨著劇情轉移到不同角色，切換玩家受限的視角。"
+          "随着剧情转移到不同角色，切换玩家受限的视角。"
         ],
         [
           "ENVIRONMENT",
           "Use spaces, marks, calendars, and room patterns to suggest how the village operates.",
-          "用空間、符號、日曆與房間的模式提示村莊如何運作。"
+          "用空间、符号、日历与房间的模式提示村庄如何运作。"
         ],
         [
           "RELICS",
           "Let diaries, ledgers, and victim records expose a pattern that dialogue has not explained.",
-          "讓日記、名冊與受害者留下的記錄揭露對話沒有說明的模式。"
+          "让日记、名册与受害者留下的记录揭露对话没有说明的模式。"
         ],
         [
           "MICRO-CUTSCENES",
           "Use short, contextual reveals to increase pressure without removing the character’s point of view.",
-          "用短而有情境的揭示增加壓力，同時保留角色自身的視角。"
+          "用短而有情境的揭示增加压力，同时保留角色自身的视角。"
         ]
       ]
     },
@@ -61,11 +61,11 @@ export const supportingReadableSections = {
       "paragraphs": [
         {
           "en": "The village is meant to feel cold, organised, and hostile rather than randomly frightening. In the inn example, half-finished teacups and a calendar with every month crossed out except tonight suggest that the disappearances follow a pattern. In the basement example, narrowing corridors and restraint devices change the space from a place of shelter into a place built for captives.",
-          "zh": "村莊被設計成冷漠、有秩序而且具有敵意的地方，而不是隨機製造驚嚇。在旅店例子裡，喝到一半的茶杯和只留下今晚空白的日曆，暗示失蹤事件有固定模式；在地下室例子裡，逐漸變窄的走廊與拘束裝置，讓空間從庇護所變成為囚禁而建的地方。"
+          "zh": "村庄被设计成冷漠、有秩序而且具有敌意的地方，而不是随机制造惊吓。在旅店例子里，喝到一半的茶杯和只留下今晚空白的日历，暗示失踪事件有固定模式；在地下室例子里，逐渐变窄的走廊与拘束装置，让空间从庇护所变成为囚禁而建的地方。"
         },
         {
           "en": "The player is expected to read these details as evidence. The document describes a shift from reacting to a strange place to recognising the rules behind it. That shift is a design intention; the material does not include a measured player test for it.",
-          "zh": "玩家被期待把這些細節當成證據來閱讀。文件描述的變化，是從對陌生場所做出反應，逐漸轉向辨認它背後的規則。這是設計意圖，現有材料沒有提供量化的玩家測試。"
+          "zh": "玩家被期待把这些细节当成证据来阅读。文件描述的变化，是从对陌生场所做出反应，逐渐转向辨认它背后的规则。这是设计意图，现有材料没有提供量化的玩家测试。"
         }
       ]
     },
@@ -76,22 +76,22 @@ export const supportingReadableSections = {
         [
           "PERSPECTIVE",
           "Follow one character’s limited view.",
-          "跟隨一個角色受限的視角。"
+          "跟随一个角色受限的视角。"
         ],
         [
           "DISCOVERY",
           "Inspect a space, object, or record.",
-          "調查空間、物件或記錄。"
+          "调查空间、物件或记录。"
         ],
         [
           "COMPARISON",
           "Re-evaluate earlier clues against another fragment.",
-          "把另一個片段拿來重新理解先前的線索。"
+          "把另一个片段拿来重新理解先前的线索。"
         ],
         [
           "TRANSITION",
           "Move to another viewpoint with a different part of the situation.",
-          "轉移到看見另一部分情況的角色視角。"
+          "转移到看见另一部分情况的角色视角。"
         ]
       ]
     },
@@ -101,7 +101,7 @@ export const supportingReadableSections = {
       "paragraphs": [
         {
           "en": "The documents establish the narrative premise, the perspective examples, and the intended relationship between clues and player understanding. They do not include a complete matched recording of one scene. The next useful evidence is one continuous sequence from entering a scene, investigating an object, changing point of view, and showing what new information the player receives.",
-          "zh": "現有文件能證明敘事前提、視角例子，以及線索與玩家理解之間的設計關係，但沒有一段完整且對應版本的場景錄影。下一份有用的證據，是從進入場景、調查物件、切換視角到展示玩家取得的新資訊的一段連續流程。"
+          "zh": "现有文件能证明叙事前提、视角例子，以及线索与玩家理解之间的设计关系，但没有一段完整且对应版本的场景录影。下一份有用的证据，是从进入场景、调查物件、切换视角到展示玩家取得的新资讯的一段连续流程。"
         }
       ]
     }
@@ -113,12 +113,12 @@ export const supportingReadableSections = {
       "left": {
         "title": "The Sequence",
         "en": "SushiGo organises the kitchen around one physical sequence: pick up the knife, cut the salmon, pick up the slice, combine it with rice, place the sushi on a plate, and send the plate into the serve zone.",
-        "zh": "SushiGo 把廚房整理成一段身體操作流程：拿起刀、切三文魚、拿起魚片、把魚片和米飯合併、將壽司放到盤子上，再把盤子送進出餐區。"
+        "zh": "SushiGo 把厨房整理成一段身体操作流程：拿起刀、切三文鱼、拿起鱼片、把鱼片和米饭合并、将寿司放到盘子上，再把盘子送进出餐区。"
       },
       "right": {
         "title": "Gesture Design",
-        "en": "The Figma source separates grip, wrist rotation, and pinch as gesture concerns. In the implemented tutorial, full-hand grasp handles the food objects while gaze and pinch are used for menu controls.",
-        "zh": "Figma 原稿把抓取、手腕旋轉與捏取分成不同的手勢問題。在已實作的教學流程裡，完整手掌抓取用於拿取食物物件，凝視加捏取則用於選單控制。"
+        "en": "I split the gestures by what the hand is doing: a full grasp for food, a turn of the wrist to angle the fish, and a look-and-pinch for menus. Kitchen actions and interface actions never share a gesture, so a player never presses a button when they meant to pick something up.",
+        "zh": "我按手在做什么来划分手势：整只手抓握用于拿食物，转动手腕用于调整鱼片角度，看向并捏合用于菜单。厨房动作和界面操作从不共用同一个手势，所以玩家不会在想拿东西的时候误按到按钮。"
       }
     },
     {
@@ -127,11 +127,11 @@ export const supportingReadableSections = {
       "paragraphs": [
         {
           "en": "The tutorial starts by asking the player to close a hand around the knife. While still holding it, the player moves the blade through the salmon and exits the fish to complete the cut. The player then releases the knife, picks up a salmon slice, places it on the rice, and rotates the wrist to adjust the fish angle when needed.",
-          "zh": "教學先請玩家握住刀具。保持抓取時，玩家把刀刃穿過三文魚，並讓刀刃離開魚身完成切割。接著玩家放下刀，拿起魚片，把魚片放到米飯上；需要時再旋轉手腕調整魚片角度。"
+          "zh": "教学先请玩家握住刀具。保持抓取时，玩家把刀刃穿过三文鱼，并让刀刃离开鱼身完成切割。接着玩家放下刀，拿起鱼片，把鱼片放到米饭上；需要时再旋转手腕调整鱼片角度。"
         },
         {
-          "en": "After the sushi is merged, the player grasps the finished piece and releases it over a plate. The plate then travels into the SERVE / delivery zone. These steps are driven by the project’s gameplay events, so the page can describe the sequence as implemented interaction rather than as a storyboard only.",
-          "zh": "壽司合併後，玩家抓起完成的壽司，將它放到盤子上。盤子接著進入 SERVE／出餐區。這些步驟由專案裡的 gameplay events 驅動，因此本頁可以把它寫成已實作的互動順序，而不只是 storyboard。"
+          "en": "After the sushi is merged, the player grasps the finished piece and releases it over a plate, and the plate travels into the SERVE zone. Every step answers a real hand movement, so the order of a kitchen becomes something you do rather than something you read.",
+          "zh": "寿司合并后，玩家抓起做好的寿司，把它放到盘子上，盘子随即送进 SERVE 出餐区。每一步都对应一个真实的手部动作，于是厨房的工序变成了你亲手去做的事，而不是需要去读的说明。"
         }
       ]
     },
@@ -142,22 +142,22 @@ export const supportingReadableSections = {
         [
           "GRIP",
           "Close the hand to pick up the knife, fish, or finished sushi.",
-          "合攏手掌，拿起刀、魚片或完成的壽司。"
+          "合拢手掌，拿起刀、鱼片或完成的寿司。"
         ],
         [
           "CUT",
           "Move the blade through the salmon and out the other side.",
-          "讓刀刃穿過三文魚並從另一側離開。"
+          "让刀刃穿过三文鱼并从另一侧离开。"
         ],
         [
           "ROTATE",
           "Rotate the wrist while holding the fish to adjust its yaw.",
-          "抓住魚片時旋轉手腕，調整魚片的水平角度。"
+          "抓住鱼片时旋转手腕，调整鱼片的水平角度。"
         ],
         [
           "PINCH",
           "Use gaze and pinch for menu buttons and setup controls.",
-          "用凝視與捏取操作選單按鈕和設定控制。"
+          "用凝视与捏取操作选单按钮和设定控制。"
         ]
       ]
     },
@@ -166,8 +166,8 @@ export const supportingReadableSections = {
       "title": "Size Becomes Reward",
       "paragraphs": [
         {
-          "en": "After the fish is placed on the rice, RiceFishEvaluator compares the rendered fish dimensions with an ideal fish size. The current evaluator starts at 5 base money, adds 15 for an error of 10% or less, 10 for an error of 30% or less, and 5 for an error of 50% or less. The reward turns cutting accuracy into part of the service result.",
-          "zh": "魚片放到米飯上後，RiceFishEvaluator 會把實際魚片尺寸和理想尺寸比較。目前的評估從 5 點基本金錢開始：誤差不超過 10% 加 15，誤差不超過 30% 加 10，誤差不超過 50% 加 5。這讓切割準確度成為出餐結果的一部分。"
+          "en": "Once the fish is on the rice, the game compares the slice with an ideal size. A dish starts at 5 money, and a cut within 10% of ideal adds 15, within 30% adds 10, within 50% adds 5. I wanted the reward to live in the hands: a careful cut is worth three times a rushed one.",
+          "zh": "鱼片放到米饭上之后，游戏会把它和理想尺寸比较。一份寿司从 5 块钱起算：误差在 10% 以内加 15，30% 以内加 10，50% 以内加 5。我希望奖励落在双手上：一刀切得仔细，价值是匆忙一刀的三倍。"
         }
       ]
     },
@@ -178,22 +178,22 @@ export const supportingReadableSections = {
         [
           "PICK UP",
           "Take the knife or fish with a full-hand grasp.",
-          "用完整手掌抓取拿起刀或魚片。"
+          "用完整手掌抓取拿起刀或鱼片。"
         ],
         [
           "PREPARE",
           "Cut the salmon and place it on the rice.",
-          "切割三文魚並把魚片放到米飯上。"
+          "切割三文鱼并把鱼片放到米饭上。"
         ],
         [
           "PLATE",
           "Release the finished sushi over a plate.",
-          "把完成的壽司放到盤子上。"
+          "把完成的寿司放到盘子上。"
         ],
         [
           "SERVE",
           "Let the plate enter the delivery zone.",
-          "讓盤子進入出餐區。"
+          "让盘子进入出餐区。"
         ]
       ]
     },
@@ -202,12 +202,12 @@ export const supportingReadableSections = {
       "title": "Scope and Iteration",
       "paragraphs": [
         {
-          "en": "The Figma record labels four phases and then notes “All four now,” with a 48-second pass aimed at a 3–5 minute demo experience. That note documents a target and a stage of iteration; it does not provide a measured completion rate or a player study. The tutorial sequence and reward rule are documented. A continuous demo recording is still needed to show the experience at that length.",
-          "zh": "Figma 記錄列出四個階段，之後標註「All four now」，並以 48 秒流程作為 3–5 分鐘 demo 體驗的目標。這段文字記錄了迭代目標與階段，不代表完成率或玩家研究結果。教學流程與獎勵規則已有記錄；完整 demo 錄影仍需要展示這個時長下的體驗。"
+          "en": "I planned the demo as four phases and then noted “All four now”: one 48-second pass through preparing, slicing, assembling and serving, built out towards a three-to-five-minute session for a first-time player.",
+          "zh": "我把试玩版规划成四个阶段，之后在记录里写下“All four now”：一次 48 秒、走完备料、切鱼、组合和出餐的完整流程，再逐步扩展成给新玩家的三到五分钟体验。"
         },
         {
-          "en": "The current verified project materials are the visionOS interaction scripts and the Unity/Figma gesture sources. Deprecated Ultraleap material is not part of this page’s interaction account.",
-          "zh": "目前核對到的專案材料是 visionOS 互動腳本，以及 Unity／Figma 的手勢來源。已棄用的 Ultraleap 材料不放入本頁的互動說明。"
+          "en": "The game began on Leap Motion hand tracking and moved to Apple Vision Pro, where the hands need no controller at all: grasp to hold, look and pinch to press. The move let the kitchen stay entirely in the player’s own hands.",
+          "zh": "这个游戏最早用 Leap Motion 做手部追踪，后来搬到 Apple Vision Pro 上，双手完全不需要控制器：抓握就是拿起，看向并捏合就是按下。这次迁移让整个厨房都留在玩家自己的手里。"
         }
       ]
     }
@@ -219,12 +219,12 @@ export const supportingReadableSections = {
       "left": {
         "title": "Build n Shoot",
         "en": "The fourth-iteration GDD describes Build n Shoot as a turn-based strategy shooting game for up to four players, played on a 15 × 15 grid of floating islands. Players are mages competing for control of ancient land, using arcane resources to construct platforms and bullet-blocking bunkers while marking territory.",
-        "zh": "第四版 GDD 把 Build n Shoot 定義為一款最多四人的回合制策略射擊遊戲，發生在由 15 × 15 格組成的浮空島上。玩家扮演爭奪古老土地控制權的法師，用神秘資源建造平台與擋子彈的掩體，同時標記領地。"
+        "zh": "第四版 GDD 把 Build n Shoot 定义为一款最多四人的回合制策略射击游戏，发生在由 15 × 15 格组成的浮空岛上。玩家扮演争夺古老土地控制权的法师，用神秘资源建造平台与挡子弹的掩体，同时标记领地。"
       },
       "right": {
         "title": "Target Player",
         "en": "The document names strategy-game enthusiasts, achiever-type and killer-type players, and players who enjoy fantasy and magic themes. Its three game pillars are strategically traversing, building, and shooting.",
-        "zh": "文件把策略遊戲愛好者、Achiever 型與 Killer 型玩家，以及喜歡奇幻和魔法題材的玩家列為目標玩家。遊戲的三個支柱是有策略地移動、建造與射擊。"
+        "zh": "文件把策略游戏爱好者、Achiever 型与 Killer 型玩家，以及喜欢奇幻和魔法题材的玩家列为目标玩家。游戏的三个支柱是有策略地移动、建造与射击。"
       }
     },
     {
@@ -234,17 +234,17 @@ export const supportingReadableSections = {
         [
           "TRAVERSE",
           "Spend movement to claim routes and reach useful positions.",
-          "花費移動資源佔據路線並抵達有利位置。"
+          "花费移动资源占据路线并抵达有利位置。"
         ],
         [
           "BUILD",
           "Place blocks and territory marks that change the board.",
-          "放置方塊與領地標記，改變棋盤。"
+          "放置方块与领地标记，改变棋盘。"
         ],
         [
           "SHOOT",
           "Use position, D6 range, and territory marks to resolve a shot.",
-          "利用位置、D6 射程與領地標記結算射擊。"
+          "利用位置、D6 射程与领地标记结算射击。"
         ]
       ]
     },
@@ -255,22 +255,22 @@ export const supportingReadableSections = {
         [
           "ACTION CARD",
           "Move, shoot, build, use an item, or place a unit.",
-          "移動、射擊、建造、使用物品或放置單位。"
+          "移动、射击、建造、使用物品或放置单位。"
         ],
         [
           "SETTLEMENT",
           "Check the surrounding nine grid spaces and collect items.",
-          "檢查周圍九格並收集物品。"
+          "检查周围九格并收集物品。"
         ],
         [
           "AI ACTIVITY",
           "Surviving AI units take one turn according to their behaviour logic.",
-          "存活的 AI 單位依照行為邏輯完成一個回合。"
+          "存活的 AI 单位依照行为逻辑完成一个回合。"
         ],
         [
           "PURCHASE",
           "Spend resource cards on items before the next player begins.",
-          "在下一位玩家開始前，用資源卡購買物品。"
+          "在下一位玩家开始前，用资源卡购买物品。"
         ]
       ]
     },
@@ -280,11 +280,11 @@ export const supportingReadableSections = {
       "paragraphs": [
         {
           "en": "Movement uses a D6 on the square grid, and the player places a territory mark on every grid space they pass through. Passing over another player’s marks overwrites them. A player can climb the blocks they build, but reaching a higher level costs an additional point on the movement roll.",
-          "zh": "移動系統在方格棋盤上使用 D6，玩家經過的每一格都會放置自己的領地標記。經過其他玩家的標記時，原本的標記會被覆蓋。玩家可以爬上自己建造的方塊，但抵達更高層需要在移動擲骰上多付一點。"
+          "zh": "移动系统在方格棋盘上使用 D6，玩家经过的每一格都会放置自己的领地标记。经过其他玩家的标记时，原本的标记会被覆盖。玩家可以爬上自己建造的方块，但抵达更高层需要在移动掷骰上多付一点。"
         },
         {
           "en": "Shooting also starts with a D6. The bullet travels in a straight line, and every one of the player’s territory marks along that line adds one unit to the range. Elevation changes the interaction: a higher player can shoot over lower obstacles, while a lower shot can destroy a block at the higher position.",
-          "zh": "射擊同樣從 D6 開始。子彈沿直線移動，沿途每經過一個自己的領地標記，射程就增加一格。高度會改變射擊關係：高處玩家可以越過較低的障礙物射擊，而低處射擊則可以摧毀高處的一個方塊。"
+          "zh": "射击同样从 D6 开始。子弹沿直线移动，沿途每经过一个自己的领地标记，射程就增加一格。高度会改变射击关系：高处玩家可以越过较低的障碍物射击，而低处射击则可以摧毁高处的一个方块。"
         }
       ]
     },
@@ -295,17 +295,17 @@ export const supportingReadableSections = {
         [
           "10 WEIGHTS",
           "A player can hold up to ten weights of cards and items.",
-          "玩家最多持有十個重量單位的卡牌與物品。"
+          "玩家最多持有十个重量单位的卡牌与物品。"
         ],
         [
           "STACKING",
           "Some cards remain one weight until their stack limit is reached.",
-          "部分卡牌在達到堆疊上限前仍只算一個重量。"
+          "部分卡牌在达到堆叠上限前仍只算一个重量。"
         ],
         [
           "SURVIVAL",
           "HP and Action cards stay useful, but carrying more of them leaves less room for tactical options.",
-          "HP 與行動卡很重要，但帶得越多，就越少空間留給戰術選項。"
+          "HP 与行动卡很重要，但带得越多，就越少空间留给战术选项。"
         ]
       ]
     },
@@ -315,11 +315,11 @@ export const supportingReadableSections = {
       "paragraphs": [
         {
           "en": "The fourth iteration revises the AI system to clarify situational mechanics and updates progression around that revision. The GDD records this as a rules change; it does not include a measured before-and-after result for player understanding.",
-          "zh": "第四版修訂了 AI 系統，讓情境機制更清楚，並配合這次修訂更新遊戲進程。GDD 把它記錄成規則改動，但沒有提供玩家理解度的改版前後量化結果。"
+          "zh": "第四版修订了 AI 系统，让情境机制更清楚，并配合这次修订更新游戏进程。GDD 把它记录成规则改动，但没有提供玩家理解度的改版前后量化结果。"
         },
         {
           "en": "The playtest note says that the basic actions—moving, shooting, and building obstacles—were generally understood. The flow became dense when players had to remember progression rules, and some repeatedly asked the GM how an AI unit should move. The design question is how to keep the strategic turn without making the rules handoff carry the turn for the player.",
-          "zh": "測試筆記指出，基礎行動——移動、射擊與建造障礙——大致能被理解。當玩家需要記住進程規則時，流程變得擁擠；有些玩家反覆詢問 GM AI 單位應如何移動。設計問題是如何保留策略回合，同時不要讓 GM 的規則交接代替玩家完成回合。"
+          "zh": "测试笔记指出，基础行动——移动、射击与建造障碍——大致能被理解。当玩家需要记住进程规则时，流程变得拥挤；有些玩家反覆询问 GM AI 单位应如何移动。设计问题是如何保留策略回合，同时不要让 GM 的规则交接代替玩家完成回合。"
         }
       ]
     },
@@ -329,7 +329,7 @@ export const supportingReadableSections = {
       "paragraphs": [
         {
           "en": "The next useful evidence is a short recorded match in which one player explains a complete turn without reopening the rules document. I would compare the explanation with the AI phase, purchase phase, and end-of-turn transition before claiming that the fourth-iteration rules are easier to learn.",
-          "zh": "下一份有用的證據，是一段短對局錄影：讓一名玩家不重新打開規則文件，直接說出完整回合。我會把這段說明和 AI 階段、購買階段及回合結束的轉換對照，再決定能不能說第四版規則更容易學習。"
+          "zh": "下一份有用的证据，是一段短对局录影：让一名玩家不重新打开规则文件，直接说出完整回合。我会把这段说明和 AI 阶段、购买阶段及回合结束的转换对照，再决定能不能说第四版规则更容易学习。"
         }
       ]
     }

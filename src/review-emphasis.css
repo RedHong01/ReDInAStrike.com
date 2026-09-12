@@ -13,27 +13,32 @@
 
 .case-point {
   display: grid;
-  grid-template-columns: minmax(6.5em, 8.5em) minmax(0, 1fr);
-  gap: 16px;
-  padding: 12px 0;
+  gap: 4px;
+  padding: 16px 0 20px;
   border-bottom: 1px solid rgb(0 17 34 / 0.16);
 }
 
+/* The answers a reviewer is looking for — design goal, iteration, my role —
+   are headings, not captions: they carry the same weight as a section title
+   so they can be found while scanning the page. */
 .case-point-label {
-  padding-top: 4px;
-  font-family: var(--type-subtitle-font);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  line-height: 1.3;
-  text-transform: uppercase;
+  font-family: var(--body-latin-font);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: calc(1em + 3px);
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--case-ink);
 }
 
 .case-point-copy { color: var(--case-copy); }
 
-/* Section tags: a short accent rule and a label above the heading */
+/* Section tags: a short accent rule and a label above the heading. Some
+   sections are themselves the grid that lays out their columns, so the tag
+   takes a whole row instead of becoming the first column. */
 .case-section-tag {
   display: flex;
+  grid-column: 1 / -1;
   align-items: center;
   gap: 10px;
   margin: 0 0 12px;
@@ -81,13 +86,15 @@
 .case-audience-copy { grid-column: span 6; align-self: start; }
 .case-audience-map { grid-column: 1 / -1; width: 100%; max-width: 920px; margin: 0; }
 
+/* The two answers a reviewer looks for first are headings, not captions. */
 .case-audience-heading {
-  margin: 0 0 8px;
-  font-family: var(--type-subtitle-font);
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin: 0 0 10px;
+  font-family: var(--body-latin-font);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: calc(1em + 3px);
+  text-transform: none;
   color: var(--case-ink);
 }
 
@@ -99,66 +106,71 @@
 }
 
 
+/* The plane is drawn the way the survey charts are: hairlines, mono labels at
+   the ends, type set straight onto the field. No boxes, no arrowheads. */
 .case-audience-plane {
   position: relative;
   aspect-ratio: 2 / 1;
-  margin: 40px 84px 44px;
+  margin: 38px 76px 40px;
 }
 
 .case-audience-axis {
   position: absolute;
-  background: var(--case-ink);
+  background: rgb(0 17 34 / 0.35);
 }
 
-.case-audience-axis--x { top: 50%; right: 0; left: 0; height: 1px; }
-.case-audience-axis--y { top: 0; bottom: 0; left: 50%; width: 1px; }
-
-.case-audience-axis::before,
-.case-audience-axis::after {
-  content: "";
-  position: absolute;
-  border: 4px solid transparent;
-}
-
-.case-audience-axis--x::before { left: -2px; top: -4px; border-right: 7px solid var(--case-ink); border-left: 0; }
-.case-audience-axis--x::after { right: -2px; top: -4px; border-left: 7px solid var(--case-ink); border-right: 0; }
-.case-audience-axis--y::before { top: -2px; left: -4px; border-bottom: 7px solid var(--case-ink); border-top: 0; }
-.case-audience-axis--y::after { bottom: -2px; left: -4px; border-top: 7px solid var(--case-ink); border-bottom: 0; }
+.case-audience-axis--x { top: 50%; right: -10px; left: -10px; height: 1px; }
+.case-audience-axis--y { top: -10px; bottom: -10px; left: 50%; width: 1px; }
 
 .case-audience-pole {
   position: absolute;
   font-family: var(--type-subtitle-font);
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--case-ink);
+  color: rgb(0 17 34 / 0.55);
 }
 
-.case-audience-pole--top { bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); }
-.case-audience-pole--bottom { top: calc(100% + 12px); left: 50%; transform: translateX(-50%); }
-.case-audience-pole--left { top: 50%; right: calc(100% + 12px); transform: translateY(-50%); }
-.case-audience-pole--right { top: 50%; left: calc(100% + 12px); transform: translateY(-50%); }
+.case-audience-pole--top { bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%); }
+.case-audience-pole--bottom { top: calc(100% + 14px); left: 50%; transform: translateX(-50%); }
+.case-audience-pole--left { top: 50%; right: calc(100% + 16px); transform: translateY(-50%); }
+.case-audience-pole--right { top: 50%; left: calc(100% + 16px); transform: translateY(-50%); }
 
+/* Where this game sits: a tinted field rather than an outlined box, with its
+   name set inside it so no label ever crosses an axis. */
 .case-audience-zone {
   position: absolute;
-  border: 1px solid var(--case-ink);
-  border-radius: 4px;
-  background: linear-gradient(rgb(0 17 34 / 0.05), rgb(0 17 34 / 0.05)), color-mix(in srgb, var(--case-accent, #6da7ec) 26%, transparent);
+  background: linear-gradient(rgb(0 17 34 / 0.07), rgb(0 17 34 / 0.07)), color-mix(in srgb, var(--case-accent, #6da7ec) 30%, transparent);
 }
 
-.case-audience-zone > span {
+.case-audience-zone-label {
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: -1px;
-  white-space: nowrap;
-  font-family: var(--type-subtitle-font);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  line-height: 1.25;
-  text-transform: uppercase;
+  top: 10px;
+  left: 12px;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  font-family: var(--body-latin-font);
+  font-size: 17px;
+  line-height: calc(1em + 2px);
   color: var(--case-ink);
 }
+
+.case-audience-zone-label em {
+  margin-right: 8px;
+  font-family: var(--type-subtitle-font);
+  font-size: 9.5px;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(0 17 34 / 0.55);
+}
+
+.case-audience-zone[data-corner="tr"] .case-audience-zone-label,
+.case-audience-zone[data-corner="br"] .case-audience-zone-label { left: auto; right: 12px; text-align: right; }
+
+.case-audience-zone[data-corner="bl"] .case-audience-zone-label,
+.case-audience-zone[data-corner="br"] .case-audience-zone-label { top: auto; bottom: 10px; }
 
 .case-audience-chips {
   position: absolute;
@@ -168,62 +180,191 @@
   list-style: none;
 }
 
+/* A point and its name, set like a chart label: the name runs inward, so the
+   dot stays exactly on its coordinate. */
 .case-audience-section .case-audience-chips > .case-audience-chip {
   position: absolute;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
-  max-width: 14em;
-  padding: 6px 10px;
-  border: 1px solid var(--case-ink);
-  border-radius: 3px;
-  background: var(--surface-soft, #efede9);
-  font-family: var(--type-subtitle-font);
-  font-size: 11px;
-  line-height: 1.3;
-  text-align: center;
-  color: var(--case-ink);
-  transform: translate(-50%, -50%);
-  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
+  max-width: 15em;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--body-latin-font);
+  font-size: 14px;
+  line-height: calc(1em + 2px);
+  text-align: left;
+  color: var(--case-copy);
+  transform: translate(-4px, -50%);
 }
 
-.case-audience-section .case-audience-chips > .case-audience-chip.is-core { background: linear-gradient(rgb(0 17 34 / 0.1), rgb(0 17 34 / 0.1)), color-mix(in srgb, var(--case-accent, #6da7ec) 58%, #ffffff); }
+/* Ink markers, accent field: the same division the survey charts use, and the
+   one thing that stays legible whatever colour a cover gives the accent. */
+.case-audience-section .case-audience-chips > .case-audience-chip::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(0 17 34 / 0.6);
+}
 
-.case-audience-section .case-audience-chips > .case-audience-chip:hover {
-  z-index: 2;
-  box-shadow: 0 8px 18px rgb(0 17 34 / 0.14);
-  transform: translate(-50%, -50%) scale(1.06);
+.case-audience-section .case-audience-chips > .case-audience-chip.is-core {
+  color: var(--case-ink);
+}
+
+.case-audience-section .case-audience-chips > .case-audience-chip.is-core::before {
+  width: 9px;
+  height: 9px;
+  background: var(--case-ink);
+  box-shadow: none;
+}
+
+.case-audience-section .case-audience-chips > .case-audience-chip[data-side="left"] {
+  flex-direction: row-reverse;
+  text-align: right;
+  transform: translate(calc(-100% + 4px), -50%);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .case-audience-axis--x { animation: case-axis-x 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
   .case-audience-axis--y { animation: case-axis-y 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
-  .case-audience-zone { animation: case-zone 0.65s 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
-  .case-audience-section .case-audience-chips > .case-audience-chip { animation: case-chip 0.5s calc(0.65s + var(--i, 0) * 0.09s) cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+  .case-audience-zone { animation: case-zone 0.65s 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+  .case-audience-section .case-audience-chips > .case-audience-chip { animation: case-chip 0.45s calc(0.55s + var(--i, 0) * 0.09s) ease-out backwards; }
 }
 
 @keyframes case-axis-x { from { transform: scaleX(0); } }
 @keyframes case-axis-y { from { transform: scaleY(0); } }
 @keyframes case-zone { from { opacity: 0; clip-path: inset(0 100% 100% 0); } }
-@keyframes case-chip { from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)); } }
+@keyframes case-chip { from { opacity: 0; } }
+
+.case-audience-chip-index { display: none; }
+
+/* The key only carries the map on narrow screens. */
+.case-audience-key { display: none; }
 
 @media (max-width: 900px) {
   .case-audience-copy,
   .case-audience-map { grid-column: 1 / -1; }
-  .case-audience-plane { aspect-ratio: 5 / 4; margin: 40px 58px 44px; }
-  .case-audience-section .case-audience-chips > .case-audience-chip { max-width: 9em; padding: 5px 7px; font-size: 10px; }
+  .case-audience-plane { aspect-ratio: 4 / 3; margin: 34px 54px 36px; }
+  .case-audience-zone-label { font-size: 15px; }
+
+  .case-audience-section .case-audience-chips > .case-audience-chip {
+    gap: 5px;
+    transform: translate(-50%, -50%);
+  }
+
+  .case-audience-section .case-audience-chips > .case-audience-chip[data-side="left"] {
+    flex-direction: row;
+    transform: translate(-50%, -50%);
+  }
+
+  .case-audience-chip-label { display: none; }
+
+  .case-audience-chip-index {
+    display: block;
+    font-family: var(--type-subtitle-font);
+    font-size: 11px;
+    line-height: 1;
+    color: var(--case-ink);
+  }
+
+  .case-audience-section .case-audience-chips > .case-audience-chip::before {
+    width: 6px;
+    height: 6px;
+  }
+
+  .case-audience-key {
+    display: grid;
+    gap: 6px;
+    margin: 26px 0 0;
+    padding: 16px 0 0;
+    border-top: 1px solid rgb(0 17 34 / 0.16);
+    list-style: none;
+    font-family: var(--body-latin-font);
+    font-size: 14px;
+    line-height: calc(1em + 3px);
+    color: var(--case-copy);
+  }
+
+  .case-audience-key-item {
+    display: grid;
+    grid-template-columns: 1.6em minmax(0, 1fr);
+    align-items: baseline;
+  }
+
+  .case-audience-key-item.is-core { color: var(--case-ink); }
+
+  .case-audience-key-item > span {
+    font-family: var(--type-subtitle-font);
+    font-size: 11px;
+    color: rgb(0 17 34 / 0.55);
+  }
 }
 
-@media (max-width: 720px) {
-  .case-point { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+/* A grid whose item count does not divide by its columns ends with one item
+   stranded against the left edge. The last item takes the rest of its row
+   instead, so every row is whole. */
+.case-study-system-grid > :last-child:nth-child(3n + 1),
+.case-study-source-grid > :last-child:nth-child(2n + 1) {
+  grid-column: 1 / -1;
+}
+
+/* A project with its own logo swaps it in for the set title once the lead
+   pins into its band, and swaps back when the lead expands. The type keeps
+   the band's height, so nothing moves as the two cross-fade. */
+.project-preview-head h2.has-project-logo { position: relative; }
+
+.project-preview-title-text,
+.project-preview-logo { transition: opacity 160ms ease; }
+
+.project-preview-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 1.15em;
+  width: auto;
+  max-width: min(100%, 420px);
+  opacity: 0;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-head h2.has-project-logo .project-preview-title-text { opacity: 0; }
+.project-card.is-project-preview[data-project-detail-header-compressed="true"] .project-preview-head h2.has-project-logo .project-preview-logo { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .project-preview-title-text,
+  .project-preview-logo { transition: none; }
 }
 
 /* Single images in a case study never grow past their own pixels or past most
    of the screen: a small or portrait picture sits at its natural proportion
-   instead of being stretched into a frame it does not need. */
+   instead of being stretched into a frame it does not need — and it sits in
+   the middle of that frame, not against its left edge. */
+.case-study-media-section .case-study-image {
+  display: grid;
+  grid-template-columns: fit-content(100%);
+  justify-content: center;
+}
+
 .case-study-media-section .case-study-image img {
   width: auto;
   max-width: 100%;
   max-height: 82vh;
+  margin-inline: auto;
+}
+
+/* The caption belongs to the picture, so it takes the picture's width rather
+   than the window's: contained, it cannot widen the column, and it only keeps
+   the page gutter while the picture itself is running full bleed. */
+.case-study-media-section .case-study-image > figcaption {
+  contain: inline-size;
+  padding-inline: clamp(0px, calc((100% - 92vw) * 100), clamp(20px, 4vw, 78px));
 }
 
 /* Drawer typography: raise English one size without changing the CJK scale.
@@ -272,16 +413,29 @@
   font-size: 25px;
 }
 
-.project-detail-drawer .case-point-label,
-.project-detail-drawer .case-section-tag,
-.project-detail-drawer .case-audience-pole,
-.project-detail-drawer .case-audience-zone > span,
-.project-detail-drawer .case-audience-section .case-audience-chips > .case-audience-chip {
+.project-detail-drawer .case-section-tag {
   font-size: 12px;
 }
 
+.project-detail-drawer .case-audience-pole,
+.project-detail-drawer .case-audience-zone-label em {
+  font-size: 11px;
+}
+
+.project-detail-drawer .case-audience-section .case-audience-chips > .case-audience-chip {
+  font-size: 15px;
+}
+
+.project-detail-drawer .case-audience-zone-label {
+  font-size: 18px;
+}
+
 .project-detail-drawer .case-audience-heading {
-  font-size: 13px;
+  font-size: 22px;
+}
+
+.project-detail-drawer .case-point-label {
+  font-size: 26px;
 }
 
 .project-detail-drawer .case-study-playable-heading a {
@@ -290,7 +444,7 @@
 
 @media (max-width: 900px) {
   .project-detail-drawer .case-audience-section .case-audience-chips > .case-audience-chip {
-    font-size: 11px;
+    font-size: 13px;
   }
 }
 

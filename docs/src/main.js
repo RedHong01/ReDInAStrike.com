@@ -178,6 +178,7 @@ const projects = [
     path: "/butter-beatdown",
     navHash: "game",
     image: "assets/case-study/butter-logo.png",
+    logo: "assets/case-study/butter-logo.png",
     imageFit: "contain",
     imageScale: 0.78,
     mediaBackground: "#f3ead3",
@@ -3028,8 +3029,12 @@ function projectPreviewSummary(project) {
   const knownSummary = framerProjectDetails[project.path]?.summary
   if (knownSummary) return knownSummary
 
+  // Case study summaries are bilingual pairs where the copy was rewritten for
+  // the drawer. The lead is a single line of English, so take that half.
   const caseStudySummary = caseStudyDetails[project.path]?.summary
-  if (caseStudySummary) return caseStudySummary
+  if (caseStudySummary) {
+    return typeof caseStudySummary === "object" ? caseStudySummary.en : caseStudySummary
+  }
 
   const practice = {
     game: "game design",
@@ -3045,6 +3050,15 @@ function projectLeadSide(project) {
   const requestedSide = new URLSearchParams(window.location.search).get("preview-side")
   if (requestedSide === "left" || requestedSide === "right") return requestedSide
   return projects.indexOf(project) % 2 === 0 ? "left" : "right"
+}
+
+// A game that has its own logo shows it in the pinned title band, where the
+// project's name is otherwise set in type. The name stays in the markup for
+// screen readers and for the expanded state.
+function projectHeadTitleMarkup(project) {
+  const title = project.pageTitle || project.displayTitle
+  if (!project.logo) return `<h2>${escapeHtml(title)}</h2>`
+  return `<h2 class="has-project-logo"><span class="project-preview-title-text">${escapeHtml(title)}</span><img class="project-preview-logo" ${imageSourceAttrs(project.logo)} alt="" aria-hidden="true" loading="lazy" decoding="async" /></h2>`
 }
 
 function projectLeadMarkup(project, { detail = false } = {}) {
@@ -3066,7 +3080,7 @@ function projectLeadMarkup(project, { detail = false } = {}) {
       </figure>
       <div class="project-preview-copy">
         <div class="project-preview-head">
-          <h2>${escapeHtml(title)}</h2>
+          ${projectHeadTitleMarkup(project)}
           <p class="project-preview-meta">
             <span class="project-preview-meta-subtitle">${escapeHtml(project.displayTitle)}</span>
             <span class="project-preview-meta-date">${escapeHtml(project.date)}</span>
@@ -3114,7 +3128,7 @@ function projectCard(project, index, loadingIndex = index, options = {}) {
       </div>
       <div class="project-preview-copy" aria-hidden="true">
         <div class="project-preview-head">
-          <h2>${escapeHtml(project.pageTitle)}</h2>
+          ${projectHeadTitleMarkup(project)}
           <p class="project-preview-meta" data-typewriter-skip>
             <span class="project-preview-meta-subtitle">${escapeHtml(project.displayTitle)}</span>
             <span class="project-preview-meta-date">${escapeHtml(project.date)}</span>
@@ -4150,7 +4164,7 @@ function framerProjectDetailMarkup(project, detail) {
             <img ${imageSourceAttrs(detail.leadImage)} alt="${escapeHtml(detail.leadAlt)}" loading="eager" decoding="async" />
           </figure>
           <div>
-            <p>${bilingualText(detail.summary)}</p>
+            <p>${detail.summary && typeof detail.summary === "object" ? caseStudyPair(detail.summary) : bilingualText(detail.summary)}</p>
             <ul>${points}</ul>
           </div>
         </section>
@@ -7569,14 +7583,19 @@ function isProjectDetailStickyHeaderLocked() {
 }
 
 function lockProjectDetailStickyHeader() {
+  // A drawer is an article, so it opens under the compact header: the full
+  // logo lockup belongs to the home grid, and leaving it expanded pushes the
+  // project's own lead down the screen. The header's footprint in flow does
+  // not change (--header-flow-gap backfills the shrink), so this collapses
+  // the header without moving the page under it.
+  // Snap it, rather than animate: the seam frozen below is where the lead
+  // pins, and an in-flight header would leave a gap or an overlap there.
+  setHeaderTarget(1, true)
   const height = Math.max(
     Number(siteState.headerVisualBottom) || 0,
     readHeaderMetrics().compactHeight,
   )
   siteState.detailStickyHeaderBottom = height
-  // Snap any in-flight expand/collapse so the sticky seam cannot keep moving
-  // after the drawer opens.
-  setHeaderTarget(siteState.visualProgress, true)
   setRootStyleProperty("--project-preview-sticky-top", `${height.toFixed(2)}px`)
 }
 

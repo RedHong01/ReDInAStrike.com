@@ -395,8 +395,8 @@ export const bnsGddSections = [
     kind: "question-list",
     title: "Playtest & Game Analysis",
     intro: {
-      en: "The document closes with the course's analysis questions. The first, how well players understood the rules, is answered above from the fourth-round survey. The others stay open in the source, and they still show what this iteration was trying to find out.",
-      zh: "文件最后是课程给出的分析问题。第一个问题，玩家对规则理解得怎么样，已经用第四轮问卷的反馈在上面回答了。其余问题在原稿中仍然留白，但它们本身就说明了这一版想弄清楚什么。",
+      en: "The document closes with a set of analysis questions I wrote for myself. The first, how well players understood the rules, is answered above from the fourth-round survey. The others stay open in the source, and they still show what this iteration was trying to find out.",
+      zh: "文件最后是我给自己列的分析问题。第一个问题，玩家对规则理解得怎么样，已经用第四轮问卷的反馈在上面回答了。其余问题在原稿中仍然留白，但它们本身就说明了这一版想弄清楚什么。",
     },
     source: "https://docs.google.com/forms/d/1W9eUi115_sYqJcP5bP7Kbc8h68DsBsULKNPoIEV7_l0",
     groups: [

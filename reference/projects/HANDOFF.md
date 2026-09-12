@@ -176,6 +176,19 @@
 - 13 张定位图：两种宽度下标签无重叠、无越界、不压目标区名字。
 - 控制台报错都是原有的：Curtain 和 Slow'em Down 的 Unity WebGL 构建、SBH/Instrument 的 Figma 原型嵌入（403）。
 
+## 第三轮：版式与导航（2026-09-11 下午，Claude）
+
+- **抽屉内的顶部导航保持迷你版**：`lockProjectDetailStickyHeader()`（`src/main.js`）在冻结吸顶接缝之前先 `setHeaderTarget(1, true)`。页面不会因此回流——header 的视觉高度变小，但它在文档流里的占位由 `--header-flow-gap` 补齐。从首页点开、从网址直接进入，都是 78px 的迷你态；关闭抽屉回到首页顶部时由既有的 `setHeaderTarget(0, true)` 恢复。
+- **PLO 元素改成大标题**：hero 里的 Iteration / My role / Design goal（`.case-point-label`）从 11px mono 小标签改成 25–26px 衬线大标题（抽屉里 26px），上下用细线分隔；"Who It Is For" 里的 Player Experience Goal / Target Audience 改成 21–22px 衬线标题。
+- **定位图重画成网站自己的图表语言**（不再像参考图）：细线坐标轴（无箭头）、mono 端点标签、墨色圆点 + 直接排在旁边的衬线名字（核心受众实心点、其他空心点），目标区改成带色块的填充（无描边、无圆角），游戏自己的名字排在色块内部、由 `zoneLabelCorner()` 选择碰撞最少的角落。窄屏（≤900px）改为"点上标号 + 下方图例"，避免标签互相压住。13 张图在 1440 和 600 宽下都无重叠、无越界。
+- **单张图片居中**：`.case-study-media-section .case-study-image img` 加 `margin-inline:auto`。之前限制最大高度后，竖图会贴在整幅画面的左边（Butter Beatdown 的两张控制器照、Shroom Pot 的试玩现场照）。
+- **章节标签占整行**：`.case-section-tag` 加 `grid-column: 1 / -1`。此前在 copy-grid 这种"整个 section 本身就是两列网格"的版块里，标签会占掉第一列，把左右两栏挤成对角线（Build and Shoot 的 Playtest · version two、Curtain 的 The House）。
+- **网格不再留孤儿**：`.case-study-system-grid`（3 列）与 `.case-study-source-grid`（2 列）里落单的最后一项改为占满整行（`/bns_gdd` 的 7 格网格）。
+- **项目 logo 进标题带**：项目数据里新增 `logo` 字段，`projectHeadTitleMarkup()` 会在标题里同时输出文字和 logo；吸顶压缩状态下交叉淡出成 logo。目前只有 Butter Beatdown 2 有独立 logo 素材（`assets/case-study/butter-logo.png`），其他项目要么没有 logo，要么 logo 是画在封面图里的（DAD 的像素字），需要素材才能加。
+- **修掉回归**：`projectPreviewSummary()` 之前把双语 `{en,zh}` 摘要直接塞进模板，卡片标题带下显示 `[object Object]`（Butter、Curtain、To Be Chosen、SushiGo、Squirrel、bns_gdd 等）；现在取英文那一半。同一处 framer-derived 渲染器也做了同样处理。
+- **清掉最后的课程措辞**：SBH 中文里的"第 1/4/5/10 周"和 `/bns_gdd` 的 "the course's analysis questions"。
+- 验收：Playwright 无头，1440 与 600 宽，全部 20 个抽屉 + 首页——没有 `[object Object]`、没有 undefined、没有繁体字、没有课程措辞；没有横向溢出；13 张定位图无碰撞；抽屉内 header 恒为 78px。`gdd-plates`（Pitchfork / To Be Chosen 幻灯片 / Untitled Sans 小册子）被自动检查报成"落单"的是错报——那是有意的错落排版。
+
 ## 还没做 / 需要 Red 决定
 
 - SushiGo：把 Leap Motion 旧版和 Vision Pro 新版并排展示需要旧版素材；Drive 里的 `Susan_Conred_Red_Sushi_Go Playtest Side-by-Side.mp4` 有队友和玩家出镜，要 Red 同意才能放。

@@ -444,17 +444,83 @@ function referenceLinks(section, { escapeHtml, gddPair }) {
 // casual ↔ hardcore up. The project's target is a shaded zone; neighbouring
 // player groups sit as chips, filled when they are the core of the audience.
 // Coordinates run from -1 to 1 on both axes.
+// The game's own name sits in whichever corner of its field leaves the most
+// room, measured as boxes rather than points: a name is much wider than it is
+// tall, and so is every audience label beside it. Units are plane fractions
+// against a 2:1 plane roughly 750px wide, which is what the layout gives it.
+const PLANE_W = 750 // the plane is ~750 × 375 in the drawer at desktop width
+const PLANE_H = 375
+const CHAR_W = 7.6 // average glyph width of the 15px label face
+const LINE_H = 20
+
+// Everything below works in the map's own −1…1 coordinates, so a box is sized
+// as a fraction of the plane and doubled to span that range.
+const spanX = (px) => (Math.min(px, 220) / PLANE_W) * 2
+const spanY = (px) => (px / PLANE_H) * 2
+
+function groupSide(group) {
+  return group.side || (group.x > 0.24 ? "left" : "right")
+}
+
+function groupLabelBox(group) {
+  const w = spanX(CHAR_W * String(group.label).length + 24)
+  const h = spanY(LINE_H)
+  const left = groupSide(group) === "left" ? group.x - w : group.x
+  return { x0: left, x1: left + w, y0: group.y - h / 2, y1: group.y + h / 2 }
+}
+
+function zoneLabelBox(zone, corner) {
+  // "THIS GAME" runs in front of the name on the same line, so the box is one
+  // line tall and about 70px wider than the name itself.
+  const w = spanX(CHAR_W * String(zone.label).length + 86)
+  const h = spanY(LINE_H + 8)
+  const x0 = corner.endsWith("l") ? zone.x0 + spanX(12) : zone.x1 - spanX(12) - w
+  const y1 = corner.startsWith("t") ? zone.y1 - spanY(10) : zone.y0 + spanY(10) + h
+  return { x0, x1: x0 + w, y0: y1 - h, y1 }
+}
+
+function overlapArea(a, b) {
+  const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)
+  const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0)
+  return w > 0 && h > 0 ? w * h : 0
+}
+
+// The game's own name sits in whichever corner of its field collides least
+// with the audience labels, so the two never have to share the same pixels.
+function zoneLabelCorner(zone, groups) {
+  const boxes = groups.map(groupLabelBox)
+  let best = "tl"
+  let bestCost = Infinity
+  for (const corner of ["tl", "bl", "tr", "br"]) {
+    const box = zoneLabelBox(zone, corner)
+    const cost = boxes.reduce((sum, other) => sum + overlapArea(box, other), 0)
+    if (cost < bestCost - 0.000001) {
+      bestCost = cost
+      best = corner
+    }
+  }
+  return best
+}
+
 function audience(section, { escapeHtml, gddPair }) {
   const map = section.map
   const pct = (value) => Math.round(((value + 1) / 2) * 1000) / 10
   const zone = map.target
   const [solo, social] = map.x || ["Solo", "Social"]
   const [casual, hardcore] = map.y || ["Casual", "Hardcore"]
+  // Each group is a point with its name set beside it, the way the survey
+  // charts label a bar. The name always runs towards the middle of the plane,
+  // so a point near an edge cannot push its own label off the figure.
   const chips = map.groups
     .map(
       (group, index) =>
-        `<li class="case-audience-chip${group.core ? " is-core" : ""}" style="left:${pct(group.x)}%;top:${100 - pct(group.y)}%;--i:${index}">${escapeHtml(group.label)}</li>`,
+        `<li class="case-audience-chip${group.core ? " is-core" : ""}" data-side="${groupSide(group)}" style="left:${pct(group.x)}%;top:${100 - pct(group.y)}%;--i:${index}"><span class="case-audience-chip-index" aria-hidden="true">${index + 1}</span><span class="case-audience-chip-label">${escapeHtml(group.label)}</span></li>`,
     )
+    .join("")
+  // Narrow screens cannot hold free-set labels without them colliding, so the
+  // points keep numbers there and the names move into a key under the plane.
+  const key = map.groups
+    .map((group, index) => `<li class="case-audience-key-item${group.core ? " is-core" : ""}"><span>${index + 1}</span>${escapeHtml(group.label)}</li>`)
     .join("")
   const plane = `
       <figure class="case-audience-map" aria-label="${escapeHtml(map.alt || `Target audience map for ${zone.label}`)}">
@@ -465,9 +531,10 @@ function audience(section, { escapeHtml, gddPair }) {
           <span class="case-audience-pole case-audience-pole--bottom">${escapeHtml(casual)}</span>
           <span class="case-audience-pole case-audience-pole--left">${escapeHtml(solo)}</span>
           <span class="case-audience-pole case-audience-pole--right">${escapeHtml(social)}</span>
-          <div class="case-audience-zone" style="left:${pct(zone.x0)}%;top:${100 - pct(zone.y1)}%;width:${pct(zone.x1) - pct(zone.x0)}%;height:${pct(zone.y1) - pct(zone.y0)}%"><span>${escapeHtml(zone.label)}</span></div>
+          <div class="case-audience-zone" data-corner="${zoneLabelCorner(zone, map.groups)}" style="left:${pct(zone.x0)}%;top:${100 - pct(zone.y1)}%;width:${pct(zone.x1) - pct(zone.x0)}%;height:${pct(zone.y1) - pct(zone.y0)}%"><span class="case-audience-zone-label"><em>This game</em>${escapeHtml(zone.label)}</span></div>
           <ul class="case-audience-chips">${chips}</ul>
         </div>
+        <ol class="case-audience-key">${key}</ol>
       </figure>`
   const copy = `
       <div class="case-audience-copy">

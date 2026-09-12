@@ -482,7 +482,7 @@ export const sbhSections = [
     title: "Thirty Levels and the Grind",
     intro: pair(
       "The level curve and rarity have to be read together: a 10% drop chance doesn’t mean the item shows up on the tenth try. Our sheet turns the curve into EXP and the grind into hours.",
-      "第 4 周把等级曲线和稀有度放在一起讲，还特别提醒：10% 的掉率，不代表第十次一定会掉。我们的数据表把等级曲线变成经验值，也把“刷”变成了小时。",
+      "等级曲线和稀有度必须放在一起读：10% 的掉率，不代表第十次一定会掉。我们的数据表把等级曲线变成经验值，也把“刷”变成了小时。",
     ),
     levels: {
       title: "EXP needed to reach each level",
@@ -540,7 +540,7 @@ export const sbhSections = [
     title: "Year One, Week by Week",
     intro: pair(
       "I designed live ops as a certainty: events have to keep coming, so their frameworks are built up front. Our year starts in April and resets every Thursday. A DLC lands on the first reset of each quarter, thirteen weeks apart, and Halloween gets the one event we designed in full.",
-      "第 5 周的第一句是“为长线运营的必然性而设计”：活动必须源源不断，所以框架要提前搭好。我们的一年从四月开始，每周四重置。每个季度的第一次重置都会上线一个 DLC，间隔十三周；万圣节则拿到了我们唯一完整设计过的活动。",
+      "我把长线运营当作一种必然来设计：活动必须源源不断，所以框架要提前搭好。我们的一年从四月开始，每周四重置。每个季度的第一次重置都会上线一个 DLC，间隔十三周；万圣节则拿到了我们唯一完整设计过的活动。",
     ),
     ranges: weekRanges,
     special: [
@@ -609,7 +609,7 @@ export const sbhSections = [
       { title: "Raids and faction wars", en: "Four-player dungeons and raids of eight or more, built around tank, damage and support. Two player factions fight over resource-rich planets and have to keep defending them. Raids refresh weekly, dungeons daily.", zh: "四人地牢和八人以上的团队副本，围绕坦克、输出和辅助来设计。两个玩家阵营争夺资源丰富的星球，还得一直守住它们。团队副本每周刷新，地牢每天刷新。" },
       { title: "The trading hub", en: "A Galactic Trading Hub with vendors, crafting stations, hunter-to-hunter trade and the hunt boards. High-level players can craft for new ones there, and rare gear is on show: the metagame, taught by looking.", zh: "银河交易中心里有商人、制作台、猎人之间的交易，以及悬赏板。高等级玩家可以在那里替新手制作装备，稀有装备也在那里被人看见：元游戏，看着就能学会。" },
       { title: "Teaching the chase", en: "A monster codex lists every drop and its odds, so a player can plan a farm. Leaderboards and group dungeons put the winning builds on display as the next target.", zh: "怪物图鉴列出每一种掉落和它的概率，玩家可以据此规划要刷什么。排行榜和组队地牢把最强的构筑展示出来，成为下一个追逐的目标。" },
-      { title: "Money", en: "Free to play and cosmetic only, a rule the premium-currency screen states outright. Packs sell 500 ₿ for $4.99, 1,300 for $9.99 and 2,800 for $19.99, and the season pass costs 1,200, so the $9.99 pack is the smallest single purchase that covers it. Every offer should be fair to the player, and that pairing is the one I would question first.", zh: "免费游玩、只卖外观，高级货币界面上把这条规则写得清清楚楚。礼包是 4.99 美元 500 ₿、9.99 美元 1,300、19.99 美元 2,800；赛季通行证要 1,200，所以 9.99 美元的礼包，是能单次买够的最小一档。第 5 周对每一种优惠都问过：这样设计合乎道德吗？如果要追问，我会先问这一组搭配。" },
+      { title: "Money", en: "Free to play and cosmetic only, a rule the premium-currency screen states outright. Packs sell 500 ₿ for $4.99, 1,300 for $9.99 and 2,800 for $19.99, and the season pass costs 1,200, so the $9.99 pack is the smallest single purchase that covers it. Every offer should be fair to the player, and that pairing is the one I would question first.", zh: "免费游玩、只卖外观，高级货币界面上把这条规则写得清清楚楚。礼包是 4.99 美元 500 ₿、9.99 美元 1,300、19.99 美元 2,800；赛季通行证要 1,200，所以 9.99 美元的礼包，是能单次买够的最小一档。每一种优惠都该对玩家公平，如果要追问，我会先问这一组搭配。" },
       { title: "A team and a date", en: "The pitch staffs three designers, eight in tech, six in art and one in audio, with 70% on the game and its DLC and 30% on live ops, and cites Warframe’s 200 million a year as the free-to-play comparison. First playable April 2029, alpha December 2029, open beta September 2030, launch March 2031.", zh: "提案里配置了三名设计、八名技术、六名美术和一名音频，70% 的人力做本体和 DLC，30% 做长线运营，并以 Warframe 每年两亿的收入作为免费游戏的参照。2029 年 4 月出第一个可玩版本，2029 年 12 月 Alpha，2030 年 9 月公开测试，2031 年 3 月上线。" },
     ],
   },
@@ -634,11 +634,11 @@ export const sbhSections = [
       "这一页的所有内容都来自下面这些文件。数字由网站 reference 文件夹里的脚本重新推导，每一个都能对照数据表核查。",
     ),
     blocks: [
-      { title: "Reference decks", en: "The lecture decks we worked from: the pitch, then economy, attributes, level curve, rarity and metagame, then live ops, events, holidays, monetization, the GDD, the persona and the video.", zh: "2026 年春季 Game as Service：第 1 周的课件（四个项目、五个学习目标、八页提案），第 4 周（经济、属性、等级曲线、稀有度、元游戏），第 5 周（长线运营、活动、节日、商业化、GDD、用户画像、视频）。" },
-      { title: "Decks", en: "MMORPG Slides (3/12), the 3/27 deck, Space Bounty Hunters_Pitch as PDF and PPTX (4/9), and the final Slides Space Bounty Hunters (4/16).", zh: "MMORPG Slides（3/12）、第 10 周的演示文稿（3/27）、Space Bounty Hunters_Pitch 的 PDF 与 PPTX（4/9），以及最终版 Slides Space Bounty Hunters（4/16）。" },
+      { title: "Reference decks", en: "The lecture decks we worked from: the pitch, then economy, attributes, level curve, rarity and metagame, then live ops, events, holidays, monetization, the GDD, the persona and the video.", zh: "我们参考的讲义：提案，经济、属性、等级曲线、稀有度与元游戏，以及长线运营、活动、节日、商业化、GDD、用户画像和视频。" },
+      { title: "Decks", en: "MMORPG Slides (3/12), the 3/27 deck, Space Bounty Hunters_Pitch as PDF and PPTX (4/9), and the final Slides Space Bounty Hunters (4/16).", zh: "MMORPG Slides（3/12）、3/27 的演示文稿、Space Bounty Hunters_Pitch 的 PDF 与 PPTX（4/9），以及最终版 Slides Space Bounty Hunters（4/16）。" },
       { title: "Numbers", en: "Data Sheets Space Bounty Hunters, seven tabs, last edited 4/23, and my 3/18 download of it. Every number on this page is re-derived from them.", zh: "Data Sheets Space Bounty Hunters，七个分页，最后编辑于 4/23，以及我在 3/18 下载的那一份。这一页上的每个数字都是从它们重新推算出来的。" },
       { title: "Design", en: "GDD Space Bounty Hunters (4/16 to 4/23) and our Figma file, page “Project 2: Space Bounty Hunters”: the screens, the player-journey flow chart and our sticky notes.", zh: "GDD Space Bounty Hunters（4/16 至 4/23），以及我们的 Figma 文件中“Project 2: Space Bounty Hunters”页面：界面、玩家旅程流程图和我们的便签。" },
-      { title: "Playtest", en: "The ten playtest questions, the feedback slides, and Qualitative Playtest Summaries: five testers, seven questions each.", zh: "第 10 周的十个问题、反馈页，以及 Qualitative Playtest Summaries：五名测试者，每人七个问题。" },
+      { title: "Playtest", en: "The ten playtest questions, the feedback slides, and Qualitative Playtest Summaries: five testers, seven questions each.", zh: "十个试玩问题、反馈页，以及 Qualitative Playtest Summaries：五名测试者，每人七个问题。" },
       { title: "Recording and art", en: "SpaceBountyHunters.mov (4:34, uploaded 4/23) and my SpaceBountyHuntersDesign.ai with its SVG exports (3/18 to 3/19).", zh: "SpaceBountyHunters.mov（4 分 34 秒，4/23 上传），以及我的 SpaceBountyHuntersDesign.ai 和它导出的 SVG（3/18 至 3/19）。" },
     ],
   },

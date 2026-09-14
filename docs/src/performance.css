@@ -1,4 +1,5 @@
 html.red-perf-pass-1 {
+  --red-render-quality: 1;
   --perf-layout-logo-size: 150px;
   --perf-layout-header-height: 200px;
   --logo-width: calc(var(--perf-layout-logo-size) * 0.7776);

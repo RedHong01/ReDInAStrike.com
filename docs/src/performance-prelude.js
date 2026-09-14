@@ -41,7 +41,17 @@
   const nativeGetBoundingClientRect = Element.prototype.getBoundingClientRect
   const nativeAddEventListener = EventTarget.prototype.addEventListener
   const nativeRemoveEventListener = EventTarget.prototype.removeEventListener
-  const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window)
+  const renderNow = () => window.performance?.now?.() ?? Date.now()
+  // A few embedded preview shells expose the DOM but omit RAF. Keep the
+  // renderer alive there with a timer clock; real browsers always take the
+  // native path.
+  const nativeRequestAnimationFrame = (
+    window.requestAnimationFrame ||
+    ((callback) => window.setTimeout(() => callback(renderNow()), 16))
+  ).bind(window)
+  const nativeCancelAnimationFrame = (
+    window.cancelAnimationFrame || window.clearTimeout
+  )?.bind(window)
   const rootStyle = document.documentElement.style
   const pendingHeaderProperties = new Map()
   const headerStyleCache = new Map()
@@ -56,6 +66,94 @@
   let appMutationObserver = null
   let footerWakeObserver = null
   let footerWakeTarget = null
+
+  // One shared render clock for every custom effect.  The site has several
+  // independent pixel and layout systems; letting each one own a native RAF
+  // makes them wake and paint out of phase.  This queue preserves the normal
+  // RAF contract while guaranteeing one browser callback per frame.
+  let renderFrame = 0
+  let renderId = 0
+  let renderQueue = new Map()
+  const renderStats = {
+    frames: 0,
+    callbacks: 0,
+    lastCostMs: 0,
+    averageCostMs: 0,
+    quality: 1,
+  }
+  nativeSetProperty.call(rootStyle, "--red-render-quality", "1")
+  document.documentElement.dataset.renderQuality = "high"
+
+  function publishRenderQuality(next) {
+    const quality = Math.max(0.55, Math.min(1, next))
+    if (Math.abs(quality - renderStats.quality) < 0.02) return
+    renderStats.quality = quality
+    nativeSetProperty.call(rootStyle, "--red-render-quality", quality.toFixed(2))
+    document.documentElement.dataset.renderQuality = quality >= 0.92
+      ? "high"
+      : quality >= 0.72 ? "balanced" : "economy"
+  }
+
+  function flushRenderFrame(now) {
+    renderFrame = 0
+    if (document.hidden) {
+      renderQueue.clear()
+      return
+    }
+    const queue = renderQueue
+    renderQueue = new Map()
+    const started = renderNow()
+    for (const [id, callback] of queue) {
+      if (typeof callback !== "function") continue
+      renderStats.callbacks += 1
+      try { callback(now) } catch (error) { window.setTimeout(() => { throw error }, 0) }
+      // A callback may cancel a sibling callback while this frame is running.
+      // The snapshot queue keeps this frame deterministic and cheap to walk.
+      void id
+    }
+    const cost = renderNow() - started
+    renderStats.frames += 1
+    renderStats.lastCostMs = Math.round(cost * 100) / 100
+    renderStats.averageCostMs = renderStats.averageCostMs
+      ? renderStats.averageCostMs * 0.9 + cost * 0.1
+      : cost
+    if (cost > 12) publishRenderQuality(renderStats.quality - 0.08)
+    else if (cost < 7) publishRenderQuality(renderStats.quality + 0.025)
+    if (renderQueue.size && !renderFrame) renderFrame = nativeRequestAnimationFrame(flushRenderFrame)
+  }
+
+  function requestRenderFrame(callback) {
+    const callbackName = typeof callback === "function" ? callback.name : ""
+    if (!perfState.footerActive && FOOTER_FRAME_CALLBACKS.has(callbackName)) {
+      perfState.suppressedFooterFrames += 1
+      return 0
+    }
+    if (typeof callback !== "function") return 0
+    const id = ++renderId
+    renderQueue.set(id, callback)
+    if (!renderFrame && !document.hidden) renderFrame = nativeRequestAnimationFrame(flushRenderFrame)
+    return id
+  }
+
+  function cancelRenderFrame(id) {
+    if (renderQueue.delete(id)) return
+    nativeCancelAnimationFrame?.(id)
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) return
+    renderQueue.clear()
+    if (renderFrame) nativeCancelAnimationFrame?.(renderFrame)
+    renderFrame = 0
+  }, { passive: true })
+
+  window.__RED_RENDER_KERNEL__ = Object.freeze({
+    version: 1,
+    request: requestRenderFrame,
+    cancel: cancelRenderFrame,
+    stats: renderStats,
+    get quality() { return renderStats.quality },
+  })
 
   const HEADER_ONLY_PROPERTIES = new Set([
     "--nav-scale",
@@ -167,14 +265,8 @@
     return nativeSetProperty.call(this, name, value, priority)
   }
 
-  window.requestAnimationFrame = function performanceScopedAnimationFrame(callback) {
-    const callbackName = typeof callback === "function" ? callback.name : ""
-    if (!perfState.footerActive && FOOTER_FRAME_CALLBACKS.has(callbackName)) {
-      perfState.suppressedFooterFrames += 1
-      return 0
-    }
-    return nativeRequestAnimationFrame(callback)
-  }
+  window.requestAnimationFrame = requestRenderFrame
+  window.cancelAnimationFrame = cancelRenderFrame
 
   function isProjectRuleTarget(element) {
     if (!element?.classList) return false

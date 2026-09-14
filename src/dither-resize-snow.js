@@ -356,7 +356,8 @@ function drawState(state, now) {
     cancelState(card)
     return
   }
-  if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS) return
+  const quality = Math.max(0.55, Math.min(1, window.__RED_RENDER_KERNEL__?.quality || 1))
+  if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS / quality) return
   state.lastDraw = now
 
   const raw = clamp((now - startTime) / Math.max(1, state.durationMs || RESIZE_DURATION_MS))

@@ -1917,7 +1917,8 @@ function drawState(state, now) {
     cancelCard(card)
     return
   }
-  if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS) return
+  const quality = Math.max(0.55, Math.min(1, window.__RED_RENDER_KERNEL__?.quality || 1))
+  if (state.lastDraw && now - state.lastDraw < TARGET_FRAME_MS / quality) return
   state.lastDraw = now
 
   const elapsed = now - startTime

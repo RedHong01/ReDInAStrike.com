@@ -966,6 +966,10 @@ const siteState = {
   projectPreviewExitGhosts: new Set(),
   projectPreviewAnchorFrame: 0,
   projectPreviewAnchorToken: 0,
+  projectPreviewScrollFrame: 0,
+  projectPreviewScrollToken: 0,
+  projectPreviewScrollCard: null,
+  projectPreviewScrollPreviousBehavior: null,
   scrollDirection: 1,
   projectDetailDrawer: null,
   projectDetailHeaderProgress: Number.NaN,
@@ -8313,12 +8317,12 @@ function scheduleProjectPreviewTransitionIntent(card, expanded, target = null) {
 
 function flushProjectPreviewTransitionIntent() {
   const intent = siteState.projectPreviewTransitionIntent
-  if (!intent || document.documentElement.dataset.projectPreviewTransition ||
+  if (!intent || siteState.projectPreviewScrollCard || document.documentElement.dataset.projectPreviewTransition ||
       activeProjectDetailDrawer()?.element.dataset.drawerState === "closing") return
   siteState.projectPreviewTransitionIntent = null
   if (!intent.card.isConnected) return
   if (intent.expanded && activeProjectPreview() !== intent.card) {
-    setProjectPreview(intent.card, true)
+    requestProjectPreviewExpansion(intent.card)
     if (intent.target) {
       scheduleProjectPreviewTransitionIntent(intent.card, true, intent.target)
       flushProjectPreviewTransitionIntent()
@@ -9436,6 +9440,141 @@ function cancelProjectPreviewAnchor() {
   siteState.projectPreviewAnchorFrame = 0
 }
 
+function cancelProjectPreviewScrollMotion() {
+  const wasCentering = Boolean(siteState.projectPreviewScrollCard)
+  if (siteState.projectPreviewScrollFrame) {
+    cancelAnimationFrame(siteState.projectPreviewScrollFrame)
+    siteState.projectPreviewScrollFrame = 0
+  }
+  siteState.projectPreviewScrollToken += 1
+  siteState.projectPreviewScrollCard = null
+  if (wasCentering) siteState.projectPreviewTransitionIntent = null
+  restoreProjectPreviewScrollBehavior()
+  delete document.documentElement.dataset.projectPreviewScrollMotion
+}
+
+function restoreProjectPreviewScrollBehavior() {
+  if (siteState.projectPreviewScrollPreviousBehavior === null) return
+  document.documentElement.style.scrollBehavior = siteState.projectPreviewScrollPreviousBehavior
+  siteState.projectPreviewScrollPreviousBehavior = null
+}
+
+function projectPreviewCardCenterTargetY(card) {
+  if (!card?.isConnected) return null
+  const rect = card.getBoundingClientRect()
+  if (!Number.isFinite(rect.top) || rect.height <= 0) return null
+
+  const viewportHeight = Math.max(
+    window.innerHeight || 0,
+    document.documentElement.clientHeight || 0,
+    1,
+  )
+  // Keep the card in the readable band below the site chrome. During the
+  // pre-expand scroll the header may compact, so this is recalculated every
+  // frame instead of locking the card to a stale top offset.
+  const headerBottom = clamp(
+    Math.max(
+      projectDetailPinnedHeaderBottom() || 0,
+      siteState.headerVisualBottom || 0,
+      readHeaderMetrics().compactHeight || 0,
+    ),
+    0,
+    Math.max(0, viewportHeight - 1),
+  )
+  const readableCenter = headerBottom + (viewportHeight - headerBottom) * 0.5
+  const scrollY = window.scrollY || window.pageYOffset || 0
+  return clamp(
+    scrollY + rect.top + rect.height * 0.5 - readableCenter,
+    0,
+    pageMaxScrollY(),
+  )
+}
+
+function smoothScrollProjectPreviewCardToCenter(card, onComplete) {
+  const targetY = projectPreviewCardCenterTargetY(card)
+  if (!Number.isFinite(targetY)) {
+    onComplete?.()
+    return
+  }
+
+  cancelProjectPreviewScrollMotion()
+  cancelProjectPreviewAnchor()
+  cancelProjectDetailScrollMotion()
+  // A section-scroll or the scroll magnet must not compete with the
+  // intentional centring pass. Both can otherwise rewrite scrollY between
+  // frames and make the card appear to hesitate before preview starts.
+  const suppressDuration = 620 + projectPreviewSurfaceDurationMs() + 400
+  cancelSectionScroll({ suppressMagnet: suppressDuration })
+  window.__RED_SCROLL_MAGNET__?.cancel?.({ suppress: suppressDuration })
+  // scrollTo(auto) otherwise inherits html's smooth scrolling and starts a
+  // second native animation for every RAF. Complete the actual scroll here,
+  // before preview reflow, instead of merely scheduling its destination.
+  siteState.projectPreviewScrollPreviousBehavior = document.documentElement.style.scrollBehavior
+  document.documentElement.style.scrollBehavior = "auto"
+  const token = siteState.projectPreviewScrollToken
+  siteState.projectPreviewScrollCard = card
+  const startY = window.scrollY || window.pageYOffset || 0
+  const distance = targetY - startY
+  const duration = prefersReducedMotion()
+    ? 1
+    : clamp(220 + Math.abs(distance) * 0.18, 220, 620)
+
+  const finish = () => {
+    if (token !== siteState.projectPreviewScrollToken) return
+    const finalTarget = projectPreviewCardCenterTargetY(card)
+    if (Number.isFinite(finalTarget)) {
+      window.scrollTo({ top: finalTarget, left: 0, behavior: "auto" })
+    }
+    siteState.projectPreviewScrollFrame = 0
+    siteState.projectPreviewScrollCard = null
+    restoreProjectPreviewScrollBehavior()
+    delete document.documentElement.dataset.projectPreviewScrollMotion
+    syncScrollDrivenVisuals({ publishMoving: false })
+    onComplete?.()
+  }
+
+  if (Math.abs(distance) <= 1.5 || duration <= 1) {
+    finish()
+    return
+  }
+
+  document.documentElement.dataset.projectPreviewScrollMotion = "moving"
+  const startedAt = performance.now()
+  const frame = (time) => {
+    if (token !== siteState.projectPreviewScrollToken) return
+    if (!card.isConnected) { cancelProjectPreviewScrollMotion(); return }
+    const raw = clamp((time - startedAt) / duration, 0, 1)
+    const eased = smoothstep(raw)
+    const liveTarget = projectPreviewCardCenterTargetY(card) ?? targetY
+    window.scrollTo({
+      top: clamp(startY + (liveTarget - startY) * eased, 0, pageMaxScrollY()),
+      left: 0,
+      behavior: "auto",
+    })
+    siteState.lastScrollY = window.scrollY || window.pageYOffset || 0
+    syncScrollDrivenVisuals({ publishMoving: true })
+    if (raw >= 1) {
+      finish()
+      return
+    }
+    siteState.projectPreviewScrollFrame = requestAnimationFrame(frame)
+  }
+  siteState.projectPreviewScrollFrame = requestAnimationFrame(frame)
+}
+
+function requestProjectPreviewExpansion(card) {
+  smoothScrollProjectPreviewCardToCenter(card, () => {
+    if (!card.isConnected || card.classList.contains("is-project-preview")) return
+    // A second click while centring still means "open the article". Keep
+    // that intent across the preview's cleanup, then let the existing queue
+    // wait for the full-bleed reveal before opening the drawer.
+    const pending = siteState.projectPreviewTransitionIntent
+    setProjectPreview(card, true)
+    if (pending) siteState.projectPreviewTransitionIntent = pending
+    flushProjectPreviewTransitionIntent()
+  })
+}
+
 function startProjectPreviewAnchor(card, sourceTop, headerHeight) {
   if (!card?.isConnected || prefersReducedMotion()) return
   if (!Number.isFinite(sourceTop) || !Number.isFinite(headerHeight)) return
@@ -9520,14 +9659,18 @@ function setProjectPreview(card, expanded) {
   }
   if (expanded ? current === card : current !== card) return
   cancelProjectPreviewAnchor()
+  cancelProjectPreviewScrollMotion()
   const drawer = activeProjectDetailDrawer()
   if (drawer && !expanded) { closeProjectDetailWithPreview(); return }
   const motionId = ++siteState.projectPreviewMotionId
   clearProjectPreviewExitGhosts()
-  // Read the actual clicked card and the outgoing paint BEFORE removing the
-  // article. One synchronous layout transaction then commits the new state
-  // and restores this viewport anchor, before the browser paints a frame.
-  const switchAnchor = drawer && expanded && drawer.card !== card
+  // Both an article and a full-bleed preview change the catalogue's height
+  // when the previous card closes. Preserve the newly centred card across
+  // either reflow, not only across drawer removal.
+  const closesContentAbove = current && Boolean(
+    current.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING,
+  )
+  const switchAnchor = expanded && current && current !== card && (drawer || closesContentAbove)
     ? { element: card, top: card.getClientRects()[0]?.top } : null
   const outgoing = expanded && current && current !== card && !prefersReducedMotion()
     ? createProjectPreviewExitGhost(current, { viewportPinned: Boolean(drawer) }) : null
@@ -9966,6 +10109,7 @@ function dismissProjectPreview(event) {
 
 function handleProjectPreviewKeydown(event) {
   if (event.key !== "Escape") return
+  cancelProjectPreviewScrollMotion()
   if (activeProjectDetailDrawer()) {
     event.preventDefault()
     const drawerState = activeProjectDetailDrawer()
@@ -10003,6 +10147,12 @@ function handleRouteLinkClick(event) {
   }
 
   const projectCard = link.closest?.("[data-project-card]") || null
+  if (projectCard && siteState.projectPreviewScrollCard === projectCard) {
+    event.preventDefault()
+    event.stopPropagation()
+    scheduleProjectPreviewTransitionIntent(projectCard, true, target)
+    return
+  }
   if (projectCard && (document.documentElement.hasAttribute("data-project-preview-transition") ||
       activeProjectDetailDrawer()?.element.dataset.drawerState === "closing")) {
     event.preventDefault()
@@ -10016,7 +10166,11 @@ function handleRouteLinkClick(event) {
   if (projectCard && target.path !== routeFromLocation() && !projectCard.classList.contains("is-project-preview")) {
     event.preventDefault()
     event.stopPropagation()
-    setProjectPreview(projectCard, true)
+    // Preserve the card's original grid column while the catalogue glides it
+    // into the reading band. Only after that motion settles do we switch the
+    // row to its sticky/full-bleed preview layout; this avoids the clicked
+    // card reflowing into the next row before it becomes sticky.
+    requestProjectPreviewExpansion(projectCard)
     return
   }
 
@@ -10112,6 +10266,7 @@ function interruptProjectProgrammaticScroll() {
   // Trackpad momentum may arrive after a click. It transfers scrolling to
   // the user, while the mounted preview still owns its reveal/retract.
   cancelProjectPreviewAnchor()
+  cancelProjectPreviewScrollMotion()
   cancelProjectDetailScrollMotion()
 }
 window.addEventListener("wheel", interruptProjectProgrammaticScroll, { passive: true })

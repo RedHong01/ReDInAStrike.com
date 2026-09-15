@@ -386,6 +386,10 @@ const drawerSectionRailState = {
   scrollHandler: null, resizeHandler: null, resizeObserver: null, syncFrame: 0,
 }
 
+// Temporary product toggle: keep the drawer overview rail implementation in
+// place while disabling its mount until the placement is signed off.
+const DRAWER_SECTION_RAIL_ENABLED = false
+
 function drawerSectionRailSections(drawer) {
   if (!drawer) return []
   const selector = "section.framer-case-section, section.gdd-section, section.case-section, section.case-study-flow-section"
@@ -453,6 +457,14 @@ function syncDrawerSectionPreviewRail() {
   if (brandRect) {
     state.rail.style.left = `${brandRect.left - containingRect.left}px`
   }
+  // `contain: layout` on the grid row makes fixed descendants resolve in the
+  // row's coordinate space. Convert viewport centre to that local space.
+  state.rail.style.top = `${innerHeight / 2 - containingRect.top}px`
+  const drawerRect = drawer.getBoundingClientRect()
+  const viewportVisible = drawerRect.bottom > 0 && drawerRect.top < innerHeight
+  state.rail.toggleAttribute("data-outside", !viewportVisible)
+  const nearDrawerEnd = drawerRect.bottom <= innerHeight + 180
+  state.rail.toggleAttribute("data-collapsed", nearDrawerEnd)
   const headerBottom = projectDetailPinnedHeaderBottom?.() || 0
   let activeIndex = 0
   sections.forEach((section, index) => {
@@ -468,6 +480,10 @@ function syncDrawerSectionPreviewRail() {
 
 function ensureDrawerSectionPreviewRail(drawer) {
   if (!drawer) return
+  if (!DRAWER_SECTION_RAIL_ENABLED) {
+    if (drawerSectionRailState.drawer === drawer) destroyDrawerSectionPreviewRail()
+    return
+  }
   const state = drawerSectionRailState
   if (state.drawer && state.drawer !== drawer) destroyDrawerSectionPreviewRail()
   state.drawer = drawer

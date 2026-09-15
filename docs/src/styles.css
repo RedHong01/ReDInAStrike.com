@@ -6985,7 +6985,7 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
 .drawer-section-preview-rail {
   position: fixed;
   z-index: 24;
-  top: var(--header-height);
+  top: 50%;
   left: var(--header-pad);
   width: var(--logo-width);
   display: flex;
@@ -6993,6 +6993,17 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   align-items: flex-start;
   gap: 7px;
   pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity 180ms var(--responsive-ease);
+}
+
+.drawer-section-preview-rail[data-outside="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drawer-section-preview-rail[data-collapsed="true"] {
+  gap: 0;
 }
 
 .drawer-section-preview-rail__dash {

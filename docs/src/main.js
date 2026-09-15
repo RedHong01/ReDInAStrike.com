@@ -4426,8 +4426,84 @@ function render() {
 // The Figma capture runner needs deterministic, reloadable snapshots of the
 // same page states that users reach through scroll and interaction.
 function applyFigmaCaptureState() {
-  const state = new URLSearchParams(window.location.search).get("figma-state")
+  const params = new URLSearchParams(window.location.search)
+  const state = params.get("figma-state")
   if (!state || !document.querySelector(".site-main")) return
+
+  // HTML-to-Figma serializes the exact painted frame.  Freeze the capture
+  // route so delayed copy animations, clip-path handoffs, and transient
+  // opacity never turn editable text into a zero-sized or invisible node.
+  // This attribute only exists on explicit figma-state URLs.
+  document.documentElement.setAttribute("data-figma-capture", "true")
+  const capturePointer = params.get("figma-pointer")
+  const captureMotion = params.get("figma-motion")
+  if (capturePointer) document.documentElement.setAttribute("data-figma-pointer", capturePointer)
+  if (captureMotion) document.documentElement.setAttribute("data-figma-motion", captureMotion)
+  const captureStyle = document.createElement("style")
+  captureStyle.dataset.figmaCaptureStyle = "true"
+  captureStyle.textContent = `
+    html[data-figma-capture="true"] { scroll-behavior: auto !important; }
+    html[data-figma-capture="true"] *,
+    html[data-figma-capture="true"] *::before,
+    html[data-figma-capture="true"] *::after {
+      animation-delay: 0s !important;
+      animation-duration: 0s !important;
+      transition-delay: 0s !important;
+      transition-duration: 0s !important;
+    }
+    html[data-figma-capture="true"] .project-card.is-project-preview .project-preview-copy,
+    html[data-figma-capture="true"] .project-card.is-project-preview .project-preview-copy * {
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: none !important;
+      clip-path: none !important;
+    }
+    html[data-figma-pointer="coarse"] .project-meta,
+    html[data-figma-pointer="coarse"] .footer-gallery-meta {
+      opacity: 1 !important;
+    }
+    html[data-figma-motion="reduce"] *,
+    html[data-figma-motion="reduce"] *::before,
+    html[data-figma-motion="reduce"] *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  `
+  document.head.appendChild(captureStyle)
+
+  const requestedProject = params.get("figma-project")
+  const requestedIndex = Number.parseInt(requestedProject || "0", 10)
+  const projectIndex = Number.isFinite(requestedIndex)
+    ? Math.min(projects.length - 1, Math.max(0, requestedIndex))
+    : Math.max(0, projects.findIndex((project) => project.path === requestedProject))
+  const project = projects[projectIndex]
+  const card = document.querySelector(`[data-project-card][data-index="${projectIndex}"]`)
+  let compactProjectRect = null
+
+  const settleProjectPreview = () => {
+    if (!card) return false
+    compactProjectRect ||= card.getBoundingClientRect()
+    commitProjectPreviewState(card, true)
+    const copy = card.querySelector(".project-preview-copy")
+    if (copy) {
+      copy.setAttribute("aria-hidden", "false")
+      copy.style.setProperty("display", "grid", "important")
+      copy.style.setProperty("opacity", "1", "important")
+      copy.style.setProperty("visibility", "visible", "important")
+      copy.style.setProperty("transform", "none", "important")
+      copy.style.setProperty("clip-path", "none", "important")
+    }
+    card.scrollIntoView({ block: "start", behavior: "auto" })
+    syncScrollDrivenVisuals({ publishMoving: true })
+    return true
+  }
+
+  const settleProjectDrawer = () => {
+    if (!settleProjectPreview() || !project) return null
+    openProjectDetailDrawer(card, { path: project.path })
+    return activeProjectDetailDrawer()?.element || null
+  }
 
   const about = document.querySelector(".about-section")
   if (about) {
@@ -4455,17 +4531,106 @@ function applyFigmaCaptureState() {
     return
   }
 
-  if (state === "interaction") {
-    replaceCatalogFilterImmediately("interaction")
+  if (state === "header-middle") {
+    setHeaderTarget(0.5, true)
     return
   }
 
-  if (state === "expanded") {
-    const card = document.querySelector('[data-project-card][data-index="0"]')
-    if (card) {
-      commitProjectPreviewState(card, true)
-      card.scrollIntoView({ block: "start", behavior: "auto" })
-      syncScrollDrivenVisuals({ publishMoving: true })
+  if (state === "interaction" || state === "category") {
+    replaceCatalogFilterImmediately(params.get("figma-category") || "interaction")
+    return
+  }
+
+  if (["card-default", "card-hover", "card-focus", "card-pressed", "card-muted"].includes(state)) {
+    if (!card) return
+    card.scrollIntoView({ block: "center", behavior: "auto" })
+    card.setAttribute("data-figma-card-state", state.slice(5))
+    if (state === "card-focus") card.focus({ preventScroll: true })
+    if (state === "card-muted") {
+      card.classList.add("is-filter-muted")
+      card.setAttribute("data-filter-muted", "true")
+      ensureProjectHalftoneCanvas(card)
+    }
+    const meta = card.querySelector(".project-meta")
+    if (meta && ["card-hover", "card-focus", "card-pressed"].includes(state)) {
+      meta.style.setProperty("opacity", "1", "important")
+    }
+    if (state === "card-pressed") {
+      card.style.setProperty("transform", "scale(0.992)", "important")
+      card.style.setProperty("opacity", "0.78", "important")
+    }
+    return
+  }
+
+  if (state.startsWith("preview-opening") || state.startsWith("preview-closing")) {
+    if (!settleProjectPreview() || !compactProjectRect) return
+    const expandedRect = card.getBoundingClientRect()
+    const requested = Number.parseFloat(params.get("figma-progress") || "0.5")
+    const progress = Math.min(1, Math.max(0, Number.isFinite(requested) ? requested : 0.5))
+    const paintedProgress = state.startsWith("preview-closing") ? 1 - progress : progress
+    const side = card.dataset.cardSide === "right" ? "right" : "left"
+    const startLeft = Math.max(0, compactProjectRect.left - expandedRect.left)
+    const startRight = Math.max(0, expandedRect.right - compactProjectRect.right)
+    const left = side === "right" ? startLeft * (1 - paintedProgress) : 0
+    const right = side === "left" ? startRight * (1 - paintedProgress) : 0
+    card.style.setProperty("clip-path", `inset(0px ${right}px 0px ${left}px)`, "important")
+    const copy = card.querySelector(".project-preview-copy")
+    if (copy) copy.style.setProperty("opacity", `${Math.min(1, paintedProgress * 1.35)}`, "important")
+    return
+  }
+
+  if (state === "expanded" || state === "preview") {
+    settleProjectPreview()
+    return
+  }
+
+  if (state === "drawer" || state === "detail-expanded" || state === "detail-compressed" ||
+      state === "detail-minimized" || state === "detail-exited" || state === "lightbox") {
+    const drawer = settleProjectDrawer()
+    if (!drawer) return
+
+    // The capture URL is a static-state contract. Resolve the moving header to
+    // the requested endpoint instead of depending on scroll timing or inertia.
+    const applyRequestedDetailState = () => {
+      if (state === "detail-compressed" || state === "detail-minimized" || state === "detail-exited") {
+        card.setAttribute("data-project-detail-header-compressed", "true")
+      }
+      if (state === "detail-minimized" || state === "detail-exited") {
+        card.setAttribute("data-project-detail-header-minimized", "true")
+      }
+      if (state === "detail-exited") {
+        card.setAttribute("data-project-detail-header-exited", "true")
+        card.closest(".project-row")?.setAttribute("data-project-detail-header-exited", "true")
+      }
+    }
+    applyRequestedDetailState()
+
+    const scrollMode = params.get("figma-scroll") ||
+      (state === "detail-compressed" ? "quarter" :
+        state === "detail-minimized" ? "middle" : state === "detail-exited" ? "end" : "")
+    if (scrollMode) {
+      window.setTimeout(() => {
+        const top = drawer.getBoundingClientRect().top + window.scrollY
+        const travel = Math.max(0, drawer.scrollHeight - window.innerHeight)
+        const progress = scrollMode === "end" ? 1 : scrollMode === "middle" ? 0.5 :
+          scrollMode === "quarter" ? 0.25 : 0
+        window.scrollTo({ top: top + travel * progress, left: 0, behavior: "auto" })
+        syncScrollDrivenVisuals({ publishMoving: true })
+        applyRequestedDetailState()
+      }, 900)
+    }
+
+    // Drawer open/layout observers can publish one last header update after
+    // the initial script. Re-assert the requested static endpoint afterwards.
+    window.setTimeout(applyRequestedDetailState, 1250)
+
+    if (state === "lightbox") {
+      // project-lightbox.js is loaded after this module. Dispatch after it has
+      // installed its delegated click handler, and after drawer images settle.
+      window.setTimeout(() => {
+        const image = drawer.querySelector('img:not([data-lightbox-disabled="true"])')
+        image?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }))
+      }, 1000)
     }
     return
   }

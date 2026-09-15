@@ -89,6 +89,12 @@
   --rule: #111111;
   --paper: #f8f7f5;
   --paper-rgb: 248, 247, 245;
+  /* Text selection is part of the site's colour language: a warm signal
+     field with blue ink keeps the browser's native selection behaviour while
+     making the selected passage unmistakable across paper and image-backed
+     surfaces. */
+  --selection-bg: #ff514d;
+  --selection-ink: #001eff;
   /* Keep metadata quiet without letting it fall below readable contrast on
      the warm paper background. */
   --muted: rgba(0, 0, 0, 0.62);
@@ -205,6 +211,21 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Keep selection native (including keyboard and assistive-technology flows),
+   but give the selected text the same warm red/blue signal used elsewhere in
+   the site.  The explicit Firefox rule keeps the treatment consistent there. */
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-ink);
+  text-shadow: none;
+}
+
+::-moz-selection {
+  background: var(--selection-bg);
+  color: var(--selection-ink);
+  text-shadow: none;
 }
 
 html {

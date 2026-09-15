@@ -1,0 +1,39 @@
+{
+  "fileKey": "xl45vugEiK4jPP4PqRhdXn",
+  "targetPage": { "name": "最新", "id": "936:6" },
+  "status": "awaiting Figma capture quota reset",
+  "createdObjects": {
+    "coverageIndex": "941:2",
+    "homeBaselineEditable": "940:2",
+    "projectCardStates": "941:13",
+    "headerStates": "941:29",
+    "detailHeaderStates": "941:36",
+    "galleryTileStates": "941:43",
+    "aboutResumeStates": "941:50",
+    "headerScrollStates": "941:57",
+    "projectPreviewContent18": "955:272",
+    "fullPageStateSection": "956:2",
+    "resumeAboutCompleteEditable": "958:2",
+    "resumeAboutMobileEditable": "958:56",
+    "resumeAboutDesktopContent": "958:11",
+    "integratedDesktopHomeResume": "959:2",
+    "integratedMobileHomeResume": "959:56",
+    "liveCaptures": ["945:2", "945:292", "945:693", "946:2", "948:2", "949:2", "950:2", "951:2"]
+  },
+  "coverage": {
+    "projects": 18,
+    "viewports": 27,
+    "globalStates": 8,
+    "projectStates": 17,
+    "baseStaticItems": 8478,
+    "mediaModeCombinations": 4,
+    "completeMatrixItems": 33912
+  },
+  "nextFigmaSteps": [
+    "Retry the 18-project preview capture set after the Figma capture quota reset.",
+    "Replace raw Serial Deminer preview capture with the frozen-copy capture route.",
+    "Add the remaining project-card interaction variants to component set 941:13.",
+    "Add explicit pointer and reduced-motion component variants.",
+    "Clone or capture the matrix described by figma-state-matrix.json into 最新."
+  ]
+}

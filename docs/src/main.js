@@ -10245,11 +10245,19 @@ function installParagraphHoverCaret() {
     activeParagraph?.classList.remove("is-paragraph-hovering")
     activeParagraph = null
     window.clearTimeout(hideTimer)
-    if (!caret.hasAttribute("data-visible")) return
+    if (!caret.hasAttribute("data-visible")) {
+      document.documentElement.removeAttribute("data-paragraph-caret-transition")
+      return
+    }
+    // The square cursor must wait for the vertical marker's reverse squeeze;
+    // otherwise the two independent pointer surfaces are visible together for
+    // the 240ms return window.
+    document.documentElement.setAttribute("data-paragraph-caret-transition", "true")
     caret.setAttribute("data-mode", "restoring")
     hideTimer = window.setTimeout(() => {
       caret.removeAttribute("data-visible")
       caret.removeAttribute("data-mode")
+      document.documentElement.removeAttribute("data-paragraph-caret-transition")
     }, 240)
   }
   document.addEventListener("pointermove", (event) => {
@@ -10263,10 +10271,32 @@ function installParagraphHoverCaret() {
     range.selectNodeContents(paragraph)
     const rects = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0)
     if (!rects.length) { hide(); return }
+    document.documentElement.removeAttribute("data-paragraph-caret-transition")
+    const computedStyle = window.getComputedStyle(paragraph)
+    const computedLineHeight = Number.parseFloat(computedStyle.lineHeight)
+    const lineCap = Number.isFinite(computedLineHeight)
+      ? Math.max(8, computedLineHeight * 1.35)
+      : 56
     const line = rects.reduce((nearest, rect) =>
       Math.abs((rect.top + rect.bottom) / 2 - event.clientY) <
         Math.abs((nearest.top + nearest.bottom) / 2 - event.clientY) ? rect : nearest,
-    rects[0])
+      rects[0])
+    // A Range over a block can collapse to one tall rectangle on Safari,
+    // spanning every wrapped line. Reconstruct the line under the pointer
+    // from the paragraph's line box and clamp the visual marker to one row.
+    let lineTop = line.top
+    let lineBoxHeight = line.height
+    if (line.height > lineCap * 1.4 && Number.isFinite(computedLineHeight)) {
+      const paragraphRect = paragraph.getBoundingClientRect()
+      const lineIndex = Math.max(0, Math.floor((event.clientY - paragraphRect.top) / computedLineHeight))
+      lineTop = paragraphRect.top + lineIndex * computedLineHeight
+      lineBoxHeight = computedLineHeight
+    }
+    // Keep the marker the same physical height as the normal 14px square
+    // cursor. It should sit inside the active line, rather than stretching
+    // with a multi-line Range rectangle and covering neighbouring rows.
+    const visualLineHeight = Math.min(14, line.height, lineCap)
+    lineTop += Math.max(0, (lineBoxHeight - visualLineHeight) / 2)
     if (activeParagraph !== paragraph) {
       activeParagraph?.classList.remove("is-paragraph-hovering")
       activeParagraph = paragraph
@@ -10274,8 +10304,8 @@ function installParagraphHoverCaret() {
     }
     window.clearTimeout(hideTimer)
     caret.style.setProperty("--paragraph-caret-x", `${event.clientX.toFixed(2)}px`)
-    caret.style.setProperty("--paragraph-caret-y", `${line.top.toFixed(2)}px`)
-    caret.style.setProperty("--paragraph-caret-height", `${line.height.toFixed(2)}px`)
+    caret.style.setProperty("--paragraph-caret-y", `${lineTop.toFixed(2)}px`)
+    caret.style.setProperty("--paragraph-caret-height", `${visualLineHeight.toFixed(2)}px`)
     caret.setAttribute("data-visible", "true")
     caret.setAttribute("data-mode", "cursor")
   }, { passive: true })

@@ -3,6 +3,7 @@
   const CURSOR_CLASS = "red-invert-cursor"
   const ACTIVE_CLASS = "has-red-invert-cursor"
   const LABEL_CLASS = "is-preview-label"
+  const PARAGRAPH_CLASS = "is-paragraph-target"
   const CURSOR_SIZE = 14
   const LABEL_TEXT = "Click again to view"
   const POINTER_MEDIA = "(any-hover: hover) and (any-pointer: fine)"
@@ -48,6 +49,20 @@
 
       .${CURSOR_CLASS}.is-visible {
         opacity: 1;
+      }
+
+      /* Paragraphs use the line-aware caret from main.js as their sole
+         pointer surface. Keep this chip hidden while the pointer is over
+         selectable copy so the square and vertical states never overlap. */
+      .${CURSOR_CLASS}.${PARAGRAPH_CLASS} {
+        opacity: 0 !important;
+      }
+
+      /* During the paragraph caret's reverse squeeze, keep the square cursor
+         hidden until that owner has completed its return. This prevents a
+         one-frame A/B overlap when the pointer leaves selectable copy. */
+      html[data-paragraph-caret-transition="true"] .${CURSOR_CLASS} {
+        opacity: 0 !important;
       }
 
       .${CURSOR_CLASS}__chip {
@@ -159,6 +174,13 @@
     return LABEL_TEXT
   }
 
+  function isParagraphCaretTarget(node) {
+    if (!node || typeof node.closest !== "function") return false
+    const paragraph = node.closest("p")
+    if (!paragraph) return false
+    return !paragraph.closest(".project-preview-copy, .project-meta, [aria-hidden='true']")
+  }
+
   function measureLabelWidth() {
     if (!label) return CURSOR_SIZE
     const prevMax = label.style.maxWidth
@@ -204,6 +226,7 @@
 
   function hideCursor() {
     pointerVisible = false
+    host?.classList.remove(PARAGRAPH_CLASS)
     setLabelActive(false)
     scheduleRender()
   }
@@ -212,7 +235,9 @@
     pointerX = x
     pointerY = y
     pointerVisible = true
-    setLabelActive(isPreviewLabelTarget(target))
+    const paragraphTarget = isParagraphCaretTarget(target)
+    host?.classList.toggle(PARAGRAPH_CLASS, paragraphTarget)
+    setLabelActive(paragraphTarget ? false : isPreviewLabelTarget(target))
     scheduleRender()
   }
 

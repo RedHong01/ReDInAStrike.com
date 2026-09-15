@@ -9930,6 +9930,8 @@ function openProjectDetailDrawer(card, target) {
     cardStyle.getPropertyValue("--media-surface").trim()
   if (detailTheme) {
     drawer.style.setProperty("--project-detail-theme", detailTheme)
+    drawer.style.setProperty("--selection-bg", detailTheme)
+    drawer.style.setProperty("--selection-ink", cardStyle.getPropertyValue("--preview-ink").trim() || "var(--ink)")
     // Lead header colour owns case accents for this drawer only.
     applyCaseAccentToScope(drawer, detailTheme)
   }
@@ -10204,6 +10206,50 @@ function handlePopState() {
   startHomeReturnTransition(target.url, { updateHistory: false })
 }
 
+// A text-aware hover caret gives selectable paragraphs the same spatial cue as
+// a text cursor. Its height follows the actual line box beneath the pointer,
+// so large display type and compact detail copy each get the correct scale.
+function installParagraphHoverCaret() {
+  if (document.querySelector("[data-paragraph-hover-caret]")) return
+  const caret = document.createElement("span")
+  caret.dataset.paragraphHoverCaret = "true"
+  caret.setAttribute("aria-hidden", "true")
+  document.body.appendChild(caret)
+  let activeParagraph = null
+  const hide = () => {
+    activeParagraph?.classList.remove("is-paragraph-hovering")
+    activeParagraph = null
+    caret.removeAttribute("data-visible")
+  }
+  document.addEventListener("pointermove", (event) => {
+    const node = document.elementFromPoint(event.clientX, event.clientY)
+    const paragraph = node?.closest?.("p")
+    if (!paragraph || paragraph.closest(".project-preview-copy, .project-meta, [aria-hidden='true']")) {
+      hide()
+      return
+    }
+    const range = document.createRange()
+    range.selectNodeContents(paragraph)
+    const rects = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0)
+    if (!rects.length) { hide(); return }
+    const line = rects.reduce((nearest, rect) =>
+      Math.abs((rect.top + rect.bottom) / 2 - event.clientY) <
+        Math.abs((nearest.top + nearest.bottom) / 2 - event.clientY) ? rect : nearest,
+    rects[0])
+    if (activeParagraph !== paragraph) {
+      activeParagraph?.classList.remove("is-paragraph-hovering")
+      activeParagraph = paragraph
+      activeParagraph.classList.add("is-paragraph-hovering")
+    }
+    caret.style.setProperty("--paragraph-caret-x", `${event.clientX.toFixed(2)}px`)
+    caret.style.setProperty("--paragraph-caret-y", `${line.top.toFixed(2)}px`)
+    caret.style.setProperty("--paragraph-caret-height", `${line.height.toFixed(2)}px`)
+    caret.setAttribute("data-visible", "true")
+  }, { passive: true })
+  window.addEventListener("scroll", hide, { passive: true })
+  document.addEventListener("pointerleave", hide, { passive: true })
+}
+
 document.addEventListener("click", handleRouteLinkClick, { capture: true })
 document.addEventListener("click", dismissProjectPreview)
 document.addEventListener("keydown", handleProjectPreviewKeydown)
@@ -10222,5 +10268,6 @@ window.addEventListener("red:public-dither-ready", (event) => {
 window.addEventListener("popstate", handlePopState)
 const entryDrawerRoute = claimEntryRouteAsDrawer()
 render()
+installParagraphHoverCaret()
 applyFigmaCaptureState()
 if (entryDrawerRoute) openProjectRouteAsDrawer(entryDrawerRoute)

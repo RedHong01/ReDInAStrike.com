@@ -228,6 +228,36 @@
   text-shadow: none;
 }
 
+/* Text-aware hover cursor painted from the active paragraph line box. */
+[data-paragraph-hover-caret] {
+  position: fixed;
+  z-index: 2147483000;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: var(--paragraph-caret-height, 1em);
+  background: currentColor;
+  color: var(--ink);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(var(--paragraph-caret-x, -10px), var(--paragraph-caret-y, -10px), 0);
+}
+
+[data-paragraph-hover-caret][data-visible="true"] {
+  opacity: 1;
+  animation: paragraph-hover-caret-blink 920ms steps(1, end) infinite;
+}
+
+@keyframes paragraph-hover-caret-blink {
+  0%, 42% { opacity: 1; }
+  43%, 76% { opacity: 0; }
+  77%, 100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-paragraph-hover-caret][data-visible="true"] { animation: none; }
+}
+
 html {
   background: var(--paper);
   color: var(--ink);
@@ -994,6 +1024,8 @@ body[data-layout-transition="true"] .about-section {
   overflow: hidden;
   overflow: clip;
   isolation: isolate;
+  --selection-bg: var(--preview-media-bg, var(--media-bg, #ff514d));
+  --selection-ink: var(--preview-ink, var(--ink));
   clip-path: inset(0 0 0 0);
 }
 
@@ -1582,6 +1614,13 @@ body[data-layout-transition="true"] .about-section {
   visibility: hidden;
 }
 
+/* A muted card can spend a frame between visibility and its first halftone
+   paint. Keep that handoff on paper so the source media colour never flashes
+   through at the viewport edges while scrolling. */
+.catalog[data-active-filter] .project-card.is-filter-muted .project-media {
+  background: var(--paper);
+}
+
 .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent[data-active-color-restore-ready="true"] .project-media > img {
   opacity: 1;
   visibility: visible;
@@ -2117,8 +2156,7 @@ body[data-layout-transition="true"] .about-section {
   transition:
     padding 180ms var(--responsive-ease),
     grid-template-rows 180ms var(--responsive-ease),
-    transform 180ms var(--responsive-ease),
-    opacity 140ms ease;
+    transform 180ms var(--responsive-ease);
 }
 
 /* The detail header progressively removes its secondary type and summary.
@@ -2147,7 +2185,6 @@ body[data-layout-transition="true"] .about-section {
 .project-card.is-project-preview[data-project-detail-open="true"] .project-preview-enter {
   transition:
     transform 180ms var(--responsive-ease),
-    opacity 140ms ease,
     max-height 220ms var(--responsive-ease),
     margin 220ms var(--responsive-ease);
 }
@@ -2238,13 +2275,12 @@ body[data-layout-transition="true"] .about-section {
   max-height: 0;
   margin: 0;
   overflow: hidden;
-  opacity: 0;
+  opacity: 1;
   pointer-events: none;
   transform: translate3d(0, -6px, 0);
   transition:
     max-height 220ms var(--responsive-ease),
     margin 220ms var(--responsive-ease),
-    opacity 140ms ease,
     transform 180ms var(--responsive-ease);
 }
 
@@ -5049,7 +5085,8 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     grid-row: 1 !important;
     justify-self: end;
     align-self: center;
-    margin-top: clamp(6px, 1.6vw, 12px);
+    margin-top: clamp(12px, 2.6vw, 24px);
+    margin-bottom: clamp(6px, 1.2vw, 12px);
     margin-right: clamp(12px, 3vw, 24px);
     width: clamp(84px, 23vw, 150px);
     height: auto;
@@ -5792,9 +5829,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    top: var(--project-preview-content-block-pad, 18px);
+    right: var(--project-preview-media-inset, 18px);
+    bottom: var(--project-preview-content-block-pad, 18px);
+    left: var(--project-preview-media-inset, 18px);
+    width: calc(100% - var(--project-preview-media-inset, 18px) * 2);
+    height: calc(100% - var(--project-preview-content-block-pad, 18px) * 2);
     object-fit: contain;
     object-position: center center;
   }

@@ -177,6 +177,11 @@ function cardEligibleForHoverSnow(card) {
 function stationaryPointerHoverCard() {
   if (!finePointerKnown || !pageIsVisible()) return null
   if (!fineHoverQuery?.matches) return null
+  // An open detail drawer owns the reading surface and its edge cards must
+  // remain dither-only while the article scrolls. Recreating a hover restore
+  // from a stationary pointer here would hand the bitmap back to an offscreen
+  // card and briefly expose a full-colour strip at the drawer seam.
+  if (document.querySelector(".project-detail-drawer")) return null
   const target = document.elementFromPoint(lastFinePointerX, lastFinePointerY)
   const card = target?.closest?.(".project-card.is-filter-muted")
   return cardEligibleForHoverSnow(card) ? card : null

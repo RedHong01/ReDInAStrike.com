@@ -4888,6 +4888,16 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
     visibility: hidden;
   }
 
+  /* The bitmap fades out as the sticky lead reaches its minimum height. Keep
+     that brief handoff inside the media box so the last visible frame cannot
+     touch the header rules at the viewport edge. */
+  .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-minimized="true"] .project-media > img {
+    inset: clamp(5px, 1.2vw, 8px);
+    width: calc(100% - clamp(5px, 1.2vw, 8px) * 2);
+    height: calc(100% - clamp(5px, 1.2vw, 8px) * 2);
+    object-fit: contain;
+  }
+
   .project-card.is-project-preview[data-project-detail-open="true"][data-project-detail-header-closing="true"] .project-media {
     clip-path: inset(0);
     pointer-events: auto;

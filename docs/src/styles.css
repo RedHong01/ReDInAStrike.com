@@ -1193,13 +1193,9 @@ body[data-layout-transition="true"] .about-section {
 
 .project-preview-expand-ghost .project-preview-copy {
   clip-path: inset(0 0 0 0);
-  transition:
-    opacity var(--project-preview-copy-duration, 320ms) var(--project-preview-copy-ease, var(--project-preview-surface-ease)) var(--project-preview-copy-delay, 220ms),
-    transform var(--project-preview-copy-duration, 360ms) var(--project-preview-copy-ease, var(--project-preview-surface-ease)) var(--project-preview-copy-delay, 220ms);
-}
-
-.project-preview-expand-ghost:not([data-project-preview-expand-state="target"]) .project-preview-copy {
-  opacity: 0;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
 }
 
 @media (max-width: 700px), (orientation: portrait) {

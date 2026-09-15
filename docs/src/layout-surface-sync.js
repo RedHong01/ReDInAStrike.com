@@ -79,9 +79,14 @@ function syncLayoutSurface() {
     settled = settled && delta <= LAYOUT_SETTLE_EPSILON_PX
     const value = `${smoothHeaderPx.toFixed(2)}px`
     const valuePx = parsePx(value)
+    // Structural consumers (sticky top, drawer seam, and content edge) must
+    // share the live header boundary. Keep the eased value available for
+    // purely visual treatments, but never let it lag the document geometry.
+    root.style.setProperty("--perf-layout-header-visual-height", value)
+    const structuralValue = `${heightTarget.toFixed(2)}px`
+    root.style.setProperty("--perf-layout-header-height", structuralValue)
     if (!Number.isFinite(lastSurfaceHeaderPx) || Math.abs(valuePx - lastSurfaceHeaderPx) > LAYOUT_HEADER_SYNC_EPSILON_PX) {
       lastSurfaceHeaderPx = valuePx
-      root.style.setProperty("--perf-layout-header-height", value)
     }
   }
 

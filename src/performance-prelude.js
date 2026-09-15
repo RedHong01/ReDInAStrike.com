@@ -74,6 +74,10 @@
   let renderFrame = 0
   let renderId = 0
   let renderQueue = new Map()
+  // Keep task records alive for the duration of a flush. A callback can
+  // cancel a sibling after the queue snapshot has been taken; the sibling
+  // must still be skipped later in this same frame.
+  const renderTasks = new Map()
   const renderStats = {
     frames: 0,
     callbacks: 0,
@@ -97,19 +101,22 @@
   function flushRenderFrame(now) {
     renderFrame = 0
     if (document.hidden) {
+      for (const task of renderTasks.values()) task.active = false
+      renderTasks.clear()
       renderQueue.clear()
       return
     }
     const queue = renderQueue
     renderQueue = new Map()
     const started = renderNow()
-    for (const [id, callback] of queue) {
-      if (typeof callback !== "function") continue
+    for (const [id, task] of queue) {
+      if (!task?.active || typeof task.callback !== "function") {
+        renderTasks.delete(id)
+        continue
+      }
       renderStats.callbacks += 1
-      try { callback(now) } catch (error) { window.setTimeout(() => { throw error }, 0) }
-      // A callback may cancel a sibling callback while this frame is running.
-      // The snapshot queue keeps this frame deterministic and cheap to walk.
-      void id
+      try { task.callback(now) } catch (error) { window.setTimeout(() => { throw error }, 0) }
+      renderTasks.delete(id)
     }
     const cost = renderNow() - started
     renderStats.frames += 1
@@ -130,18 +137,25 @@
     }
     if (typeof callback !== "function") return 0
     const id = ++renderId
-    renderQueue.set(id, callback)
+    const task = { active: true, callback }
+    renderTasks.set(id, task)
+    renderQueue.set(id, task)
     if (!renderFrame && !document.hidden) renderFrame = nativeRequestAnimationFrame(flushRenderFrame)
     return id
   }
 
   function cancelRenderFrame(id) {
-    if (renderQueue.delete(id)) return
-    nativeCancelAnimationFrame?.(id)
+    const task = renderTasks.get(id)
+    if (!task) return false
+    task.active = false
+    renderQueue.delete(id)
+    return true
   }
 
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) return
+    for (const task of renderTasks.values()) task.active = false
+    renderTasks.clear()
     renderQueue.clear()
     if (renderFrame) nativeCancelAnimationFrame?.(renderFrame)
     renderFrame = 0

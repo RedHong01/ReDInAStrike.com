@@ -8315,8 +8315,26 @@ function openProjectRouteAsDrawer(path, { scroll = true } = {}) {
       const drawer = activeProjectDetailDrawer()
       if (drawer?.card === card && drawer.element.dataset.drawerState !== "closing") return
       if (!scrolled) {
-        card.scrollIntoView({ block: "start", behavior: "auto" })
         scrolled = true
+        // Route entry used to pin the card to the viewport's hard top edge
+        // before the preview/drawer transaction ran.  That bypassed the
+        // catalogue centring pass and made the sticky header jump when the
+        // drawer changed the row height.  Reuse the same cancellable centre
+        // motion as a normal card click; the transition intent is flushed by
+        // its completion callback, after the scroll owner has released the
+        // page.
+        const centerTarget = projectPreviewCardCenterTargetY(card)
+        const currentY = window.scrollY || window.pageYOffset || 0
+        if (Number.isFinite(centerTarget) && Math.abs(centerTarget - currentY) > 1.5) {
+          smoothScrollProjectPreviewCardToCenter(card, () => {
+            if (!card.isConnected) return
+            if (!siteState.projectPreviewTransitionIntent) {
+              scheduleProjectPreviewTransitionIntent(card, true, target)
+            }
+            flushProjectPreviewTransitionIntent()
+          })
+          return
+        }
       }
       if (!siteState.projectPreviewTransitionIntent) {
         scheduleProjectPreviewTransitionIntent(card, true, target)
@@ -9622,8 +9640,11 @@ function setProjectPreview(card, expanded) {
   )
   const switchAnchor = expanded && current && current !== card && (drawer || closesContentAbove)
     ? { element: card, top: card.getClientRects()[0]?.top } : null
-  const outgoing = expanded && current && current !== card && !prefersReducedMotion()
-    ? createProjectPreviewExitGhost(current, { viewportPinned: Boolean(drawer) }) : null
+  // A switch has one visual owner: the incoming card. Keeping an outgoing
+  // snapshot alive at the same time produced two copies of the previous
+  // cover during the handoff. The old live card is hidden by reconciliation;
+  // the incoming FLIP carries the visible transition.
+  const outgoing = null
 
   // Disable legacy geometry transitions before either measurement. The live
   // surface owns every frame, including the first and final one.
@@ -10015,10 +10036,13 @@ function openProjectDetailDrawer(card, target) {
   )
 
   if (switchingDrawer) {
+    // The old drawer was removed synchronously above. Rebase the preserved
+    // catalogue anchor before the new drawer's first paint so its insertion
+    // cannot expose one frame at the old scroll position (the visible
+    // "jump" when switching cards). The RAF below only releases the motion
+    // lock after that corrected layout has painted.
+    if (switchAnchor) restoreProjectDetailSwitchAnchor(switchAnchor)
     window.requestAnimationFrame(() => {
-      if (drawer.isConnected && siteState.projectDetailDrawer === drawerState) {
-        if (switchAnchor) restoreProjectDetailSwitchAnchor(switchAnchor)
-      }
       endProjectDetailMotion()
     })
   }
@@ -10216,10 +10240,17 @@ function installParagraphHoverCaret() {
   caret.setAttribute("aria-hidden", "true")
   document.body.appendChild(caret)
   let activeParagraph = null
+  let hideTimer = 0
   const hide = () => {
     activeParagraph?.classList.remove("is-paragraph-hovering")
     activeParagraph = null
-    caret.removeAttribute("data-visible")
+    window.clearTimeout(hideTimer)
+    if (!caret.hasAttribute("data-visible")) return
+    caret.setAttribute("data-mode", "restoring")
+    hideTimer = window.setTimeout(() => {
+      caret.removeAttribute("data-visible")
+      caret.removeAttribute("data-mode")
+    }, 240)
   }
   document.addEventListener("pointermove", (event) => {
     const node = document.elementFromPoint(event.clientX, event.clientY)
@@ -10241,10 +10272,12 @@ function installParagraphHoverCaret() {
       activeParagraph = paragraph
       activeParagraph.classList.add("is-paragraph-hovering")
     }
+    window.clearTimeout(hideTimer)
     caret.style.setProperty("--paragraph-caret-x", `${event.clientX.toFixed(2)}px`)
     caret.style.setProperty("--paragraph-caret-y", `${line.top.toFixed(2)}px`)
     caret.style.setProperty("--paragraph-caret-height", `${line.height.toFixed(2)}px`)
     caret.setAttribute("data-visible", "true")
+    caret.setAttribute("data-mode", "cursor")
   }, { passive: true })
   window.addEventListener("scroll", hide, { passive: true })
   document.addEventListener("pointerleave", hide, { passive: true })

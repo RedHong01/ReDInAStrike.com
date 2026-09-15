@@ -234,18 +234,29 @@
   z-index: 2147483000;
   left: 0;
   top: 0;
-  width: 2px;
+  width: var(--paragraph-caret-height, 1em);
   height: var(--paragraph-caret-height, 1em);
   background: currentColor;
   color: var(--ink);
   pointer-events: none;
   opacity: 0;
-  transform: translate3d(var(--paragraph-caret-x, -10px), var(--paragraph-caret-y, -10px), 0);
+  transform-origin: 50% 50%;
+  transform: translate3d(calc(var(--paragraph-caret-x, -10px) - var(--paragraph-caret-height, 1em) / 2), var(--paragraph-caret-y, -10px), 0) scaleX(1);
+  transition: transform 240ms cubic-bezier(0.22, 0.8, 0.24, 1);
 }
 
 [data-paragraph-hover-caret][data-visible="true"] {
   opacity: 1;
+}
+
+[data-paragraph-hover-caret][data-visible="true"][data-mode="cursor"] {
+  transform: translate3d(calc(var(--paragraph-caret-x, -10px) - var(--paragraph-caret-height, 1em) / 2), var(--paragraph-caret-y, -10px), 0) scaleX(0.08);
   animation: paragraph-hover-caret-blink 920ms steps(1, end) infinite;
+}
+
+[data-paragraph-hover-caret][data-visible="true"][data-mode="restoring"] {
+  transform: translate3d(calc(var(--paragraph-caret-x, -10px) - var(--paragraph-caret-height, 1em) / 2), var(--paragraph-caret-y, -10px), 0) scaleX(1);
+  animation: none;
 }
 
 @keyframes paragraph-hover-caret-blink {
@@ -265,9 +276,20 @@ html {
   font-size: 16px;
   letter-spacing: 0;
   scroll-behavior: smooth;
+  /* The page uses its own edge rules and cursor language; the platform
+     scrollbar thumb reads as an unrelated second progress indicator. Keep
+     scrolling available while removing that native paint surface. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 @media (any-hover: hover) and (any-pointer: fine) {
@@ -1610,8 +1632,8 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .catalog[data-active-filter] .project-card.is-filter-muted .project-media > img {
-  opacity: 0;
-  visibility: hidden;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 /* A muted card can spend a frame between visibility and its first halftone
@@ -1622,8 +1644,16 @@ body[data-layout-transition="true"] .about-section {
 }
 
 .catalog[data-active-filter] .project-card.is-filter-muted.is-muted-restore-intent[data-active-color-restore-ready="true"] .project-media > img {
-  opacity: 1;
-  visibility: visible;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Category-enter/reveal can mark a muted card ready before its canonical
+   dither surface has painted. Keep the raw bitmap hidden during that window;
+   otherwise scrolling exposes full-colour strips at the viewport edges. */
+.catalog[data-active-filter] .project-card.is-filter-muted[data-dither-category-enter-reveal="true"] .project-media > img {
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 .catalog[data-active-filter]:not([data-filter-phase]) .project-card.is-filter-muted.is-muted-restore-return[data-active-color-return="true"] .project-media > img {
@@ -5097,6 +5127,12 @@ body[data-header-compact="true"][data-nav-density="tiny"] .nav-detail {
   .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) .project-media > img {
     object-fit: contain;
     object-position: center center;
+    top: clamp(6px, 1.4vw, 12px);
+    right: clamp(6px, 1.4vw, 12px);
+    bottom: clamp(6px, 1.4vw, 12px);
+    left: clamp(6px, 1.4vw, 12px);
+    width: calc(100% - clamp(6px, 1.4vw, 12px) * 2);
+    height: calc(100% - clamp(6px, 1.4vw, 12px) * 2);
   }
 
   .catalog .project-card.is-project-preview[data-project-detail-open="true"]:not([data-project-detail-header-minimized="true"]) .project-preview-copy {

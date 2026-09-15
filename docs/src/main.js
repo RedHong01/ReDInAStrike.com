@@ -444,6 +444,15 @@ function syncDrawerSectionPreviewRail() {
   const state = drawerSectionRailState; const drawer = state.drawer
   if (!drawer?.isConnected || !state.rail?.isConnected) return
   const sections = drawerSectionRailSections(drawer)
+  // The drawer sits in a contained grid row, which becomes the fixed
+  // containing block for the rail. Resolve the logo edge in that same
+  // coordinate space so the index keeps the same left edge as the brand at
+  // every scroll position and breakpoint.
+  const containingRect = drawer.parentElement?.getBoundingClientRect?.() || drawer.getBoundingClientRect()
+  const brandRect = document.querySelector("[data-home-logo]")?.getBoundingClientRect?.()
+  if (brandRect) {
+    state.rail.style.left = `${brandRect.left - containingRect.left}px`
+  }
   const headerBottom = projectDetailPinnedHeaderBottom?.() || 0
   let activeIndex = 0
   sections.forEach((section, index) => {

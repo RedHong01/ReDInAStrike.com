@@ -178,6 +178,7 @@
     if (!node || typeof node.closest !== "function") return false
     const paragraph = node.closest("p")
     if (!paragraph) return false
+    if (window.getComputedStyle(paragraph).userSelect === "none") return false
     return !paragraph.closest(".project-preview-copy, .project-meta, [aria-hidden='true']")
   }
 

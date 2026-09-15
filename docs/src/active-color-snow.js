@@ -540,7 +540,7 @@ function ensureStyles() {
       position: absolute;
       inset: 0;
       z-index: 7;
-      background: var(--paper);
+      background: var(--media-bg, var(--media-surface));
       opacity: 1;
       pointer-events: none;
     }

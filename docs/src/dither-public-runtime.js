@@ -67,7 +67,7 @@ function ensurePublicStyles() {
       height: 100% !important;
       max-width: none !important;
       max-height: none !important;
-      background: var(--paper);
+      background: transparent;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;

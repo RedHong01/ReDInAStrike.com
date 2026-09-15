@@ -170,7 +170,7 @@ function ensurePublicStyles() {
       height: 100% !important;
       max-width: none !important;
       max-height: none !important;
-      background: var(--paper);
+      background: transparent;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
@@ -185,7 +185,7 @@ function ensurePublicStyles() {
       inset: 0;
       z-index: 5;
       display: block;
-      background: var(--paper);
+      background: transparent;
       /* This layer used to cover the source image while the canvas was
          pending, producing a paper flash on every preview click.  The source
          stays visible until data-dither-ready is committed, so the cover is

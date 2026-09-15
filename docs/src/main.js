@@ -379,6 +379,109 @@ function catalogRowsMarkup(category = null) {
   return rows.join("")
 }
 
+// Section preview rail implementations live with the drawer chapter lifecycle below.
+
+const drawerSectionRailState = {
+  drawer: null, rail: null, popover: null, activeButton: null, token: 0,
+  scrollHandler: null, resizeHandler: null, resizeObserver: null, syncFrame: 0,
+}
+
+function drawerSectionRailSections(drawer) {
+  if (!drawer) return []
+  const selector = "section.framer-case-section, section.gdd-section, section.case-section, section.case-study-flow-section"
+  const all = [...drawer.querySelectorAll(selector)]
+  return all.filter((section) => !section.parentElement?.closest(selector))
+}
+
+function hideDrawerSectionPreview(immediate = false) {
+  const state = drawerSectionRailState
+  state.token += 1
+  state.activeButton?.removeAttribute("data-active")
+  state.activeButton = null
+  if (!state.popover) return
+  state.popover.classList.remove("is-visible")
+  state.popover.setAttribute("aria-hidden", "true")
+  if (immediate) state.popover.style.visibility = "hidden"
+}
+
+function destroyDrawerSectionPreviewRail() {
+  const state = drawerSectionRailState
+  hideDrawerSectionPreview(true)
+  state.resizeObserver?.disconnect()
+  if (state.scrollHandler) window.removeEventListener("scroll", state.scrollHandler)
+  if (state.resizeHandler) window.removeEventListener("resize", state.resizeHandler)
+  state.rail?.remove(); state.popover?.remove()
+  Object.assign(state, { drawer: null, rail: null, popover: null, scrollHandler: null, resizeHandler: null, resizeObserver: null })
+}
+
+function showDrawerSectionPreview(button) {
+  const state = drawerSectionRailState
+  const index = Number(button?.dataset.previewTarget)
+  const section = drawerSectionRailSections(state.drawer)[index]
+  if (!button || !section || !state.popover) return
+  state.activeButton?.removeAttribute("data-active")
+  state.activeButton = button; button.setAttribute("data-active", "true")
+  const title = section.querySelector("h2, h3, .gdd-h2, .sbh-sub")?.textContent?.replace(/\s+/g, " ").trim() || section.getAttribute("aria-label") || `Section ${index + 1}`
+  const summary = section.querySelector("p")?.textContent?.replace(/\s+/g, " ").trim() || ""
+  const kicker = document.createElement("span"); kicker.className = "drawer-section-preview-popover__kicker"; kicker.textContent = "SECTION"
+  const heading = document.createElement("strong"); heading.className = "drawer-section-preview-popover__title"; heading.textContent = title
+  const excerpt = document.createElement("p"); excerpt.className = "drawer-section-preview-popover__summary"; excerpt.textContent = summary
+  state.popover.replaceChildren(kicker, heading, excerpt)
+  state.popover.setAttribute("aria-hidden", "false")
+  state.popover.style.setProperty("--section-preview-accent", getComputedStyle(state.drawer).getPropertyValue("--project-detail-theme").trim() || "var(--ink)")
+  state.popover.style.visibility = "hidden"; state.popover.classList.add("is-visible")
+  const token = ++state.token
+  requestAnimationFrame(() => {
+    if (state.token !== token || state.activeButton !== button) return
+    const br = button.getBoundingClientRect(); const pr = state.popover.getBoundingClientRect()
+    const top = clamp(br.top + br.height / 2 - pr.height / 2, 12, Math.max(12, innerHeight - pr.height - 12))
+    state.popover.style.left = `${Math.max(12, Math.min(innerWidth - pr.width - 12, br.right + 14))}px`
+    state.popover.style.top = `${top}px`; state.popover.style.visibility = "visible"
+  })
+}
+
+function syncDrawerSectionPreviewRail() {
+  const state = drawerSectionRailState; const drawer = state.drawer
+  if (!drawer?.isConnected || !state.rail?.isConnected) return
+  const sections = drawerSectionRailSections(drawer)
+  const headerBottom = projectDetailPinnedHeaderBottom?.() || 0
+  let activeIndex = 0
+  sections.forEach((section, index) => {
+    const button = state.rail.querySelector(`[data-preview-target="${index}"]`); if (!button) return
+    const rect = section.getBoundingClientRect(); button.hidden = rect.height <= 0
+    if (rect.top <= headerBottom + 24) activeIndex = index
+  })
+  state.rail.querySelectorAll("[data-preview-target]").forEach((button) => {
+    button.toggleAttribute("data-active", Number(button.dataset.previewTarget) === activeIndex)
+  })
+  if (drawer.dataset.drawerState === "closing" || drawer.dataset.drawerState === "closed") hideDrawerSectionPreview(true)
+}
+
+function ensureDrawerSectionPreviewRail(drawer) {
+  if (!drawer) return
+  const state = drawerSectionRailState
+  if (state.drawer && state.drawer !== drawer) destroyDrawerSectionPreviewRail()
+  state.drawer = drawer
+  let rail = drawer.querySelector(":scope > .drawer-section-preview-rail")
+  if (!rail) { rail = document.createElement("aside"); rail.className = "drawer-section-preview-rail"; rail.setAttribute("aria-label", "Project section preview index"); drawer.appendChild(rail) }
+  state.rail = rail
+  if (!state.popover) { state.popover = document.createElement("aside"); state.popover.className = "drawer-section-preview-popover"; state.popover.setAttribute("aria-live", "polite"); state.popover.setAttribute("aria-hidden", "true"); document.body.appendChild(state.popover) }
+  const sections = drawerSectionRailSections(drawer)
+  rail.replaceChildren(...sections.map((section, index) => { const button = document.createElement("button"); button.type = "button"; button.className = "drawer-section-preview-rail__dash"; button.dataset.previewTarget = String(index); button.setAttribute("aria-label", `Preview ${section.querySelector("h2, h3")?.textContent?.trim() || section.getAttribute("aria-label") || `section ${index + 1}`}`); return button }))
+  if (!rail.dataset.bound) {
+    rail.dataset.bound = "true"
+    rail.addEventListener("pointerover", (event) => { const button = event.target.closest?.("[data-preview-target]"); if (button && !button.contains(event.relatedTarget)) showDrawerSectionPreview(button) }, { passive: true })
+    rail.addEventListener("pointerout", (event) => { if (!event.relatedTarget || !rail.contains(event.relatedTarget)) hideDrawerSectionPreview() }, { passive: true })
+    rail.addEventListener("focusin", (event) => { const button = event.target.closest?.("[data-preview-target]"); if (button) showDrawerSectionPreview(button) })
+    rail.addEventListener("focusout", (event) => { if (!rail.contains(event.relatedTarget)) hideDrawerSectionPreview() })
+    rail.addEventListener("click", (event) => { const button = event.target.closest?.("[data-preview-target]"); const section = drawerSectionRailSections(drawer)[Number(button?.dataset.previewTarget)]; if (!button || !section) return; event.preventDefault(); const top = section.getBoundingClientRect().top + scrollY - (projectDetailPinnedHeaderBottom?.() || 0) - 12; scrollTo({ top: Math.max(0, top), behavior: prefersReducedMotion() ? "auto" : "smooth" }) })
+  }
+  state.scrollHandler ||= () => { hideDrawerSectionPreview(true); syncDrawerSectionPreviewRail() }; state.resizeHandler ||= () => syncDrawerSectionPreviewRail()
+  window.addEventListener("scroll", state.scrollHandler, { passive: true }); window.addEventListener("resize", state.resizeHandler, { passive: true })
+  state.resizeObserver?.disconnect(); state.resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(syncDrawerSectionPreviewRail) : null; state.resizeObserver?.observe(drawer)
+  syncDrawerSectionPreviewRail()
+}
+
 const framerProjectDetails = {
   "/myfridge": {
     year: "2024 Spring",
@@ -2998,7 +3101,10 @@ function headerMarkup() {
 }
 
 function mediaStyle(project) {
-  const background = project.mediaBackground || "#f2f2f2"
+  // Keep the default media surface on the site paper token.  Explicit project
+  // themes still override this value; the fallback must not introduce a
+  // second, darker white around otherwise paper-coloured media.
+  const background = project.mediaBackground || "var(--media-surface)"
   const hex = /^#([\da-f]{6})$/i.exec(background)?.[1]
   const rgb = hex ? Number.parseInt(hex, 16) : null
   return [
@@ -9788,6 +9894,7 @@ function closeProjectDetailDrawer({ immediate = false, afterClose = null, refres
     if (siteState.projectDetailDrawer !== state) return
     state.heightAnimation?.cancel()
     state.rule?.remove()
+    if (drawerSectionRailState.drawer === element) destroyDrawerSectionPreviewRail()
     element.remove()
     state.row?.removeAttribute("data-project-detail-open")
     state.row?.removeAttribute("data-project-detail-header-exited")
@@ -9964,6 +10071,7 @@ function openProjectDetailDrawer(card, target) {
   // the neighboring card remains in the same row, so inserting after the row
   // would place Pitchfork before Serial's full article instead of below it.
   card.after(drawer)
+  ensureDrawerSectionPreviewRail(drawer)
   const stickyTail = document.createElement("div")
   stickyTail.className = "project-detail-sticky-tail"
   stickyTail.setAttribute("aria-hidden", "true")
@@ -10238,6 +10346,10 @@ function installParagraphHoverCaret() {
   const caret = document.createElement("span")
   caret.dataset.paragraphHoverCaret = "true"
   caret.setAttribute("aria-hidden", "true")
+  const caretMark = document.createElement("span")
+  caretMark.className = "paragraph-hover-caret__mark"
+  caretMark.setAttribute("aria-hidden", "true")
+  caret.appendChild(caretMark)
   document.body.appendChild(caret)
   let activeParagraph = null
   let hideTimer = 0
@@ -10267,36 +10379,25 @@ function installParagraphHoverCaret() {
       hide()
       return
     }
+    // Only selectable copy owns the paragraph caret.  Decorative or disabled
+    // paragraphs keep the free-moving square pointer surface.
+    if (window.getComputedStyle(paragraph).userSelect === "none") {
+      hide()
+      return
+    }
     const range = document.createRange()
     range.selectNodeContents(paragraph)
     const rects = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0)
     if (!rects.length) { hide(); return }
     document.documentElement.removeAttribute("data-paragraph-caret-transition")
-    const computedStyle = window.getComputedStyle(paragraph)
-    const computedLineHeight = Number.parseFloat(computedStyle.lineHeight)
-    const lineCap = Number.isFinite(computedLineHeight)
-      ? Math.max(8, computedLineHeight * 1.35)
-      : 56
-    const line = rects.reduce((nearest, rect) =>
-      Math.abs((rect.top + rect.bottom) / 2 - event.clientY) <
-        Math.abs((nearest.top + nearest.bottom) / 2 - event.clientY) ? rect : nearest,
-      rects[0])
-    // A Range over a block can collapse to one tall rectangle on Safari,
-    // spanning every wrapped line. Reconstruct the line under the pointer
-    // from the paragraph's line box and clamp the visual marker to one row.
-    let lineTop = line.top
-    let lineBoxHeight = line.height
-    if (line.height > lineCap * 1.4 && Number.isFinite(computedLineHeight)) {
-      const paragraphRect = paragraph.getBoundingClientRect()
-      const lineIndex = Math.max(0, Math.floor((event.clientY - paragraphRect.top) / computedLineHeight))
-      lineTop = paragraphRect.top + lineIndex * computedLineHeight
-      lineBoxHeight = computedLineHeight
-    }
     // Keep the marker the same physical height as the normal 14px square
-    // cursor. It should sit inside the active line, rather than stretching
-    // with a multi-line Range rectangle and covering neighbouring rows.
-    const visualLineHeight = Math.min(14, line.height, lineCap)
-    lineTop += Math.max(0, (lineBoxHeight - visualLineHeight) / 2)
+    // cursor.  Do not use a multi-line Range rectangle here: Safari can
+    // report the whole paragraph as one tall rect, which previously made the
+    // marker cover several rows.
+    const visualLineHeight = 14
+    // Position follows the pointer continuously; snapping Y to the nearest
+    // line made the caret feel magnetised while moving through a paragraph.
+    const lineTop = event.clientY - visualLineHeight / 2
     if (activeParagraph !== paragraph) {
       activeParagraph?.classList.remove("is-paragraph-hovering")
       activeParagraph = paragraph

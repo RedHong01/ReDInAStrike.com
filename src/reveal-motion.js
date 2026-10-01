@@ -23,6 +23,7 @@ const IDLE_FLICKER_FRAME_MS = 1000 / 30
 const VIEWPORT_LINGER_MS = 220
 const VIEWPORT_PROGRESS_EPSILON = 0.0025
 const MAX_GRID_CACHE_PER_CANVAS = 6
+const MAX_MOTION_FIELD_CACHE = 12
 const BOUNDARY_FIELD_REVEAL_RATIO = 0.76
 const BOUNDARY_FIELD_MIN_MS = 240
 const BOUNDARY_FIELD_MAX_MS = 760
@@ -45,6 +46,9 @@ const viewportStates = new Set()
 const viewportVisibleStates = new Set()
 const canvasViewportStates = new WeakMap()
 const gridCache = new WeakMap()
+// Geometry and noise are independent of image pixels. Share these immutable
+// fields across cards, while retaining image-dependent darkness per canvas.
+const motionFieldCache = new Map()
 
 let animationFrame = 0
 let viewportFrame = 0
@@ -417,25 +421,18 @@ function gridCacheKey(finalCanvas, config, cols, rows) {
   ].join("|")
 }
 
-function buildGrid(finalCanvas, config) {
-  const { cols, rows } = logicalGridSize(finalCanvas, config)
-  const cacheKey = gridCacheKey(finalCanvas, config, cols, rows)
-  let perCanvas = gridCache.get(finalCanvas)
-  if (perCanvas?.has(cacheKey)) return perCanvas.get(cacheKey)
-
-  const sample = document.createElement("canvas")
-  sample.width = cols
-  sample.height = rows
-  const sampleCtx = sample.getContext("2d", { willReadFrequently: true })
-  if (!sampleCtx) return null
-  sampleCtx.imageSmoothingEnabled = false
-  sampleCtx.drawImage(finalCanvas, 0, 0, cols, rows)
-  const sampled = sampleCtx.getImageData(0, 0, cols, rows).data
-
+function motionFields(cols, rows, config) {
+  const key = [cols, rows, config.revealSeed, config.revealDirection,
+    config.revealClusterSize, config.revealClusterCount, config.revealClusterSpread,
+    config.revealClusterJitter, config.revealScanNoiseMix].join("|")
+  const cached = motionFieldCache.get(key)
+  if (cached) {
+    motionFieldCache.delete(key)
+    motionFieldCache.set(key, cached)
+    return cached
+  }
   const count = cols * rows
-  const darkness = new Float32Array(count)
   const pixelOrder = new Float32Array(count)
-  const thresholdOrder = new Float32Array(count)
   const clusterOrder = new Float32Array(count)
   const scanOrder = new Float32Array(count)
   const flickerPhase = new Float32Array(count)
@@ -449,10 +446,6 @@ function buildGrid(finalCanvas, config) {
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
       const index = row * cols + col
-      const p = index * 4
-      const dark = 1 - (
-        sampled[p] * 0.2126 + sampled[p + 1] * 0.7152 + sampled[p + 2] * 0.0722
-      ) / 255
       const nx = (col + 0.5) / cols
       const ny = (row + 0.5) / rows
       const random = hash01(config.revealSeed, col, row, 1)
@@ -476,9 +469,7 @@ function buildGrid(finalCanvas, config) {
       }
 
       const clusterScale = 5.5 / Math.max(1, config.revealClusterSize)
-      darkness[index] = dark
       pixelOrder[index] = random
-      thresholdOrder[index] = clamp((1 - dark + config.revealThresholdBias) * 0.68 + random * 0.32)
       clusterOrder[index] = clamp(
         nearest * clusterScale * (1.25 - config.revealClusterSpread * 0.55) +
           (random - 0.5) * config.revealClusterJitter * 0.38,
@@ -489,6 +480,47 @@ function buildGrid(finalCanvas, config) {
       )
       flickerPhase[index] = groupPhase * TAU + (random - 0.5) * 0.72
       breathRate[index] = 0.22 + groupRate * 0.24 + (randomB - 0.5) * 0.028
+    }
+  }
+
+  const fields = { pixelOrder, clusterOrder, scanOrder, flickerPhase, breathRate }
+  motionFieldCache.set(key, fields)
+  while (motionFieldCache.size > MAX_MOTION_FIELD_CACHE) {
+    motionFieldCache.delete(motionFieldCache.keys().next().value)
+  }
+  return fields
+}
+
+function buildGrid(finalCanvas, config) {
+  const { cols, rows } = logicalGridSize(finalCanvas, config)
+  const cacheKey = gridCacheKey(finalCanvas, config, cols, rows)
+  let perCanvas = gridCache.get(finalCanvas)
+  if (perCanvas?.has(cacheKey)) return perCanvas.get(cacheKey)
+
+  const sample = document.createElement("canvas")
+  sample.width = cols
+  sample.height = rows
+  const sampleCtx = sample.getContext("2d", { willReadFrequently: true })
+  if (!sampleCtx) return null
+  sampleCtx.imageSmoothingEnabled = false
+  sampleCtx.drawImage(finalCanvas, 0, 0, cols, rows)
+  const sampled = sampleCtx.getImageData(0, 0, cols, rows).data
+
+  const count = cols * rows
+  const { pixelOrder, clusterOrder, scanOrder, flickerPhase, breathRate } = motionFields(cols, rows, config)
+  const darkness = new Float32Array(count)
+  const thresholdOrder = new Float32Array(count)
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const index = row * cols + col
+      const p = index * 4
+      const dark = 1 - (
+        sampled[p] * 0.2126 + sampled[p + 1] * 0.7152 + sampled[p + 2] * 0.0722
+      ) / 255
+      // Preserve the original double precision before storing Float32 values.
+      const random = hash01(config.revealSeed, col, row, 1)
+      darkness[index] = dark
+      thresholdOrder[index] = clamp((1 - dark + config.revealThresholdBias) * 0.68 + random * 0.32)
     }
   }
 

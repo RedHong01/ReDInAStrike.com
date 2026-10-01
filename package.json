@@ -16,9 +16,15 @@
     "audit:category-raster": "node scripts/audit-category-raster.mjs",
     "audit:category-performance": "node scripts/audit-category-performance.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs",
-    "audit:playable": "node scripts/audit-playable.mjs"
+    "audit:playable": "node scripts/audit-playable.mjs",
+    "audit:performance-equivalence": "node scripts/audit-performance-equivalence.mjs",
+    "audit:lossless-images": "node scripts/audit-lossless-images.mjs",
+    "audit:route-content": "node scripts/audit-route-content.mjs"
   },
   "engines": {
     "node": ">=24"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

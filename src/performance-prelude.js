@@ -149,6 +149,9 @@
     if (!task) return false
     task.active = false
     renderQueue.delete(id)
+    // A cancelled queued task will never reach flushRenderFrame's cleanup.
+    // Release its closure now; the snapshot still sees task.active === false.
+    renderTasks.delete(id)
     return true
   }
 

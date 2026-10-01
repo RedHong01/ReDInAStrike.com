@@ -704,14 +704,15 @@ function configureBodyObserver() {
   observing.forEach((block) => bodyObserver.observe(block))
 }
 
-function shouldTypeBodyBlock(block, candidateSet) {
+function shouldTypeBodyBlock(block) {
   if (!block.isConnected) return false
   if (block.matches(BODY_EXCLUDE_SELECTOR) || block.closest(BODY_EXCLUDE_SELECTOR)) return false
   if (block.dataset.typewriterBody) return false
 
-  for (const other of candidateSet) {
-    if (other !== block && block.contains(other)) return false
-  }
+  // The selector engine can find a nested candidate directly. This preserves
+  // the innermost-block rule without comparing every paragraph to every other
+  // paragraph, and already-bound blocks still return before doing any work.
+  if (block.querySelector(BODY_SELECTOR)) return false
 
   const text = (block.textContent || "").trim()
   return text.length >= 2
@@ -739,9 +740,8 @@ function scanBodyBlocks() {
   if (!bodyObserver) return
 
   const raw = [...document.querySelectorAll(BODY_SELECTOR)]
-  const candidateSet = new Set(raw)
   raw.forEach((block) => {
-    if (!shouldTypeBodyBlock(block, candidateSet)) return
+    if (!shouldTypeBodyBlock(block)) return
     block.dataset.typewriterBody = "observing"
     bodyObserver.observe(block)
   })

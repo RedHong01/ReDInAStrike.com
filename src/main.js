@@ -25,6 +25,7 @@ import { extendInstrumentCase, instrumentCopyTranslations } from "./instrument-s
 import { instrumentSectionRenderers } from "./instrument-renderers.js"
 import { prototypeHeroMarkup, projectPrototypes } from "./prototype-embeds.js"
 import { enhanceProjectTables } from "./table-row-focus.js"
+import { losslessImagePairs } from "./lossless-image-pairs.js"
 import {
   boundaryMetrics,
   boundaryVisibility,
@@ -1363,6 +1364,7 @@ function asset(path) {
 // .project-media and older browsers still get a usable source; browsers with
 // WebP support select the smaller candidate through srcset.
 const EXACT_WEBP_IMAGE_PAIRS = new Map([
+  ...losslessImagePairs,
   ["assets/framer-live/alt-controller-2025-a.png", "assets/framer-live/alt-controller-2025-a.webp"],
   ["assets/framer-live/alt-controller-2025-b.png", "assets/framer-live/alt-controller-2025-b.webp"],
   ["assets/framer-live/alt-controller-2025-c.png", "assets/framer-live/alt-controller-2025-c.webp"],

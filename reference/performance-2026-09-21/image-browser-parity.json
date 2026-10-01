@@ -1,0 +1,112 @@
+[
+  {
+    "engine": "chromium",
+    "images": [
+      {
+        "source": "assets/case-study/assets-hub/gallery.png",
+        "bytes": 17039360,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/case-study/assets-hub/search.png",
+        "bytes": 17039360,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/case-study/assets-hub/inspector.png",
+        "bytes": 16786432,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/case-study/assets-hub/settings.png",
+        "bytes": 17039360,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/13-zIT2xV17Q.png",
+        "bytes": 5420896,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/myfridge/wireframes-red.png",
+        "bytes": 4206672,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/15-bK7P1H_1k.png",
+        "bytes": 5017108,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/01-iPBd_9mAN.png",
+        "bytes": 1416496,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/02-we8S3oXEt.png",
+        "bytes": 1419672,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/14-ouluH8FSt.png",
+        "bytes": 3369600,
+        "differentBytes": 0
+      }
+    ]
+  },
+  {
+    "engine": "webkit",
+    "images": [
+      {
+        "source": "assets/case-study/assets-hub/gallery.png",
+        "bytes": 17039360,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/case-study/assets-hub/search.png",
+        "bytes": 17039360,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/case-study/assets-hub/inspector.png",
+        "bytes": 16786432,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/case-study/assets-hub/settings.png",
+        "bytes": 17039360,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/13-zIT2xV17Q.png",
+        "bytes": 5420896,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/myfridge/wireframes-red.png",
+        "bytes": 4206672,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/15-bK7P1H_1k.png",
+        "bytes": 5017108,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/01-iPBd_9mAN.png",
+        "bytes": 1416496,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/02-we8S3oXEt.png",
+        "bytes": 1419672,
+        "differentBytes": 0
+      },
+      {
+        "source": "assets/serial-deminer/14-ouluH8FSt.png",
+        "bytes": 3369600,
+        "differentBytes": 0
+      }
+    ]
+  }
+]

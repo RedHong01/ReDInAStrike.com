@@ -35,11 +35,31 @@ HTML.
 ## Build
 
 ```bash
+npm install
 npm run build
 ```
 
 The generated site is written to `dist/`. For GitHub Pages branch deploys, the
 current build is also committed in `docs/`.
+
+Production builds bundle and minify the entry modules, share common modules,
+and combine stylesheets in their original cascade order. Asset filenames include
+content hashes. Authored `src/` remains readable; the development server still
+serves it directly. Callback names are preserved because the render scheduler
+uses them to suspend footer work outside the viewport.
+
+`scripts/optimize-lossless-images.mjs` regenerates the verified lossless image
+variants with Sharp. It retains original dimensions and fallbacks, skips images
+with embedded color profiles, and rejects any decoded RGBA difference. The
+verification manifest is `reference/lossless-image-verification.json`.
+
+For an unchanged baseline served on a separate local port, run
+`node scripts/audit-performance-equivalence.mjs BASELINE_URL CANDIDATE_URL` to
+compare pixel fields, content, geometry, screenshots, and requested code bytes.
+`npm run audit:route-content -- BASELINE_URL CANDIDATE_URL` compares all entry
+routes in Chromium and WebKit. `npm run audit:lossless-images -- CANDIDATE_URL`
+also verifies browser color management. The measured results and known baseline
+test failures are in `reference/performance-2026-09-21/REPORT.md`.
 
 ## Fonts
 

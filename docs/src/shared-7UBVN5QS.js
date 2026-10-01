@@ -1,0 +1,40 @@
+import{a as O,b as C,c as l,d as p,e as s,f,g as S,h as R}from"./shared-U4RKCCOB.js";import{a as n}from"./shared-AFROVTVC.js";var d="red-active-color-working-config-v1",a=null,g=null,I=0,y=null;function w(t,e){try{return JSON.parse(localStorage.getItem(t)||"null")??e}catch{return e}}n(w,"loadJson");function v(t,e){try{localStorage.setItem(t,JSON.stringify(e))}catch{}}n(v,"saveJson");function D(){let t=new URLSearchParams(location.search).get("activeColorConfig");return t?R(t):null}n(D,"configFromUrl");function k(){let t=D();if(t)return v(d,t),t;let e=w(d,null),o=e?s(e):f(l);return v(d,o),o}n(k,"loadWorkingConfig");function A(t){return t?.dataset.open==="true"}n(A,"panelIsOpen");function u(t){let e=A(t)?s(a||l):f(l);window.__RED_ACTIVE_COLOR_CONFIG__=e,window.dispatchEvent(new CustomEvent("red:active-color-config",{detail:e}))}n(u,"publishRuntimeConfig");function U(t,e){return`${Number(e).toFixed(t.decimals??2)}${t.suffix||""}`}n(U,"formatValue");function F(t){return`
+    <label class="dither-lab__control">
+      <span class="dither-lab__control-head">
+        <span>${t.label}</span>
+        <output data-active-color-output="${t.key}"></output>
+      </span>
+      <input class="dither-lab__range" type="range"
+        min="${t.min}" max="${t.max}" step="${t.step}"
+        data-active-color-param="${t.key}" />
+    </label>`}n(F,"renderControl");function q(t){return`
+    <div class="dither-lab__motion-group">
+      <div class="dither-lab__motion-group-head">${t.title}</div>
+      <p class="dither-lab__motion-group-copy">${t.description}</p>
+      <div class="dither-lab__controls">${t.controls.map(F).join("")}</div>
+    </div>`}n(q,"renderGroup");function B(){return`
+    <section class="dither-lab__section" data-active-color-hub-section>
+      <div class="dither-lab__section-head">Active Color Snow</div>
+      <p class="dither-lab__section-copy">Category-matched cards now use the same pixel-screen language as the monochrome dither reveal, but every snow square is sampled from nearby colors in the original image. Filtered-out cards remain paper / ink Floyd.</p>
+
+      <div class="dither-lab__motion-toolbar">
+        <button class="dither-lab__action" type="button" data-active-color-action="toggle"></button>
+        <button class="dither-lab__action" type="button" data-active-color-action="replay">Replay color snow</button>
+      </div>
+
+      ${O.map(q).join("")}
+
+      <div class="dither-lab__motion-group">
+        <div class="dither-lab__motion-group-head">Color Snow Presets</div>
+        <p class="dither-lab__motion-group-copy">Use these as visual starting points; every value remains editable above.</p>
+        <div class="dither-lab__motion-presets">
+          ${p.map(t=>`
+            <button class="dither-lab__action" type="button" data-active-color-preset="${t.id}">${t.label}</button>`).join("")}
+        </div>
+      </div>
+    </section>`}n(B,"renderSection");function H(){if(document.getElementById("active-color-hub-runtime-style"))return;let t=document.createElement("style");t.id="active-color-hub-runtime-style",t.textContent=`
+    .dither-lab__action[data-active-color-action="toggle"].is-active {
+      background: var(--ink, #111);
+      color: var(--paper, #fff);
+    }
+  `,document.head.appendChild(t)}n(H,"ensureStyles");function b(t){t.querySelectorAll("[data-active-color-param]").forEach(o=>{let i=o.dataset.activeColorParam,r=C.get(i);if(!r)return;document.activeElement!==o&&(o.value=a[i]);let c=t.querySelector(`[data-active-color-output="${i}"]`);c&&(c.textContent=U(r,a[i]))});let e=t.querySelector('[data-active-color-action="toggle"]');e&&(e.textContent=a.activeColorEnabled?"Color snow enabled":"Color snow disabled",e.classList.toggle("is-active",a.activeColorEnabled),e.setAttribute("aria-pressed",a.activeColorEnabled?"true":"false"))}n(b,"syncInputs");function E(t,e,{replay:o=!0}={}){a=s({...a,...e}),v(d,a),b(t),u(t),o&&A(t)&&window.__RED_ACTIVE_COLOR_SNOW__?.replay?.(a)}n(E,"commitWorking");function G(t,e){let o=p.find(i=>i.id===e);o&&(E(t,o.values),m(t,`${o.label} loaded`))}n(G,"applyPreset");function m(t,e){let o=t.querySelector("[data-dither-toast]");o&&(o.textContent=e,o.classList.add("is-visible"),clearTimeout(I),I=setTimeout(()=>o.classList.remove("is-visible"),1800))}n(m,"showToast");async function _(t){if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(t);let e=document.createElement("textarea");e.value=t,e.style.position="fixed",e.style.opacity="0",document.body.appendChild(e),e.select(),document.execCommand("copy"),e.remove()}n(_,"copyText");async function L(){let[{PUBLISHED_DITHER_CONFIG:t},e,o]=await Promise.all([import("./shared-TIJMPZLA.js"),import("./shared-5AERPHDB.js"),import("./shared-QBGYFMPM.js")]),i=new URLSearchParams(location.search),r=i.get("ditherConfig")?e.decodeConfig(i.get("ditherConfig"),t):null,c=w("red-dither-working-config-v2",null),h=r||(c?e.sanitizeConfig(c,t):e.sanitizeConfig(t,t)),T=i.get("motionConfig")?o.decodeMotionConfig(i.get("motionConfig")):null,N=w("red-motion-working-config-v2",null),$=window.__RED_MOTION_CONFIG__,M=o.sanitizeMotionConfig(T||$||N||o.PUBLISHED_MOTION_CONFIG);return{dither:h,engine:e,publishedDither:t,motion:o,textMotion:M,activeColor:s(a)}}n(L,"getCombinedConfig");async function x(){let t=await L(),e=new URL(location.href);return e.searchParams.set("ditherHub","1"),e.searchParams.set("ditherConfig",t.engine.encodeConfig(t.dither,t.publishedDither)),e.searchParams.set("motionConfig",t.motion.encodeMotionConfig(t.textMotion)),e.searchParams.set("activeColorConfig",S(t.activeColor)),e.toString()}n(x,"buildCombinedRemixUrl");async function V(t){let e=t.target.closest?.("[data-dither-action]"),o=e?.closest?.(".dither-lab");if(!e||!o||o!==y)return;let i=e.dataset.ditherAction;if(i==="reset-published"){a=f(l),v(d,a),b(o),u(o);return}if(!["copy-url","copy-json","copy-publish"].includes(i))return;t.preventDefault(),t.stopImmediatePropagation();let r=await L();if(i==="copy-url"){await _(await x()),m(o,"Dither + reveal + color snow URL copied");return}if(i==="copy-json"){await _(JSON.stringify({dither:r.engine.sanitizeConfig(r.dither,r.publishedDither),motion:r.motion.sanitizeMotionConfig(r.textMotion),activeColor:s(r.activeColor)},null,2)),m(o,"Combined config JSON copied");return}let c=await x();await _(`Publish these dither + monochrome reveal + active-color-snow + text-motion defaults for RedHong01/ReDInAStrike.com: ${c}`),m(o,"Combined publish prompt copied")}n(V,"interceptCombinedCopy");function z(t,e){e.addEventListener("input",o=>{let i=o.target.closest("[data-active-color-param]");!i||!C.has(i.dataset.activeColorParam)||E(t,{[i.dataset.activeColorParam]:Number(i.value)})}),e.addEventListener("click",o=>{let i=o.target.closest("[data-active-color-preset]")?.dataset.activeColorPreset;if(i){G(t,i);return}let r=o.target.closest("[data-active-color-action]")?.dataset.activeColorAction;r==="toggle"?E(t,{activeColorEnabled:!a.activeColorEnabled}):r==="replay"&&(window.__RED_ACTIVE_COLOR_SNOW__?.replay?.(a),m(t,"Color snow replayed"))})}n(z,"bindSection");function J(t){if(!t)return!1;if(t.dataset.activeColorHubBound==="true")return y=t,b(t),u(t),!0;t.dataset.activeColorHubBound="true",y=t,H();let o=[...t.querySelectorAll(":scope > .dither-lab__section")].find(c=>c.querySelector(".dither-lab__section-head")?.textContent?.trim()==="Remix / Presets"),i=document.createElement("div");i.innerHTML=B().trim();let r=i.firstElementChild;return r?(o?t.insertBefore(r,o):t.appendChild(r),z(t,r),b(t),u(t),g?.disconnect(),g=new MutationObserver(c=>{c.some(h=>h.attributeName==="data-open")&&u(t)}),g.observe(t,{attributes:!0,attributeFilter:["data-open"]}),!0):!1}n(J,"bindPanel");function P(){return J(document.querySelector(".dither-lab"))}n(P,"tryBind");a=k();document.addEventListener("click",t=>{V(t)},!0);if(!P()){let t=new MutationObserver(o=>{!o.some(r=>[...r.addedNodes].some(c=>c instanceof Element&&(c.matches?.(".dither-lab")||c.querySelector?.(".dither-lab"))))||!P()||t.disconnect()}),e=document.body;e?t.observe(e,{childList:!0}):t.observe(document.documentElement,{childList:!0,subtree:!0})}

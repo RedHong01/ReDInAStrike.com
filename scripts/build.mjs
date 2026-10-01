@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, cp, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
+import { productionAssets } from "./production-assets.mjs"
 
 const root = resolve(".")
 const dist = join(root, "dist")
@@ -55,13 +56,15 @@ function renderTemplate(base) {
     .replaceAll("%BASE%", base)
 }
 
-const template = await readFile(join(root, "index.html"), "utf8")
+const production = await productionAssets(root, await readFile(join(root, "index.html"), "utf8"))
+const template = production.template
 
 async function writeSite(outRoot, { clean = false } = {}) {
   if (clean) await rm(outRoot, { recursive: true, force: true })
   await mkdir(outRoot, { recursive: true })
   await cp(join(root, "public"), outRoot, { recursive: true })
   await cp(join(root, "src"), join(outRoot, "src"), { recursive: true })
+  await production.write(outRoot)
 
   for (const route of routes) {
     const html = renderTemplate(baseFor(route))

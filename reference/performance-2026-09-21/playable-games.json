@@ -1,0 +1,134 @@
+[
+  {
+    "mode": "standalone",
+    "name": "DAD",
+    "initialized": true,
+    "fullscreen": true,
+    "fullscreenOnFocus": false,
+    "canvas": {
+      "width": 898,
+      "height": 561
+    },
+    "desktop": {
+      "left": 190,
+      "right": 1090,
+      "width": 900,
+      "height": 562.5,
+      "viewport": 1280,
+      "body": 1280
+    },
+    "mobile": {
+      "left": 40,
+      "right": 350,
+      "width": 310,
+      "height": 193.75,
+      "viewport": 390,
+      "body": 390
+    },
+    "failedAssets": [],
+    "errors": []
+  },
+  {
+    "mode": "standalone",
+    "name": "Slow’em Down",
+    "initialized": true,
+    "fullscreen": true,
+    "fullscreenOnFocus": false,
+    "canvas": {
+      "width": 898,
+      "height": 561
+    },
+    "desktop": {
+      "left": 190,
+      "right": 1090,
+      "width": 900,
+      "height": 562.5,
+      "viewport": 1280,
+      "body": 1280
+    },
+    "mobile": {
+      "left": 40,
+      "right": 350,
+      "width": 310,
+      "height": 193.75,
+      "viewport": 390,
+      "body": 390
+    },
+    "failedAssets": [],
+    "errors": []
+  },
+  {
+    "mode": "standalone",
+    "name": "Curtain",
+    "initialized": true,
+    "fullscreen": true,
+    "fullscreenOnFocus": true,
+    "canvas": {
+      "width": 1280,
+      "height": 960
+    },
+    "desktop": {
+      "left": 190,
+      "right": 1090,
+      "width": 900,
+      "height": 562.5,
+      "viewport": 1280,
+      "body": 1280
+    },
+    "mobile": {
+      "left": 40,
+      "right": 350,
+      "width": 310,
+      "height": 193.75,
+      "viewport": 390,
+      "body": 390
+    },
+    "failedAssets": [],
+    "errors": []
+  },
+  {
+    "mode": "drawer",
+    "name": "DAD",
+    "initialized": true,
+    "bounds": {
+      "left": 190,
+      "right": 1090,
+      "width": 900,
+      "height": 562.5,
+      "viewport": 1280,
+      "body": 1280
+    },
+    "unloadedOnClose": true,
+    "errors": []
+  },
+  {
+    "mode": "drawer",
+    "name": "Slow’em Down",
+    "initialized": true,
+    "bounds": {
+      "left": 190,
+      "right": 1090,
+      "width": 900,
+      "height": 562.5,
+      "viewport": 1280,
+      "body": 1280
+    },
+    "unloadedOnClose": true,
+    "errors": []
+  },
+  {
+    "mode": "drawer",
+    "name": "Curtain",
+    "initialized": true,
+    "bounds": {
+      "left": 190,
+      "right": 1090,
+      "width": 900,
+      "height": 562.5,
+      "viewport": 1280,
+      "body": 1280
+    },
+    "unloadedOnClose": true,
+    "errors": []
+  }
+]

@@ -1,0 +1,218 @@
+[
+  {
+    "run": 0,
+    "label": "before",
+    "category": "graphic",
+    "grid": {
+      "count": 16,
+      "total": 72.19999980926514,
+      "max": 6.5
+    },
+    "scriptMs": 533.029,
+    "taskMs": 741.7080000000001
+  },
+  {
+    "run": 0,
+    "label": "before",
+    "category": "game",
+    "grid": {
+      "count": 7,
+      "total": 7,
+      "max": 3.5
+    },
+    "scriptMs": 378.2180000000001,
+    "taskMs": 518.4830000000001
+  },
+  {
+    "run": 0,
+    "label": "before",
+    "category": "interaction",
+    "grid": {
+      "count": 9,
+      "total": 0,
+      "max": 0
+    },
+    "scriptMs": 366.91799999999995,
+    "taskMs": 509.525
+  },
+  {
+    "run": 0,
+    "label": "after",
+    "category": "graphic",
+    "grid": {
+      "count": 16,
+      "total": 18.700000047683716,
+      "max": 6.299999952316284
+    },
+    "scriptMs": 529.293,
+    "taskMs": 660.473
+  },
+  {
+    "run": 0,
+    "label": "after",
+    "category": "game",
+    "grid": {
+      "count": 7,
+      "total": 0.49999988079071045,
+      "max": 0.2999999523162842
+    },
+    "scriptMs": 368.66900000000004,
+    "taskMs": 457.93299999999994
+  },
+  {
+    "run": 0,
+    "label": "after",
+    "category": "interaction",
+    "grid": {
+      "count": 9,
+      "total": 0.20000004768371582,
+      "max": 0.10000002384185791
+    },
+    "scriptMs": 362.1329999999999,
+    "taskMs": 467.09000000000003
+  },
+  {
+    "run": 1,
+    "label": "after",
+    "category": "graphic",
+    "grid": {
+      "count": 16,
+      "total": 16.99999988079071,
+      "max": 6.400000095367432
+    },
+    "scriptMs": 509.421,
+    "taskMs": 628.6650000000001
+  },
+  {
+    "run": 1,
+    "label": "after",
+    "category": "game",
+    "grid": {
+      "count": 7,
+      "total": 0.5000001192092896,
+      "max": 0.30000007152557373
+    },
+    "scriptMs": 378.455,
+    "taskMs": 482.5099999999999
+  },
+  {
+    "run": 1,
+    "label": "after",
+    "category": "interaction",
+    "grid": {
+      "count": 9,
+      "total": 0.10000002384185791,
+      "max": 0.10000002384185791
+    },
+    "scriptMs": 359.935,
+    "taskMs": 473.5609999999999
+  },
+  {
+    "run": 1,
+    "label": "before",
+    "category": "graphic",
+    "grid": {
+      "count": 16,
+      "total": 65.200000166893,
+      "max": 5.800000071525574
+    },
+    "scriptMs": 526.815,
+    "taskMs": 677.276
+  },
+  {
+    "run": 1,
+    "label": "before",
+    "category": "game",
+    "grid": {
+      "count": 7,
+      "total": 7.399999976158142,
+      "max": 3.899999976158142
+    },
+    "scriptMs": 383.52199999999993,
+    "taskMs": 491.3569999999999
+  },
+  {
+    "run": 1,
+    "label": "before",
+    "category": "interaction",
+    "grid": {
+      "count": 9,
+      "total": 0,
+      "max": 0
+    },
+    "scriptMs": 363.486,
+    "taskMs": 472.1660000000001
+  },
+  {
+    "run": 2,
+    "label": "before",
+    "category": "graphic",
+    "grid": {
+      "count": 16,
+      "total": 65.59999990463257,
+      "max": 5.899999976158142
+    },
+    "scriptMs": 545.256,
+    "taskMs": 717.349
+  },
+  {
+    "run": 2,
+    "label": "before",
+    "category": "game",
+    "grid": {
+      "count": 7,
+      "total": 6.700000047683716,
+      "max": 3.5
+    },
+    "scriptMs": 365.124,
+    "taskMs": 512.324
+  },
+  {
+    "run": 2,
+    "label": "before",
+    "category": "interaction",
+    "grid": {
+      "count": 9,
+      "total": 0.10000002384185791,
+      "max": 0.10000002384185791
+    },
+    "scriptMs": 367.62399999999997,
+    "taskMs": 512.9139999999999
+  },
+  {
+    "run": 2,
+    "label": "after",
+    "category": "graphic",
+    "grid": {
+      "count": 16,
+      "total": 21.799999594688416,
+      "max": 6.700000047683716
+    },
+    "scriptMs": 502.81100000000004,
+    "taskMs": 660.516
+  },
+  {
+    "run": 2,
+    "label": "after",
+    "category": "game",
+    "grid": {
+      "count": 7,
+      "total": 0.5000001192092896,
+      "max": 0.30000007152557373
+    },
+    "scriptMs": 386.443,
+    "taskMs": 509.677
+  },
+  {
+    "run": 2,
+    "label": "after",
+    "category": "interaction",
+    "grid": {
+      "count": 9,
+      "total": 0.19999992847442627,
+      "max": 0.10000002384185791
+    },
+    "scriptMs": 360.973,
+    "taskMs": 491.48199999999997
+  }
+]

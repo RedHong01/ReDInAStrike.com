@@ -1,0 +1,92 @@
+[
+  {
+    "source": "assets/case-study/assets-hub/gallery.png",
+    "optimized": "assets/case-study/assets-hub/gallery.lossless.webp",
+    "before": 2842629,
+    "after": 1885772,
+    "width": 2560,
+    "height": 1664,
+    "pixelSha256": "207d4049e15665a86deae476ab509f56ddbab969c352e2af1cb30dfb6afd75cf"
+  },
+  {
+    "source": "assets/case-study/assets-hub/search.png",
+    "optimized": "assets/case-study/assets-hub/search.lossless.webp",
+    "before": 1779732,
+    "after": 1228410,
+    "width": 2560,
+    "height": 1664,
+    "pixelSha256": "a58cbe11c62babf63067cc1102252824bc2949f6a196aa7bb28f6c2c8c85b90f"
+  },
+  {
+    "source": "assets/case-study/assets-hub/inspector.png",
+    "optimized": "assets/case-study/assets-hub/inspector.lossless.webp",
+    "before": 1673121,
+    "after": 1110776,
+    "width": 2522,
+    "height": 1664,
+    "pixelSha256": "c889c74c486c18bd14100f55dfbc950b883b7297da71baf72e18a22937d45c35"
+  },
+  {
+    "source": "assets/case-study/assets-hub/settings.png",
+    "optimized": "assets/case-study/assets-hub/settings.lossless.webp",
+    "before": 1418321,
+    "after": 953854,
+    "width": 2560,
+    "height": 1664,
+    "pixelSha256": "972afa9bc1da47951f2f29748134fcbf1b64fb423ec4c6d0a7fd3131c926aeb1"
+  },
+  {
+    "source": "assets/serial-deminer/13-zIT2xV17Q.png",
+    "optimized": "assets/serial-deminer/13-zIT2xV17Q.lossless.webp",
+    "before": 988290,
+    "after": 518472,
+    "width": 1256,
+    "height": 1079,
+    "pixelSha256": "ca8457fcf321836aa9bd09eabcd3df3fbb5e0737a23230d20b4ee4e8da859aec"
+  },
+  {
+    "source": "assets/myfridge/wireframes-red.png",
+    "optimized": "assets/myfridge/wireframes-red.lossless.webp",
+    "before": 473772,
+    "after": 160810,
+    "width": 2007,
+    "height": 524,
+    "pixelSha256": "2004a67dd789a295bbf5d3730e9753b0bac8b0dde291edc032d3aab0f7ebfe48"
+  },
+  {
+    "source": "assets/serial-deminer/15-bK7P1H_1k.png",
+    "optimized": "assets/serial-deminer/15-bK7P1H_1k.lossless.webp",
+    "before": 387735,
+    "after": 140398,
+    "width": 1513,
+    "height": 829,
+    "pixelSha256": "b125dd22eb2753cb78ba0cbcf5d659dff845e6a07912b377d664fca8ca8f593d"
+  },
+  {
+    "source": "assets/serial-deminer/01-iPBd_9mAN.png",
+    "optimized": "assets/serial-deminer/01-iPBd_9mAN.lossless.webp",
+    "before": 262096,
+    "after": 104990,
+    "width": 794,
+    "height": 446,
+    "pixelSha256": "70477f36f7e7a4d3e3cfebbe574ef323364b29c7939db9c9cf0a0a1b080101a3"
+  },
+  {
+    "source": "assets/serial-deminer/02-we8S3oXEt.png",
+    "optimized": "assets/serial-deminer/02-we8S3oXEt.lossless.webp",
+    "before": 243626,
+    "after": 98020,
+    "width": 794,
+    "height": 447,
+    "pixelSha256": "0389dd03b123d5b0962f3fa72729d118ec92e7b97fa7b6dd9ff612eba5091d4d"
+  },
+  {
+    "source": "assets/serial-deminer/14-ouluH8FSt.png",
+    "optimized": "assets/serial-deminer/14-ouluH8FSt.lossless.webp",
+    "before": 200524,
+    "after": 80212,
+    "width": 1080,
+    "height": 780,
+    "pixelSha256": "f21f602d73db51d07f568b1b788274e562a09cec0f602f1f65abf08d6208761e"
+  }
+]

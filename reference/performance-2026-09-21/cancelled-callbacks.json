@@ -1,0 +1,20 @@
+[
+  {
+    "origin": "http://127.0.0.1:5175",
+    "pendingAfterCancellation": 5000,
+    "cancelledRuns": 0,
+    "order": [
+      "first",
+      "next-frame"
+    ]
+  },
+  {
+    "origin": "http://127.0.0.1:5173",
+    "pendingAfterCancellation": 0,
+    "cancelledRuns": 0,
+    "order": [
+      "first",
+      "next-frame"
+    ]
+  }
+]

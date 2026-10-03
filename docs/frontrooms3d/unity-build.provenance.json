@@ -1,0 +1,11 @@
+{
+  "source": "Frontrooms3D current assignment checkout",
+  "sourceRevision": "e13dde2",
+  "editor": "6000.3.10f1",
+  "target": "WebGL",
+  "package": "FrontRooms3D-cloud/WebGL",
+  "compression": "Brotli",
+  "threads": false,
+  "wasm2023": true,
+  "thumbnail": "Documentation/research/interaction_audit/images/00_start_room_view.png"
+}

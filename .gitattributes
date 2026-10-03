@@ -1,0 +1,2 @@
+public/frontrooms3d/Build/* filter=lfs diff=lfs merge=lfs -text
+docs/frontrooms3d/Build/* filter=lfs diff=lfs merge=lfs -text

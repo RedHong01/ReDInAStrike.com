@@ -115,6 +115,17 @@ const projects = [
     webglEmbed: "curtain-play/",
   },
   {
+    pageTitle: "FrontRooms 3D",
+    displayTitle: "Individual Game Project",
+    date: "10/2/2026-Present",
+    path: "/frontrooms-3d",
+    navHash: "ongoing",
+    image: "assets/case-study/FrontRoomsLogo.png",
+    imageFit: "contain",
+    mediaBackground: "#f4f3ef",
+    webglEmbed: "frontrooms3d/",
+  },
+  {
     pageTitle: "Build n Shoot",
     displayTitle: "Game Design Document",
     date: "12/9/2024",
@@ -3154,6 +3165,7 @@ function projectPreviewSummary(project) {
 
   const caseStudyLeadSummaries = {
     "/ongoing-game-project": "A 2D survival prototype about turning family help into a resource the player must manage.",
+    "/frontrooms-3d": "A first-person room-stream prototype about reading a shifting Backrooms-inspired sequence and finding a route through it.",
     "/game-prototype": "A mechanic prototype about reading a moving event and placing a local time-slowing zone.",
     "/shroom-pot-showdown": "An asymmetric chase between a drifting mushroom and hungry chopsticks.",
     "/alt-controller-2025-a": "A data-driven supermarket game about turning customer fields into shelf decisions.",

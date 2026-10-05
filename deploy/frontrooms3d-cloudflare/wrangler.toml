@@ -1,0 +1,14 @@
+# FrontRooms3D WebGL host: one Worker in front of one R2 bucket.
+# The game is reachable at https://frontrooms3d.<your-account-subdomain>.workers.dev/
+name = "frontrooms3d"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[[r2_buckets]]
+binding = "GAME"
+bucket_name = "frontrooms3d"
+
+[vars]
+# Key prefix inside the bucket. upload.mjs writes the package under this prefix.
+PREFIX = "frontrooms3d/"

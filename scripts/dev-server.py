@@ -87,6 +87,32 @@ def render_html(html, base):
     return html.replace("%BASE%", base)
 
 
+def unityweb_encoding(path):
+    """Unity WebGL Build/*.unityweb files are already Brotli- or gzip-compressed.
+
+    Sent with the matching Content-Encoding the browser decodes them natively;
+    otherwise Unity's loader decompresses them in JavaScript (about 3x slower to
+    start for FrontRooms, 13.8 s vs 4.3 s, 2026-10-03). Read from the file so a
+    gzip build is never labelled br. Mirrors unitywebEncoding() in server.mjs.
+    """
+    with open(path, "rb") as fh:
+        head = fh.read(64)
+    if head[:2] == b"\x1f\x8b":
+        return "gzip"
+    if b"UnityWeb Compressed Content (brotli)" in head:
+        return "br"
+    return None
+
+
+def unityweb_content_type(path):
+    inner = os.path.splitext(path[: -len(".unityweb")])[1].lower()
+    if inner == ".wasm":
+        return "application/wasm"
+    if inner == ".js":
+        return "text/javascript; charset=utf-8"
+    return "application/octet-stream"
+
+
 def resolve_under(root, request_path):
     """Join and confirm the result stays inside root (blocks ../ escapes)."""
     candidate = os.path.realpath(os.path.join(root, request_path.lstrip("/")))
@@ -140,6 +166,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_bytes(b"Not found", "text/plain; charset=utf-8", head_only, 404)
                 return
 
+        if target.endswith(".unityweb"):
+            self.send_unityweb(target, head_only)
+            return
+
         try:
             with open(target, "rb") as fh:
                 content = fh.read()
@@ -152,6 +182,30 @@ class Handler(BaseHTTPRequestHandler):
             content = render_html(content.decode("utf-8"), BASE).encode("utf-8")
 
         self.send_bytes(content, MIME.get(ext, "application/octet-stream"), head_only)
+
+    def send_unityweb(self, path, head_only=False):
+        encoding = unityweb_encoding(path)
+        accepted = bool(encoding) and re.search(
+            r"\b%s\b" % encoding, self.headers.get("Accept-Encoding") or ""
+        ) is not None
+        self.send_response(200)
+        self.send_header(
+            "content-type", unityweb_content_type(path) if accepted else "application/octet-stream"
+        )
+        if accepted:
+            self.send_header("content-encoding", encoding)
+        self.send_header("vary", "Accept-Encoding")
+        self.send_header("content-length", str(os.path.getsize(path)))
+        self.send_header("cache-control", "no-store")
+        self.end_headers()
+        if head_only:
+            return
+        with open(path, "rb") as fh:
+            while True:
+                chunk = fh.read(1 << 20)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
 
     def send_bytes(self, body, content_type, head_only=False, status=200):
         self.send_response(status)

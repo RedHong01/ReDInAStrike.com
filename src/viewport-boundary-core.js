@@ -4,8 +4,13 @@ const PREVIEW_ABOUT_SEAM_EPSILON_PX = 2
 let cachedBoundaryFrame = null
 let cachedBoundaryContext = null
 
-export const BOUNDARY_DEPTH_RATIO = 0.19
-export const BOUNDARY_DEPTH_MIN_PX = 132
+// Shorten the fade window so rules stay full length deeper into the viewport
+// and only begin shrinking when they are visibly close to a boundary.
+export const BOUNDARY_DEPTH_RATIO = 0.12
+// Keep the rule fully readable until it is closer to the viewport boundary.
+// The previous 132px minimum made the top catalogue rule begin shrinking
+// while it was still visibly part of the page's main composition.
+export const BOUNDARY_DEPTH_MIN_PX = 96
 export const BOUNDARY_DEPTH_MAX_PX = 310
 export const BOUNDARY_HOLD_RATIO = 0.012
 export const BOUNDARY_HOLD_MIN_PX = 6
@@ -23,12 +28,19 @@ function viewportHeight() {
 }
 
 function headerBottom(viewportBottom) {
+  // The painted edge owns the clipping window. A motion snapshot contains
+  // the last requested height, which can differ from the live bottom while
+  // CSS layout settles or the header changes its viewport position.
+  const header = document.querySelector(".site-header")
+  const rect = header?.getBoundingClientRect?.()
+  if (rect && Number.isFinite(rect.bottom) && rect.height > 0) {
+    return clamp(rect.bottom, 0, viewportBottom)
+  }
   const visualBottom = window.__RED_HEADER_MOTION__?.snapshot?.()?.visualBottom
   if (Number.isFinite(visualBottom) && visualBottom > 0) {
     return clamp(visualBottom, 0, viewportBottom)
   }
-  const header = document.querySelector(".site-header")
-  return clamp(header?.getBoundingClientRect?.().bottom || 0, 0, viewportBottom)
+  return 0
 }
 
 function followingRow(expandedRow, targetCard) {

@@ -10469,6 +10469,13 @@ window.addEventListener("red:public-dither-ready", (event) => {
   if (event?.detail?.generated) stopLegacyCatalogHalftoneWork()
 })
 window.addEventListener("popstate", handlePopState)
+// Header logo motion changes the catalogue width and every preceding row's
+// height. Discard the row positions captured at the previous width before
+// calculating a rule's distance from the header's live painted edge.
+window.addEventListener("red:layout-geometry-invalidated", () => {
+  invalidateRuleGeometry()
+  requestRuleFadeUpdate()
+}, { passive: true })
 const entryDrawerRoute = claimEntryRouteAsDrawer()
 render()
 installParagraphHoverCaret()
